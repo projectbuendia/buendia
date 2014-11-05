@@ -12,5 +12,18 @@ Preparation
 Building and running
 --------------------
 
-- `cd projectbuendia.openmrs`
-- `omrs-run`
+Enter the following commands:
+
+```
+cd projectbuendia.openmrs
+omrs-run
+```
+
+This will:
+- Build the module
+- Run the tests
+- Start OpenMRS
+
+Visit http://localhost:8080/openmrs to view the server; on the first
+run, it will take a while building the database etc, but after that the
+database will remain for future use.
