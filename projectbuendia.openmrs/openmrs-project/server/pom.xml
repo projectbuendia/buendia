@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.openmrs</groupId>
+		<artifactId>openmrs-project</artifactId>
+		<version>1.0.0</version>
+	</parent>
+
+	<groupId>org.openmrs</groupId>
+	<artifactId>openmrs-project-server</artifactId>
+	<version>1.0.0</version>
+	<packaging>pom</packaging>
+	<name>OpenMRS Server</name>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>deploy-to-server</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- 
+			
+			We'll configure tomcat7-maven-plugin later down the road to produce a standalone with war and all omods.
+			
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<version>2.1</version>
+				<executions>
+					<execution>
+						<id>tomcat-exec-war</id>
+						<goals>
+							<goal>exec-war-only</goal>
+						</goals>
+						<phase>package</phase>
+						<configuration>
+							<warRunDependencies>
+								<warRunDependency>
+									<dependency>
+										<groupId>org.openmrs.web</groupId>
+										<artifactId>openmrs-webapp</artifactId>
+										<version>${openMRSVersion}</version>
+										<type>war</type>
+									</dependency>
+									<contextPath>/openmrs</contextPath>
+								</warRunDependency>
+							</warRunDependencies>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			//-->
+
+			<plugin>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-maven-plugin</artifactId>
+				<configuration>
+					<webApp>
+						<contextPath>/openmrs</contextPath>
+						<extraClasspath>${project.build.directory}/db/h2-${h2Version}.jar</extraClasspath>
+					</webApp>
+					<war>${project.basedir}/openmrs/${openMRSVersion}/openmrs-${openMRSVersion}.war</war>
+					<systemProperties>
+						<systemProperty>
+							<name>OPENMRS_INSTALLATION_SCRIPT</name>
+							<value>${openmrs_install_script}</value>
+						</systemProperty>
+						<systemProperty>
+							<name>OPENMRS_APPLICATION_DATA_DIRECTORY</name>
+							<value>${openmrs_app_data_dir}</value>
+						</systemProperty>
+					</systemProperties>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>install-h2</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<openmrs_install_script>classpath:installation.h2.properties</openmrs_install_script>
+				<openmrs_app_data_dir>${project.basedir}/openmrs/${openMRSVersion}/</openmrs_app_data_dir>
+			</properties>
+		</profile>
+		<profile>
+			<id>install-wizard</id>
+			<properties>
+				<openmrs_install_script></openmrs_install_script>
+				<openmrs_app_data_dir>${project.basedir}/openmrs/${openMRSVersion}/</openmrs_app_data_dir>
+			</properties>
+		</profile>
+		<profile>
+			<id>clean-all</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-clean-plugin</artifactId>
+						<configuration>
+							<filesets>
+								<fileset>
+									<directory>openmrs</directory>
+								</fileset>
+							</filesets>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>

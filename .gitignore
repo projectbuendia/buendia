@@ -1,1 +1,5 @@
 *.class
+projectbuendia.openmrs/api/target
+projectbuendia.openmrs/omod/target
+projectbuendia.openmrs/openmrs-project/server/openmrs
+projectbuendia.openmrs/openmrs-project/server/target
