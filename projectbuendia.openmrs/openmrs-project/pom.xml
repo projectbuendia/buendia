@@ -21,8 +21,8 @@
   <properties> 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
     <openMRSVersion>RELEASE</openMRSVersion>  
-    <h2Version>1.2.135</h2Version>
-    <webservicesRestVersion>2.6</webservicesRestVersion>
+    <h2Version>1.2.135</h2Version>  
+    <webservicesRestVersion>2.6</webservicesRestVersion> 
   </properties>  
   <modules> 
     <module>server</module> 
@@ -54,12 +54,12 @@
                   <outputDirectory>${project.build.directory}/db</outputDirectory>  
                   <destFileName>h2-${h2Version}.jar</destFileName> 
                 </artifactItem>  
-                <artifactItem>
-                  <groupId>org.openmrs.module</groupId>
-                  <artifactId>webservices.rest-omod</artifactId>
-                  <version>${webservicesRestVersion}</version>
-                  <destFileName>webservices.rest.omod</destFileName>
-                </artifactItem>
+                <artifactItem> 
+                  <groupId>org.openmrs.module</groupId>  
+                  <artifactId>webservices.rest-omod</artifactId>  
+                  <version>${webservicesRestVersion}</version>  
+                  <destFileName>webservices.rest.omod</destFileName> 
+                </artifactItem>  
                 <artifactItem>
                   <groupId>org.msf</groupId>
                   <artifactId>projectbuendia.openmrs-omod</artifactId>
