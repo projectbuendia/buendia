@@ -20,13 +20,13 @@
 
 	
 	<!-- Module Activator -->
-	<activator>${project.parent.groupId}.${project.parent.artifactId}.ProjectBuendiaActivator</activator>
+	<activator>org.projectbuendia.openmrs.ProjectBuendiaActivator</activator>
 	
 	
 	<!-- Adds link to admin page -->
 	<extension>
 		<point>org.openmrs.admin.list</point>
-		<class>${project.parent.groupId}.${project.parent.artifactId}.extension.html.AdminList</class>
+		<class>org.projectbuendia.openmrs.extension.html.AdminList</class>
 	</extension>
 	
 	<!-- Maps hibernate file's, if present -->
