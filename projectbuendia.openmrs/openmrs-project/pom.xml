@@ -22,7 +22,8 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
     <openMRSVersion>RELEASE</openMRSVersion>  
     <h2Version>1.2.135</h2Version>  
-    <webservicesRestVersion>2.6</webservicesRestVersion> 
+    <webservicesRestVersion>2.6</webservicesRestVersion>  
+    <xformsVersion>4.3.1</xformsVersion> 
   </properties>  
   <modules> 
     <module>server</module> 
@@ -59,6 +60,12 @@
                   <artifactId>webservices.rest-omod</artifactId>  
                   <version>${webservicesRestVersion}</version>  
                   <destFileName>webservices.rest.omod</destFileName> 
+                </artifactItem>  
+                <artifactItem> 
+                  <groupId>org.openmrs.module</groupId>  
+                  <artifactId>xforms</artifactId>  
+                  <version>${xformsVersion}</version>  
+                  <destFileName>xforms.omod</destFileName> 
                 </artifactItem>  
                 <artifactItem>
                   <groupId>org.msf</groupId>

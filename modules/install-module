@@ -1,0 +1,14 @@
+#!/bin/bash
+if [ "$#" -ne 3 ]; then
+    echo "Usage: install-module [omrs-sdk-home] [module ID] [module version]"
+    echo "For example: install-module /opt/omrssdk-1.0.7 xforms 4.3.1"
+    exit 1
+fi
+
+maven=$1/apache-maven/bin/mvn
+moduleid=$2
+version=$3
+jarfile=$moduleid-$version.jar
+cp $moduleid-$version.omod $jarfile
+$maven install:install-file -DgroupId=org.openmrs.module -DartifactId=$moduleid -Dversion=$version -Dpackaging=jar -Dfile=$jarfile
+rm $jarfile
