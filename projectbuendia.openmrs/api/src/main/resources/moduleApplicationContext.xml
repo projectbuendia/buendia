@@ -24,16 +24,16 @@
 	<bean parent="serviceContext">
 		<property name="moduleService">
 			<list>
-				<value>${project.parent.groupId}.${project.parent.artifactId}.api.ProjectBuendiaService</value>
+				<value>org.projectbuendia.openmrs.api.ProjectBuendiaService</value>
 				<bean
 					class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
 					<property name="transactionManager">
 						<ref bean="transactionManager" />
 					</property>
 					<property name="target">
-						<bean class="${project.parent.groupId}.${project.parent.artifactId}.api.impl.ProjectBuendiaServiceImpl">
+						<bean class="org.projectbuendia.openmrs.api.impl.ProjectBuendiaServiceImpl">
 							<property name="dao">
-								<bean class="${project.parent.groupId}.${project.parent.artifactId}.api.db.hibernate.HibernateProjectBuendiaDAO">
+								<bean class="org.projectbuendia.openmrs.api.db.hibernate.HibernateProjectBuendiaDAO">
 									<property name="sessionFactory">
 										<ref bean="sessionFactory" />
 									</property>
