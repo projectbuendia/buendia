@@ -1,4 +1,4 @@
-package org.msf.projectbuendia.openmrs;
+package org.projectbuendia.openmrs;
 
 import java.io.Serializable;
 import org.openmrs.BaseOpenmrsObject;

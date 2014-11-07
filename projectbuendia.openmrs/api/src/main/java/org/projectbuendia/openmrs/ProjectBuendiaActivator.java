@@ -1,4 +1,4 @@
-package org.msf.projectbuendia.openmrs;
+package org.projectbuendia.openmrs;
 
 import org.apache.commons.logging.Log; 
 import org.apache.commons.logging.LogFactory;

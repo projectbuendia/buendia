@@ -3,7 +3,7 @@
     "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
     "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd" >
 
-<hibernate-mapping package="org.msf.projectbuendia.openmrs">
+<hibernate-mapping package="org.projectbuendia.openmrs">
 
 <!--
 	<class name="ProjectBuendia"

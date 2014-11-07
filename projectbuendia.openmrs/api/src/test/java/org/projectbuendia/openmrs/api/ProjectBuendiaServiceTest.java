@@ -1,9 +1,11 @@
-package org.msf.projectbuendia.openmrs.api;
+package org.projectbuendia.openmrs.api;
 
 import static org.junit.Assert.*;
+
 import org.junit.Test;
 import org.openmrs.api.context.Context;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 
 /**
  * Tests {@link ${ProjectBuendiaService}}.

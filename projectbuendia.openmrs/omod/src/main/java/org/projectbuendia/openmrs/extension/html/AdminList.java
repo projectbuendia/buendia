@@ -1,4 +1,4 @@
-package org.msf.projectbuendia.openmrs.extension.html;
+package org.projectbuendia.openmrs.extension.html;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
