@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>  
   <parent> 
     <artifactId>projectbuendia.openmrs</artifactId>  
-    <groupId>org.msf</groupId>  
+    <groupId>org.projectbuendia</groupId>  
     <version>1.0-SNAPSHOT</version> 
   </parent>  
   <groupId>org.openmrs</groupId>  
@@ -68,7 +68,7 @@
                   <destFileName>xforms.omod</destFileName> 
                 </artifactItem>  
                 <artifactItem>
-                  <groupId>org.msf</groupId>
+                  <groupId>org.projectbuendia</groupId>
                   <artifactId>projectbuendia.openmrs-omod</artifactId>
                   <version>1.0-SNAPSHOT</version>
                   <type>jar</type>

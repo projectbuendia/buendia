@@ -1,4 +1,4 @@
-package org.msf.projectbuendia.openmrs.api;
+package org.projectbuendia.openmrs.api;
 
 import org.openmrs.api.OpenmrsService;
 import org.springframework.transaction.annotation.Transactional;

@@ -1,6 +1,6 @@
-package org.msf.projectbuendia.openmrs.api.db;
+package org.projectbuendia.openmrs.api.db;
 
-import org.msf.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 
 /**
  * Database methods for {@link ProjectBuendiaService}.

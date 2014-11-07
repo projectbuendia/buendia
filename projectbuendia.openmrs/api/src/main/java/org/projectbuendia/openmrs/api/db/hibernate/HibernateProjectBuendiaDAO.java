@@ -1,9 +1,9 @@
-package org.msf.projectbuendia.openmrs.api.db.hibernate;
+package org.projectbuendia.openmrs.api.db.hibernate;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.SessionFactory;
-import org.msf.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 
 /**
  * Default implementation of {@link ProjectBuendiaDAO}.

@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>org.msf</groupId>
+		<groupId>org.projectbuendia</groupId>
 		<artifactId>projectbuendia.openmrs</artifactId>
 		<version>1.0-SNAPSHOT</version>
 	</parent>

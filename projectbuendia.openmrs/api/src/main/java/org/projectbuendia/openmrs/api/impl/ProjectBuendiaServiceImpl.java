@@ -1,10 +1,10 @@
-package org.msf.projectbuendia.openmrs.api.impl;
+package org.projectbuendia.openmrs.api.impl;
 
 import org.openmrs.api.impl.BaseOpenmrsService;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.msf.projectbuendia.openmrs.api.ProjectBuendiaService;
-import org.msf.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 
 /**
  * It is a default implementation of {@link ProjectBuendiaService}.
