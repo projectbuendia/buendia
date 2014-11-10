@@ -12,18 +12,20 @@ Preparation
 Building and running
 --------------------
 
-Enter the following commands, replacing /opt/omrssdk-1.0.7 with your
-SDK location:
+Enter the following commands, replacing
+/opt/omrssdk-1.0.7/apache-maven/bin with your installation of Maven.
+(If you have Maven installed already, type `which mvn` to find the
+relevant path.)
 
 ```
 cd modules
-./install-module /opt/omrssdk-1.0.7 xforms 4.3.1
+./install-modules /opt/omrssdk-1.0.7/apache-maven/bin
 cd projectbuendia.openmrs
 omrs-run
 ```
 
 This will:
-- Install the xforms module into the local Maven repo
+- Install the xforms jar files (omod and api) into the local Maven repo
 - Build the module
 - Run the tests
 - Start OpenMRS
