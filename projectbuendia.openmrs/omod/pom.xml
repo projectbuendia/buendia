@@ -53,6 +53,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.openmrs.module</groupId>
+			<artifactId>xforms-api</artifactId>
+			<version>${xformsVersion}</version>
+			<type>jar</type>
+			<scope>provided</scope>
+		</dependency>
 		<!-- End OpenMRS modules -->
 		
 
