@@ -21,7 +21,7 @@ relevant path.)
 cd modules
 ./install-modules /opt/omrssdk-1.0.7/apache-maven/bin
 cd projectbuendia.openmrs
-omrs-run
+omrs-run -Pinstall-wizard
 ```
 
 This will:
@@ -31,9 +31,12 @@ This will:
 - Start OpenMRS
 
 Visit http://localhost:8080/openmrs to view the server; on the first
-run, it will take a while building the database etc, but after that the
-database will remain for future use. (Log in with username admin,
-password Admin123.)
+run, it wlil ask you to go through the installation wizard. If this is
+the only version of OpenMRS you want on your system, you can use the
+"simple" option (and add demo data). Otherwise, use the "advanced"
+option and create a new MySQL database (e.g. openmrs-sdk).
+
+For future runs, just use `omrs-run` (no `-Pinstall-wizard`).
 
 Note: you need to make sure Maven is running with Java 7. The exact
 way of doing this will depend on your platform, but
@@ -61,3 +64,25 @@ The bit with "Java version" is important - it needs to be Java 1.7.
 Not Java 1.6 (or we won't be able to use Java 7 language constructs,
 which really help) and not Java 1.8 (which OpenMRS currently thinks
 isn't as recent as Java 1.6 - see https://issues.openmrs.org/browse/TRUNK-4514).
+
+REST collections exposed
+----
+
+This module exposes the following collections, under the
+`projectbuendia` namespace:
+
+xform
+=====
+
+(e.g. http://localhost:8080/openmrs/ws/rest/v1/projectbuendia/xform)
+
+Template xforms from the OpenMRS forms database.
+
+Supports:
+
+- List forms, e.g. .../xform
+- Fetch an individual form, e.g. .../xform/{form-uuid}
+- Default representation (just metadata) and full representation
+  (includes an `xml` property with the full XML)
+  
+For the full representation, use `?v=full` at the end of the URL.
