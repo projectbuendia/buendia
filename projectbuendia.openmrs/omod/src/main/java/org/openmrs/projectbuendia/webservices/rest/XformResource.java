@@ -87,7 +87,7 @@ public class XformResource implements Listable, Retrievable, Searchable {
 		jsonForm.add("links", getLinks(form));
 		if (representation == Representation.FULL) {
 			try {
-			    // TODO: Use description instead of name?
+			    // TODO(jonskeet): Use description instead of name?
 				jsonForm.add("xml", convertToOdkCollect(XformBuilderEx.buildXform(form), form.getName()));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
