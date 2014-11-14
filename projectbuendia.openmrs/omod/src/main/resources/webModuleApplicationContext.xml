@@ -27,7 +27,6 @@
 	<bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
 	
 	<context:component-scan base-package="org.projectbuendia.openmrs.web.controller" />
-	<context:component-scan base-package="org.projectbuendia.openmrs.webservices.rest" />
- 
+	<context:component-scan base-package="org.projectbuendia.openmrs.webservices.rest" /> 
 		
 </beans>
