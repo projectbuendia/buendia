@@ -1,5 +1,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 import static org.junit.Assert.assertEquals;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementIterable;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toIterable;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -18,6 +20,8 @@ import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -28,6 +32,14 @@ public class XformResourceTest {
         String input = readResourceAsString("sample-original-form1.xml");
         String expected = readResourceAsString("expected-result-form1.xml");
         String actual = XformResource.convertToOdkCollect(input, "Form title");
+        assertXmlEqual(expected, actual);
+    }
+
+    @Test
+    public void removeRelationshipNodes() throws Exception {
+        String input = readResourceAsString("relationships-original-form1.xml");
+        String expected = readResourceAsString("relationships-result-form1.xml");
+        String actual = XformResource.removeRelationshipNodes(input);
         assertXmlEqual(expected, actual);
     }
 
@@ -56,12 +68,17 @@ public class XformResourceTest {
     }
     
     /**
-     * Converts an XML document into a string, applying indentation.
-     * Note that this isn't quite as robust as I'd like it to be - the first child element
-     * appears not to get indented fully automatically, so the tests are still sensitive
-     * to that bit of indentation... but only that bit. Odd.
+     * Converts an XML document into a string, applying indentation. First all elements have their text
+     * content trimmed, just for simplicity. 
      */
     private static String toIndentedString(Document doc) throws TransformerException {
+        for (Element element : toElementIterable(doc.getElementsByTagName("*"))) {
+            for (Node node : toIterable(element.getChildNodes())) {
+                if (node.getNodeType() == Node.TEXT_NODE) {
+                    node.setNodeValue(node.getNodeValue().trim());
+                }
+            }
+        }
         Transformer transformer = TransformerFactory.newInstance().newTransformer();
         transformer.setOutputProperty(OutputKeys.INDENT, "yes");
         transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");

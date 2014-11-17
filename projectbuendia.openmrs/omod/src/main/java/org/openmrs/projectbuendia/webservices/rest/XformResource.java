@@ -1,5 +1,9 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementIterable;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toIterable;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -88,7 +92,10 @@ public class XformResource implements Listable, Retrievable, Searchable {
 		if (representation == Representation.FULL) {
 			try {
 			    // TODO(jonskeet): Use description instead of name?
-				jsonForm.add("xml", convertToOdkCollect(XformBuilderEx.buildXform(form), form.getName()));
+			    String xml = XformBuilderEx.buildXform(form);
+			    xml = convertToOdkCollect(xml, form.getName());
+			    xml = removeRelationshipNodes(xml);
+				jsonForm.add("xml", xml);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -145,6 +152,47 @@ public class XformResource implements Listable, Retrievable, Searchable {
         root.appendChild(body);
 	
 	    return XformsUtil.doc2String(doc);
+	}
+	
+	// VisibleForTesting
+	/**
+	 * Removes the relationship nodes added (unconditionally) by xforms. If XFRM-189 is fixed,
+	 * this method can go away.
+	 */
+	static String removeRelationshipNodes(String xml) throws IOException, SAXException {
+        Document doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
+        removeBinding(doc, "patient_relative");
+        removeBinding(doc, "patient_relative.person");
+        removeBinding(doc, "patient_relative.relationship");
+        
+        for (Element relative : toElementIterable(doc.getElementsByTagNameNS("", "patient_relative"))) {
+            removeNode(relative);
+        }
+        
+        // Remove every parent of a label element with a text of "RELATIONSHIPS". (Easiest
+        // way to find the ones added...)
+        for (Element label : toElementIterable(doc.getElementsByTagNameNS(XFORMS_NAMESPACE, "label"))) {
+            Element parent = (Element) label.getParentNode();
+            if (XFORMS_NAMESPACE.equals(parent.getNamespaceURI())
+                    && parent.getLocalName().equals("group") 
+                    && "RELATIONSHIPS".equals(label.getTextContent())) {
+                
+                removeNode(parent);
+                // We don't need to find other labels now, especially if they may already
+                // have been removed.
+                break;
+            }
+        }
+        return XformsUtil.doc2String(doc);
+	}
+	
+	private static void removeBinding(Document doc, String id) {
+	    for (Element binding : toElementIterable(doc.getElementsByTagNameNS(XFORMS_NAMESPACE, "bind"))) {
+            if (binding.getAttribute("id").equals(id)) {
+                removeNode(binding);
+                return;
+            }
+        }
 	}
     
     @Override
