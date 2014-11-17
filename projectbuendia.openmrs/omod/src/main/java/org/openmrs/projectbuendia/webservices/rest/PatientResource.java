@@ -1,5 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openmrs.*;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
@@ -37,21 +38,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public static final Location LOCATION = new Location(1);
     private final PatientService patientService;
 
+
     public PatientResource() {
         patientService = Context.getPatientService();
     }
 
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
-        List<SimpleObject> jsonResults = new ArrayList<>();
         List<Patient> patients = patientService.getAllPatients();
-        for (Patient patient : patients) {
-            SimpleObject jsonForm = patientToJson(patient);
-            jsonResults.add(jsonForm);
-        }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+        return getSimpleObjectFromPatientList(patients);
     }
 
     private SimpleObject patientToJson(Patient patient) {
@@ -108,6 +103,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         identifier.setCreator(patient.getCreator());
         identifier.setDateCreated(patient.getDateCreated());
         identifier.setIdentifier(id);
+        identifier.setLocation(LOCATION);
 
         identifier.setIdentifierType(identifierType);
         identifier.setPreferred(true);
@@ -127,7 +123,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     @Override
     public SimpleObject search(RequestContext requestContext) throws ResponseException {
-        throw new UnsupportedOperationException();
+        // Partial string query for searches.
+        String query = requestContext.getParameter("q");
+
+        // If set, also search on uuid. By default uuid is skipped.
+        boolean searchUuid = (requestContext.getParameter("searchUuid") != null);
+
+        // Retrieve all patients and filter the list based on the query.
+        List<Patient> filteredPatients = filterPatients(query, searchUuid, patientService.getAllPatients());
+
+        return getSimpleObjectFromPatientList(filteredPatients);
     }
 
     @Override
@@ -139,5 +144,55 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     @Override
     public List<Representation> getAvailableRepresentations() {
         return Arrays.asList(Representation.DEFAULT);
+    }
+
+    private List<Patient> filterPatients(String query, boolean searchUuid, List<Patient> allPatients) {
+        List<Patient> filteredPatients = new ArrayList<Patient>();
+
+        // Filter patients by id, name, and MSF id. Don't use patientService.getPatients() for
+        // this, as the behavior does not match the expected behavior from the API docs.
+        PatientIdentifierType msfIdentifierType = patientService.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
+        for (Patient patient : allPatients) {
+            boolean match = false;
+
+            // First check the patient's full name.
+            for (PersonName name : patient.getNames()) {
+                if(StringUtils.containsIgnoreCase(name.getFullName(), query)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            // Short-circuit on name match.
+            if (match) {
+                filteredPatients.add(patient);
+                continue;
+            }
+
+            // Next check the patient's MSF id.
+            for (PatientIdentifier identifier : patient.getPatientIdentifiers(msfIdentifierType)) {
+                if (StringUtils.containsIgnoreCase(identifier.getIdentifier(), query)) {
+                    match = true;
+                    break;
+                }
+            }
+
+            if (match || (searchUuid && StringUtils.containsIgnoreCase(patient.getUuid(), query))) {
+                filteredPatients.add(patient);
+            }
+        }
+
+        return filteredPatients;
+    }
+
+    private SimpleObject getSimpleObjectFromPatientList(List<Patient> patients) {
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Patient patient : patients) {
+            SimpleObject jsonForm = patientToJson(patient);
+            jsonResults.add(jsonForm);
+        }
+        SimpleObject list = new SimpleObject();
+        list.add("results", jsonResults);
+        return list;
     }
 }
