@@ -184,8 +184,10 @@ public class XformResource implements Listable, Retrievable, Searchable {
     }
 
     private List<Hyperlink> getLinks(Form form) {
-        List<Hyperlink> links = new ArrayList<>();        
-        links.add(new Hyperlink("self", getUri(form)));
+        Hyperlink self = new Hyperlink("self", getUri(form));
+        self.setResourceAlias("xform");
+        List<Hyperlink> links = new ArrayList<>();
+        links.add(self);
         return links;
     }
 
