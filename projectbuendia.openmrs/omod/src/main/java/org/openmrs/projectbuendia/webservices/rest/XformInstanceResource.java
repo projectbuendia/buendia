@@ -1,12 +1,9 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,15 +13,13 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 /**
  * Resource for instances of xforms (i.e. filled in forms). Currently write-only
@@ -34,19 +29,14 @@ import org.xml.sax.InputSource;
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*")
 public class XformInstanceResource implements Creatable {
 
-    private static final DocumentBuilder documentBuilder;
-
-    static {
-        try {
-            documentBuilder = DocumentBuilderFactory.newInstance()
-                    .newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    static String XML_PROPERTY = "xml";
+    static String PATIENT_ID_PROPERTY = "patient_id";
+    static String ENTERER_ID_PROPERTY = "enterer_id";
+    static String DATE_ENTERED_PROPERTY = "date_entered";
 
     private static final XformsQueueProcessor processor = new XformsQueueProcessor();
 
+    @SuppressWarnings("unused")
     private final Log log = LogFactory.getLog(getClass());
 
     @Override
@@ -56,37 +46,11 @@ public class XformInstanceResource implements Creatable {
     }
 
     @Override
-    public Object create(SimpleObject post, RequestContext context)
-            throws ResponseException {
-        String xml = (String) post.get("xml");
-        int patientId = (Integer) post.get("patient_id");
-        int entererId = (Integer) post.get("enterer_id");
-        String dateEntered = (String) post.get("date_entered");
-
+    public Object create(SimpleObject post, RequestContext context) throws ResponseException {
         try {
-            Document doc = documentBuilder.parse(new InputSource(
-                    new StringReader(xml)));
-
-            // Add patient element
-            Element patient = doc.createElement("patient");
-            Element patientIdElement = doc.createElement("patient.patient_id");
-            patientIdElement.setTextContent(String.valueOf(patientId));
-            doc.getDocumentElement().appendChild(patient);
-            patient.appendChild(patientIdElement);
-
-            // Modify header element
-            Element header = getElementOrThrow(doc.getDocumentElement(),
-                    "header");
-            getElementOrThrow(header, "enterer")
-                    .setTextContent(entererId + "^");
-            getElementOrThrow(header, "date_entered").setTextContent(
-                    dateEntered);
-
-            xml = XformsUtil.doc2String(doc);
-
+            String xml = completeXform(post);
             File file = File.createTempFile("projectbuendia", null);
-            processor.processXForm(xml, file.getAbsolutePath(), true,
-                    context.getRequest());
+            processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
             throw new GenericRestException("Error storing xform data", e);
         } catch (ResponseException e) {
@@ -99,13 +63,35 @@ public class XformInstanceResource implements Creatable {
         return post;
     }
 
-    private static Element getElementOrThrow(Element element, String name) {
-        NodeList elements = element.getElementsByTagName(name);
-        if (elements.getLength() != 1) {
-            throw new IllegalPropertyException("Element "
-                    + element.getNodeName() + " must have exactly one " + name
-                    + " element");
+    // VisibleForTesting
+    /**
+     * Add appropriate sections to the XForm we receive, to include patient ID
+     * (where present), etc.
+     */
+    static String completeXform(SimpleObject post) throws SAXException, IOException {
+        String xml = (String) post.get(XML_PROPERTY);
+        Integer patientId = (Integer) post.get(PATIENT_ID_PROPERTY);
+        int entererId = (Integer) post.get(ENTERER_ID_PROPERTY);
+        String dateEntered = (String) post.get(DATE_ENTERED_PROPERTY);
+        Document doc = XmlUtil.parse(xml);
+
+        // Add patient element if we've been given a patient ID.
+        // TODO(jonskeet): Is this okay if there's already a patient element?
+        // Need to see how the Xforms module behaves.
+        if (patientId != null) {
+            Element patient = doc.createElement("patient");
+            Element patientIdElement = doc.createElement("patient.patient_id");
+            patientIdElement.setTextContent(String.valueOf(patientId));
+            doc.getDocumentElement().appendChild(patient);
+            patient.appendChild(patientIdElement);
         }
-        return (Element) elements.item(0);
+
+        // Modify header element
+        Element header = getElementOrThrow(doc.getDocumentElement(), "header");
+        getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
+        getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
+
+        return XformsUtil.doc2String(doc);
     }
+
 }
