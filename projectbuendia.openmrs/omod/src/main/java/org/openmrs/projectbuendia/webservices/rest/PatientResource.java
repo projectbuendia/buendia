@@ -7,12 +7,15 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
+import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
+import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -20,7 +23,7 @@ import java.util.List;
  * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patient", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*")
-public class PatientResource implements Listable, Searchable {
+public class PatientResource implements Listable, Searchable, Retrievable {
 
     private final PatientService patientService;
 
@@ -33,17 +36,23 @@ public class PatientResource implements Listable, Searchable {
         List<SimpleObject> jsonResults = new ArrayList<>();
         List<Patient> patients = patientService.getAllPatients();
         for (Patient patient : patients) {
-            SimpleObject jsonForm = new SimpleObject();
-            jsonForm.add("id", patient.getUuid() /*TODO(nfortescue): patient.getPatientIdentifier().getIdentifier()*/);
-            jsonForm.add("given_name", patient.getGivenName());
-            jsonForm.add("family_name", patient.getFamilyName());
-            jsonForm.add("status", "probable" /* TODO(nfortescue): work out how to store this */);
-            jsonForm.add("gender", patient.getGender());
+            SimpleObject jsonForm = patientToJson(patient);
             jsonResults.add(jsonForm);
         }
         SimpleObject list = new SimpleObject();
         list.add("results", jsonResults);
         return list;
+    }
+
+    private SimpleObject patientToJson(Patient patient) {
+        SimpleObject jsonForm = new SimpleObject();
+        jsonForm.add("id", patient.getUuid() /*TODO(nfortescue): patient.getPatientIdentifier().getIdentifier()*/);
+        jsonForm.add("given_name", patient.getGivenName());
+        jsonForm.add("family_name", patient.getFamilyName());
+        jsonForm.add("status", "probable" /* TODO(nfortescue): work out how to store this */);
+        jsonForm.add("gender", patient.getGender());
+        jsonForm.add("created_timestamp_utc", patient.getDateCreated().getTime());
+        return jsonForm;
     }
 
     @Override
@@ -56,5 +65,16 @@ public class PatientResource implements Listable, Searchable {
     @Override
     public SimpleObject search(RequestContext requestContext) throws ResponseException {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object retrieve(String uuid, RequestContext requestContext) throws ResponseException {
+        Patient patient = patientService.getPatientByUuid(uuid);
+        return patientToJson(patient);
+    }
+
+    @Override
+    public List<Representation> getAvailableRepresentations() {
+        return Arrays.asList(Representation.DEFAULT);
     }
 }
