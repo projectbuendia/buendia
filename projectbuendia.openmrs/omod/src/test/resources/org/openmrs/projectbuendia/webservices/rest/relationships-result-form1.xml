@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<h:form xmlns:xf="http://www.w3.org/2002/xforms" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jr="http://openrosa.org/javarosa" xmlns:h="http://www.w3.org/1999/xhtml">
+  <h:head>
+  <h:title>Form title</h:title>
+  <xf:model id="openmrs_model">
+    <xf:instance id="openmrs_model_instance">
+      <form id="4" name="Weight observation" version="1" uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc" xmlns:openmrs="formentry.infopath_server_url cannot be empty/moduleServlet/formentry/forms/schema/4-1" xmlns:xd="http://schemas.microsoft.com/office/infopath/2003">
+  <header>
+    <enterer></enterer>
+    <date_entered></date_entered>
+    <session></session>
+    <uid></uid>
+  </header>
+  <patient>
+    <patient.birthdate openmrs_attribute="birthdate" openmrs_table="patient"/>
+  </patient>
+  <encounter>
+    <encounter.encounter_datetime openmrs_table="encounter" openmrs_attribute="encounter_datetime">'today()'</encounter.encounter_datetime>
+    <encounter.location_id openmrs_table="encounter" openmrs_attribute="location_id"></encounter.location_id>
+    <encounter.provider_id openmrs_table="encounter" openmrs_attribute="provider_id" provider_id_type="PROVIDER.ID"></encounter.provider_id>
+  </encounter>
+  <obs openmrs_concept="1238^MEDICAL RECORD OBSERVATIONS^99DCT" openmrs_datatype="ZZ">
+    <weight_kg openmrs_concept="5089^WEIGHT (KG)^99DCT" openmrs_datatype="NM">
+        <date xsi:nil="true"></date>
+        <time xsi:nil="true"></time>
+        <value xsi:nil="true"></value>
+    </weight_kg>
+  </obs>
+  </form>
+    </xf:instance>
+    <xf:bind id="encounter.encounter_datetime" nodeset="/form/encounter/encounter.encounter_datetime" type="xsd:date" constraint=". &amp;lt;= today()" jr:constraintMsg="Encounter date cannot be after today" required="true()" />
+    <xf:bind id="encounter.location_id" nodeset="/form/encounter/encounter.location_id" type="xsd:int" required="true()" />
+    <xf:bind id="encounter.provider_id" nodeset="/form/encounter/encounter.provider_id" type="xsd:int" required="true()" />
+    <xf:bind id="weight_kg" nodeset="/form/obs/weight_kg/value" type="xsd:decimal" constraint=". &amp;gt;= 0.0 and . &amp;lt;= 250.0" jr:constraintMsg="value should be between 0.0 and 250.0 inclusive" />
+  </xf:model>
+ </h:head>
+ <h:body>
+  <xf:group>
+    <xf:label>Page1</xf:label>
+    <xf:input bind="encounter.encounter_datetime">
+      <xf:label>ENCOUNTER DATETIME     </xf:label>
+    </xf:input>
+    <xf:select1 bind="encounter.location_id">
+      <xf:label>LOCATION ID     </xf:label>
+      <xf:item>
+        <xf:label>Unknown Location [1]</xf:label>
+        <xf:value>1</xf:value>
+      </xf:item>
+    </xf:select1>
+    <xf:select1 bind="encounter.provider_id">
+      <xf:label>PROVIDER ID     </xf:label>
+      <xf:item>
+        <xf:label>Ann Foo [100-1]</xf:label>
+        <xf:value>1</xf:value>
+      </xf:item>
+      <xf:item>
+        <xf:label>Nurse Bob [100-2]</xf:label>
+        <xf:value>2</xf:value>
+      </xf:item>
+    </xf:select1>
+    <xf:input bind="weight_kg">
+      <xf:label>WEIGHT (KG)</xf:label>
+      <xf:hint>Patient's weight in kilograms.</xf:hint>
+    </xf:input>
+  </xf:group>
+ </h:body>
+</h:form>
