@@ -1,18 +1,13 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrowNS;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementIterable;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toIterable;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,7 +23,6 @@ import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformBuilderEx;
@@ -37,8 +31,6 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -49,17 +41,8 @@ import org.xml.sax.SAXException;
 public class XformResource implements Listable, Retrievable, Searchable {
     private static String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
     private static String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
-    private static final DocumentBuilder documentBuilder;
-
-    static {
-        try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            documentBuilder = factory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    
+    @SuppressWarnings("unused")
 	private final Log log = LogFactory.getLog(getClass());
 
 	private FormService formService;
@@ -117,8 +100,8 @@ public class XformResource implements Listable, Retrievable, Searchable {
         // Change the namespace of the root element. I haven't figured out a way to do
         // this within a document; removing the root element from the document seems
         // to do odd things... so instead, we import it into a new document.
-	    Document oldDoc = documentBuilder.parse(new InputSource(new StringReader(xml)));
-	    Document doc = documentBuilder.newDocument();
+	    Document oldDoc = XmlUtil.parse(xml);
+	    Document doc = XmlUtil.getDocumentBuilder().newDocument();
 	    Element root = (Element) doc.importNode(oldDoc.getDocumentElement(), true);
 	    root = (Element) doc.renameNode(root, HTML_NAMESPACE, "h:form");
 	    doc.appendChild(root);
@@ -132,7 +115,7 @@ public class XformResource implements Listable, Retrievable, Searchable {
 
         // Find the model element to go in the head, and all its following siblings to go in the body.
         // We do this before moving any elements, for the sake of sanity.
-	    Element model = getElementOrThrow(root, XFORMS_NAMESPACE, "model");
+	    Element model = getElementOrThrowNS(root, XFORMS_NAMESPACE, "model");
         List<Node> nodesAfterModel = new ArrayList<>();
         Node nextSibling = model.getNextSibling();
         while (nextSibling != null) {
@@ -160,7 +143,7 @@ public class XformResource implements Listable, Retrievable, Searchable {
 	 * this method can go away.
 	 */
 	static String removeRelationshipNodes(String xml) throws IOException, SAXException {
-        Document doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
+        Document doc = XmlUtil.parse(xml);
         removeBinding(doc, "patient_relative");
         removeBinding(doc, "patient_relative.person");
         removeBinding(doc, "patient_relative.relationship");
@@ -225,15 +208,5 @@ public class XformResource implements Listable, Retrievable, Searchable {
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
         throw new UnsupportedOperationException();
-    }
-
-    private static Element getElementOrThrow(Element element, String namespaceURI, String localName) {
-        NodeList elements = element.getElementsByTagNameNS(namespaceURI, localName);
-        if (elements.getLength() != 1) {
-            throw new IllegalPropertyException("Element "
-                    + element.getNodeName() + " must have exactly one " + localName
-                    + " element");
-        }
-        return (Element) elements.item(0);
     }
 }
