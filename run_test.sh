@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#todo(pim) calculations in kbps, fill disk full, and generate /dev/zero data
+
 WORKSPACE="workspace/"
 
 #delete workspace
@@ -42,7 +44,7 @@ dd if=/dev/urandom of=$WORKSPACE/compare_internal_faulty bs=1048576 count=1
 $FAULTY_FILE_CREATION
 
 #copy the file to the device
-echo "Copying GOOD and FAULTY file file to USB...."
+echo "Copying GOOD and FAULTY file file to $CHECK_DIR ...."
 cp $WORKSPACE/compare_internal $CHECK_DIR/compare_external
 cp $WORKSPACE/compare_internal_faulty $CHECK_DIR/compare_external_faulty
 
