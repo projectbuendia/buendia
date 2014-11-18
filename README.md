@@ -5,6 +5,8 @@ Runs a stress and integrity test on a prompted disk.
 
 Instructions:
 
+###Last Pass: 1GB on 8GB SD and 1GB on 4GB USB
+
 ##1: Clone stressdisk in any directory
 ##2: run: bash run_tests.sh
 ##3: Enter the directory you'd like to test (make sure your device is mounted, e.g. /mnt/sd or /mnt/usb).
