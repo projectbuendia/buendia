@@ -73,6 +73,25 @@ select Modules, in the plus-sign menu click Import Module, then select
 the pom.xml file in projectbuendia.openmrs/.  Tick "Import Maven projects automatically"
 and "Search for projects recursively".
 
+To debug the running JVM in IntelliJ:
+
+1. Edit the omrssdk-1.0.7/bin/omrs-run script and change line 56 from
+
+    export MAVEN_OPTS="-Xmx768M -XX:MaxPermSize=256M"
+
+to
+
+    export MAVEN_OPTS="-Xmx768M -XX:MaxPermSize=256M $MAVEN_OPTS"
+
+2. Then in the shell where you run omrs-run, do this:
+
+    export MAVEN_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    omrs-run
+
+3. If this is working properly, you should see (within the first ~10 lines of output):
+
+    Listening for transport dt_socket at address: 5005
+
 REST collections exposed
 ----
 
