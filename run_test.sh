@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#todo(pim) calculations in kbps, fill disk full, and generate /dev/zero data
-
 WORKSPACE="workspace/"
 
 #delete workspace
@@ -13,6 +11,9 @@ read CHECK_DIR
 echo "Enter the size of the test file (MB)"
 read FILE_SIZE_MB
 
+echo "Enter data source (/dev/random, /dev/zero, /dev/urandom)"
+read DATA_SOURCE
+
 echo "Checking $CHECK_DIR with $FILE_SIZE_MB MB of random data"
 
 #create workspace if it does not yet exist
@@ -20,33 +21,35 @@ mkdir $WORKSPACE
 
 
 #create random file that we will run comparisons against
-echo "Generating file with a file size of 1 MB from /dev/urandom..."
+echo "Generating CORRECT compare file with a file size of 1 MB from $DATA_SOURCE.."
 
-dd if=/dev/urandom of=$WORKSPACE/compare_internal_base bs=1000000 count=1
+dd if=$DATA_SOURCE of=$WORKSPACE/compare_internal_base bs=1000000 count=1
 
 $CORRECT_FILE_CREATION
 
 #cat file into the internal file FILE_SIZE_MB times.
  COUNTER=0
          while [  $COUNTER -lt $FILE_SIZE_MB ]; do
-         	if [ $COUNTER%100==0 ]; then
-                echo "$COUNTER MB generated"
-			 fi
-         	 cat $WORKSPACE/compare_internal_base >> $WORKSPACE/compare_internal 
-             let COUNTER=COUNTER+1 
+            item=$COUNTER
+			total=$FILE_SIZE_MB
+			percent=$(printf '%i %i' $item $total | awk '{ pc=100*$1/$2; i=int(pc); print (pc-i<0.5)?i:i+1 }')
+			echo -ne "  $COUNTER MB generated ($percent%) \r"
+         	cat $WORKSPACE/compare_internal_base >> $WORKSPACE/compare_internal 
+            let COUNTER=COUNTER+1 
          done
 
+ls -lh $WORKSPACE
 
-echo "Generating faulty compare file.."
-
+echo "Generating RANDOM FAULTY compare file.."
+#always from urandom because /dev/zero will always be the same
 dd if=/dev/urandom of=$WORKSPACE/compare_internal_faulty bs=1048576 count=1
 
 $FAULTY_FILE_CREATION
 
 #copy the file to the device
 echo "Copying GOOD and FAULTY file file to $CHECK_DIR ...."
-cp $WORKSPACE/compare_internal $CHECK_DIR/compare_external
-cp $WORKSPACE/compare_internal_faulty $CHECK_DIR/compare_external_faulty
+rsync -ah --progress $WORKSPACE/compare_internal $CHECK_DIR/compare_external
+rsync -ah --progress $WORKSPACE/compare_internal_faulty $CHECK_DIR/compare_external_faulty
 
 #compare internal with external file
 echo "Starting integrity 1 by comparing local file with external file"
