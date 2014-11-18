@@ -65,6 +65,14 @@ Not Java 1.6 (or we won't be able to use Java 7 language constructs,
 which really help) and not Java 1.8 (which OpenMRS currently thinks
 isn't as recent as Java 1.6 - see https://issues.openmrs.org/browse/TRUNK-4514).
 
+IntelliJ
+----
+
+To set up the project in IntelliJ, go to File &gt; Project Structure...,
+select Modules, in the plus-sign menu click Import Module, then select
+the pom.xml file in projectbuendia.openmrs/.  Tick "Import Maven projects automatically"
+and "Search for projects recursively".
+
 REST collections exposed
 ----
 
