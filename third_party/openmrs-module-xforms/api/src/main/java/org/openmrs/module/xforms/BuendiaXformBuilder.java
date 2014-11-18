@@ -324,7 +324,7 @@ public class BuendiaXformBuilder {
         }
     }
     
-    public static void addProblemList(String token, Concept concept, boolean required,
+    private static void addProblemList(String token, Concept concept, boolean required,
                                     Locale locale, FormField formField) {
         
         Element groupNode = bodyNode.createElement(NAMESPACE_XFORMS, NODE_GROUP);
