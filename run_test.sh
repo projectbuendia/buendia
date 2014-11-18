@@ -3,9 +3,9 @@
 WORKSPACE="workspace/"
 
 #delete workspace
-rm -rf workspace
+rm -rf $WORKSPACE
 
-echo "Which directory do you want to check for integrity?"
+echo "Which directory do you want to check for integrity? (Directory must exist)"
 read CHECK_DIR
 
 echo "Enter the size of the test file (MB)"
@@ -14,7 +14,7 @@ read FILE_SIZE_MB
 echo "Checking $CHECK_DIR with $FILE_SIZE_MB MB of random data"
 
 #create workspace if it does not yet exist
-mkdir workspace
+mkdir $WORKSPACE
 
 
 #create random file that we will run comparisons against
