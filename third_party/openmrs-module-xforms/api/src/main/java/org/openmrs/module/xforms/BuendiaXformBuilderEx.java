@@ -114,9 +114,14 @@ public class BuendiaXformBuilderEx {
     }
     
     private String buildXformImpl(Form form) throws Exception {
-        boolean includeRelationshipNodes = !"false".equals(Context.getAdministrationService()
-            .getGlobalProperty(XformConstants.GLOBAL_PROP_KEY_INCLUDE_PATIENT_RELATIONSHIPS));
-        
+        boolean includeRelationshipNodes = false;
+        /*
+         * TODO(jonskeet): Reinstate this code when we're using a version of the
+         * Xforms modules which has that property. (Or just don't reinstate...)
+         *
+         *      !"false".equals(Context.getAdministrationService()
+         *  .getGlobalProperty(XformConstants.GLOBAL_PROP_KEY_INCLUDE_PATIENT_RELATIONSHIPS));
+         */
         //String schemaXml = XformsUtil.getSchema(form);
         String templateXml = FormEntryWrapper.getFormTemplate(form);
         
