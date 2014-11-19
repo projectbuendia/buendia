@@ -41,6 +41,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String STATUS = "status";
     private static final User CREATOR = new User(1);
     private static final String ID = "id";
+    private static final String UUID = "uuid";
     private static final String MSF_IDENTIFIER = "MSF";
     private static final String EBOLA_STATUS_PROGRAM_NAME = "Ebola status program";
     private static final String EBOLA_STATUS_PROGRAM_UUID = "849c86fa-6f3d-11e4-b2f4-040ccecfdba4";
@@ -122,6 +123,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         if (patient != null) {
+            jsonForm.add(UUID, patient.getId());
             PatientIdentifier patientIdentifier =
                     patient.getPatientIdentifier(getMsfIdentifierType());
             if (patientIdentifier != null) {
