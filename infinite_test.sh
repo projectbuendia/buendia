@@ -14,6 +14,9 @@ read CHECK_DIR
 echo "What block size (bytes) do you want to test with?"
 read BLOCK_SIZE
 
+echo "What data source (/dev/zero, /dev/random, /dev/urandom..) do you want to test with"
+read DATA_SOURCE
+
 #CHECK_DIR=/mnt/smallusb
 
 echo "Inifinite (1) or until disk full(2) ?"
@@ -25,7 +28,7 @@ mkdir $CHECK_DIR/sample_data/
 
 #create sample file of 40mb
 echo "generating sample file"
-dd if=/dev/urandom of=$WORKSPACE/sample bs=$BLOCK_SIZE count=1
+dd if=$DATA_SOURCE of=$WORKSPACE/sample bs=$BLOCK_SIZE count=1
 
 #start infinite loop that copies sample files to directed disk
  SUCCESS=0
