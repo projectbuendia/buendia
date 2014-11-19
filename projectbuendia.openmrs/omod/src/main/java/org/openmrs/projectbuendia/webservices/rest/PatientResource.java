@@ -19,10 +19,7 @@ import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Resource for xform templates (i.e. forms without data).
@@ -238,14 +235,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return identifierType;
     }
 
-    private Concept getConcept(String name, String uuid, String typeName) {
+    private Concept getConcept(String name, String uuid, String typeUuid) {
         ConceptService conceptService = Context.getConceptService();
         Concept concept = conceptService.getConceptByUuid(uuid);
         if (concept == null) {
             concept = new Concept();
             concept.setUuid(uuid);
             concept.setShortName(new ConceptName(name, new Locale("en")));
-            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
+            concept.setDatatype(conceptService.getConceptDatatypeByUuid(typeUuid));
             concept.setConceptClass(conceptService.getConceptClassByUuid(ConceptClass.MISC_UUID));
             conceptService.saveConcept(concept);
         }
@@ -286,7 +283,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             program.setName(EBOLA_STATUS_PROGRAM_NAME);
             program.setUuid(EBOLA_STATUS_PROGRAM_UUID);
             program.setDescription(EBOLA_STATUS_PROGRAM_NAME);
-            program.setConcept(getConcept(EBOLA_STATUS_PROGRAM_NAME, EBOLA_STATUS_PROGRAM_CONCEPT_UUID, "N/A"));
+            program.setConcept(getConcept(EBOLA_STATUS_PROGRAM_NAME,
+                    EBOLA_STATUS_PROGRAM_CONCEPT_UUID, ConceptDatatype.N_A_UUID));
             workflowService.saveProgram(program);
         }
         Set<ProgramWorkflow> workflows = program.getWorkflows();
@@ -294,11 +292,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             ProgramWorkflow workflow = new ProgramWorkflow();
             workflow.setName(EBOLA_STATUS_WORKFLOW_NAME);
             workflow.setDescription(EBOLA_STATUS_WORKFLOW_NAME);
-            workflow.setConcept(getConcept(EBOLA_STATUS_WORKFLOW_NAME, EBOLA_STATUS_WORKFLOW_CONCEPT_UUID, "N/A"));
+            workflow.setConcept(getConcept(EBOLA_STATUS_WORKFLOW_NAME,
+                    EBOLA_STATUS_WORKFLOW_CONCEPT_UUID, ConceptDatatype.N_A_UUID));
             workflow.setProgram(program);
             for (String[] keyNameUuid : EBOLA_STATUS_KEYS_NAMES_AND_UUIDS) {
                 ProgramWorkflowState state = new ProgramWorkflowState();
-                state.setConcept(getConcept(keyNameUuid[1], keyNameUuid[2], "CODED"));
+                state.setConcept(getConcept(keyNameUuid[1], keyNameUuid[2],
+                        ConceptDatatype.CODED_UUID));
                 state.setName(keyNameUuid[1]);
                 state.setInitial(false);
                 state.setTerminal(false);
