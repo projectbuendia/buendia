@@ -25,7 +25,7 @@ mkdir $CHECK_DIR/sample_data/
 
 #create sample file of 40mb
 echo "generating sample file"
-dd if=/dev/urandom of=$WORKSPACE/sample bs=BLOCK_SIZE count=1
+dd if=/dev/urandom of=$WORKSPACE/sample bs=$BLOCK_SIZE count=1
 
 #start infinite loop that copies sample files to directed disk
  SUCCESS=0
