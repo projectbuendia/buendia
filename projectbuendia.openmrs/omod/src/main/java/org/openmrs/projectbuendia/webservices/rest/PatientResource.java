@@ -2,9 +2,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openmrs.*;
-import org.openmrs.api.ConceptService;
-import org.openmrs.api.PatientService;
-import org.openmrs.api.ProgramWorkflowService;
+import org.openmrs.api.*;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -15,36 +13,50 @@ import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.response.ConversionException;
+import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Resource for xform templates (i.e. forms without data).
  * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patient", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*")
-public class PatientResource implements Listable, Searchable, Retrievable, Creatable {
+public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
+    // Fake values
+    private static final User CREATOR = new User(1);
+    private static final String FACILITY_NAME = "Kailahun";  // TODO(kpy): Use a real facility name.
 
+    // JSON property names
+    private static final String ID = "id";
     private static final String GENDER = "gender";
     private static final String AGE = "age";
     private static final String AGE_UNIT = "age_unit";  // "years" or "months"
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
+    private static final String ASSIGNED_ZONE = "assigned_zone";
+    private static final String ASSIGNED_TENT = "assigned_tent";
+    private static final String ASSIGNED_BED = "assigned_bed";
     private static final String STATUS = "status";
-    private static final User CREATOR = new User(1);
-    private static final String ID = "id";
+
+    // OpenMRS object names
     private static final String MSF_IDENTIFIER = "MSF";
     private static final String EBOLA_STATUS_PROGRAM_NAME = "Ebola status program";
+    private static final String EBOLA_STATUS_WORKFLOW_NAME = "Ebola status workflow";
+
+    // OpenMRS object UUIDs
     private static final String EBOLA_STATUS_PROGRAM_UUID = "849c86fa-6f3d-11e4-b2f4-040ccecfdba4";
     private static final String EBOLA_STATUS_PROGRAM_CONCEPT_UUID = "8c00e1b5-6f35-11e4-a3fa-040ccecfdba4";
     private static final String EBOLA_STATUS_WORKFLOW_CONCEPT_UUID = "107f9c7a-6f3b-11e4-ba22-040ccecfdba4";
-    private static final String EBOLA_STATUS_WORKFLOW_NAME = "Ebola status workflow";
+    private static final String ZONE_LOCATION_TAG_UUID = "1c22989d-3b87-47d3-9459-b54aafbd1169";
+    private static final String TENT_LOCATION_TAG_UUID = "4c92578f-cde9-4b99-b641-f3b9e0cc268d";
+    private static final String BED_LOCATION_TAG_UUID = "f2cf9e4e-a197-4c44-9290-0d3dd963838e";
+    private static final String ASSIGNED_ZONE_PERSON_ATTRIBUTE_TYPE_UUID = "dac2974a-6fd5-11e4-a895-040ccecfdba4";
+    private static final String ASSIGNED_TENT_PERSON_ATTRIBUTE_TYPE_UUID = "db7be13a-6fd5-11e4-8dc5-040ccecfdba4";
+    private static final String ASSIGNED_BED_PERSON_ATTRIBUTE_TYPE_UUID = "dba2db1e-6fd5-11e4-b3ed-040ccecfdba4";
 
     // The elements of each triple are:
     // 1. The key, which is how the status is represented in JSON.
@@ -63,6 +75,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     };
     private static Map<String, String> EBOLA_STATUS_KEYS_BY_UUID = new HashMap<>();
     private static Map<String, String> EBOLA_STATUS_UUIDS_BY_KEY = new HashMap<>();
+
     static {
         for (String[] keyNameUuid : EBOLA_STATUS_KEYS_NAMES_AND_UUIDS) {
             EBOLA_STATUS_KEYS_BY_UUID.put(keyNameUuid[2], keyNameUuid[0]);
@@ -70,17 +83,25 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    public static final Location LOCATION = new Location(1);
     private final PatientService patientService;
+    private final PersonAttributeType assignedZoneAttrType;
+    private final PersonAttributeType assignedTentAttrType;
+    private final PersonAttributeType assignedBedAttrType;
 
     public PatientResource() {
         patientService = Context.getPatientService();
+        assignedZoneAttrType = getPersonAttributeType(
+                ASSIGNED_ZONE_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_zone");
+        assignedTentAttrType = getPersonAttributeType(
+                ASSIGNED_TENT_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_tent");
+        assignedBedAttrType = getPersonAttributeType(
+                ASSIGNED_BED_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_bed");
     }
 
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
         List<Patient> patients = patientService.getAllPatients();
-        return getSimpleObjectFromPatientList(patients);
+        return getSimpleObjectWithResults(patients);
     }
 
     /**
@@ -111,7 +132,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return new Date(millis);
     }
 
-    /** Estimate the age of a person in years, given their birthdate. */
+    /**
+     * Estimate the age of a person in years, given their birthdate.
+     */
     private double birthDateToAge(Date birthDate) {
         return dateToFractionalYear(new Date()) -
                 dateToFractionalYear(birthDate);
@@ -139,6 +162,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
 
+            String assignedZoneId = getPersonAttributeValue(patient, assignedZoneAttrType);
+            if (assignedZoneId != null) {
+                jsonForm.add(ASSIGNED_ZONE, getLocationLeafName(assignedZoneId));
+            }
+            String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
+            if (assignedTentId != null) {
+                jsonForm.add(ASSIGNED_TENT, getLocationLeafName(assignedTentId));
+            }
+            String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
+            if (assignedZoneId != null) {
+                jsonForm.add(ASSIGNED_BED, getLocationLeafName(assignedBedId));
+            }
+
             PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
             PatientState patientState = patientProgram.getCurrentState(
                     getEbolaStatusProgramWorkflow());
@@ -156,16 +192,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // We really want this to use XForms, but lets have a simple default implementation for early testing
 
         if (!simpleObject.containsKey(ID)) {
-            throw new ConversionException("No id set in create request");
+            throw new InvalidObjectDataException("JSON object lacks required \"id\" field");
         }
         PatientIdentifierType identifierType = getMsfIdentifierType();
         ArrayList<PatientIdentifierType> identifierTypes = new ArrayList<>();
         identifierTypes.add(identifierType);
-        String id = (String)simpleObject.get(ID);
+        String id = (String) simpleObject.get(ID);
         List<Patient> existing =
                 patientService.getPatients(null, id, identifierTypes, true /* exact identifier match */);
         if (!existing.isEmpty()) {
-            throw new ConversionException("Creating an object that already exists " + id);
+            throw new InvalidObjectDataException("Patient with this ID already exists: " + id);
         }
 
         Patient patient = new Patient();
@@ -174,7 +210,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.setDateCreated(new Date());
 
         if (simpleObject.containsKey(GENDER)) {
-            patient.setGender((String)simpleObject.get(GENDER));
+            patient.setGender((String) simpleObject.get(GENDER));
         }
         if (simpleObject.containsKey(AGE)) {
             double number = ((Number) simpleObject.get(AGE)).doubleValue();
@@ -190,7 +226,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         PersonName pn = new PersonName();
         if (simpleObject.containsKey(GIVEN_NAME)) {
-            pn.setGivenName((String)simpleObject.get(GIVEN_NAME));
+            pn.setGivenName((String) simpleObject.get(GIVEN_NAME));
         }
         if (simpleObject.containsKey(FAMILY_NAME)) {
             pn.setFamilyName((String) simpleObject.get(FAMILY_NAME));
@@ -205,10 +241,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         identifier.setCreator(patient.getCreator());
         identifier.setDateCreated(patient.getDateCreated());
         identifier.setIdentifier(id);
-        identifier.setLocation(LOCATION);
+        identifier.setLocation(getLocationByName(FACILITY_NAME, null, null));
         identifier.setIdentifierType(identifierType);
         identifier.setPreferred(true);
         patient.addIdentifier(identifier);
+
+        // Assigned zone, tent, and bed (convert integer 2 to string "2")
+        setPatientAssignedLocation(patient, FACILITY_NAME,
+                "" + simpleObject.get("assigned_zone"),
+                "" + simpleObject.get("assigned_tent"),
+                "" + simpleObject.get("assigned_bed"));
         patientService.savePatient(patient);
 
         // Status
@@ -238,7 +280,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return identifierType;
     }
 
-    private Concept getConcept(String name, String uuid, String typeName) {
+    public static Concept getConcept(String name, String uuid, String typeName) {
         ConceptService conceptService = Context.getConceptService();
         Concept concept = conceptService.getConceptByUuid(uuid);
         if (concept == null) {
@@ -252,12 +294,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return concept;
     }
 
-    /** Get the key (e.g. "confirmed") for an ebola status by workflow state. */
+    /**
+     * Get the key (e.g. "confirmed") for an ebola status by workflow state.
+     */
     private String getKeyByState(ProgramWorkflowState state) {
         return EBOLA_STATUS_KEYS_BY_UUID.get(state.getConcept().getUuid());
     }
 
-    /** Get the workflow state for an ebola status by key (e.g. "suspected"). */
+    /**
+     * Get the workflow state for an ebola status by key (e.g. "suspected").
+     */
     private ProgramWorkflowState getStateByKey(String key) {
         ProgramWorkflow workflow = getEbolaStatusProgramWorkflow();
         ConceptService conceptService = Context.getConceptService();
@@ -272,12 +318,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         return workflow;
     }
+
     /**
      * Get the "Ebola status" Program, creating the Program if it doesn't exist yet
      * (including its ProgramWorkflow, the workflow's ProgramWorkflowStates, and the
      * Concepts corresponding to those states).
      */
-    private Program getEbolaStatusProgram() {
+    public static Program getEbolaStatusProgram() {
         ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
 
         Program program = workflowService.getProgramByUuid(EBOLA_STATUS_PROGRAM_UUID);
@@ -314,7 +361,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
      * Get the PatientProgram associating this Patient with the "Ebola status" Program,
      * creating the PatientProgram if it doesn't exist yet.
      */
-    private PatientProgram getEbolaStatusPatientProgram(Patient patient) {
+    public static PatientProgram getEbolaStatusPatientProgram(Patient patient) {
         ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
         Program program = getEbolaStatusProgram();
         List<PatientProgram> patientPrograms =
@@ -349,12 +396,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // Retrieve all patients and filter the list based on the query.
         List<Patient> filteredPatients = filterPatients(query, searchUuid, patientService.getAllPatients());
 
-        return getSimpleObjectFromPatientList(filteredPatients);
+        return getSimpleObjectWithResults(filteredPatients);
     }
 
     @Override
     public Object retrieve(String uuid, RequestContext requestContext) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
+        if (patient == null) {
+            throw new ObjectNotFoundException();
+        }
         return patientToJson(patient);
     }
 
@@ -374,7 +424,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
             // First check the patient's full name.
             for (PersonName name : patient.getNames()) {
-                if(StringUtils.containsIgnoreCase(name.getFullName(), query)) {
+                if (StringUtils.containsIgnoreCase(name.getFullName(), query)) {
                     match = true;
                     break;
                 }
@@ -402,14 +452,177 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return filteredPatients;
     }
 
-    private SimpleObject getSimpleObjectFromPatientList(List<Patient> patients) {
+    private SimpleObject getSimpleObjectWithResults(List<Patient> patients) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Patient patient : patients) {
-            SimpleObject jsonForm = patientToJson(patient);
-            jsonResults.add(jsonForm);
+            jsonResults.add(patientToJson(patient));
         }
         SimpleObject list = new SimpleObject();
         list.add("results", jsonResults);
         return list;
+    }
+
+    private static LocationTag getLocationTag(String uuid, String name) {
+        LocationService locationService = Context.getLocationService();
+        LocationTag tag = locationService.getLocationTagByUuid(uuid);
+        if (tag == null) {
+            tag = new LocationTag();
+            tag.setUuid(uuid);
+            tag.setName(name);
+            tag.setDescription(name);
+            locationService.saveLocationTag(tag);
+        }
+        return tag;
+    }
+
+    private static PersonAttributeType getPersonAttributeType(String uuid, String name) {
+        PersonService personService = Context.getPersonService();
+        PersonAttributeType personAttributeType = personService.getPersonAttributeTypeByUuid(uuid);
+        if (personAttributeType == null) {
+            personAttributeType = new PersonAttributeType();
+            personAttributeType.setUuid(uuid);
+            personAttributeType.setName(name);
+            personAttributeType.setDescription(name);
+            personService.savePersonAttributeType(personAttributeType);
+        }
+        return personAttributeType;
+    }
+
+    private static Location getLocationByName(String locationName, LocationTag tag, Location parent) {
+        LocationService locationService = Context.getLocationService();
+        Location location = locationService.getLocation(locationName);
+        if (location == null) {
+            location = new Location();
+            location.setName(locationName);
+            location.setDescription(locationName);
+            if (tag != null) {
+                Set<LocationTag> tags = new HashSet<>();
+                tags.add(tag);
+                location.setTags(tags);
+            }
+            if (parent != null) {
+                location.setParentLocation(parent);
+            }
+            locationService.saveLocation(location);
+        }
+        return location;
+    }
+
+    private static String getLocationLeafName(String locationId) {
+        LocationService locationService = Context.getLocationService();
+        Location location = locationService.getLocation(Integer.valueOf(locationId));
+        if (location != null) {
+            // The location name is a path consisting of comma-separated components,
+            // with each component prefixed by the tag name for that level.
+            String locationName = location.getName();
+            String[] components = locationName.split(",");
+            String leafName = components[components.length - 1].trim();
+            for (LocationTag tag : location.getTags()) {
+                String tagUuid = tag.getUuid();
+                String tagName = tag.getName();
+                if (ZONE_LOCATION_TAG_UUID.equals(tagUuid) ||
+                        TENT_LOCATION_TAG_UUID.equals(tagUuid) ||
+                        BED_LOCATION_TAG_UUID.equals(tagUuid)) {
+                    if (leafName.startsWith(tagName)) {
+                        leafName = leafName.substring(tagName.length()).trim();
+                    }
+                }
+            }
+            return leafName;
+        }
+        return null;
+    }
+
+    private static Location getLocationByPath(String facilityName, String zoneName, String tentName, String bedName) {
+        LocationTag zoneTag = getLocationTag(ZONE_LOCATION_TAG_UUID, "Zone");
+        LocationTag tentTag = getLocationTag(TENT_LOCATION_TAG_UUID, "Tent");
+        LocationTag bedTag = getLocationTag(BED_LOCATION_TAG_UUID, "Bed");
+
+        // To ensure that each Location has a unique name, construct a fully qualified
+        // location name consisting of comma-separated components, with each component
+        // prefixed by the tag name for that level, e.g. "Facility Kailahun, Zone 2, Tent 1"
+        // as distinct from "Tent 1" in any other zone or facility.
+        String facilityLocationName = null;
+        String zoneLocationName = null;
+        String tentLocationName = null;
+        String bedLocationName = null;
+        Location result = null;
+        if (facilityName != null) {
+            facilityLocationName = "Facility " + facilityName;
+            Location facility = result = getLocationByName(facilityLocationName, null, null);
+            if (zoneName != null) {
+                zoneLocationName = facilityLocationName + ", Zone " + zoneName;
+                Location zone = result = getLocationByName(zoneLocationName, zoneTag, facility);
+                if (tentName != null) {
+                    tentLocationName = zoneLocationName + ", Tent " + tentName;
+                    Location tent = result = getLocationByName(tentLocationName, tentTag, zone);
+                    if (bedName != null) {
+                        bedLocationName = tentLocationName + ", Bed " + bedName;
+                        Location bed = result = getLocationByName(bedLocationName, bedTag, tent);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Object update(String uuid, SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+        Patient patient = patientService.getPatientByUuid(uuid);
+        if (patient == null) {
+            throw new ObjectNotFoundException();
+        }
+
+        String facilityName = FACILITY_NAME;
+        String zoneName = getPersonAttributeValue(patient, assignedZoneAttrType);
+        String tentName = getPersonAttributeValue(patient, assignedTentAttrType);
+        String bedName = getPersonAttributeValue(patient, assignedBedAttrType);
+
+        for (String key : simpleObject.keySet()) {
+            if ("assigned_zone".equals(key)) {
+                zoneName = (String) simpleObject.get(key);
+            } else if ("assigned_tent".equals(key)) {
+                tentName = (String) simpleObject.get(key);
+            } else if ("assigned_bed".equals(key)) {
+                bedName = (String) simpleObject.get(key);
+            } else {
+                throw new InvalidObjectDataException("Patient has no such property or property is not updatable: " + key);
+            }
+        }
+        setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
+        return patient;
+    }
+
+    private void setPatientAssignedLocation(
+            Patient patient, String facilityName, String zoneName, String tentName, String bedName) {
+        if (zoneName != null) {
+            setPersonAttributeValue(patient, assignedZoneAttrType,
+                    "" + getLocationByPath(facilityName, zoneName, null, null).getLocationId());
+            if (tentName != null) {
+                setPersonAttributeValue(patient, assignedTentAttrType,
+                        "" + getLocationByPath(facilityName, zoneName, tentName, null).getLocationId());
+                if (bedName != null) {
+                    setPersonAttributeValue(patient, assignedBedAttrType,
+                            "" + getLocationByPath(facilityName, zoneName, tentName, bedName).getLocationId());
+                }
+            }
+        }
+    }
+
+    private static String getPersonAttributeValue(Person person, PersonAttributeType attrType) {
+        PersonAttribute attribute = person.getAttribute(attrType);
+        return attribute != null ? attribute.getValue() : null;
+    }
+
+    private static void setPersonAttributeValue(Person person, PersonAttributeType attrType, String value) {
+        PersonService personService = Context.getPersonService();
+        PersonAttribute attribute = person.getAttribute(attrType);
+        if (attribute == null) {
+            attribute = new PersonAttribute();
+            attribute.setAttributeType(attrType);
+            person.addAttribute(attribute);
+        }
+        attribute.setValue(value);
+        personService.savePerson(person);
     }
 }
