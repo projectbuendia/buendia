@@ -63,6 +63,13 @@
 				
 		<!-- End OpenMRS core -->
 		
+		<dependency>
+            <groupId>org.openmrs.module.xforms</groupId>
+            <artifactId>kxml2</artifactId>
+            <version>2.3.0</version>
+            <type>jar</type>
+            <scope>compile</scope>
+        </dependency>
 	</dependencies>
 	
 	<build>
