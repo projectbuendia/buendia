@@ -1,10 +1,5 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -19,7 +14,13 @@ import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import java.io.File;
+import java.io.IOException;
+
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
 
 /**
  * Resource for instances of xforms (i.e. filled in forms). Currently write-only
@@ -75,23 +76,38 @@ public class XformInstanceResource implements Creatable {
         String dateEntered = (String) post.get(DATE_ENTERED_PROPERTY);
         Document doc = XmlUtil.parse(xml);
 
+        // If we haven't been given a patient id, then the XForms processor will create a patient
+        // then fill in the patient.patient_id in the DOM. However, it won't actually create the node,
+        // just fill it in. So whatever the case, make sure a patient.patient_id node exists.
+
+        Element root = doc.getDocumentElement();
+        Element patient = getFirstElementOrCreate(doc, root, "patient");
+        Element patientIdElement = getFirstElementOrCreate(doc, patient, "patient.patient_id");
+
         // Add patient element if we've been given a patient ID.
         // TODO(jonskeet): Is this okay if there's already a patient element?
         // Need to see how the Xforms module behaves.
         if (patientId != null) {
-            Element patient = doc.createElement("patient");
-            Element patientIdElement = doc.createElement("patient.patient_id");
             patientIdElement.setTextContent(String.valueOf(patientId));
-            doc.getDocumentElement().appendChild(patient);
-            patient.appendChild(patientIdElement);
         }
 
         // Modify header element
-        Element header = getElementOrThrow(doc.getDocumentElement(), "header");
+        Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
         getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
 
         return XformsUtil.doc2String(doc);
     }
 
+    private static Element getFirstElementOrCreate(Document doc, Element parent, String elementName) {
+        NodeList patientElements = parent.getElementsByTagName(elementName);
+        Element patient;
+        if (patientElements == null || patientElements.getLength() == 0) {
+            patient = doc.createElement(elementName);
+            parent.appendChild(patient);
+        } else {
+            patient = (Element)patientElements.item(0);
+        }
+        return patient;
+    }
 }
