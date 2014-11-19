@@ -19,27 +19,29 @@ CHECK_DIR=/mnt/smallusb
 rm -rf $CHECK_DIR/sample_data/
 mkdir $CHECK_DIR/sample_data/
 
-#create sample file
-dd if=/dev/urandom of=$WORKSPACE/sample bs=4000 count=1
+#create sample file of 40mb
+dd if=/dev/urandom of=$WORKSPACE/sample bs=40000000 count=1
 
 #start infinite loop that copies sample files to directed disk
  SUCCESS=0
  FAILS=0
- COUNTER=0
+ COUNTER=1
  MAX_TIMES=2147000000
-         while [  $COUNTER -lt $MAX_TIMES ]; do
-         	cp $WORKSPACE/sample $CHECK_DIR/sample_data/$COUNTER.sample 
+         while [  $COUNTER > 0 ]; do
+         	cat $WORKSPACE/sample > $CHECK_DIR/sample_data/$COUNTER.sample 
          	if [ $? -eq 0 ]; then
          		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/$COUNTER.sample && let SUCCESS=SUCCESS+1  || let FAILS=FAILS+1 
          	else 
+         		# if copying fails, check if disk is more than or 99% full. Then check if first file is still in tact. If true, retry.
 			df -h $CHECK_DIR | awk '{ print $5 }' | cut -d'%' -f1 | grep -o '[0-9]*' |  while read usep; do
 			if [[ $usep = *[[:digit:]]* ]]; then
-			 	if [ $usep -ge 15 ]; then
+			 	if [ $usep -ge 99 ]; then
+			 		#enable to do disk ful write
+			 		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS, Index 0 still in tact and disk full" >> diskfull.log  || echo "TEST FAIL, Index 0 corrupted when disk full" >> diskfull.log
 			 		rm -rf $CHECK_DIR/sample_data/
 					mkdir $CHECK_DIR/sample_data/
-			 		#enable to do disk ful write
-			 		#cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS, Index 0 still in tact and disk full"  || echo "TEST FAIL, Index 0 corrupted when disk full" >> error.log
-					#exit
+			 		
+			 		#exit
 				fi
 			fi
 			done
