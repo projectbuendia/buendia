@@ -125,11 +125,11 @@ public class BuendiaXformBuilder {
         
         Element modelNode = appendElement(xformsNode, NAMESPACE_XFORMS, NODE_MODEL);
         modelNode.setAttribute(null, ATTRIBUTE_ID, MODEL_ID);
-        
-        Element groupNode = appendElement(xformsNode, NAMESPACE_XFORMS, NODE_GROUP);
-        Element labelNode = appendElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL);
-        labelNode.addChild(Element.TEXT, "Page1");
-        bodyNode = groupNode;
+
+        // All our UI nodes are appended directly into the xforms node.
+        // Another alternative would be to create the HTML body node here, and append
+        // everything under that.
+        bodyNode = xformsNode;
         
         Element instanceNode = appendElement(modelNode, NAMESPACE_XFORMS, NODE_INSTANCE);
         instanceNode.setAttribute(null, ATTRIBUTE_ID, INSTANCE_ID);
@@ -144,7 +144,7 @@ public class BuendiaXformBuilder {
         //     parsing the template document.
         Hashtable<String, String> problemList = new Hashtable<String, String>();
         Hashtable<String, String> problemListItems = new Hashtable<String, String>();
-        XformBuilder.parseTemplate(modelNode, formNode, formNode, bindings, groupNode, problemList, problemListItems, 0);
+        XformBuilder.parseTemplate(modelNode, formNode, formNode, bindings, bodyNode, problemList, problemListItems, 0);
         
         buildUInodes(form);
         
@@ -169,7 +169,7 @@ public class BuendiaXformBuilder {
         }
         
         if (includeRelationshipNodes) {
-            RelativeBuilder.build(modelNode, groupNode, formNode);
+            RelativeBuilder.build(modelNode, bodyNode, formNode);
         }
         return XformBuilder.fromDoc2String(doc);
     }     
@@ -188,9 +188,10 @@ public class BuendiaXformBuilder {
         if (section == null || section.size() < 1)
             return;
         
-        Vector<String> tagList = new Vector<String>();
+        // Note: FormUtil.getTagList needs a Vector<String>. Urgh.
+        Vector<String> tagList = new Vector<>();
         
-        for(FormField formField : section){ 
+        for(FormField formField : section) { 
             Integer subSectionId = formField.getFormFieldId();
             String sectionName = FormUtil.getXmlToken(formField.getField().getName());
             String name = FormUtil.getNewTag(sectionName, tagList);
@@ -216,6 +217,7 @@ public class BuendiaXformBuilder {
                 Concept concept = field.getConcept();
                 ConceptDatatype datatype = concept.getDatatype();
                 
+                // TODO(jonskeet): Don't rely on names here? (Do we even need problem lists?)
                 if ( (name.contains("problem_added") || name.contains("problem_resolved")) &&
                         formField.getParent() != null &&
                         (formField.getParent().getField().getName().contains("PROBLEM LIST")) ){
@@ -373,39 +375,40 @@ public class BuendiaXformBuilder {
         bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_TEXT);
     }
     
+    /**
+     * Returns the element representing the UI control for the parent of the given
+     * form field - i.e. the element under which the UI control for the form field
+     * itself should be added.
+     */
     private Element getParentNode(FormField formField, Locale locale){
         formField = formField.getParent();
-        if(formField == null){
-            return bodyNode; //is this problem list?
+        if (formField == null || formField.getParent() == null) {
+            return bodyNode; // is this problem list?
         }
-        if(formField.getParent() == null){
-            return bodyNode;
+        Element node = formFields.get(formField);
+        if (node != null) {
+            return node;
         }
-        else{
-            Element node = formFields.get(formField);
-            if(node != null)
-                return node;
+        
+        String token = fieldTokens.get(formField);
+        
+        Element groupNode = appendElement(bodyNode, NAMESPACE_XFORMS, NODE_GROUP);            
+        Element labelNode = appendElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL);
+        labelNode.addChild(Element.TEXT, formField.getField().getConcept().getName(locale, false).getName());
+        
+        addHintNode(labelNode, formField.getField().getConcept());
+        
+        if (formField.getMaxOccurs() != null && formField.getMaxOccurs() == -1) {
+            Element repeatControl = appendElement(groupNode, NAMESPACE_XFORMS, CONTROL_REPEAT);
+            repeatControl.setAttribute(null, ATTRIBUTE_BIND, token);
             
-            String token = fieldTokens.get(formField);
-            
-            Element groupNode = appendElement(bodyNode, NAMESPACE_XFORMS, NODE_GROUP);            
-            Element labelNode = appendElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL);
-            labelNode.addChild(Element.TEXT, formField.getField().getConcept().getName(locale, false).getName());
-            
-            addHintNode(labelNode, formField.getField().getConcept());
-            
-            if (formField.getMaxOccurs() != null && formField.getMaxOccurs() == -1) {
-                Element repeatControl = appendElement(groupNode, NAMESPACE_XFORMS, CONTROL_REPEAT);
-                repeatControl.setAttribute(null, ATTRIBUTE_BIND, token);
-                
-                formFields.put(formField, repeatControl);
-                return repeatControl;
-            }
-            else {
-                groupNode.setAttribute(null, ATTRIBUTE_ID, token);
-                formFields.put(formField, groupNode);
-                return groupNode;
-            }
+            formFields.put(formField, repeatControl);
+            return repeatControl;
+        }
+        else {
+            groupNode.setAttribute(null, ATTRIBUTE_ID, token);
+            formFields.put(formField, groupNode);
+            return groupNode;
         }
     }
     
