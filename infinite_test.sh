@@ -34,6 +34,7 @@ dd if=$DATA_SOURCE of=$WORKSPACE/sample bs=$BLOCK_SIZE count=1
  SUCCESS=0
  FAILS=0
  COUNTER=0
+ DISKFULL=0
          while [  $COUNTER -ge 0 ]; do
          	cp $WORKSPACE/sample $CHECK_DIR/sample_data/$COUNTER.sample 
          	if [ $? -eq 0 ]; then
@@ -41,34 +42,33 @@ dd if=$DATA_SOURCE of=$WORKSPACE/sample bs=$BLOCK_SIZE count=1
          	else 
          		# if copying fails, check if disk is more than or 99% full. Then check if first file is still in tact. If true, retry.
 			df -h $CHECK_DIR | awk '{ print $5 }' | cut -d'%' -f1 | grep -o '[0-9]*' |  while read usep; do
-			if [[ $usep = *[[:digit:]]* ]]; then
-			 	if [ $usep -ge 99 ]; then
-			 		#enable to do disk ful write
-			 		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS $COUNTER files, Index 0 still in tact and disk full \n" >> diskfull.log  || echo "TEST FAIL $COUNTER files, Index 0 corrupted when disk full \n" >> diskfull.log
-			 		echo "disk full, starting over"
-			 		if [ $INFINITE -eq 1 ]; then 
-			 			rm -rf $CHECK_DIR/sample_data/
-						mkdir $CHECK_DIR/sample_data/
-					else
-						exit
+				if [[ $usep = *[[:digit:]]* ]]; then
+				 	if [ $usep -ge 99 ]; then
+				 		#enable to do disk ful write
+				 		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS $COUNTER files, 0.sample still in tact and disk full \n" >> diskfull.log  || echo "TEST FAIL $COUNTER files, Index 0 corrupted when disk full \n" >> diskfull.log
+				 		cat diskfull.log
+				 		let DISKFULL=DISKFULL+1 
+				 		if [ $INFINITE -eq 1 ]; then 
+				 			rm -rf $CHECK_DIR/sample_data/
+							mkdir $CHECK_DIR/sample_data/
+						else
+							exit
+						fi
 					fi
 				fi
-			fi
 			done
          		let FAILS=FAILS+1 
         	fi
         	let COUNTER=COUNTER+1 
         	item=$FAILS
 			total=$COUNTER
-			percent=$(printf '%i %i' $item $total | awk '{ pc=100*$1/$2; i=int(pc); print (pc-i<0.5)?i:i+1 }')
-			echo -ne "  $FAILS fails in $COUNTER files ($percent%) \r"
-			echo  "  $FAILS fails in $COUNTER files ($percent%)" > output.log 
+			df -h $CHECK_DIR | awk '{ print $5 }' | cut -d'%' -f1 | grep -o '[0-9]*' |  while read usep; do
+				if [[ $usep = *[[:digit:]]* ]]; then
+					percent=$(printf '%i %i' $item $total | awk '{ pc=100*$1/$2; i=int(pc); print (pc-i<0.5)?i:i+1 }')
+					echo -ne "  Disk Full: $usep%, Fails: $FAILS($percent%), Graceful fails (disk full): $DISKFULL in $COUNTER rounds"
+				fi
+			done
          done
-
-         	item=$FAILS
-			total=$COUNTER
-			percent=$(printf '%i %i' $item $total | awk '{ pc=100*$1/$2; i=int(pc); print (pc-i<0.5)?i:i+1 }')
-			echo "  $FAILS fails in $COUNTER files ($percent%)"
 
 
  
