@@ -63,6 +63,8 @@ import java.util.Vector;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.kxml2.kdom.Document;
 import org.kxml2.kdom.Element;
 import org.kxml2.kdom.Node;
@@ -92,6 +94,7 @@ import org.openmrs.util.FormUtil;
  * creation code separately from the module itself.
  */
 public class BuendiaXformBuilderEx {
+    private static Log log = LogFactory.getLog(BuendiaXformBuilderEx.class);
 
     private final Map<String, Element> bindings = new HashMap<>();
     private final Map<FormField, String> fieldTokens = new HashMap<>();
@@ -268,13 +271,19 @@ public class BuendiaXformBuilderEx {
                             fieldUiNode = addUiNode(name, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, locale, parentUiNode);
                             break;
                         default:
-                            // Concept effectively being used as a section.
-                            fieldUiNode = createGroupNode(formField, locale, parentUiNode);
-                            break;
+                            // TODO(jonskeet): Remove this hack when we understand better...
+                            if (field.getName().equals("OBS")) {
+                                fieldUiNode = createGroupNode(formField, locale, parentUiNode);
+                            } else {
+                                // Don't understand this concept
+                                log.warn("Unhandled HL7 abbreviation " + datatype.getHl7Abbreviation() + " for field " + field.getName());
+                                continue; // Skip recursion, go to next field
+                            }
                     }
                 }
             }            
             else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
+                // TODO(jonskeet): Use the description for a hint?
                 fieldUiNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
                 Element label = appendElement(fieldUiNode, NAMESPACE_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
@@ -282,10 +291,9 @@ public class BuendiaXformBuilderEx {
                 fieldUiNode = addDatabaseElementUiNode(name, formField, parentUiNode);
             }
             else {
-                // TODO(jonskeet): What do we do with this?
-                fieldUiNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
-                Element label = appendElement(fieldUiNode, NAMESPACE_XFORMS, NODE_LABEL);
-                label.addChild(Node.TEXT, getDisplayName(formField));
+                // Don't understand this field type
+                log.warn("Unhandled field type " + field.getFieldType().getName() + " for field " + field.getName());
+                continue; // Skip recursion, go to next field
             }
             
             // Recurse down to subnodes.
