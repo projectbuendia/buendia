@@ -8,10 +8,10 @@ WORKSPACE="workspace"
 rm -rf $WORKSPACE
 mkdir $WORKSPACE
 
-#echo "Which directory do you want to check for integrity? (Directory must exist)"
-#read CHECK_DIR
+echo "Which directory do you want to check for integrity? (Directory must exist)"
+read CHECK_DIR
 
-CHECK_DIR=/mnt/smallusb
+#CHECK_DIR=/mnt/smallusb
 
 #echo "Inifinite (1) or until disk full(2) ?"
 #read INFINITE
@@ -26,9 +26,8 @@ dd if=/dev/urandom of=$WORKSPACE/sample bs=40000000 count=1
  SUCCESS=0
  FAILS=0
  COUNTER=1
- MAX_TIMES=2147000000
          while [  $COUNTER > 0 ]; do
-         	cat $WORKSPACE/sample > $CHECK_DIR/sample_data/$COUNTER.sample 
+         	cp $WORKSPACE/sample $CHECK_DIR/sample_data/$COUNTER.sample 
          	if [ $? -eq 0 ]; then
          		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/$COUNTER.sample && let SUCCESS=SUCCESS+1  || let FAILS=FAILS+1 
          	else 
@@ -37,11 +36,9 @@ dd if=/dev/urandom of=$WORKSPACE/sample bs=40000000 count=1
 			if [[ $usep = *[[:digit:]]* ]]; then
 			 	if [ $usep -ge 99 ]; then
 			 		#enable to do disk ful write
-			 		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS, Index 0 still in tact and disk full" >> diskfull.log  || echo "TEST FAIL, Index 0 corrupted when disk full" >> diskfull.log
+			 		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS $COUNTER files, Index 0 still in tact and disk full \n" >> diskfull.log  || echo "TEST FAIL $COUNTER files, Index 0 corrupted when disk full \n" >> diskfull.log
 			 		rm -rf $CHECK_DIR/sample_data/
 					mkdir $CHECK_DIR/sample_data/
-			 		
-			 		#exit
 				fi
 			fi
 			done
