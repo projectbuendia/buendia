@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#@author pim@whitespell.com
+
 WORKSPACE="workspace/"
 
 #delete workspace
