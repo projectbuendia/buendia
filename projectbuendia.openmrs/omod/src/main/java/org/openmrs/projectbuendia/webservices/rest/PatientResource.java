@@ -49,8 +49,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String STATUS = "status";
 
     // OpenMRS object names
-    private static final User CREATOR = new User(1);
-    private static final String ID = "id";
     private static final String UUID = "uuid";
     private static final String MSF_IDENTIFIER = "MSF";
     private static final String EBOLA_STATUS_PROGRAM_NAME = "Ebola status program";
