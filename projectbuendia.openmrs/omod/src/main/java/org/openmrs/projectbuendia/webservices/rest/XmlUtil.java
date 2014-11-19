@@ -75,6 +75,13 @@ public class XmlUtil {
         return (Element) elements.item(0);
     }
     
+    public static Element appendElementNS(Element parent, String namespaceURI, String localName) {
+        Element ret = parent.getOwnerDocument().createElementNS(namespaceURI, localName);
+        parent.appendChild(ret);
+        return ret;
+    }
+
+    
     /** Returns a namespace-aware DocumentBuilder. */
     public static DocumentBuilder getDocumentBuilder() {
         return documentBuilder;
