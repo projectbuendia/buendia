@@ -61,9 +61,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String ZONE_LOCATION_TAG_UUID = "1c22989d-3b87-47d3-9459-b54aafbd1169";
     private static final String TENT_LOCATION_TAG_UUID = "4c92578f-cde9-4b99-b641-f3b9e0cc268d";
     private static final String BED_LOCATION_TAG_UUID = "f2cf9e4e-a197-4c44-9290-0d3dd963838e";
-    private static final String ASSIGNED_ZONE_PERSON_ATTRIBUTE_TYPE_UUID = "dac2974a-6fd5-11e4-a895-040ccecfdba4";
-    private static final String ASSIGNED_TENT_PERSON_ATTRIBUTE_TYPE_UUID = "db7be13a-6fd5-11e4-8dc5-040ccecfdba4";
-    private static final String ASSIGNED_BED_PERSON_ATTRIBUTE_TYPE_UUID = "dba2db1e-6fd5-11e4-b3ed-040ccecfdba4";
+    private static final String ASSIGNED_ZONE_PERSON_ATTRIBUTE_TYPE_UUID = "1c22989d-3b87-47d3-9459-b54aafbd1169";
+    private static final String ASSIGNED_TENT_PERSON_ATTRIBUTE_TYPE_UUID = "4c92578f-cde9-4b99-b641-f3b9e0cc268d";
+    private static final String ASSIGNED_BED_PERSON_ATTRIBUTE_TYPE_UUID = "f2cf9e4e-a197-4c44-9290-0d3dd963838e";
 
     // The elements of each triple are:
     // 1. The key, which is how the status is represented in JSON.
