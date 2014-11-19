@@ -31,6 +31,11 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String GENDER = "gender";
     private static final String AGE = "age";
     private static final String AGE_UNIT = "age_unit";  // "years" or "months"
+    private static final String MONTHS_VALUE = "months";
+    private static final String AGE_TYPE = "type";
+    private static final String YEARS_VALUE = "years";
+    private static final String MONTHS_TYPE = "months";
+    private static final String YEARS_TYPE = "years";
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String STATUS = "status";
@@ -125,13 +130,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
             jsonForm.add(GENDER, patient.getGender());
             double age = birthDateToAge(patient.getBirthdate());
+            SimpleObject ageObject = new SimpleObject();
             if (age < 1.0) {
-                jsonForm.add(AGE, (int) Math.floor(age * 12));
-                jsonForm.add(AGE_UNIT, "months");
+                ageObject.add(MONTHS_VALUE, (int) Math.floor(age * 12));
+                ageObject.add(AGE_TYPE, MONTHS_TYPE);
             } else {
-                jsonForm.add(AGE, (int) Math.floor(age));
-                jsonForm.add(AGE_UNIT, "years");
+                ageObject.add(YEARS_VALUE, (int) Math.floor(age));
+                ageObject.add(AGE_TYPE, YEARS_TYPE);
             }
+            jsonForm.add(AGE, ageObject);
 
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
