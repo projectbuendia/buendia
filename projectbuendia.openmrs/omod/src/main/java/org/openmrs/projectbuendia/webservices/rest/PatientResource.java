@@ -34,7 +34,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final User CREATOR = new User(1);
     private static final String ID = "id";
-    private static final String UUID = "uuid";
     private static final String MSF_IDENTIFIER = "MSF";
     public static final Location LOCATION = new Location(1);
     private final PatientService patientService;
@@ -52,8 +51,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
-        jsonForm.add(ID, patient.getPatientIdentifier().getIdentifier());
-        jsonForm.add(UUID, patient.getUuid());
+        jsonForm.add(ID, patient.getUuid() /*TODO(nfortescue): patient.getPatientIdentifier().getIdentifier()*/);
         jsonForm.add(GIVEN_NAME, patient.getGivenName());
         jsonForm.add(FAMILY_NAME, patient.getFamilyName());
         jsonForm.add("status", "probable" /* TODO(nfortescue): work out how to store this */);
