@@ -306,12 +306,11 @@ public class BuendiaXformBuilderEx {
         bindNode.setAttribute(null, ATTRIBUTE_TYPE, dataType);
         
         //create the label
-        Element labelNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL);
         ConceptName name = concept.getName(locale, false);
         if (name == null) {
             name = concept.getName();
         }        
-        labelNode.addChild(Element.TEXT, name.getName());
+        Element labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, name.getName());
         
         addHintNode(labelNode, concept);
         
@@ -361,15 +360,13 @@ public class BuendiaXformBuilderEx {
             Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
             itemNode.setAttribute(null, ATTRIBUTE_CONCEPT_ID, concept.getConceptId().toString());
             
-            Element itemLabelNode = appendElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL);
-            itemLabelNode.addChild(Element.TEXT, conceptName);
+            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, conceptName);
             
             //TODO This will make sense after the form designer's OptionDef implements
             //the xforms hint.
             //addHintNode(itemLabelNode, answer.getAnswerConcept());
             
-            Element itemValNode = appendElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE);
-            itemValNode.addChild(Element.TEXT, conceptValue);
+            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, conceptValue);
         }
     }
     
@@ -378,8 +375,8 @@ public class BuendiaXformBuilderEx {
         
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
         
-        Element labelNode = appendElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL);
-        labelNode.addChild(Element.TEXT, formField.getField().getConcept().getName(locale, false).getName());
+        Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL,
+                formField.getField().getConcept().getName(locale, false).getName());
         
         addHintNode(labelNode, concept);
         
@@ -393,8 +390,7 @@ public class BuendiaXformBuilderEx {
         controlNode.setAttribute(null, ATTRIBUTE_BIND, id);
         
         //add the label.
-        labelNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL);
-        labelNode.addChild(Element.TEXT, token + " value");
+        labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, token + " value");
         
         addHintNode(labelNode, concept);
         
@@ -410,8 +406,7 @@ public class BuendiaXformBuilderEx {
         String token = fieldTokens.get(formField);
         
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);            
-        Element labelNode = appendElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL);
-        labelNode.addChild(Element.TEXT, formField.getField().getConcept().getName(locale, false).getName());
+        Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL, formField.getField().getConcept().getName(locale, false).getName());
         
         addHintNode(labelNode, formField.getField().getConcept());
         
@@ -474,8 +469,7 @@ public class BuendiaXformBuilderEx {
         }
         
         if(hint != null) {
-            Element hintNode = appendElement(labelNode.getParent(), NAMESPACE_XFORMS, NODE_HINT);
-            hintNode.addChild(Element.TEXT, hint);
+            appendTextElement(labelNode.getParent(), NAMESPACE_XFORMS, NODE_HINT, hint);
         }
     }
     
@@ -485,6 +479,15 @@ public class BuendiaXformBuilderEx {
         return child;
     }
     
+    /**
+     * Adds an element to the given parent, with the specified text as the element value
+     */
+    private static Element appendTextElement(Node parent, String namespaceURI, String localName, String text) {
+        Element child = appendElement(parent, namespaceURI, localName);
+        child.addChild(Element.TEXT, text);
+        return child;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Code which was in XformBuilder, but is UI-based
     
@@ -515,8 +518,7 @@ public class BuendiaXformBuilderEx {
         }
         
         //create the label
-        Element labelNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL);
-        labelNode.addChild(Element.TEXT, getDisplayName(formField));        
+        appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, getDisplayName(formField));
         return controlNode;
     }
     
@@ -537,12 +539,8 @@ public class BuendiaXformBuilderEx {
             Integer providerId = provider.getId();
             
             Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
-            
-            Element node = appendElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL);
-            node.addChild(Element.TEXT, name + " [" + identifier + "]");
-            
-            node = appendElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE);
-            node.addChild(Element.TEXT, providerId.toString());
+            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, name + " [" + identifier + "]");
+            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, providerId.toString());
         }
     }
     
@@ -556,11 +554,8 @@ public class BuendiaXformBuilderEx {
         for (Location loc : locations) {
             Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
             
-            Element node = appendElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL);
-            node.addChild(Element.TEXT, loc.getName() + " [" + loc.getLocationId() + "]");
-            
-            node = appendElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE);
-            node.addChild(Element.TEXT, loc.getLocationId().toString());
+            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, loc.getName() + " [" + loc.getLocationId() + "]");
+            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, loc.getLocationId().toString());
         }
     }
 }
