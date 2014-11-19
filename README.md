@@ -92,6 +92,16 @@ to
 
     Listening for transport dt_socket at address: 5005
 
+Installing on GCE
+----
+
+- Build the module locally (e.g. with `omrs-clean && omrs-run`)
+- Log into the GCE instance of OpenMRS
+- Go into the "Manage Modules" page of the Administration section
+- Delete the current ProjectBuendia module
+- Add your locally-built version from `openmrs-project/server/openmrs/RELEASE/modules`
+  as if it's a new module
+
 REST collections exposed
 ----
 
