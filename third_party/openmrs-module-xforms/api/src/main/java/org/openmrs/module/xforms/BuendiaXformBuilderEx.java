@@ -437,19 +437,19 @@ public class BuendiaXformBuilderEx {
     
     private String getDisplayName(FormField formField) {
         String name = formField.getDescription(); 
-        if (name != null) {
+        if (StringUtils.isNotEmpty(name)) {
             return name;
         }
         name = formField.getName();
-        if (name != null) {
+        if (StringUtils.isNotEmpty(name)) {
             return name;
         }
         name = formField.getField().getDescription();
-        if (name != null) {
+        if (StringUtils.isNotEmpty(name)) {
             return name;
         }
         name = formField.getField().getName();
-        if (name != null) {
+        if (StringUtils.isNotEmpty(name)) {
             return name;
         }
         throw new IllegalArgumentException("No field name available");
