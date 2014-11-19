@@ -37,9 +37,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String AGE_UNIT = "age_unit";  // "years" or "months"
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
-    private static final String ASSIGNED_ZONE = "assigned_zone";
-    private static final String ASSIGNED_TENT = "assigned_tent";
-    private static final String ASSIGNED_BED = "assigned_bed";
+    private static final String ASSIGNED_LOCATION = "assigned_location";
+    private static final String ZONE = "zone";
+    private static final String TENT = "tent";
+    private static final String BED = "bed";
     private static final String STATUS = "status";
 
     // OpenMRS object names
@@ -63,15 +64,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     // 2. The concept name, which is a short phrase to avoid collision with other concepts.
     // 3. The UUID of the ProgramWorkflowState that represents the status.
     private static final String[][] EBOLA_STATUS_KEYS_NAMES_AND_UUIDS = {
-            {"suspected", "suspected ebola case", "041a7b80-6f13-11e4-b6d3-040ccecfdba4"},
-            {"probable", "probable ebola case", "0ae8fd9c-6f13-11e4-9ad7-040ccecfdba4"},
-            {"confirmed", "confirmed ebola case", "11a8a9c0-6f13-11e4-8c91-040ccecfdba4"},
-            {"non-case", "not an ebola case", "b517037a-6f13-11e4-b5f2-040ccecfdba4"},
-            {"convalescent", "convalescing at ebola facility", "c1349bd7-6f13-11e4-b315-040ccecfdba4"},
-            {"can be discharged", "ready for discharge from ebola facility", "e45ef19e-6f13-11e4-b630-040ccecfdba4"},
-            {"discharged", "discharged from ebola facility", "e4a20c4a-6f13-11e4-b315-040ccecfdba4"},
-            {"suspected dead", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
-            {"confirmed dead", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
+            {"SUSPECTED_CASE", "suspected ebola case", "041a7b80-6f13-11e4-b6d3-040ccecfdba4"},
+            {"PROBABLE_CASE", "probable ebola case", "0ae8fd9c-6f13-11e4-9ad7-040ccecfdba4"},
+            {"CONFIRMED_CASE", "confirmed ebola case", "11a8a9c0-6f13-11e4-8c91-040ccecfdba4"},
+            {"NON_CASE", "not an ebola case", "b517037a-6f13-11e4-b5f2-040ccecfdba4"},
+            {"CONVALESCENT", "convalescing at ebola facility", "c1349bd7-6f13-11e4-b315-040ccecfdba4"},
+            {"READY_FOR_DISCHARGE", "ready for discharge from ebola facility", "e45ef19e-6f13-11e4-b630-040ccecfdba4"},
+            {"DISCHARGED", "discharged from ebola facility", "e4a20c4a-6f13-11e4-b315-040ccecfdba4"},
+            {"SUSPECTED_DEAD", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
+            {"CONFIRMED_DEAD", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
     };
     private static Map<String, String> EBOLA_STATUS_KEYS_BY_UUID = new HashMap<>();
     private static Map<String, String> EBOLA_STATUS_UUIDS_BY_KEY = new HashMap<>();
@@ -132,9 +133,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return new Date(millis);
     }
 
-    /**
-     * Estimate the age of a person in years, given their birthdate.
-     */
+    /** Estimate the age of a person in years, given their birthdate. */
     private double birthDateToAge(Date birthDate) {
         return dateToFractionalYear(new Date()) -
                 dateToFractionalYear(birthDate);
@@ -163,16 +162,20 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
 
             String assignedZoneId = getPersonAttributeValue(patient, assignedZoneAttrType);
-            if (assignedZoneId != null) {
-                jsonForm.add(ASSIGNED_ZONE, getLocationLeafName(assignedZoneId));
-            }
             String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
-            if (assignedTentId != null) {
-                jsonForm.add(ASSIGNED_TENT, getLocationLeafName(assignedTentId));
-            }
             String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
-            if (assignedZoneId != null) {
-                jsonForm.add(ASSIGNED_BED, getLocationLeafName(assignedBedId));
+            if (assignedZoneId != null || assignedTentId != null || assignedBedId != null) {
+                SimpleObject location = new SimpleObject();
+                if (assignedZoneId != null) {
+                    location.add(ZONE, getLocationLeafName(assignedZoneId));
+                }
+                if (assignedTentId != null) {
+                    location.add(ASSIGNED_TENT, getLocationLeafName(assignedTentId));
+                }
+                if (assignedBedId != null) {
+                    location.add(ASSIGNED_BED, getLocationLeafName(assignedBedId));
+                }
+                jsonForm.add(ASSIGNED_LOCATION, location);
             }
 
             PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
@@ -294,16 +297,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return concept;
     }
 
-    /**
-     * Get the key (e.g. "confirmed") for an ebola status by workflow state.
-     */
+    /** Get the key (e.g. "confirmed") for an ebola status by workflow state. */
     private String getKeyByState(ProgramWorkflowState state) {
         return EBOLA_STATUS_KEYS_BY_UUID.get(state.getConcept().getUuid());
     }
 
-    /**
-     * Get the workflow state for an ebola status by key (e.g. "suspected").
-     */
+    /** Get the workflow state for an ebola status by key (e.g. "suspected"). */
     private ProgramWorkflowState getStateByKey(String key) {
         ProgramWorkflow workflow = getEbolaStatusProgramWorkflow();
         ConceptService conceptService = Context.getConceptService();
