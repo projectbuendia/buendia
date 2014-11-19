@@ -1,21 +1,14 @@
 stressdisk
 ==========
 
-Runs a stress and integrity test on a prompted disk.
+Runs a stress and integrity test on a prompted disk. Stressdisk comes with 2 different variations, the infinite_test and the single_file_test
 
-Instructions:
+###Infinite Test
+The infinite test generates a random file with your specified block size and copies this file into the directory you want to check endlessly. If an error is thrown, a check if made whether the disk is full. If the disk is full, the first copied file (0) is checked in order to see if the disk being full overwrote any of the first bytes on the disk. (In order for this to work properly, your disk must be empty!). If the infinite setting is on (1) it will remove all data and start over. The outcome of this test is a percentage of transfers that have failed, plus an indication of the disk being full corrupted the first file.
 
-###Last Pass: 1GB on 8GB SD and 1GB on 4GB USB
+```bash infinite_test.sh```
+```Or if you want to run it in the background: bash infinite_test.sh &```
+###Single file test
+This test is mainly used to measure speed and integrity. You specify the size of the data in MB that your transfer file is, then stressdisk copies this file over to the remote disk, checks if files are the same, if they are - copy them back and check again locally, and then report the results. 
 
-##1: Clone stressdisk in any directory
-##2: run: bash run_tests.sh
-##3: Enter the directory you'd like to test (make sure your device is mounted, e.g. /mnt/sd or /mnt/usb).
-##4. Enter the file size in MB you'd like to generate and copy and check for integrity (1GB file on edison takes ~ 5 minutes)
-##5. stressdisk will first generate a file of the size you've specified, and it will also generate a 1MB file of random data to compare to that is NOT equal to the initial file.
-##6. stressdisk copies both generated files to the specified directory and check if the files are equal (and also checks if file is not equal with faulty file)
-##7. stressdisk moves the files back to the workspace and checks if files are still equal (also checks again if wile is not equal with faulty file)
-##8. If all tests pass, you will have 4X SUCCEED: print out in your terminal, otherwise you will see a fail. 
-
-Will elaborate on this further at a later stage
-
-- Pim
+```bash single_file_test.sh```
