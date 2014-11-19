@@ -34,7 +34,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String ID = "id";
     private static final String GENDER = "gender";
     private static final String AGE = "age";
-    private static final String AGE_UNIT = "age_unit";  // "years" or "months"
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
@@ -170,10 +169,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     location.add(ZONE, getLocationLeafName(assignedZoneId));
                 }
                 if (assignedTentId != null) {
-                    location.add(ASSIGNED_TENT, getLocationLeafName(assignedTentId));
+                    location.add(TENT, getLocationLeafName(assignedTentId));
                 }
                 if (assignedBedId != null) {
-                    location.add(ASSIGNED_BED, getLocationLeafName(assignedBedId));
+                    location.add(BED, getLocationLeafName(assignedBedId));
                 }
                 jsonForm.add(ASSIGNED_LOCATION, location);
             }
