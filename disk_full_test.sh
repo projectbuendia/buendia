@@ -35,6 +35,8 @@ dd if=/dev/urandom of=$WORKSPACE/sample bs=4000 count=1
 			df -h $CHECK_DIR | awk '{ print $5 }' | cut -d'%' -f1 | grep -o '[0-9]*' |  while read usep; do
 			if [[ $usep = *[[:digit:]]* ]]; then
 			 	if [ $usep -ge 15 ]; then
+			 		rm -rf $CHECK_DIR/sample_data/
+					mkdir $CHECK_DIR/sample_data/
 			 		#enable to do disk ful write
 			 		#cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS, Index 0 still in tact and disk full"  || echo "TEST FAIL, Index 0 corrupted when disk full" >> error.log
 					#exit
@@ -48,6 +50,7 @@ dd if=/dev/urandom of=$WORKSPACE/sample bs=4000 count=1
 			total=$COUNTER
 			percent=$(printf '%i %i' $item $total | awk '{ pc=100*$1/$2; i=int(pc); print (pc-i<0.5)?i:i+1 }')
 			echo -ne "  $FAILS fails in $COUNTER files ($percent%) \r"
+			echo  "  $FAILS fails in $COUNTER files ($percent%)" > output.log 
          done
 
          	item=$FAILS
