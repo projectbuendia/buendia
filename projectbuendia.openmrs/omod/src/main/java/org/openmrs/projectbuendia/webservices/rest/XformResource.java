@@ -25,7 +25,6 @@ import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.module.xforms.XformBuilderEx;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
@@ -46,7 +45,7 @@ public class XformResource implements Listable, Retrievable, Searchable {
     @SuppressWarnings("unused")
     private final Log log = LogFactory.getLog(getClass());
 
-    private FormService formService;
+    private final FormService formService;
 
     public XformResource() {
         this.formService = Context.getFormService();
