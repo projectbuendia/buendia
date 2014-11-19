@@ -76,7 +76,7 @@ public class XformResource implements Listable, Retrievable, Searchable {
         if (representation == Representation.FULL) {
             try {
                 // TODO(jonskeet): Use description instead of name?
-                String xml = XformBuilderEx.buildXform(form);
+                String xml = BuendiaXformBuilder.buildXform(form);
                 xml = convertToOdkCollect(xml, form.getName());
                 xml = removeRelationshipNodes(xml);
                 jsonForm.add("xml", xml);
