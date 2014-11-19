@@ -148,7 +148,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         if (patient != null) {
-            jsonForm.add(UUID, patient.getId());
+            jsonForm.add(UUID, patient.getUuid());
             PatientIdentifier patientIdentifier =
                     patient.getPatientIdentifier(getMsfIdentifierType());
             if (patientIdentifier != null) {
