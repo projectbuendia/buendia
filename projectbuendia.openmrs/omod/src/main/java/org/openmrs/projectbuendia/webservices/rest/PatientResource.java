@@ -19,10 +19,7 @@ import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Resource for xform templates (i.e. forms without data).
