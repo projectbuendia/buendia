@@ -43,7 +43,7 @@ dd if=/dev/urandom of=$WORKSPACE/sample bs=BLOCK_SIZE count=1
 			 		#enable to do disk ful write
 			 		cmp --silent $WORKSPACE/sample $CHECK_DIR/sample_data/0.sample && echo "TEST SUCCESS $COUNTER files, Index 0 still in tact and disk full \n" >> diskfull.log  || echo "TEST FAIL $COUNTER files, Index 0 corrupted when disk full \n" >> diskfull.log
 			 		echo "disk full, starting over"
-			 		if [ $INFINITE -eq 1 ]; do 
+			 		if [ $INFINITE -eq 1 ]; then 
 			 			rm -rf $CHECK_DIR/sample_data/
 						mkdir $CHECK_DIR/sample_data/
 					else
