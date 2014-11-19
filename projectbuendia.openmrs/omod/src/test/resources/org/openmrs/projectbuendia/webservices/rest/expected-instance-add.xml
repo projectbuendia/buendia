@@ -23,6 +23,7 @@
 		<patient.middle_name openmrs_table="patient_name"
 			openmrs_attribute="middle_name" />
 		<patient.sex openmrs_table="patient" openmrs_attribute="gender">M</patient.sex>
+		<patient.patient_id/>
 	</patient>
 
 	<encounter>
