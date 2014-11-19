@@ -29,6 +29,8 @@ import java.util.*;
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable {
 
     private static final String GENDER = "gender";
+    private static final String AGE = "age";
+    private static final String AGE_UNIT = "age_unit";  // "years" or "months"
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String STATUS = "status";
@@ -40,17 +42,30 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String EBOLA_STATUS_PROGRAM_CONCEPT_UUID = "8c00e1b5-6f35-11e4-a3fa-040ccecfdba4";
     private static final String EBOLA_STATUS_WORKFLOW_CONCEPT_UUID = "107f9c7a-6f3b-11e4-ba22-040ccecfdba4";
     private static final String EBOLA_STATUS_WORKFLOW_NAME = "Ebola status workflow";
-    private static final String[][] EBOLA_STATUS_CONCEPT_NAMES_AND_UUIDS = {
-            {"suspected", "041a7b80-6f13-11e4-b6d3-040ccecfdba4"},
-            {"probable", "0ae8fd9c-6f13-11e4-9ad7-040ccecfdba4"},
-            {"confirmed", "11a8a9c0-6f13-11e4-8c91-040ccecfdba4"},
-            {"non-case", "b517037a-6f13-11e4-b5f2-040ccecfdba4"},
-            {"convalescence", "c1349bd7-6f13-11e4-b315-040ccecfdba4"},
-            {"can be discharged", "e45ef19e-6f13-11e4-b630-040ccecfdba4"},
-            {"discharged", "e4a20c4a-6f13-11e4-b315-040ccecfdba4"},
-            {"suspected dead", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
-            {"confirmed dead", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
+
+    // The elements of each triple are:
+    // 1. The key, which is how the status is represented in JSON.
+    // 2. The concept name, which is a short phrase to avoid collision with other concepts.
+    // 3. The UUID of the ProgramWorkflowState that represents the status.
+    private static final String[][] EBOLA_STATUS_KEYS_NAMES_AND_UUIDS = {
+            {"suspected", "suspected ebola case", "041a7b80-6f13-11e4-b6d3-040ccecfdba4"},
+            {"probable", "probable ebola case", "0ae8fd9c-6f13-11e4-9ad7-040ccecfdba4"},
+            {"confirmed", "confirmed ebola case", "11a8a9c0-6f13-11e4-8c91-040ccecfdba4"},
+            {"non-case", "not an ebola case", "b517037a-6f13-11e4-b5f2-040ccecfdba4"},
+            {"convalescent", "convalescing at ebola facility", "c1349bd7-6f13-11e4-b315-040ccecfdba4"},
+            {"can be discharged", "ready for discharge from ebola facility", "e45ef19e-6f13-11e4-b630-040ccecfdba4"},
+            {"discharged", "discharged from ebola facility", "e4a20c4a-6f13-11e4-b315-040ccecfdba4"},
+            {"suspected dead", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
+            {"confirmed dead", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
     };
+    private static Map<String, String> EBOLA_STATUS_KEYS_BY_UUID = new HashMap<>();
+    private static Map<String, String> EBOLA_STATUS_UUIDS_BY_KEY = new HashMap<>();
+    static {
+        for (String[] keyNameUuid : EBOLA_STATUS_KEYS_NAMES_AND_UUIDS) {
+            EBOLA_STATUS_KEYS_BY_UUID.put(keyNameUuid[2], keyNameUuid[0]);
+            EBOLA_STATUS_UUIDS_BY_KEY.put(keyNameUuid[0], keyNameUuid[2]);
+        }
+    }
 
     public static final Location LOCATION = new Location(1);
     private final PatientService patientService;
@@ -66,6 +81,40 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return getSimpleObjectFromPatientList(patients);
     }
 
+    /**
+     * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
+     * becomes 1970.0; Jul 1, 1970 becomes approximately 1970.5.
+     */
+    private double dateToFractionalYear(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        double daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
+        return calendar.get(Calendar.YEAR) +
+                calendar.get(Calendar.DAY_OF_YEAR) / daysInYear;
+    }
+
+    private Date fractionalYearToDate(double year) {
+        int yearInt = (int) Math.floor(year);
+        double yearFrac = year - yearInt;
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.YEAR, yearInt);
+        calendar.set(Calendar.DAY_OF_YEAR, 1);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        long millis = calendar.getTimeInMillis();
+        int daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
+        millis += yearFrac * daysInYear * 24 * 3600 * 1000;
+        return new Date(millis);
+    }
+
+    /** Estimate the age of a person in years, given their birthdate. */
+    private double birthDateToAge(Date birthDate) {
+        return dateToFractionalYear(new Date()) -
+                dateToFractionalYear(birthDate);
+    }
+
     private SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         if (patient != null) {
@@ -74,15 +123,27 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             if (patientIdentifier != null) {
                 jsonForm.add(ID, patientIdentifier.getIdentifier());
             }
+
+            jsonForm.add(GENDER, patient.getGender());
+            double age = birthDateToAge(patient.getBirthdate());
+            if (age < 1.0) {
+                jsonForm.add(AGE, (int) Math.floor(age * 12));
+                jsonForm.add(AGE_UNIT, "months");
+            } else {
+                jsonForm.add(AGE, (int) Math.floor(age));
+                jsonForm.add(AGE_UNIT, "years");
+            }
+
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+
             PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
             PatientState patientState = patientProgram.getCurrentState(
                     getEbolaStatusProgramWorkflow());
             if (patientState != null) {
-                jsonForm.add(STATUS, patientState.getState().getName());
+                jsonForm.add(STATUS, getKeyByState(patientState.getState()));
             }
-            jsonForm.add(GENDER, patient.getGender());
+
             jsonForm.add("created_timestamp_utc", patient.getDateCreated().getTime());
         }
         return jsonForm;
@@ -113,6 +174,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (simpleObject.containsKey(GENDER)) {
             patient.setGender((String)simpleObject.get(GENDER));
         }
+        if (simpleObject.containsKey(AGE)) {
+            double number = ((Number) simpleObject.get(AGE)).doubleValue();
+            if ("months".equals(simpleObject.get(AGE_UNIT))) {
+                long millis = (long) Math.floor(
+                        new Date().getTime() - number * 365.24 / 12 * 24 * 3600 * 1000);
+                patient.setBirthdate(new Date(millis));
+            } else {  // default to years
+                patient.setBirthdate(fractionalYearToDate(
+                        dateToFractionalYear(new Date()) - number));
+            }
+        }
 
         PersonName pn = new PersonName();
         if (simpleObject.containsKey(GIVEN_NAME)) {
@@ -139,8 +211,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         // Status
         if (simpleObject.containsKey(STATUS)) {
-            ProgramWorkflowState workflowState =
-                    getEbolaStatusWorkflowState((String) simpleObject.get(STATUS));
+            ProgramWorkflowState workflowState = getStateByKey((String) simpleObject.get(STATUS));
             if (workflowState != null) {
                 ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
                 PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
@@ -179,9 +250,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return concept;
     }
 
-    /** Get the workflow state for the ebola status by name (e.g. "suspected"). */
-    private ProgramWorkflowState getEbolaStatusWorkflowState(String name) {
-        return getEbolaStatusProgramWorkflow().getStateByName(name);
+    /** Get the key (e.g. "confirmed") for an ebola status by workflow state. */
+    private String getKeyByState(ProgramWorkflowState state) {
+        return EBOLA_STATUS_KEYS_BY_UUID.get(state.getConcept().getUuid());
+    }
+
+    /** Get the workflow state for an ebola status by key (e.g. "suspected"). */
+    private ProgramWorkflowState getStateByKey(String key) {
+        ProgramWorkflow workflow = getEbolaStatusProgramWorkflow();
+        ConceptService conceptService = Context.getConceptService();
+        String uuid = EBOLA_STATUS_UUIDS_BY_KEY.get(key);
+        return uuid == null ? null : workflow.getState(conceptService.getConceptByUuid(uuid));
     }
 
     private ProgramWorkflow getEbolaStatusProgramWorkflow() {
@@ -215,10 +294,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             workflow.setDescription(EBOLA_STATUS_WORKFLOW_NAME);
             workflow.setConcept(getConcept(EBOLA_STATUS_WORKFLOW_NAME, EBOLA_STATUS_WORKFLOW_CONCEPT_UUID, "N/A"));
             workflow.setProgram(program);
-            for (String[] nameAndUuid : EBOLA_STATUS_CONCEPT_NAMES_AND_UUIDS) {
+            for (String[] keyNameUuid : EBOLA_STATUS_KEYS_NAMES_AND_UUIDS) {
                 ProgramWorkflowState state = new ProgramWorkflowState();
-                state.setConcept(getConcept(nameAndUuid[0], nameAndUuid[1], "CODED"));
-                state.setName(nameAndUuid[0]);
+                state.setConcept(getConcept(keyNameUuid[1], keyNameUuid[2], "CODED"));
+                state.setName(keyNameUuid[1]);
                 state.setInitial(false);
                 state.setTerminal(false);
                 workflow.addState(state);
