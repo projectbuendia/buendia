@@ -225,11 +225,11 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         Date newBirthdate;
         if ("months".equals(ageType)) {
             long millis = (long) Math.floor(
-                    new Date().getTime() - ageValue * 365.24 / 12 * 24 * 3600 * 1000);
+                    new Date().getTime() - (ageValue + 0.5) * 365.24 / 12 * 24 * 3600 * 1000);
             newBirthdate = new Date(millis);
         } else {  // default to years
             newBirthdate = fractionalYearToDate(
-                    dateToFractionalYear(new Date()) - ageValue + 0.5);
+                    dateToFractionalYear(new Date()) - (ageValue + 0.5));
         }
         return newBirthdate;
     }
@@ -571,7 +571,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case ASSIGNED_LOCATION:
-                    SimpleObject assignedLocation = (SimpleObject) entry.getValue();
+                    Map assignedLocation = (Map) entry.getValue();
                     zoneName = (String) assignedLocation.get(ZONE);
                     tentName = (String) assignedLocation.get(TENT);
                     bedName = (String) assignedLocation.get(BED);
