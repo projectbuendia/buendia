@@ -74,6 +74,7 @@ public class XformInstanceResource implements Creatable {
         Integer patientId = (Integer) post.get(PATIENT_ID_PROPERTY);
         int entererId = (Integer) post.get(ENTERER_ID_PROPERTY);
         String dateEntered = (String) post.get(DATE_ENTERED_PROPERTY);
+        dateEntered = workAroundClientIssue(dateEntered);
         Document doc = XmlUtil.parse(xml);
 
         // If we haven't been given a patient id, then the XForms processor will create a patient
@@ -97,6 +98,22 @@ public class XformInstanceResource implements Creatable {
         getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
 
         return XformsUtil.doc2String(doc);
+    }
+    
+    // VisibleForTesting
+    // Before a fix, the Android client posted a date of yyyyMMddTHHmmss.SSSZ 
+    static String workAroundClientIssue(String fromClient) {
+        // Just detect it by the lack of hyphens...
+        if (fromClient.indexOf('-') == -1) {
+            // Convert to yyyy-MM-ddTHH:mm:ss.SSS
+            fromClient = new StringBuilder(fromClient)
+                .insert(4, '-')
+                .insert(7, '-')
+                .insert(13, ':')
+                .insert(16, ':')
+                .toString();
+        }
+        return fromClient;
     }
 
     private static Element getFirstElementOrCreate(Document doc, Element parent, String elementName) {
