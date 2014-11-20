@@ -61,7 +61,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -286,7 +285,7 @@ public class BuendiaXformBuilderEx {
                             }
                     }
                 }
-            }            
+            }
             else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
                 // TODO(jonskeet): Use the description for a hint?
                 fieldUiNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
@@ -419,7 +418,7 @@ public class BuendiaXformBuilderEx {
         String token = fieldTokens.get(formField);
         
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);            
-        Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL, formField.getField().getConcept().getName(locale, false).getName());
+        Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL, getDisplayName(formField));
         
         addHintNode(labelNode, formField.getField().getConcept());
         
