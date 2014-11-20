@@ -20,7 +20,7 @@ relevant path.)
 ```
 cd modules
 ./install-modules /opt/omrssdk-1.0.7/apache-maven/bin
-cd projectbuendia.openmrs
+cd ../projectbuendia.openmrs
 omrs-run -Pinstall-wizard
 ```
 
