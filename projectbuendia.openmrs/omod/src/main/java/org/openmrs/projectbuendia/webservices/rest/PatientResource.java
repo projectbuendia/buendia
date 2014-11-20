@@ -229,7 +229,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             newBirthdate = new Date(millis);
         } else {  // default to years
             newBirthdate = fractionalYearToDate(
-                    dateToFractionalYear(new Date()) - ageValue);
+                    dateToFractionalYear(new Date()) - ageValue + 0.5);
         }
         return newBirthdate;
     }
