@@ -11,11 +11,7 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.resource.api.*;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -50,6 +46,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String TENT = "tent";
     private static final String BED = "bed";
     private static final String STATUS = "status";
+    private static final String ADMISSION_TIMESTAMP_SECS = "admission_timestamp";
 
     // OpenMRS object names
     public static final String MSF_IDENTIFIER = "MSF";
@@ -82,6 +79,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             {"SUSPECTED_DEATH", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
             {"CONFIRMED_DEATH", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
     };
+    public static final String CREATED_TIMESTAMP_MILLIS = "created_timestamp_utc";
     private static Map<String, String> EBOLA_STATUS_KEYS_BY_UUID = new HashMap<>();
     private static Map<String, String> EBOLA_STATUS_UUIDS_BY_KEY = new HashMap<>();
 
@@ -147,60 +145,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private double birthDateToAge(Date birthDate) {
         return dateToFractionalYear(new Date()) -
                 dateToFractionalYear(birthDate);
-    }
-
-    private SimpleObject patientToJson(Patient patient) {
-        SimpleObject jsonForm = new SimpleObject();
-        if (patient != null) {
-            jsonForm.add(UUID, patient.getUuid());
-            PatientIdentifier patientIdentifier =
-                    patient.getPatientIdentifier(getMsfIdentifierType());
-            if (patientIdentifier != null) {
-                jsonForm.add(ID, patientIdentifier.getIdentifier());
-            }
-
-            jsonForm.add(GENDER, patient.getGender());
-            double age = birthDateToAge(patient.getBirthdate());
-            SimpleObject ageObject = new SimpleObject();
-            if (age < 1.0) {
-                ageObject.add(MONTHS_VALUE, (int) Math.floor(age * 12));
-                ageObject.add(AGE_TYPE, MONTHS_TYPE);
-            } else {
-                ageObject.add(YEARS_VALUE, (int) Math.floor(age));
-                ageObject.add(AGE_TYPE, YEARS_TYPE);
-            }
-            jsonForm.add(AGE, ageObject);
-
-            jsonForm.add(GIVEN_NAME, patient.getGivenName());
-            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
-
-            String assignedZoneId = getPersonAttributeValue(patient, assignedZoneAttrType);
-            String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
-            String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
-            if (assignedZoneId != null || assignedTentId != null || assignedBedId != null) {
-                SimpleObject location = new SimpleObject();
-                if (assignedZoneId != null) {
-                    location.add(ZONE, getLocationLeafName(assignedZoneId));
-                }
-                if (assignedTentId != null) {
-                    location.add(TENT, getLocationLeafName(assignedTentId));
-                }
-                if (assignedBedId != null) {
-                    location.add(BED, getLocationLeafName(assignedBedId));
-                }
-                jsonForm.add(ASSIGNED_LOCATION, location);
-            }
-
-            PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
-            PatientState patientState = patientProgram.getCurrentState(
-                    getEbolaStatusProgramWorkflow());
-            if (patientState != null) {
-                jsonForm.add(STATUS, getKeyByState(patientState.getState()));
-            }
-
-            jsonForm.add("created_timestamp_utc", patient.getDateCreated().getTime());
-        }
-        return jsonForm;
     }
 
     @Override
@@ -609,11 +553,23 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String zoneName = getPersonAttributeValue(patient, assignedZoneAttrType);
         String tentName = getPersonAttributeValue(patient, assignedTentAttrType);
         String bedName = getPersonAttributeValue(patient, assignedBedAttrType);
-        Date newBirthday = null;
-        String newGender = null;
         boolean changedPatient = false;
         for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
+            Date newBirthday = null;
+            PersonName name = null;
             switch (entry.getKey()) {
+                case FAMILY_NAME:
+                    name = patient.getPersonName();
+                    name.setFamilyName((String) entry.getValue());
+                    updateName(patient, name);
+                    changedPatient = true;
+                    break;
+                case GIVEN_NAME:
+                    name = patient.getPersonName();
+                    name.setGivenName((String) entry.getValue());
+                    updateName(patient, name);
+                    changedPatient = true;
+                    break;
                 case ASSIGNED_LOCATION:
                     SimpleObject assignedLocation = (SimpleObject) entry.getValue();
                     zoneName = (String) assignedLocation.get(ZONE);
@@ -621,7 +577,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     bedName = (String) assignedLocation.get(BED);
                     break;
                 case AGE:
-                    SimpleObject age = (SimpleObject) entry.getValue();
+                    Map age = (Map) entry.getValue();
                     switch((String) age.get(AGE_TYPE)) {
                         case MONTHS_TYPE:
                             newBirthday = calculateNewBirthdate((Integer) age.get(MONTHS_VALUE), MONTHS_TYPE);
@@ -630,7 +586,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                             newBirthday = calculateNewBirthdate((Integer) age.get(YEARS_VALUE), YEARS_TYPE);
                             break;
                         default:
-                            break;
+                            continue;
                     }
                     patient.setBirthdate(newBirthday);
                     patient.setBirthdateEstimated(true);
@@ -643,12 +599,29 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                         changedPatient = true;
                     }
                     break;
+                case STATUS:
+                    ProgramWorkflowState workflowState = getStateByKey((String) entry.getValue());
+                    if (workflowState != null) {
+                        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
+                        PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
+                        patientProgram.transitionToState(workflowState, new Date());
+                        workflowService.savePatientProgram(patientProgram);
+                        changedPatient = true;
+                    }
+                    break;
+                case ADMISSION_TIMESTAMP_SECS:
+                    // This is really evil and maybe shouldn't even be done. Instead we should have an admission event.
+                    // TODO(nfortescue): switch to an admission event
+                    Integer seconds = (Integer) entry.getValue();
+                    if (seconds != null) {
+                        patient.setDateCreated(new Date(seconds * 1000L));
+                        changedPatient = true;
+                    }
+                    break;
                 default:
                     log.warn("Patient has no such property or property is not updatable (ignoring) Change: " + entry);
                     break;
             }
-        }
-        if (newBirthday != null) {
         }
 
         if (changedPatient) {
@@ -656,6 +629,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
         return patientToJson(patient);
+    }
+
+    private void updateName(Patient patient, PersonName name) {
+        Set<PersonName> names = new HashSet<>();
+        names.add(name);
+        patient.setNames(names);
     }
 
     private void setPatientAssignedLocation(
@@ -689,5 +668,60 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         attribute.setValue(value);
         personService.savePerson(person);
+    }
+
+    private SimpleObject patientToJson(Patient patient) {
+        SimpleObject jsonForm = new SimpleObject();
+        if (patient != null) {
+            jsonForm.add(UUID, patient.getUuid());
+            PatientIdentifier patientIdentifier =
+                    patient.getPatientIdentifier(getMsfIdentifierType());
+            if (patientIdentifier != null) {
+                jsonForm.add(ID, patientIdentifier.getIdentifier());
+            }
+
+            jsonForm.add(GENDER, patient.getGender());
+            double age = birthDateToAge(patient.getBirthdate());
+            SimpleObject ageObject = new SimpleObject();
+            if (age < 1.0) {
+                ageObject.add(MONTHS_VALUE, (int) Math.floor(age * 12));
+                ageObject.add(AGE_TYPE, MONTHS_TYPE);
+            } else {
+                ageObject.add(YEARS_VALUE, (int) Math.floor(age));
+                ageObject.add(AGE_TYPE, YEARS_TYPE);
+            }
+            jsonForm.add(AGE, ageObject);
+
+            jsonForm.add(GIVEN_NAME, patient.getGivenName());
+            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+
+            String assignedZoneId = getPersonAttributeValue(patient, assignedZoneAttrType);
+            String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
+            String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
+            if (assignedZoneId != null || assignedTentId != null || assignedBedId != null) {
+                SimpleObject location = new SimpleObject();
+                if (assignedZoneId != null) {
+                    location.add(ZONE, getLocationLeafName(assignedZoneId));
+                }
+                if (assignedTentId != null) {
+                    location.add(TENT, getLocationLeafName(assignedTentId));
+                }
+                if (assignedBedId != null) {
+                    location.add(BED, getLocationLeafName(assignedBedId));
+                }
+                jsonForm.add(ASSIGNED_LOCATION, location);
+            }
+
+            PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
+            PatientState patientState = patientProgram.getCurrentState(
+                    getEbolaStatusProgramWorkflow());
+            if (patientState != null) {
+                jsonForm.add(STATUS, getKeyByState(patientState.getState()));
+            }
+
+            jsonForm.add(CREATED_TIMESTAMP_MILLIS, patient.getDateCreated().getTime());
+            jsonForm.add(ADMISSION_TIMESTAMP_SECS, patient.getDateCreated().getTime() / 1000);
+        }
+        return jsonForm;
     }
 }
