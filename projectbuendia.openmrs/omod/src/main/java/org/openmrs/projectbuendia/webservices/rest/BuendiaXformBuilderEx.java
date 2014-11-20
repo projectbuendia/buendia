@@ -452,13 +452,12 @@ public class BuendiaXformBuilderEx {
             return addProblemList(name, concept, required, locale, formField, parentUiNode);
         }
         else {
-            //Collection<ConceptAnswer> answers = concept.getAnswers(false);
-            List<ConceptAnswer> answers = new ArrayList<ConceptAnswer>(concept.getAnswers(false));
+            List<ConceptAnswer> answers = new ArrayList<>(concept.getAnswers(false));
             Collections.sort(answers);
             
             String controlName = field.getSelectMultiple() ? CONTROL_SELECT : CONTROL_SELECT1;
             Element controlNode = addUiNode(name, concept, DATA_TYPE_TEXT, controlName, locale, parentUiNode);
-            addCodedUiNodes(true, controlNode, answers, concept, DATA_TYPE_TEXT, CONTROL_SELECT, locale);
+            addCodedUiNodes(field.getSelectMultiple(), controlNode, answers, concept, DATA_TYPE_TEXT, CONTROL_SELECT, locale);
             return controlNode;
         }
     }
