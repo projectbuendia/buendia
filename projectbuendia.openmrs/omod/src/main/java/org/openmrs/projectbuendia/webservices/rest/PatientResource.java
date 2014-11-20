@@ -1,6 +1,8 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.openmrs.*;
 import org.openmrs.api.*;
 import org.openmrs.api.context.Context;
@@ -89,6 +91,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             EBOLA_STATUS_UUIDS_BY_KEY.put(keyNameUuid[0], keyNameUuid[2]);
         }
     }
+
+    private static Log log = LogFactory.getLog(PatientResource.class);
 
     private final PatientService patientService;
     private final PersonAttributeType assignedZoneAttrType;
@@ -597,7 +601,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             } else if ("assigned_bed".equals(key)) {
                 bedName = (String) simpleObject.get(key);
             } else {
-                throw new InvalidObjectDataException("Patient has no such property or property is not updatable: " + key);
+                log.warn("Patient has no such property or property is not updatable (ignoring)Change: " + key);
             }
         }
         setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
