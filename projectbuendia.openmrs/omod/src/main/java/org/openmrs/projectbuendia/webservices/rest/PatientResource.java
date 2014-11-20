@@ -658,16 +658,18 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return attribute != null ? attribute.getValue() : null;
     }
 
-    private static void setPersonAttributeValue(Person person, PersonAttributeType attrType, String value) {
+    private static void setPersonAttributeValue(Patient patient, PersonAttributeType attrType, String value) {
         PersonService personService = Context.getPersonService();
-        PersonAttribute attribute = person.getAttribute(attrType);
+        PersonAttribute attribute = patient.getAttribute(attrType);
         if (attribute == null) {
             attribute = new PersonAttribute();
             attribute.setAttributeType(attrType);
-            person.addAttribute(attribute);
+            attribute.setValue(value);
+            patient.addAttribute(attribute);
+        } else {
+            attribute.setValue(value);
         }
-        attribute.setValue(value);
-        personService.savePerson(person);
+        personService.savePerson(patient);
     }
 
     private SimpleObject patientToJson(Patient patient) {
