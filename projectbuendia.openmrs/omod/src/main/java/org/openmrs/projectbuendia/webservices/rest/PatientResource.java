@@ -610,7 +610,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
         }
         setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
-        return patient;
+        return patientToJson(patient);
     }
 
     private void setPatientAssignedLocation(
