@@ -3,7 +3,6 @@ import static org.junit.Assert.assertEquals;
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.readResourceAsString;
 
-import org.junit.Assert;
 import org.junit.Test;
 import org.openmrs.module.webservices.rest.SimpleObject;
 
@@ -29,6 +28,18 @@ public class XformInstanceResourceTest {
         post.add(XformInstanceResource.DATE_ENTERED_PROPERTY, "2014-11-15");
         post.add(XformInstanceResource.ENTERER_ID_PROPERTY, 1);
         post.add(XformInstanceResource.PATIENT_ID_PROPERTY, 10);
+        post.add(XformInstanceResource.XML_PROPERTY, input);
+        String actual = XformInstanceResource.completeXform(post);
+        assertXmlEqual(expected, actual);
+    }
+    
+    @Test
+    public void moveGroupsIntoObs() throws Exception {
+        String input = readResourceAsString(getClass(), "original-grouped.xml");
+        String expected = readResourceAsString(getClass(), "expected-grouped.xml");
+        SimpleObject post = new SimpleObject();
+        post.add(XformInstanceResource.DATE_ENTERED_PROPERTY, "2014-11-15");
+        post.add(XformInstanceResource.ENTERER_ID_PROPERTY, 1);
         post.add(XformInstanceResource.XML_PROPERTY, input);
         String actual = XformInstanceResource.completeXform(post);
         assertXmlEqual(expected, actual);

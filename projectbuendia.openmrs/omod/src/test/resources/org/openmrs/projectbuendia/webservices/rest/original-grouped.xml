@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<form xmlns:xd="http://schemas.microsoft.com/office/infopath/2003"
+	xmlns:openmrs="formentry.infopath_server_url cannot be empty/moduleServlet/formentry/forms/schema/4-1"
+	id="4" name="Weight observation" version="1"
+	uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc">
+	<header>
+		<enterer />
+		<date_entered />
+		<session />
+		<uid />
+	</header>
+	<patient>
+		<patient.birthdate openmrs_table="patient"
+			openmrs_attribute="birthdate">2014-11-11</patient.birthdate>
+		<patient.family_name openmrs_table="patient_name"
+			openmrs_attribute="family_name" />
+		<patient.given_name openmrs_table="patient_name"
+			openmrs_attribute="given_name" />
+		<patient_identifier.identifier_type
+			openmrs_table="patient_identifier" openmrs_attribute="identifier_type">3</patient_identifier.identifier_type>
+		<patient.medical_record_number
+			openmrs_table="patient_identifier" openmrs_attribute="identifier"></patient.medical_record_number>
+		<patient.middle_name openmrs_table="patient_name"
+			openmrs_attribute="middle_name" />
+		<patient.sex openmrs_table="patient" openmrs_attribute="gender">M</patient.sex>
+	</patient>
+
+	<encounter>
+		<encounter.encounter_datetime
+			openmrs_table="encounter" openmrs_attribute="encounter_datetime">2014-11-13</encounter.encounter_datetime>
+		<encounter.location_id openmrs_table="encounter"
+			openmrs_attribute="location_id">1</encounter.location_id>
+		<encounter.provider_id openmrs_table="encounter"
+			openmrs_attribute="provider_id" provider_id_type="PROVIDER.ID">1</encounter.provider_id>
+	</encounter>
+	<first_part>
+	  <first1>foo</first1>
+	  <first2>bar</first2>
+	</first_part>
+	<second_part>
+	  <second1>baz</second1>
+	  <second2>qux</second2>
+	</second_part>
+</form>
