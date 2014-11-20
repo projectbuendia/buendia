@@ -2,12 +2,16 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.Patient;
+import org.openmrs.api.PatientService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
+import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
@@ -32,6 +36,7 @@ public class XformInstanceResource implements Creatable {
 
     static String XML_PROPERTY = "xml";
     static String PATIENT_ID_PROPERTY = "patient_id";
+    static String PATIENT_UUID_PROPERTY = "patient_uuid";
     static String ENTERER_ID_PROPERTY = "enterer_id";
     static String DATE_ENTERED_PROPERTY = "date_entered";
 
@@ -39,6 +44,12 @@ public class XformInstanceResource implements Creatable {
 
     @SuppressWarnings("unused")
     private final Log log = LogFactory.getLog(getClass());
+
+    private final PatientService patientService;
+
+    public XformInstanceResource() {
+        patientService = Context.getPatientService();
+    }
 
     @Override
     public String getUri(Object instance) {
@@ -49,7 +60,7 @@ public class XformInstanceResource implements Creatable {
     @Override
     public Object create(SimpleObject post, RequestContext context) throws ResponseException {
         try {
-            String xml = completeXform(post);
+            String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
@@ -64,6 +75,27 @@ public class XformInstanceResource implements Creatable {
         return post;
     }
 
+    private SimpleObject convertIdIfNecessary(SimpleObject post) {
+        Object patientId = post.get(PATIENT_ID_PROPERTY);
+
+        if (patientId != null) {
+            return post;
+        }
+
+        String uuid = (String) post.get(PATIENT_UUID_PROPERTY);
+        if (uuid != null) {
+
+            Patient patient = patientService.getPatientByUuid(uuid);
+            if (patient == null) {
+                throw new IllegalPropertyException("Patient UUID did not exist: " + uuid);
+            }
+            post.add(PATIENT_ID_PROPERTY, patient.getPatientId());
+            return post;
+        }
+
+        return post;
+    }
+
     // VisibleForTesting
     /**
      * Add appropriate sections to the XForm we receive, to include patient ID
@@ -72,6 +104,7 @@ public class XformInstanceResource implements Creatable {
     static String completeXform(SimpleObject post) throws SAXException, IOException {
         String xml = (String) post.get(XML_PROPERTY);
         Integer patientId = (Integer) post.get(PATIENT_ID_PROPERTY);
+
         int entererId = (Integer) post.get(ENTERER_ID_PROPERTY);
         String dateEntered = (String) post.get(DATE_ENTERED_PROPERTY);
         dateEntered = workAroundClientIssue(dateEntered);

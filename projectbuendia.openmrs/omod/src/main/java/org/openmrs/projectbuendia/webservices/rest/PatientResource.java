@@ -52,7 +52,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String STATUS = "status";
 
     // OpenMRS object names
-    private static final String MSF_IDENTIFIER = "MSF";
+    public static final String MSF_IDENTIFIER = "MSF";
     private static final String EBOLA_STATUS_PROGRAM_NAME = "Ebola status program";
     private static final String EBOLA_STATUS_WORKFLOW_NAME = "Ebola status workflow";
 
@@ -557,10 +557,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // location name consisting of comma-separated components, with each component
         // prefixed by the tag name for that level, e.g. "Facility Kailahun, Zone 2, Tent 1"
         // as distinct from "Tent 1" in any other zone or facility.
-        String facilityLocationName = null;
-        String zoneLocationName = null;
-        String tentLocationName = null;
-        String bedLocationName = null;
+        String facilityLocationName;
+        String zoneLocationName;
+        String tentLocationName;
+        String bedLocationName;
         Location result = null;
         if (facilityName != null) {
             facilityLocationName = "Facility " + facilityName;
@@ -594,14 +594,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String bedName = getPersonAttributeValue(patient, assignedBedAttrType);
 
         for (String key : simpleObject.keySet()) {
-            if ("assigned_zone".equals(key)) {
-                zoneName = (String) simpleObject.get(key);
-            } else if ("assigned_tent".equals(key)) {
-                tentName = (String) simpleObject.get(key);
-            } else if ("assigned_bed".equals(key)) {
-                bedName = (String) simpleObject.get(key);
-            } else {
-                log.warn("Patient has no such property or property is not updatable (ignoring)Change: " + key);
+            switch (key) {
+                case "assigned_zone":
+                    zoneName = (String) simpleObject.get(key);
+                    break;
+                case "assigned_tent":
+                    tentName = (String) simpleObject.get(key);
+                    break;
+                case "assigned_bed":
+                    bedName = (String) simpleObject.get(key);
+                    break;
+                default:
+                    log.warn("Patient has no such property or property is not updatable (ignoring)Change: " + key);
+                    break;
             }
         }
         setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
