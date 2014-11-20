@@ -229,15 +229,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patient.setGender((String) simpleObject.get(GENDER));
         }
         if (simpleObject.containsKey(AGE)) {
-            double number = ((Number) simpleObject.get(AGE)).doubleValue();
-            if ("months".equals(simpleObject.get(AGE_UNIT))) {
-                long millis = (long) Math.floor(
-                        new Date().getTime() - number * 365.24 / 12 * 24 * 3600 * 1000);
-                patient.setBirthdate(new Date(millis));
-            } else {  // default to years
-                patient.setBirthdate(fractionalYearToDate(
-                        dateToFractionalYear(new Date()) - number));
-            }
+            patient.setBirthdate(calculateNewBirthdate(((Number) simpleObject.get(AGE)).doubleValue(),
+                    (String)simpleObject.get(AGE_UNIT)));
         }
 
         PersonName pn = new PersonName();
@@ -282,6 +275,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         return patientToJson(patient);
+    }
+
+    private Date calculateNewBirthdate(double ageValue, String ageType) {
+        Date newBirthdate;
+        if ("months".equals(ageType)) {
+            long millis = (long) Math.floor(
+                    new Date().getTime() - ageValue * 365.24 / 12 * 24 * 3600 * 1000);
+            newBirthdate = new Date(millis);
+        } else {  // default to years
+            newBirthdate = fractionalYearToDate(
+                    dateToFractionalYear(new Date()) - ageValue);
+        }
+        return newBirthdate;
     }
 
     private PatientIdentifierType getMsfIdentifierType() {
@@ -581,6 +587,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return result;
     }
 
+    /**
+     * The SimpleObject arriving is a Gson serialization of a client Patient Bean. It has the following semantics:
+     * <ul>
+     *     <li>Any field set overwrites the current content
+     *     <li>Any field with a key but value == null deletes the current content
+     *     <li>Any field not contained leaves the current content unchanged
+     *     <li>Recursive merge for location and age should not be done, instead the whole item is written
+     *     <li>If the client requests a change which is illegal that is an error. Really the whole call should fail,
+     *         but for now there may be partial updates
+     * </ul>
+     */
     @Override
     public Object update(String uuid, SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
@@ -592,22 +609,42 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String zoneName = getPersonAttributeValue(patient, assignedZoneAttrType);
         String tentName = getPersonAttributeValue(patient, assignedTentAttrType);
         String bedName = getPersonAttributeValue(patient, assignedBedAttrType);
+        Date newBirthday = null;
 
-        for (String key : simpleObject.keySet()) {
-            switch (key) {
-                case "assigned_zone":
-                    zoneName = (String) simpleObject.get(key);
+        for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
+            switch (entry.getKey()) {
+                case ASSIGNED_LOCATION:
+                    SimpleObject assignedLocation = (SimpleObject) entry.getValue();
+                    zoneName = (String) assignedLocation.get(ZONE);
+                    tentName = (String) assignedLocation.get(TENT);
+                    bedName = (String) assignedLocation.get(BED);
                     break;
-                case "assigned_tent":
-                    tentName = (String) simpleObject.get(key);
-                    break;
-                case "assigned_bed":
-                    bedName = (String) simpleObject.get(key);
-                    break;
+                case AGE:
+                    SimpleObject age = (SimpleObject) entry.getValue();
+                    switch((String) age.get(AGE_TYPE)) {
+                        case MONTHS_TYPE:
+                            newBirthday = calculateNewBirthdate((Integer) age.get(MONTHS_VALUE), MONTHS_TYPE);
+                            break;
+                        case YEARS_TYPE:
+                            newBirthday = calculateNewBirthdate((Integer) age.get(YEARS_VALUE), YEARS_TYPE);
+                            break;
+                        default:
+                            break;
+                    }
                 default:
-                    log.warn("Patient has no such property or property is not updatable (ignoring)Change: " + key);
+                    log.warn("Patient has no such property or property is not updatable (ignoring) Change: " + entry);
                     break;
             }
+        }
+        boolean changedPatient = false;
+        if (newBirthday != null) {
+            patient.setBirthdate(newBirthday);
+            patient.setBirthdateEstimated(true);
+            changedPatient = true;
+        }
+
+        if (changedPatient) {
+            patientService.savePatient(patient);
         }
         setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
         return patientToJson(patient);
