@@ -361,14 +361,13 @@ public class BuendiaXformBuilderEx {
                 if(multiplSel)
                     conceptValue = FormUtil.getXmlToken(conceptName);
                 else {
-                    conceptValue = StringEscapeUtils.escapeXml(FormUtil.conceptToString(answer.getAnswerConcept(),
-                                    locale)) + "^" + FormUtil.drugToString(answer.getAnswerDrug());
+                    conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale) + "^" + FormUtil.drugToString(answer.getAnswerDrug());
                 }
             } else {
                 if(multiplSel)
                     conceptValue = FormUtil.getXmlToken(conceptName);
                 else
-                    conceptValue = StringEscapeUtils.escapeXml(FormUtil.conceptToString(answer.getAnswerConcept(), locale));
+                    conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale);
             }
             
             Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
