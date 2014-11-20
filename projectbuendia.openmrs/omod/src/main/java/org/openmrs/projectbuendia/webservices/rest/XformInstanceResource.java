@@ -1,5 +1,14 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElements;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
@@ -21,11 +30,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import java.io.File;
-import java.io.IOException;
-
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
-
 /**
  * Resource for instances of xforms (i.e. filled in forms). Currently write-only
  */
@@ -33,6 +37,17 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrTh
 // we omit it?
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*")
 public class XformInstanceResource implements Creatable {
+
+    // Everything not in this set is assumed to be a group of observations.
+    private static final Set<String> KNOWN_CHILD_ELEMENTS = new HashSet<String>();
+
+    static {
+        KNOWN_CHILD_ELEMENTS.add("header");
+        KNOWN_CHILD_ELEMENTS.add("patient");
+        KNOWN_CHILD_ELEMENTS.add("patient.patient_id");
+        KNOWN_CHILD_ELEMENTS.add("encounter");
+        KNOWN_CHILD_ELEMENTS.add("obs");
+    }
 
     static String XML_PROPERTY = "xml";
     static String PATIENT_ID_PROPERTY = "patient_id";
@@ -129,10 +144,23 @@ public class XformInstanceResource implements Creatable {
         Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
         getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
+        
+        // Make sure that all observations are under the obs element, with appropriate attributes
+        Element obs = getFirstElementOrCreate(doc, root, "obs");
+        obs.setAttribute("openmrs_concept", "1238^MEDICAL RECORD OBSERVATIONS^99DCT");
+        obs.setAttribute("openmrs_datatype", "ZZ");
+        for (Element element : getElements(root)) {
+            if (!KNOWN_CHILD_ELEMENTS.contains(element.getLocalName())) {
+                for (Element observation : getElements(element)) {
+                    obs.appendChild(observation);
+                }
+                removeNode(element);
+            }
+        }
 
         return XformsUtil.doc2String(doc);
     }
-    
+
     // VisibleForTesting
     // Before a fix, the Android client posted a date of yyyyMMddTHHmmss.SSSZ 
     static String workAroundClientIssue(String fromClient) {
@@ -153,7 +181,7 @@ public class XformInstanceResource implements Creatable {
         NodeList patientElements = parent.getElementsByTagName(elementName);
         Element patient;
         if (patientElements == null || patientElements.getLength() == 0) {
-            patient = doc.createElement(elementName);
+            patient = doc.createElementNS(null, elementName);
             parent.appendChild(patient);
         } else {
             patient = (Element)patientElements.item(0);

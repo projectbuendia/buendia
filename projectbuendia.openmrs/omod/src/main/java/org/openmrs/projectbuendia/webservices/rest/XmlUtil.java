@@ -54,14 +54,37 @@ public class XmlUtil {
         node.getParentNode().removeChild(node);
     }
     
-    /** Finds exactly one element with the given name within the specified element. */
-    public static Element getElementOrThrow(Element element, String name) {
-        NodeList elements = element.getElementsByTagName(name);
-        if (elements.getLength() != 1) {
-            throw new IllegalPropertyException("Element " + element.getNodeName()
-                    + " must have exactly one " + name + " element");
+    /**
+     * Returns all the direct child elements of the given element.
+     */
+    public static List<Element> getElements(Element element) {
+        List<Element> elements = new ArrayList<>();
+        for (Node node : toIterable(element.getChildNodes())) {
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                elements.add((Element) node);
+            }
         }
-        return (Element) elements.item(0);
+        return elements;
+    }
+
+    /**
+     * Returns all the direct child elements of the given element with the specified namespace/local name.
+     * Use null to indicate the empty namespace.
+     */
+    public static List<Element> getElementsNS(Element element, String namespaceURI, String localName) {
+        List<Element> elements = new ArrayList<>();
+        for (Element candidate : getElements(element)) {
+            if (namespaceURI.equals(candidate.getNamespaceURI())
+                    && localName.equals(candidate.getLocalName())) {
+                elements.add(candidate);
+            }
+        }
+        return elements;
+    }
+
+    /** Finds exactly one direct child element with the given name in the empty namespace URI. */
+    public static Element getElementOrThrow(Element element, String name) {
+        return getElementOrThrowNS(element, null, name);
     }
     
 

@@ -34,7 +34,6 @@ public class XmlTestUtil {
     static void assertXmlEqual(String expected, String actual) throws TransformerException, SAXException, IOException, ParserConfigurationException {        
         Document expectedDoc = XmlUtil.parse(expected);
         Document actualDoc = XmlUtil.parse(actual);
-        
         expected = toIndentedString(expectedDoc);
         actual = toIndentedString(actualDoc);
         
