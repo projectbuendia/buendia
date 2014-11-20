@@ -610,7 +610,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String tentName = getPersonAttributeValue(patient, assignedTentAttrType);
         String bedName = getPersonAttributeValue(patient, assignedBedAttrType);
         Date newBirthday = null;
-
+        String newGender = null;
+        boolean changedPatient = false;
         for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
             switch (entry.getKey()) {
                 case ASSIGNED_LOCATION:
@@ -631,16 +632,23 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                         default:
                             break;
                     }
+                    patient.setBirthdate(newBirthday);
+                    patient.setBirthdateEstimated(true);
+                    changedPatient = true;
+                    break;
+                case GENDER:
+                    String gender = (String) entry.getValue();
+                    if ("M".equalsIgnoreCase(gender) || "F".equalsIgnoreCase(gender)) {
+                        patient.setGender(gender);
+                        changedPatient = true;
+                    }
+                    break;
                 default:
                     log.warn("Patient has no such property or property is not updatable (ignoring) Change: " + entry);
                     break;
             }
         }
-        boolean changedPatient = false;
         if (newBirthday != null) {
-            patient.setBirthdate(newBirthday);
-            patient.setBirthdateEstimated(true);
-            changedPatient = true;
         }
 
         if (changedPatient) {
