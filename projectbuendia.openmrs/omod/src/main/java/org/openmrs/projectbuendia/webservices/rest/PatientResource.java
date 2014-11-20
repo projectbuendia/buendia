@@ -333,6 +333,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patientProgram = new PatientProgram();
             patientProgram.setPatient(patient);
             patientProgram.setProgram(program);
+            patientProgram.setDateEnrolled(new Date());
             workflowService.savePatientProgram(patientProgram);
         } else {
             patientProgram = patientPrograms.get(0);
