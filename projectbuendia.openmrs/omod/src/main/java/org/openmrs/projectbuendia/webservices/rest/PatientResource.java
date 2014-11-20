@@ -77,8 +77,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             {"CONVALESCENT", "convalescing at ebola facility", "c1349bd7-6f13-11e4-b315-040ccecfdba4"},
             {"READY_FOR_DISCHARGE", "ready for discharge from ebola facility", "e45ef19e-6f13-11e4-b630-040ccecfdba4"},
             {"DISCHARGED", "discharged from ebola facility", "e4a20c4a-6f13-11e4-b315-040ccecfdba4"},
-            {"SUSPECTED_DEAD", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
-            {"CONFIRMED_DEAD", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
+            {"SUSPECTED_DEATH", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
+            {"CONFIRMED_DEATH", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
     };
     private static Map<String, String> EBOLA_STATUS_KEYS_BY_UUID = new HashMap<>();
     private static Map<String, String> EBOLA_STATUS_UUIDS_BY_KEY = new HashMap<>();
