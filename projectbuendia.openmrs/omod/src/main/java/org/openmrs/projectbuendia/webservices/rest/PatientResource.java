@@ -556,18 +556,25 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         boolean changedPatient = false;
         for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
             Date newBirthday = null;
-            PersonName name = null;
+            PersonName oldName;
+            PersonName newName;
             switch (entry.getKey()) {
                 case FAMILY_NAME:
-                    name = patient.getPersonName();
-                    name.setFamilyName((String) entry.getValue());
-                    updateName(patient, name);
+                    oldName = patient.getPersonName();
+                    newName = new PersonName();
+                    newName.setFamilyName((String) entry.getValue());
+                    newName.setGivenName(oldName.getGivenName());
+                    patient.addName(newName);
+                    oldName.setVoided(true);
                     changedPatient = true;
                     break;
                 case GIVEN_NAME:
-                    name = patient.getPersonName();
-                    name.setGivenName((String) entry.getValue());
-                    updateName(patient, name);
+                    oldName = patient.getPersonName();
+                    newName = new PersonName();
+                    newName.setGivenName((String) entry.getValue());
+                    newName.setFamilyName(oldName.getFamilyName());
+                    patient.addName(newName);
+                    oldName.setVoided(true);
                     changedPatient = true;
                     break;
                 case ASSIGNED_LOCATION:
@@ -629,12 +636,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
         return patientToJson(patient);
-    }
-
-    private void updateName(Patient patient, PersonName name) {
-        Set<PersonName> names = new HashSet<>();
-        names.add(name);
-        patient.setNames(names);
     }
 
     private void setPatientAssignedLocation(
