@@ -46,8 +46,6 @@ import java.io.Reader;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.kxml2.io.KXmlParser;
 import org.kxml2.io.KXmlSerializer;
 import org.kxml2.kdom.Document;
@@ -78,8 +76,6 @@ public final class BuendiaXformBuilder {
     private static String ATTRIBUTE_PRELOAD_PARAMS = "jr:preloadParams";
     
     private static String PRELOAD_PATIENT = "patient";
-    
-    private static Log log = LogFactory.getLog(BuendiaXformBuilder.class);
     
     /**
      * Sets the value of a child node in a parent node.
@@ -174,7 +170,7 @@ public final class BuendiaXformBuilder {
             }
         }
         catch (NumberFormatException e) {
-            log.warn(e.getMessage());
+            throw new IllegalArgumentException("Invalid concept value: " + conceptValueString, e);
         }
     }    
     
