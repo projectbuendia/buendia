@@ -1,5 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_APPEARANCE;
 import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_BIND;
 import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONCEPT_ID;
 import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONSTRAINT;
@@ -515,9 +516,13 @@ public class BuendiaXformBuilderEx {
         // Handle encounter provider / location: these are multiple choice questions, and we populate
         // the options.
         Field field = formField.getField();
-        if ("patient".equals(field.getTableName()) && "gender".equals(field.getAttributeName())) {
-            controlNode.setName(CONTROL_SELECT1);
-            populateGenders(controlNode);
+        if ("patient".equals(field.getTableName())) {
+            if ("gender".equals(field.getAttributeName())) {
+                controlNode.setName(CONTROL_SELECT1);
+                populateGenders(controlNode);
+            } else if ("birthdate".equals(field.getAttributeName())) {
+                controlNode.setAttribute(null, ATTRIBUTE_APPEARANCE, "minimal|show_years|show_months");
+            }
         } else if ("encounter".equals(field.getTableName())) {
             if ("location_id".equals(field.getAttributeName())) {
                 controlNode.setName(CONTROL_SELECT1);
