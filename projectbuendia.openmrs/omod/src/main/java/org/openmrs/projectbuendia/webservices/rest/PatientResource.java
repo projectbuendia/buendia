@@ -231,7 +231,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return newBirthdate;
     }
 
-    private PatientIdentifierType getMsfIdentifierType() {
+    public static PatientIdentifierType getMsfIdentifierType() {
+        PatientService patientService = Context.getPatientService();
         PatientIdentifierType identifierType = patientService.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
         if (identifierType == null) {
             identifierType = new PatientIdentifierType();

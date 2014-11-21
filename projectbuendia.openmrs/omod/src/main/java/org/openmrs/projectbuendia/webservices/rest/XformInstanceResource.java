@@ -6,12 +6,16 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
+import org.openmrs.PatientIdentifierType;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -23,12 +27,17 @@ import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
+import org.openmrs.module.xforms.util.DOMUtil;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Resource for instances of xforms (i.e. filled in forms). Currently write-only
@@ -74,8 +83,10 @@ public class XformInstanceResource implements Creatable {
 
     @Override
     public Object create(SimpleObject post, RequestContext context) throws ResponseException {
+        String xml = "";
+        xml = "";
         try {
-            String xml = completeXform(convertIdIfNecessary(post));
+            xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
@@ -87,7 +98,48 @@ public class XformInstanceResource implements Creatable {
             throw new ConversionException("Error processing xform data", e);
         }
         // FIXME
+
+        // We want to return the UUID, MSF patient ID, given name, and family
+        // name of the new Patient to the client as well, to support the
+        // Unfortunately, XformsQueueProcessor.processXForm doesn't return the
+        // new Patient object, so we have to get it in the roundabout way of
+        // looking it up by the provided MSF patient ID.
+        Patient patient = null;
+        String msfPatientId = getMsfPatientIdFromFormInstanceXml(xml);
+        if (msfPatientId != null) {
+            PatientService service = Context.getPatientService();
+            List<PatientIdentifierType> idTypes = new ArrayList<>();
+            idTypes.add(PatientResource.getMsfIdentifierType());
+            List<Patient> patients = service.getPatients("", msfPatientId, idTypes, true);
+            if (!patients.isEmpty()) {
+                patient = patients.get(0);
+                post = (SimpleObject) post.clone();
+                post.add("uuid", patient.getUuid());
+                post.add("id", msfPatientId);
+                post.add("given_name", patient.getGivenName());
+                post.add("family_name", patient.getFamilyName());
+            }
+        }
         return post;
+    }
+
+    /** Finds and returns the content of the msf_patient_id element in an XML string. */
+    public String getMsfPatientIdFromFormInstanceXml(String xml) {
+        Document doc = null;
+        try {
+            doc = XmlUtil.parse(xml);
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String msf_patient_id = "";
+        Element root = doc.getDocumentElement();
+        NodeList msf_patient_ids = root.getElementsByTagName("msf_patient_id");
+        if (msf_patient_ids.getLength() == 1) {
+            return msf_patient_ids.item(0).getTextContent();
+        }
+        return null;
     }
 
     private SimpleObject convertIdIfNecessary(SimpleObject post) {
