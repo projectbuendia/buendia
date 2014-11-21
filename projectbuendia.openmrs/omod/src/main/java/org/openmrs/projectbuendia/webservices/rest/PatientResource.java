@@ -210,10 +210,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (simpleObject.containsKey(STATUS)) {
             ProgramWorkflowState workflowState = getStateByKey((String) simpleObject.get(STATUS));
             if (workflowState != null) {
-                ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
-                PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
-                patientProgram.transitionToState(workflowState, new Date());
-                workflowService.savePatientProgram(patientProgram);
+                statusChange(patient, workflowState);
                 patientService.savePatient(patient);
             }
         }
@@ -337,6 +334,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patientProgram = new PatientProgram();
             patientProgram.setPatient(patient);
             patientProgram.setProgram(program);
+            patientProgram.setDateEnrolled(new Date());
             workflowService.savePatientProgram(patientProgram);
         } else {
             patientProgram = patientPrograms.get(0);
@@ -551,12 +549,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         String facilityName = FACILITY_NAME;
-        String zoneName = getPersonAttributeValue(patient, assignedZoneAttrType);
-        String tentName = getPersonAttributeValue(patient, assignedTentAttrType);
-        String bedName = getPersonAttributeValue(patient, assignedBedAttrType);
         boolean changedPatient = false;
         for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
-            Date newBirthday = null;
+            Date newBirthday;
             PersonName oldName;
             PersonName newName;
             switch (entry.getKey()) {
@@ -580,9 +575,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     break;
                 case ASSIGNED_LOCATION:
                     Map assignedLocation = (Map) entry.getValue();
-                    zoneName = (String) assignedLocation.get(ZONE);
-                    tentName = (String) assignedLocation.get(TENT);
-                    bedName = (String) assignedLocation.get(BED);
+                    String zoneName = (String) assignedLocation.get(ZONE);
+                    String tentName = (String) assignedLocation.get(TENT);
+                    String bedName = (String) assignedLocation.get(BED);
+                    setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
                     break;
                 case AGE:
                     Map age = (Map) entry.getValue();
@@ -610,11 +606,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 case STATUS:
                     ProgramWorkflowState workflowState = getStateByKey((String) entry.getValue());
                     if (workflowState != null) {
-                        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
-                        PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
-                        patientProgram.transitionToState(workflowState, new Date());
-                        workflowService.savePatientProgram(patientProgram);
-                        changedPatient = true;
+                        statusChange(patient, workflowState);
                     }
                     break;
                 case ADMISSION_TIMESTAMP_SECS:
@@ -635,8 +627,47 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (changedPatient) {
             patientService.savePatient(patient);
         }
-        setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
         return patientToJson(patient);
+    }
+
+    private void statusChange(Patient patient, ProgramWorkflowState newWorkflowState) {
+        // OpenMRS has validators (see PatientProgramValidator) that check among other things that you can't
+        // have a patient twice on the same state on the same day.
+
+        // In general, it would be good enough to make all changes within 10 minutes count as edits (rather than
+        // changes). However, for demos, you will probably change the same status many times on the same day.
+        // So we will just go through and delete all changes with the same start date and status as the change
+        // we are trying to add. I will leave as an open question the merge duplicates question.
+        // TODO(nfortescue): decide on whether to merge changes similar in time.
+
+        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
+        PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
+        // If this method of set manipulation seems strange it is because hibernate is fussy about how you modify
+        // collections in hibernate created objects.
+        Set<PatientState> allStates = patientProgram.getStates();
+        HashSet<PatientState> toRemove = new HashSet<>();
+        Date ourDate = new Date();
+        // Compare day, month, year. This is dangerous without joda time, and when you think about timezones.
+        // TODO(nfortescue): make this safe.
+        Date ourJustDay = new Date(ourDate.getYear(), ourDate.getMonth(), ourDate.getDate());
+
+        for (PatientState oldState : allStates) {
+            if (newWorkflowState.equals(oldState.getState()) && ourJustDay.equals(oldState.getStartDate())) {
+                toRemove.add(oldState);
+                // we could break; here, but for extra safety make sure we check them all.
+            }
+        }
+
+        if (!toRemove.isEmpty()) {
+            for (PatientState bad : toRemove) {
+                allStates.remove(bad);
+            }
+        }
+        // If we don't save here we get optimistic locking failures from hibernate.
+        workflowService.savePatientProgram(patientProgram);
+        // Important to reuse date here over midnight.
+        patientProgram.transitionToState(newWorkflowState, ourDate);
+        workflowService.savePatientProgram(patientProgram);
     }
 
     private void setPatientAssignedLocation(
