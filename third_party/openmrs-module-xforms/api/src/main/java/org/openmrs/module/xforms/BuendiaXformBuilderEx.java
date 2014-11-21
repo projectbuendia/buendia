@@ -78,6 +78,7 @@ import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Person;
 import org.openmrs.Provider;
+import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.xforms.RelativeBuilder;
@@ -93,14 +94,19 @@ import org.openmrs.util.FormUtil;
  * creation code separately from the module itself.
  */
 public class BuendiaXformBuilderEx {
+    private static final int MALE_CONCEPT_ID = 1534;
+    private static final int FEMALE_CONCEPT_ID = 1535;
+    
     private static Log log = LogFactory.getLog(BuendiaXformBuilderEx.class);
 
     private final Map<String, Element> bindings = new HashMap<>();
     private final Map<FormField, String> fieldTokens = new HashMap<>();
     private final boolean useConceptIdAsHint;
+    private final Locale locale;
 
     private BuendiaXformBuilderEx() {
         useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
+        locale = Context.getLocale();
     }
     
     /**
@@ -190,14 +196,13 @@ public class BuendiaXformBuilderEx {
         return BuendiaXformBuilder.fromDoc2String(doc);
     }     
     
-    private void buildUInodes(Form form, Element bodyNode) {   
-        Locale locale = Context.getLocale();
+    private void buildUInodes(Form form, Element bodyNode) {
         TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-        buildUInodes(form, formStructure, 0, locale, bodyNode);
+        buildUInodes(form, formStructure, 0, bodyNode);
     }
     
     private void buildUInodes(Form form, TreeMap<Integer, TreeSet<FormField>> formStructure,
-            Integer sectionId, Locale locale, Element parentUiNode) {         
+            Integer sectionId, Element parentUiNode) {         
         TreeSet<FormField> section = formStructure.get(sectionId);
         if (section == null) {
             return;
@@ -240,7 +245,7 @@ public class BuendiaXformBuilderEx {
                         formField.getParent() != null &&
                         (formField.getParent().getField().getName().contains("PROBLEM LIST")) ){
                     
-                    fieldUiNode = addProblemList(name, concept, required, locale, formField, parentUiNode);
+                    fieldUiNode = addProblemList(name, concept, required, formField, parentUiNode);
                 } else if (name.equals("problem_list")) {
                     // TODO(jonskeet): Work out what we should do here. There won't be any bindings for this.
                     // The child nodes will be covered by the case above, when we recurse down.
@@ -249,35 +254,35 @@ public class BuendiaXformBuilderEx {
                 else {
                     switch (datatype.getHl7Abbreviation()) {
                         case HL7Constants.HL7_BOOLEAN:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_BOOLEAN, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_BOOLEAN, CONTROL_INPUT, parentUiNode);
                             break;
                         case HL7Constants.HL7_DATE:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_DATE, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_DATE, CONTROL_INPUT, parentUiNode);
                             break;
                         case HL7Constants.HL7_DATETIME:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_DATETIME, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_DATETIME, CONTROL_INPUT, parentUiNode);
                             break;
                         case HL7Constants.HL7_TIME:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_TIME, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_TIME, CONTROL_INPUT, parentUiNode);
                             break;
                         case HL7Constants.HL7_TEXT:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_TEXT, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_TEXT, CONTROL_INPUT, parentUiNode);
                             break;
                         case HL7Constants.HL7_NUMERIC:
                             ConceptNumeric conceptNumeric = Context.getConceptService().getConceptNumeric(concept.getConceptId());
-                            fieldUiNode = addUiNode(name, conceptNumeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, conceptNumeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, parentUiNode);
                             break;
                         case HL7Constants.HL7_CODED:
                         case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
-                            fieldUiNode = addCodedField(name, formField, field, required, concept, locale, parentUiNode);
+                            fieldUiNode = addCodedField(name, formField, field, required, concept, parentUiNode);
                             break;
                         case "ED": // This isn't in HL7Constants as far as I can tell.
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, locale, parentUiNode);
+                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, parentUiNode);
                             break;
                         default:
                             // TODO(jonskeet): Remove this hack when we understand better...
                             if (field.getName().equals("OBS")) {
-                                fieldUiNode = createGroupNode(formField, locale, parentUiNode);
+                                fieldUiNode = createGroupNode(formField, parentUiNode);
                             } else {
                                 // Don't understand this concept
                                 log.warn("Unhandled HL7 abbreviation " + datatype.getHl7Abbreviation() + " for field " + field.getName());
@@ -301,11 +306,11 @@ public class BuendiaXformBuilderEx {
             }
             
             // Recurse down to subnodes.
-            buildUInodes(form, formStructure, formField.getFormFieldId(), locale, fieldUiNode);
+            buildUInodes(form, formStructure, formField.getFormFieldId(), fieldUiNode);
         }
     }
 
-    private Element addUiNode(String token, Concept concept, String dataType, String controlName, Locale locale, Element bodyNode) {
+    private Element addUiNode(String token, Concept concept, String dataType, String controlName, Element bodyNode) {
         String bindName = token;
         
         Element controlNode = appendElement(bodyNode, NAMESPACE_XFORMS, controlName);
@@ -318,12 +323,7 @@ public class BuendiaXformBuilderEx {
         
         bindNode.setAttribute(null, ATTRIBUTE_TYPE, dataType);
         
-        //create the label
-        ConceptName name = concept.getName(locale, false);
-        if (name == null) {
-            name = concept.getName();
-        }        
-        Element labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, name.getName());
+        Element labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, getLabel(concept));
         
         addHintNode(labelNode, concept);
         
@@ -347,7 +347,7 @@ public class BuendiaXformBuilderEx {
     }
     
     private void addCodedUiNodes(boolean multiplSel, Element controlNode, Collection<ConceptAnswer> answerList,
-            Concept concept, String dataType, String controlName, Locale locale){
+            Concept concept, String dataType) {
         for (ConceptAnswer answer : answerList) {
             String conceptName = answer.getAnswerConcept().getName(locale).getName();
             String conceptValue;
@@ -369,21 +369,12 @@ public class BuendiaXformBuilderEx {
                     conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale);
             }
             
-            Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
+            Element itemNode = addSelectOption(controlNode, conceptName, conceptValue); 
             itemNode.setAttribute(null, ATTRIBUTE_CONCEPT_ID, concept.getConceptId().toString());
-            
-            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, conceptName);
-            
-            //TODO This will make sense after the form designer's OptionDef implements
-            //the xforms hint.
-            //addHintNode(itemLabelNode, answer.getAnswerConcept());
-            
-            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, conceptValue);
         }
     }
     
-    private Element addProblemList(String token, Concept concept, boolean required,
-        Locale locale, FormField formField, Node parentUiNode) {
+    private Element addProblemList(String token, Concept concept, boolean required, FormField formField, Node parentUiNode) {
         
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
         
@@ -414,7 +405,7 @@ public class BuendiaXformBuilderEx {
         return groupNode;
     }
     
-    private Element createGroupNode(FormField formField, Locale locale, Element parentUiNode) {
+    private Element createGroupNode(FormField formField, Element parentUiNode) {
         String token = fieldTokens.get(formField);
         
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);            
@@ -454,17 +445,17 @@ public class BuendiaXformBuilderEx {
     }
     
     private Element addCodedField(String name, FormField formField, Field field,
-            boolean required, Concept concept, Locale locale, Element parentUiNode) {
+            boolean required, Concept concept, Element parentUiNode) {
         if (formField.getMaxOccurs() != null && formField.getMaxOccurs().intValue() == -1) {
-            return addProblemList(name, concept, required, locale, formField, parentUiNode);
+            return addProblemList(name, concept, required, formField, parentUiNode);
         }
         else {
             List<ConceptAnswer> answers = new ArrayList<>(concept.getAnswers(false));
             Collections.sort(answers);
             
             String controlName = field.getSelectMultiple() ? CONTROL_SELECT : CONTROL_SELECT1;
-            Element controlNode = addUiNode(name, concept, DATA_TYPE_TEXT, controlName, locale, parentUiNode);
-            addCodedUiNodes(field.getSelectMultiple(), controlNode, answers, concept, DATA_TYPE_TEXT, CONTROL_SELECT, locale);
+            Element controlNode = addUiNode(name, concept, DATA_TYPE_TEXT, controlName, parentUiNode);
+            addCodedUiNodes(field.getSelectMultiple(), controlNode, answers, concept, DATA_TYPE_TEXT);
             return controlNode;
         }
     }
@@ -499,6 +490,21 @@ public class BuendiaXformBuilderEx {
         return child;
     }
 
+    private String getLabel(Concept concept) {
+        ConceptName name = concept.getName(locale, false);
+        if (name == null) {
+            name = concept.getName();
+        }        
+        return name.getName();
+    }
+    
+    private static Element addSelectOption(Element parent, String label, String value) {
+        Element itemNode = appendElement(parent, NAMESPACE_XFORMS, NODE_ITEM);
+        appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, label);
+        appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, value);
+        return itemNode;
+    }
+    
     ///////////////////////////////////////////////////////////////////////////
     // Code which was in XformBuilder, but is UI-based
     
@@ -518,7 +524,10 @@ public class BuendiaXformBuilderEx {
         // Handle encounter provider / location: these are multiple choice questions, and we populate
         // the options.
         Field field = formField.getField();
-        if ("encounter".equals(field.getTableName())) {
+        if ("patient".equals(field.getTableName()) && "gender".equals(field.getAttributeName())) {
+            controlNode.setName(CONTROL_SELECT1);
+            populateGenders(controlNode);
+        } else if ("encounter".equals(field.getTableName())) {
             if ("location_id".equals(field.getAttributeName())) {
                 controlNode.setName(CONTROL_SELECT1);
                 populateLocations(controlNode);
@@ -533,6 +542,12 @@ public class BuendiaXformBuilderEx {
         return controlNode;
     }
     
+    private void populateGenders(Element controlNode) {
+        ConceptService conceptService = Context.getConceptService();
+        addSelectOption(controlNode, getLabel(conceptService.getConcept(MALE_CONCEPT_ID)), "M");
+        addSelectOption(controlNode, getLabel(conceptService.getConcept(FEMALE_CONCEPT_ID)), "F");
+    }
+
     /**
      * Populates a UI control node with providers.
      * 
@@ -547,11 +562,8 @@ public class BuendiaXformBuilderEx {
             }
             
             String identifier = provider.getIdentifier();
-            Integer providerId = provider.getId();
-            
-            Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
-            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, name + " [" + identifier + "]");
-            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, providerId.toString());
+            Integer providerId = provider.getId();            
+            addSelectOption(controlNode, name + " [" + identifier + "]", providerId.toString());
         }
     }
     
@@ -563,10 +575,8 @@ public class BuendiaXformBuilderEx {
     private static void populateLocations(Element controlNode) {
         List<Location> locations = Context.getLocationService().getAllLocations(false);
         for (Location loc : locations) {
-            Element itemNode = appendElement(controlNode, NAMESPACE_XFORMS, NODE_ITEM);
-            
-            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, loc.getName() + " [" + loc.getLocationId() + "]");
-            appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, loc.getLocationId().toString());
+            Integer id = loc.getLocationId();
+            addSelectOption(controlNode, loc.getName() + " [" + id + "]",  id.toString());
         }
     }
 }
