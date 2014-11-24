@@ -21,17 +21,32 @@ import java.util.*;
 /**
  * Resource for users (note that users are stored as Providers, Persons, and Users, but only
  * Providers will be returned by List calls).
+ *
+ * Expected behavior:
+ * GET /user returns "full_name" and "user_id" fields,
+ *     as well as "given_name" and "family_name" if present.
+ * GET /user/[UUID] returns information on a single user
+ * GET /user?q=[QUERY] performs a substring search on user full names
+ * POST /user creates a new user. This requires a "user_name", "given_name", and "password",
+ *      as well as an optional "family_name". Passwords must be >8 characters, contain at
+ *      least one number, and contain at least one uppercase character.
+ *
  * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider.class, supportedOpenmrsVersions = "1.10.*")
-public class UserResource implements Listable, Retrievable, Creatable {
+public class UserResource implements Listable, Searchable, Retrievable, Creatable {
     // JSON property names
     private static final String USER_ID = "user_id";
-    private static final String FAMILY_NAME = "family_name";
+    private static final String USER_NAME = "user_name";
+    private static final String FULL_NAME = "full_name";  // Ignored on create.
+    private static final String FAMILY_NAME = "family_name";  // Optional
     private static final String GIVEN_NAME = "given_name";
     private static final String PASSWORD = "password";
 
-    private static final String[] REQUIRED_FIELDS = {GIVEN_NAME, PASSWORD};
+    // Sentinel for unknown values
+    private static final String UNKNOWN = "(UNKNOWN)";
+
+    private static final String[] REQUIRED_FIELDS = {USER_NAME, GIVEN_NAME, PASSWORD};
 
     private static Log log = LogFactory.getLog(UserResource.class);
 
@@ -68,12 +83,13 @@ public class UserResource implements Listable, Retrievable, Creatable {
             personName.setFamilyName((String)simpleObject.get(FAMILY_NAME));
         }
         person.addName(personName);
+        person.setGender(UNKNOWN);  // This is required, even though it serves no purpose here.
         personService.savePerson(person);
 
         User user = new User();
         user.setPerson(person);
         user.setName(fullName);
-        user.setUsername(fullName);
+        user.setUsername((String)simpleObject.get(USER_NAME));
         userService.saveUser(user, (String)simpleObject.get(PASSWORD));
 
         Provider provider = new Provider();
@@ -107,6 +123,24 @@ public class UserResource implements Listable, Retrievable, Creatable {
         return Arrays.asList(Representation.DEFAULT);
     }
 
+    @Override
+    public SimpleObject search(RequestContext requestContext) throws ResponseException {
+        // Partial string query for searches.
+        String query = requestContext.getParameter("q");
+
+        // Retrieve all patients and filter the list based on the query.
+        List<Provider> filteredProviders = new ArrayList<>();
+
+        // Perform a substring search on username.
+        for (Provider provider : providerService.getAllProviders()) {
+            if (StringUtils.containsIgnoreCase(provider.getName(), query)) {
+                filteredProviders.add(provider);
+            }
+        }
+
+        return getSimpleObjectWithResults(filteredProviders);
+    }
+
     // Throws an exception if the given SimpleObject is missing any required fields.
     private void checkRequiredFields(SimpleObject simpleObject, String[] requiredFields) {
         List<String> missingFields = new ArrayList<String>();
@@ -136,6 +170,7 @@ public class UserResource implements Listable, Retrievable, Creatable {
         SimpleObject jsonForm = new SimpleObject();
         if (provider != null) {
             jsonForm.add(USER_ID, provider.getUuid());
+            jsonForm.add(FULL_NAME, provider.getName());
 
             Person person = provider.getPerson();
             if (person != null) {
