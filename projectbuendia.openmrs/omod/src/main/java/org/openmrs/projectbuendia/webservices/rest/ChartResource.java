@@ -55,10 +55,10 @@ public class ChartResource implements Listable, Searchable, Retrievable {
         if (form == null) {
             throw new ObjectNotFoundException();
         }
-        return formToJson(form, context.getRepresentation());
+        return chartToJson(form, context.getRepresentation());
     }
     
-    private SimpleObject formToJson(Form form, Representation representation) {
+    private SimpleObject chartToJson(Form form, Representation representation) {
         SimpleObject chart = new SimpleObject();
         chart.put(UUID, form.getUuid());
         chart.put(VERSION, form.getVersion());
@@ -103,19 +103,27 @@ public class ChartResource implements Listable, Searchable, Retrievable {
 
     @Override
     public SimpleObject getAll(RequestContext context) throws ResponseException {
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Form chart : getCharts(formService)) {
+            jsonResults.add(chartToJson(chart, context.getRepresentation()));
+        }
+        SimpleObject list = new SimpleObject();
+        list.add("results", jsonResults);
+        return list;
+    }
+    
+    static List<Form> getCharts(FormService formService) {
+        List<Form> charts = new ArrayList<>();
         String[] uuids = Context.getAdministrationService()
                 .getGlobalProperty(GlobalProperties.CHART_UUIDS)
                 .split(",");
-        List<SimpleObject> jsonResults = new ArrayList<>();
         for (String uuid : uuids) {
             Form form = formService.getFormByUuid(uuid);
             if (form == null) {
                 throw new ConfigurationException("Configured chart UUIDs incorrect - can't find form " + uuid);
             }
-            jsonResults.add(formToJson(form, context.getRepresentation()));
+            charts.add(form);
         }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+        return charts;
     }
 }
