@@ -19,7 +19,13 @@
 	</require_modules>
 	<!-- / Module Properties -->
 
-	
+    <!-- Required Global Properties -->
+    <globalProperty>
+        <property>projectbuendia.chartUuids</property>
+        <defaultValue></defaultValue>
+        <description>UUIDs of forms listed as charts by the REST endpoint. (Comma-separated.)</description>
+    </globalProperty>
+    	
 	<!-- Module Activator -->
 	<activator>org.projectbuendia.openmrs.ProjectBuendiaActivator</activator>
 	
