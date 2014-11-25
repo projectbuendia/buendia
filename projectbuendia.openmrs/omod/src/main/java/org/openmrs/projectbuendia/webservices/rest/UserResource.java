@@ -46,6 +46,11 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     // Sentinel for unknown values
     private static final String UNKNOWN = "(UNKNOWN)";
 
+    // Defaults for guest account
+    private static final String GUEST_GIVEN_NAME = "Guest";
+    private static final String GUEST_USER_NAME = "guest";
+    private static final String GUEST_PASSWORD = "Password123";
+
     private static final String[] REQUIRED_FIELDS = {USER_NAME, GIVEN_NAME, PASSWORD};
 
     private static Log log = LogFactory.getLog(UserResource.class);
@@ -63,23 +68,48 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
         List<Provider> providers = providerService.getAllProviders();
+        addGuestIfNotPresent(providers);
         return getSimpleObjectWithResults(providers);
+    }
+
+    private void addGuestIfNotPresent(List<Provider> providers) {
+        boolean guestFound = false;
+        for (Provider provider : providers) {
+            if (provider.getName().equals(GUEST_GIVEN_NAME)) {
+                guestFound = true;
+                break;
+            }
+        }
+
+        if (!guestFound) {
+            SimpleObject guestDetails = new SimpleObject();
+            guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
+            guestDetails.put(USER_NAME, GUEST_USER_NAME);
+            guestDetails.put(PASSWORD, GUEST_PASSWORD);
+            providers.add(create(guestDetails));
+        }
     }
 
     @Override
     public Object create(SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+        return providerToJson(create(simpleObject));
+    }
+
+    private Provider create(SimpleObject simpleObject) {
         checkRequiredFields(simpleObject, REQUIRED_FIELDS);
 
         // TODO(akalachman): Localize full name construction?
         String fullName = (String)simpleObject.get(GIVEN_NAME);
-        if (simpleObject.containsKey(FAMILY_NAME)) {
+        if (simpleObject.containsKey(FAMILY_NAME) &&
+                !((String)simpleObject.get(FAMILY_NAME)).isEmpty()) {
             fullName += " " + (String)simpleObject.get(FAMILY_NAME);
         }
 
         Person person = new Person();
         PersonName personName = new PersonName();
         personName.setGivenName((String)simpleObject.get(GIVEN_NAME));
-        if (simpleObject.containsKey(FAMILY_NAME)) {
+        if (simpleObject.containsKey(FAMILY_NAME) &&
+                !((String)simpleObject.get(FAMILY_NAME)).isEmpty()) {
             personName.setFamilyName((String)simpleObject.get(FAMILY_NAME));
         }
         person.addName(personName);
@@ -99,7 +129,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
         log.info("Created user " + fullName);
 
-        return providerToJson(provider);
+        return provider;
     }
 
     @Override
