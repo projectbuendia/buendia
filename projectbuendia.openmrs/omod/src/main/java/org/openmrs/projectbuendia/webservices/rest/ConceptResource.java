@@ -141,7 +141,7 @@ public class ConceptResource implements Listable, Searchable, Retrievable {
                 }
                 ret.add(fieldConcept);
                 for (ConceptAnswer answer : fieldConcept.getAnswers(false)) {
-                    ret.add(answer.getConcept());
+                    ret.add(answer.getAnswerConcept());
                 }
             }
         }
