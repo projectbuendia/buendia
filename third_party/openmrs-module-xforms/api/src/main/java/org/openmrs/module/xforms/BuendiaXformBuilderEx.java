@@ -107,6 +107,7 @@ public class BuendiaXformBuilderEx {
 
     private BuendiaXformBuilderEx() {
         useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
+        // TODO(jonskeet): Have a parameter somewhere (URL parameter, Accept-Language header etc) which overrides this.
         locale = Context.getLocale();
     }
     
