@@ -164,6 +164,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
             }
         }
 
+        addGuestIfNotPresent(filteredProviders);
         return getSimpleObjectWithResults(filteredProviders);
     }
 
