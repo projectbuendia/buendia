@@ -131,7 +131,7 @@ public class PatientEncountersResource implements Searchable, Retrievable, Lista
     
     @Override
     public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
+        return Arrays.asList(Representation.FULL);
     }
 
     @Override
