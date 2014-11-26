@@ -6,7 +6,6 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementItera
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -15,16 +14,9 @@ import org.openmrs.Form;
 import org.openmrs.api.FormService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.module.webservices.rest.web.Hyperlink;
 import org.openmrs.module.webservices.rest.web.RequestContext;
-import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
-import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
@@ -37,7 +29,7 @@ import org.xml.sax.SAXException;
  * org.openmrs as otherwise the resource annotation isn't picked up.
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*")
-public class XformResource implements Listable, Retrievable, Searchable {
+public class XformResource extends AbstractReadOnlyResource<Form> {
 
     private static String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
     private static String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
@@ -48,44 +40,40 @@ public class XformResource implements Listable, Retrievable, Searchable {
     private final FormService formService;
 
     public XformResource() {
+        super("xform", Representation.DEFAULT, Representation.FULL, Representation.REF);
         this.formService = Context.getFormService();
     }
-
+    
     @Override
-    public SimpleObject getAll(RequestContext context) throws ResponseException {
-        List<SimpleObject> jsonResults = new ArrayList<>();
-        List<Form> forms = formService.getAllForms(false);
-        for (Form form : forms) {
-            SimpleObject jsonForm = toSimpleObject(form, context.getRepresentation());
-            jsonResults.add(jsonForm);
-        }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
-    }
-
-    private SimpleObject toSimpleObject(Form form, Representation representation) {
-        SimpleObject jsonForm = new SimpleObject();
-        jsonForm.add("name", form.getName());
-        jsonForm.add("date_changed", form.getDateChanged());
-        jsonForm.add("date_created", form.getDateCreated());
-        jsonForm.add("version", form.getVersion());
-        jsonForm.add("uuid", form.getUuid());
-        jsonForm.add("links", getLinks(form));
-        if (representation == Representation.FULL) {
+    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json) {
+        json.add("name", form.getName());
+        json.add("date_changed", form.getDateChanged());
+        json.add("date_created", form.getDateCreated());
+        json.add("version", form.getVersion());
+        if (context.getRepresentation() == Representation.FULL) {
             try {
                 // TODO(jonskeet): Use description instead of name?
                 String xml = BuendiaXformBuilderEx.buildXform(form);
                 xml = convertToOdkCollect(xml, form.getName());
                 xml = removeRelationshipNodes(xml);
-                jsonForm.add("xml", xml);
+                json.add("xml", xml);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
-        return jsonForm;
     }
-
+    
+    @Override
+    protected Form retrieveImpl(String uuid, RequestContext context) {
+        return formService.getFormByUuid(uuid);
+    }
+    
+    @Override
+    protected Iterable<Form> searchImpl(RequestContext context) {
+        // No query parameters supported - just give all the forms
+        return formService.getAllForms(false);
+    }
+    
     // Visible for testing
     /**
      * Converts a vanilla Xform into one that ODK Collect is happy to work with.
@@ -184,39 +172,5 @@ public class XformResource implements Listable, Retrievable, Searchable {
                 return;
             }
         }
-    }
-
-    @Override
-    public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT, Representation.FULL, Representation.REF);
-    }
-
-    private List<Hyperlink> getLinks(Form form) {
-        Hyperlink self = new Hyperlink("self", getUri(form));
-        self.setResourceAlias("xform");
-        List<Hyperlink> links = new ArrayList<>();
-        links.add(self);
-        return links;
-    }
-
-    @Override
-    public String getUri(Object instance) {
-        Form form = (Form) instance;
-        Resource res = getClass().getAnnotation(Resource.class);
-        return RestConstants.URI_PREFIX + res.name() + "/" + form.getUuid();
-    }
-
-    @Override
-    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
-        Form form = formService.getFormByUuid(uuid);
-        if (form == null) {
-            throw new ObjectNotFoundException();
-        }
-        return toSimpleObject(form, context.getRepresentation());
-    }
-
-    @Override
-    public SimpleObject search(RequestContext context) throws ResponseException {
-        throw new UnsupportedOperationException();
     }
 }

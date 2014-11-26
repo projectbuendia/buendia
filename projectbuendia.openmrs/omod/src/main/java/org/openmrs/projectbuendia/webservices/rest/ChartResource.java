@@ -1,7 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -13,13 +12,8 @@ import org.openmrs.api.FormService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
-import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.util.FormUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -29,9 +23,8 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
  * to allow for ease of maintenance.
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*")
-public class ChartResource implements Listable, Searchable, Retrievable {
+public class ChartResource extends AbstractReadOnlyResource<Form> {
     
-    private static final String UUID = "uuid";
     private static final String GROUPS = "groups";
     private static final String VERSION = "version";
     private static final String CONCEPTS = "concepts";
@@ -39,77 +32,49 @@ public class ChartResource implements Listable, Searchable, Retrievable {
     private final FormService formService;
     
     public ChartResource() {
+        super("chart", Representation.DEFAULT, Representation.FULL);
         formService = Context.getFormService();
     }
-    
-    @Override
-    public String getUri(Object instance) {
-        Form form = (Form) instance;
-        Resource res = getClass().getAnnotation(Resource.class);
-        return RestConstants.URI_PREFIX + res.name() + "/" + form.getUuid();
-    }
 
     @Override
-    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
-        Form form = formService.getFormByUuid(uuid);
-        if (form == null) {
-            throw new ObjectNotFoundException();
-        }
-        return chartToJson(form, context.getRepresentation());
+    public Form retrieveImpl(String uuid, RequestContext context) throws ResponseException {
+        return formService.getFormByUuid(uuid);
     }
     
-    private SimpleObject chartToJson(Form form, Representation representation) {
-        SimpleObject chart = new SimpleObject();
-        chart.put(UUID, form.getUuid());
-        chart.put(VERSION, form.getVersion());
-        if (representation == Representation.FULL) {
-            List<SimpleObject> groups = new ArrayList<>();
-            TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-            for (FormField groupField : formStructure.get(0)) {
-                Concept groupConcept = groupField.getField().getConcept();
-                if (groupConcept == null) {
-                    throw new ConfigurationException("Chart %s has non-concept top-level field %s",
-                            form.getUuid(), groupField.getField().getName());
-                }
-                SimpleObject group = new SimpleObject();
-                group.put(UUID, groupConcept.getUuid());
-                List<String> groupFieldConceptIds = new ArrayList<>();
-                for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                    Concept fieldConcept = fieldInGroup.getField().getConcept();
-                    if (fieldConcept == null) {
-                        throw new ConfigurationException("Chart %s has non-concept subfield %s",
-                                form.getUuid(), fieldInGroup.getField().getName());
-                    }
-                    groupFieldConceptIds.add(fieldConcept.getUuid());
-                }
-                group.put(CONCEPTS, groupFieldConceptIds);
-                groups.add(group);
+    @Override
+    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json) {
+        json.put(VERSION, form.getVersion());
+        if (context.getRepresentation() != Representation.FULL) {
+            return;
+        }
+        List<SimpleObject> groups = new ArrayList<>();
+        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+        for (FormField groupField : formStructure.get(0)) {
+            Concept groupConcept = groupField.getField().getConcept();
+            if (groupConcept == null) {
+                throw new ConfigurationException("Chart %s has non-concept top-level field %s",
+                        form.getUuid(), groupField.getField().getName());
             }
-            chart.put(GROUPS, groups);
+            SimpleObject group = new SimpleObject();
+            group.put(UUID, groupConcept.getUuid());
+            List<String> groupFieldConceptIds = new ArrayList<>();
+            for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
+                Concept fieldConcept = fieldInGroup.getField().getConcept();
+                if (fieldConcept == null) {
+                    throw new ConfigurationException("Chart %s has non-concept subfield %s",
+                            form.getUuid(), fieldInGroup.getField().getName());
+                }
+                groupFieldConceptIds.add(fieldConcept.getUuid());
+            }
+            group.put(CONCEPTS, groupFieldConceptIds);
+            groups.add(group);
         }
-        return chart;
+        json.put(GROUPS, groups);
     }
-
+    
     @Override
-    public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
-    }
-
-    @Override
-    public SimpleObject search(RequestContext context) throws ResponseException {
-        // Searchable is only implemented as a workaround to RESTWS-471
-        throw new UnsupportedOperationException("Searching not supported");
-    }
-
-    @Override
-    public SimpleObject getAll(RequestContext context) throws ResponseException {
-        List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Form chart : getCharts(formService)) {
-            jsonResults.add(chartToJson(chart, context.getRepresentation()));
-        }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+    protected Iterable<Form> searchImpl(RequestContext context) {
+        return getCharts(formService);
     }
     
     static List<Form> getCharts(FormService formService) {
