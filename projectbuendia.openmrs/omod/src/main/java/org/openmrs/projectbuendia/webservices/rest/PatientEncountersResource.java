@@ -3,7 +3,6 @@ package org.openmrs.projectbuendia.webservices.rest;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -20,14 +19,8 @@ import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
-import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
-import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 /**
@@ -36,7 +29,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 // TODO(jonskeet): Ideally, this would be under patient/{uuid}/encounters; it's unclear whether
 // that can be supported here...
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*")
-public class PatientEncountersResource implements Searchable, Retrievable, Listable {
+public class PatientEncountersResource extends AbstractReadOnlyResource<Patient> {
     
     private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     
@@ -50,28 +43,29 @@ public class PatientEncountersResource implements Searchable, Retrievable, Lista
     private final EncounterService encounterService;
 
     public PatientEncountersResource() {
+        super("patient", Representation.DEFAULT);
         patientService = Context.getPatientService();
         encounterService = Context.getEncounterService();
     }
     
     @Override
-    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
-        Patient patient = patientService.getPatientByUuid(uuid);
-        if (patient == null) {
-            throw new ObjectNotFoundException();
-        }
-        return patientToJson(patient);
+    protected Patient retrieveImpl(String uuid, RequestContext context) {
+        return patientService.getPatientByUuid(uuid);
     }
     
-    private SimpleObject patientToJson(Patient patient) {
-        SimpleObject patientJson = new SimpleObject();
-        patientJson.put(UUID, patient.getUuid());
+    @Override
+    public List<Patient> searchImpl(RequestContext context) {
+        return patientService.getAllPatients();
+    }
+    
+    
+    @Override
+    protected void populateJsonProperties(Patient patient, RequestContext context, SimpleObject json) {
         List<SimpleObject> encounters = new ArrayList<>();
         for (Encounter encounter : encounterService.getEncountersByPatient(patient)) {
             encounters.add(encounterToJson(encounter));
         }
-        patientJson.put(ENCOUNTERS, encounters);
-        return patientJson;
+        json.put(ENCOUNTERS, encounters);
     }
     
     // TODO(jonskeet): Move out, or find somewhere else this is already done.
@@ -114,35 +108,5 @@ public class PatientEncountersResource implements Searchable, Retrievable, Lista
         }
         encounterJson.put(OBSERVATIONS, observations);        
         return encounterJson;
-    }
-
-    @Override
-    public String getUri(Object instance) {
-        Patient patient = (Patient) instance;
-        Resource res = getClass().getAnnotation(Resource.class);
-        return RestConstants.URI_PREFIX + res.name() + "/" + patient.getUuid();
-    }
-    
-    @Override
-    public SimpleObject search(RequestContext context) throws ResponseException {
-        // Searchable is only implemented as a workaround to RESTWS-471
-        throw new UnsupportedOperationException("Searching not supported");
-    }
-    
-    @Override
-    public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.FULL);
-    }
-
-    @Override
-    public SimpleObject getAll(RequestContext context) throws ResponseException {
-        List<Patient> patients = patientService.getAllPatients();
-        List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Patient patient : patients) {
-            jsonResults.add(patientToJson(patient));
-        }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
     }
 }
