@@ -529,6 +529,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return result;
     }
 
+    private static String getLocationUuid(String locationId) {
+        LocationService locationService = Context.getLocationService();
+        Location location = locationService.getLocation(Integer.valueOf(locationId));
+        return location.getUuid();
+    }
+
     /**
      * The SimpleObject arriving is a Gson serialization of a client Patient Bean. It has the following semantics:
      * <ul>
@@ -729,20 +735,28 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
 
+            // TODO(nfortescue): refactor so we have a single assigned location with a uuid,
+            // and we walk up the tree to get extra information for the patient.
             String assignedZoneId = getPersonAttributeValue(patient, assignedZoneAttrType);
             String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
             String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
             if (assignedZoneId != null || assignedTentId != null || assignedBedId != null) {
+                String uuid = null;
                 SimpleObject location = new SimpleObject();
                 if (assignedZoneId != null) {
                     location.add(ZONE, getLocationLeafName(assignedZoneId));
+                    uuid = getLocationUuid(assignedZoneId);
                 }
                 if (assignedTentId != null) {
                     location.add(TENT, getLocationLeafName(assignedTentId));
+                    // If we have a tent, use the tent.
+                    uuid = getLocationUuid(assignedTentId);
                 }
                 if (assignedBedId != null) {
                     location.add(BED, getLocationLeafName(assignedBedId));
+                    uuid = getLocationUuid(assignedBedId);
                 }
+                location.add(UUID, uuid);
                 jsonForm.add(ASSIGNED_LOCATION, location);
             }
 
