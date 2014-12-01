@@ -39,7 +39,13 @@ public class LocationResource implements Listable, Retrievable, Creatable, Updat
     private static final String NAMES = "names";
 
     // Known zones uuids.
-    private static final String EMC_UUID = "1"; // TODO: Fill in the UUID of "Facility Kailahun" from the GCE instance
+    private static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
+    private static final String TRIAGE_ZONE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
+    private static final String SUSPECT_ZONE_UUID = "2f1e2418-ede6-481a-ad80-b9939a7fde8e";
+    private static final String PROBABLE_ZONE_UUID = "3b11e7c8-a68a-4a5f-afb3-a4a053592d0e";
+    private static final String CONFIRMED_ZONE_UUID = "b9038895-9c9d-4908-9e0d-51fd535ddd3c";
+    private static final String MORGUE_ZONE_UUID = "4ef642b9-9843-4d0d-9b2b-84fe1984801f";
+    // TODO: The design doc mentions "discharged", check this
 
     private final LocationService locationService = Context.getLocationService();
 
