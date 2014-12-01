@@ -46,6 +46,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
+    private static final String PARENT_UUID = "parent_uuid";
     private static final String ZONE = "zone";
     private static final String TENT = "tent";
     private static final String BED = "bed";
@@ -533,10 +534,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return result;
     }
 
-    private static String getLocationUuid(String locationId) {
+    private static void setLocationUuid(String locationId, SimpleObject locationObject) {
         LocationService locationService = Context.getLocationService();
         Location location = locationService.getLocation(Integer.valueOf(locationId));
-        return location.getUuid();
+        locationObject.add(UUID, location.getUuid());
+        Location parentLocation = location.getParentLocation();
+        if (parentLocation != null) {
+            locationObject.add(PARENT_UUID, parentLocation.getUuid());
+        }
     }
 
     /**
@@ -745,22 +750,20 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
             String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
             if (assignedZoneId != null || assignedTentId != null || assignedBedId != null) {
-                String uuid = null;
                 SimpleObject location = new SimpleObject();
                 if (assignedZoneId != null) {
                     location.add(ZONE, getLocationLeafName(assignedZoneId));
-                    uuid = getLocationUuid(assignedZoneId);
+                    setLocationUuid(assignedZoneId, location);
                 }
                 if (assignedTentId != null) {
                     location.add(TENT, getLocationLeafName(assignedTentId));
                     // If we have a tent, use the tent.
-                    uuid = getLocationUuid(assignedTentId);
+                    setLocationUuid(assignedTentId, location);
                 }
                 if (assignedBedId != null) {
                     location.add(BED, getLocationLeafName(assignedBedId));
-                    uuid = getLocationUuid(assignedBedId);
+                    setLocationUuid(assignedBedId, location);
                 }
-                location.add(UUID, uuid);
                 jsonForm.add(ASSIGNED_LOCATION, location);
             }
 
