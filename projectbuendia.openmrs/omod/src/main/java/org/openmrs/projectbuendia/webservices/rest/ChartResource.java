@@ -22,7 +22,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
  * REST resource for charts. These are stored as OpenMRS forms, but that's primarily
  * to allow for ease of maintenance.
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
     
     private static final String GROUPS = "groups";

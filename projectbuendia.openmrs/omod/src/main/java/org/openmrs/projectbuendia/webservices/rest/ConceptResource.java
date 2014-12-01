@@ -28,7 +28,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
  * REST resource for charts. These are stored as OpenMRS forms, but that's primarily
  * to allow for ease of maintenance.
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/concept", supportedClass = Concept.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/concept", supportedClass = Concept.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ConceptResource extends AbstractReadOnlyResource<Concept> {    
     // TODO(jonskeet): Add versioning, possibly via a global property
 //    private static final String VERSION = "version";

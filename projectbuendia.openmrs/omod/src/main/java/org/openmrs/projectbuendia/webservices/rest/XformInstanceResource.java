@@ -35,7 +35,7 @@ import org.xml.sax.SAXException;
  */
 // TODO(jonskeet): Still not really sure what supportedClass to use here... can
 // we omit it?
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
 
     // Everything not in this set is assumed to be a group of observations.

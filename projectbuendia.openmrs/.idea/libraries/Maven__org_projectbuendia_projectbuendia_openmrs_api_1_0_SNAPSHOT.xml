@@ -1,13 +1,7 @@
 <component name="libraryTable">
   <library name="Maven: org.projectbuendia:projectbuendia.openmrs-api:1.0-SNAPSHOT">
-    <CLASSES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/projectbuendia/projectbuendia.openmrs-api/1.0-SNAPSHOT/projectbuendia.openmrs-api-1.0-SNAPSHOT.jar!/" />
-    </CLASSES>
-    <JAVADOC>
-      <root url="jar://$MAVEN_REPOSITORY$/org/projectbuendia/projectbuendia.openmrs-api/1.0-SNAPSHOT/projectbuendia.openmrs-api-1.0-SNAPSHOT-javadoc.jar!/" />
-    </JAVADOC>
-    <SOURCES>
-      <root url="jar://$MAVEN_REPOSITORY$/org/projectbuendia/projectbuendia.openmrs-api/1.0-SNAPSHOT/projectbuendia.openmrs-api-1.0-SNAPSHOT-sources.jar!/" />
-    </SOURCES>
+    <CLASSES />
+    <JAVADOC />
+    <SOURCES />
   </library>
 </component>

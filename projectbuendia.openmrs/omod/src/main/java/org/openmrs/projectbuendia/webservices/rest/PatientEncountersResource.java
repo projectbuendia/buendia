@@ -28,7 +28,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
  */
 // TODO(jonskeet): Ideally, this would be under patient/{uuid}/encounters; it's unclear whether
 // that can be supported here...
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class PatientEncountersResource extends AbstractReadOnlyResource<Patient> {
     
     private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");

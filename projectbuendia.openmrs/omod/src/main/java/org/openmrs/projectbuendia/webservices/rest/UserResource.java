@@ -33,7 +33,7 @@ import java.util.*;
  *
  * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class UserResource implements Listable, Searchable, Retrievable, Creatable {
     // JSON property names
     private static final String USER_ID = "user_id";

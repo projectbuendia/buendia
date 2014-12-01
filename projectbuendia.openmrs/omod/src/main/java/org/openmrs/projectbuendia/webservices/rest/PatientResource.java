@@ -11,7 +11,11 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.*;
+import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.resource.api.Listable;
+import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
+import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
+import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -22,7 +26,7 @@ import java.util.*;
  * Resource for xform templates (i.e. forms without data).
  * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patient", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patient", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
     // Fake values
     private static final User CREATOR = new User(1);

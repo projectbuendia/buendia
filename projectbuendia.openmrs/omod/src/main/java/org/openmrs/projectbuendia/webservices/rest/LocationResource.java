@@ -30,7 +30,7 @@ import java.util.List;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location", supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location", supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class LocationResource implements Listable, Retrievable, Creatable, Updatable {
 
     // JSON Constants.

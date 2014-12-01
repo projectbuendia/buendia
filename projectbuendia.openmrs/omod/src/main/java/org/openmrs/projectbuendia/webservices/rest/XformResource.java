@@ -28,7 +28,7 @@ import org.xml.sax.SAXException;
  * Resource for xform templates (i.e. forms without data). Note: this is under
  * org.openmrs as otherwise the resource annotation isn't picked up.
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformResource extends AbstractReadOnlyResource<Form> {
 
     private static String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
