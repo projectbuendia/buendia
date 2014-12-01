@@ -1,5 +1,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.openmrs.Location;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.context.Context;
@@ -10,6 +12,7 @@ import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
+import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -31,23 +34,49 @@ import java.util.List;
  * </pre>
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location", supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class LocationResource implements Listable, Retrievable, Creatable, Updatable {
+public class LocationResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
 
     // JSON Constants.
     private static final String UUID = "uuid";
     private static final String PARENT_UUID = "parent_uuid";
     private static final String NAMES = "names";
 
-    // Known zones uuids.
+    // Known locations.
+    // The root location.
     private static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
-    private static final String TRIAGE_ZONE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
-    private static final String SUSPECT_ZONE_UUID = "2f1e2418-ede6-481a-ad80-b9939a7fde8e";
-    private static final String PROBABLE_ZONE_UUID = "3b11e7c8-a68a-4a5f-afb3-a4a053592d0e";
-    private static final String CONFIRMED_ZONE_UUID = "b9038895-9c9d-4908-9e0d-51fd535ddd3c";
-    private static final String MORGUE_ZONE_UUID = "4ef642b9-9843-4d0d-9b2b-84fe1984801f";
-    // TODO: The design doc mentions "discharged", check this
+    private static final String EMC_NAME = "Facility Kailahun";
+    // The hard-coded zones. These are (name, UUID) pairs, and are children of the EMC.
+    private static final String[][] ZONE_NAMES_AND_UUIDS = {
+        {"Triage Zone", "3f75ca61-ec1a-4739-af09-25a84e3dd237"},
+        {"Suspected Zone", "2f1e2418-ede6-481a-ad80-b9939a7fde8e"},
+        {"Probable Zone", "3b11e7c8-a68a-4a5f-afb3-a4a053592d0e"},
+        {"Confirmed Zone", "b9038895-9c9d-4908-9e0d-51fd535ddd3c"},
+        {"Morgue", "4ef642b9-9843-4d0d-9b2b-84fe1984801f"},
+        {"Discharged", "d7ca63c3-6ea0-4357-82fd-0910cc17a2cb"},
+    };
 
-    private final LocationService locationService = Context.getLocationService();
+    private static Log log = LogFactory.getLog(PatientResource.class);
+
+    private final LocationService locationService;
+    private final Location emcLocation;
+
+    public LocationResource() {
+        locationService = Context.getLocationService();
+        emcLocation = getEmcLocation(locationService);
+    }
+
+    private static Location getEmcLocation(LocationService service) {
+        Location location = service.getLocationByUuid(EMC_UUID);
+        if (location == null) {
+            log.info("Creating root EMC location");
+            location = new Location();
+            location.setName(EMC_NAME);
+            location.setUuid(EMC_UUID);
+            location.setDescription(EMC_NAME);
+            service.saveLocation(location);
+        }
+        return location;
+    }
 
     @Override
     public Object create(SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
@@ -56,6 +85,11 @@ public class LocationResource implements Listable, Retrievable, Creatable, Updat
 
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
+        return null;
+    }
+
+    @Override
+    public SimpleObject search(RequestContext requestContext) throws ResponseException {
         return null;
     }
 
