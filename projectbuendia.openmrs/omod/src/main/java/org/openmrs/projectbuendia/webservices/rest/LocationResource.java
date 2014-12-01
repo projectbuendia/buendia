@@ -63,6 +63,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     public LocationResource() {
         locationService = Context.getLocationService();
         emcLocation = getEmcLocation(locationService);
+        ensureZonesExist(locationService, emcLocation);
     }
 
     private static Location getEmcLocation(LocationService service) {
@@ -76,6 +77,23 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
             service.saveLocation(location);
         }
         return location;
+    }
+
+    private static void ensureZonesExist(LocationService service, Location emc) {
+        for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
+            String name = nameAndUuid[0];
+            String uuid = nameAndUuid[1];
+            Location zone = service.getLocationByUuid(uuid);
+            {
+                log.info("Creating zone location " + name);
+                zone = new Location();
+                zone.setName(name);
+                zone.setUuid(uuid);
+                zone.setDescription(name);
+                zone.setParentLocation(emc);
+                service.saveLocation(zone);
+            }
+        }
     }
 
     @Override
