@@ -39,7 +39,7 @@ public class LocationResource implements Listable, Retrievable, Creatable, Updat
     private static final String NAMES = "names";
 
     // Known zones uuids.
-    private static final String EMC_UUID = "1"; // TODO: Fill in the UUID of "Facility Kailahun" from the GCE instance
+    private static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
 
     private final LocationService locationService = Context.getLocationService();
 
