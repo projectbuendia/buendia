@@ -204,7 +204,8 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
             throw new InvalidObjectDataException("Location does not exist " + uuid);
         }
         updateNames(request, uuid, existing);
-        return locationService.saveLocation(existing);
+        Location location = locationService.saveLocation(existing);
+        return locationToJson(location);
     }
 
     @Override
