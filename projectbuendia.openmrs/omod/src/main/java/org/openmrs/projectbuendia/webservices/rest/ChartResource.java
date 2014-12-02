@@ -1,10 +1,5 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
 import org.openmrs.Concept;
 import org.openmrs.Form;
 import org.openmrs.FormField;
@@ -18,6 +13,11 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.util.FormUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
 /**
  * REST resource for charts. These are stored as OpenMRS forms, but that's primarily
  * to allow for ease of maintenance.
@@ -30,7 +30,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
     private static final String CONCEPTS = "concepts";
         
     private final FormService formService;
-    
+
     public ChartResource() {
         super("chart", Representation.DEFAULT, Representation.FULL);
         formService = Context.getFormService();

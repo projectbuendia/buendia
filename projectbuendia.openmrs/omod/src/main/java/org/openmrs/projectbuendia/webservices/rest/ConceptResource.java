@@ -1,16 +1,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
 import org.openmrs.Concept;
 import org.openmrs.ConceptAnswer;
-import org.openmrs.ConceptName;
 import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
@@ -23,6 +14,14 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * REST resource for charts. These are stored as OpenMRS forms, but that's primarily
@@ -48,11 +47,13 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
         
     private final FormService formService;
     private final ConceptService conceptService;
-    
+    private final ClientConceptNamer namer;
+
     public ConceptResource() {
         super("concept", Representation.DEFAULT);
         formService = Context.getFormService();
         conceptService = Context.getConceptService();
+        namer = new ClientConceptNamer(Context.getLocale());
     }
     
     @Override
@@ -65,7 +66,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
         // No querying as yet.
         // Retrieves all the concepts required for the client. Initially, this is
         // just the concepts within all the charts served by ChartResource.
-        Set<Concept> ret = new HashSet<Concept>();
+        Set<Concept> ret = new HashSet<>();
         for (Form chart : ChartResource.getCharts(formService)) {
             for (FormField formField : chart.getFormFields()) {
                 Field field = formField.getField();
@@ -94,12 +95,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
        json.put(TYPE, jsonType);
        Map<String, String> names = new HashMap<>();
        for (Locale locale : locales) {
-           ConceptName conceptName = concept.getName(locale, false);
-           if (conceptName == null) {
-               throw new ConfigurationException("Concept %s has no translation in locale %s",
-                       concept.getName().getName(), locale);
-           }
-           names.put(locale.toString(), conceptName.getName());
+           names.put(locale.toString(), namer.getClientName(concept));
        }
        json.put(NAMES, names);
     }
