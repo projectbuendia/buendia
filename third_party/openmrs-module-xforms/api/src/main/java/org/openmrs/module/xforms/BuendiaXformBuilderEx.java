@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -63,12 +64,14 @@ public class BuendiaXformBuilderEx {
     private final Map<String, Element> bindings = new HashMap<>();
     private final Map<FormField, String> fieldTokens = new HashMap<>();
     private final boolean useConceptIdAsHint;
+    private final Locale locale;
     private final ClientConceptNamer namer;
 
     private BuendiaXformBuilderEx() {
         useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
         // TODO(jonskeet): Have a parameter somewhere (URL parameter, Accept-Language header etc) which overrides this.
-        namer = new ClientConceptNamer(Context.getLocale());
+        locale = Context.getLocale();
+        namer = new ClientConceptNamer(locale);
     }
     
     /**
@@ -322,13 +325,13 @@ public class BuendiaXformBuilderEx {
                 if(multiplSel)
                     conceptValue = FormUtil.getXmlToken(conceptName);
                 else {
-                    conceptValue = namer.getClientName(answer.getAnswerConcept()) + "^" + FormUtil.drugToString(answer.getAnswerDrug());
+                    conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale) + "^" + FormUtil.drugToString(answer.getAnswerDrug());
                 }
             } else {
                 if(multiplSel)
                     conceptValue = FormUtil.getXmlToken(conceptName);
                 else
-                    conceptValue = namer.getClientName(answer.getAnswerConcept());
+                    conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale);
             }
             
             Element itemNode = addSelectOption(controlNode, conceptName, conceptValue); 
