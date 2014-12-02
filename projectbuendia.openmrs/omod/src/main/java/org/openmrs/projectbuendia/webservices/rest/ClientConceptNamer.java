@@ -13,10 +13,12 @@ import java.util.Locale;
  */
 public class ClientConceptNamer {
 
-    public static final String EXTENSION = "client";
+    public static final String VARIANT = "client";
+    public static final String CLIENT_REGION = "GB";
     public static final Locale DEFAULT_CLIENT = new Locale.Builder()
             .setLanguage("en")
-            .setExtension(Locale.PRIVATE_USE_EXTENSION, EXTENSION)
+            .setRegion(CLIENT_REGION)
+            .setVariant(VARIANT)
             .build();
     public static final Locale DEFAULT = new Locale.Builder()
             .setLanguage("en")
@@ -25,10 +27,18 @@ public class ClientConceptNamer {
      * Get the name for the concept to display in the client. Suppose we are given the locale es_419. The algorithm
      * used is as follows:
      * <ol>
-     *     <li>es-419-x-client
-     *     <li>es-419
+     *     <li>es_419_client
+     *     <li>es_419
      *     <li>es
-     *     <li>en-x-client
+     *     <li>en_GB_client
+     *     <li>en
+     * </ol>
+     *
+     * If we ask for fr the sequence will be
+     * <ol>
+     *     <li>fr_GB_client
+     *     <li>fr
+     *     <li>en_GB_client
      *     <li>en
      * </ol>
      *
@@ -40,13 +50,16 @@ public class ClientConceptNamer {
      * @return a String for the client with the best match we can get for that locale
      */
     public String getClientName(Concept concept, Locale locale) {
-        String extension = locale.getExtension(Locale.PRIVATE_USE_EXTENSION);
+        String variant = locale.getVariant();
         Locale.Builder builder;
-        if (EXTENSION.equals(extension)) {
+        if (VARIANT.equals(variant)) {
             builder = new Locale.Builder().setLocale(locale);
         } else {
             builder = new Locale.Builder().setLocale(locale)
-                    .setExtension(Locale.PRIVATE_USE_EXTENSION, EXTENSION);
+                    .setVariant(VARIANT);
+            if ("".equals(locale.getCountry())) {
+                builder.setRegion(CLIENT_REGION);
+            }
         }
         // If we already have a client extension, try it, before falling back to English.
         // Don't use the client fallback logic.
@@ -54,16 +67,16 @@ public class ClientConceptNamer {
         if (name != null) {
             return name;
         }
-        builder.clearExtensions();
-        Locale noExtensions = builder.build();
-        name = getPreferredStringInLocaleOrNull(concept, noExtensions);
+
+        // try specifically what was requested. This might try the client variant again, never mind.
+        name = getPreferredStringInLocaleOrNull(concept, locale);
         if (name != null) {
             return name;
         }
-        Locale justLanguage = new Locale.Builder().setLanguage(noExtensions.getLanguage()).build();
-        if (!justLanguage.equals(noExtensions)) {
-            // If just language is different from no Extensions, fall back to just language.
-            name = getPreferredStringInLocaleOrNull(concept, justLanguage);
+
+        // If the requested had a country/region, try it without the region
+        if ("".equals(locale.getCountry())) {
+            name = getPreferredStringInLocaleOrNull(concept, new Locale(locale.getLanguage()));
             if (name != null) {
                 return name;
             }
