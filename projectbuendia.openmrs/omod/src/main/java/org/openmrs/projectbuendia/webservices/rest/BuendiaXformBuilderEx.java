@@ -1,58 +1,5 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_APPEARANCE;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_BIND;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONCEPT_ID;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONSTRAINT;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_ID;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_MESSAGE;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_NODESET;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_OPENMRS_CONCEPT;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_TYPE;
-import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_UUID;
-import static org.openmrs.module.xforms.XformBuilder.CONTROL_INPUT;
-import static org.openmrs.module.xforms.XformBuilder.CONTROL_REPEAT;
-import static org.openmrs.module.xforms.XformBuilder.CONTROL_SELECT;
-import static org.openmrs.module.xforms.XformBuilder.CONTROL_SELECT1;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_BASE64BINARY;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_BOOLEAN;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_DATE;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_DATETIME;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_DECIMAL;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_TEXT;
-import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_TIME;
-import static org.openmrs.module.xforms.XformBuilder.INSTANCE_ID;
-import static org.openmrs.module.xforms.XformBuilder.MODEL_ID;
-import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XFORMS;
-import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XML_INSTANCE;
-import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XML_SCHEMA;
-import static org.openmrs.module.xforms.XformBuilder.NODE_BIND;
-import static org.openmrs.module.xforms.XformBuilder.NODE_GROUP;
-import static org.openmrs.module.xforms.XformBuilder.NODE_HINT;
-import static org.openmrs.module.xforms.XformBuilder.NODE_INSTANCE;
-import static org.openmrs.module.xforms.XformBuilder.NODE_ITEM;
-import static org.openmrs.module.xforms.XformBuilder.NODE_LABEL;
-import static org.openmrs.module.xforms.XformBuilder.NODE_MODEL;
-import static org.openmrs.module.xforms.XformBuilder.NODE_VALUE;
-import static org.openmrs.module.xforms.XformBuilder.NODE_XFORMS;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XFORMS;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_INSTANCES;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA2;
-
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.Vector;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -62,7 +9,6 @@ import org.kxml2.kdom.Node;
 import org.openmrs.Concept;
 import org.openmrs.ConceptAnswer;
 import org.openmrs.ConceptDatatype;
-import org.openmrs.ConceptName;
 import org.openmrs.ConceptNumeric;
 import org.openmrs.Field;
 import org.openmrs.Form;
@@ -81,6 +27,20 @@ import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.util.FormConstants;
 import org.openmrs.util.FormUtil;
 
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.Vector;
+
+import static org.openmrs.module.xforms.XformBuilder.*;
+
 /**
  * This is a clone of the Xforms module XformBuilderEx class, allowing us to tinker with the view
  * creation code separately from the module itself.
@@ -94,12 +54,12 @@ public class BuendiaXformBuilderEx {
     private final Map<String, Element> bindings = new HashMap<>();
     private final Map<FormField, String> fieldTokens = new HashMap<>();
     private final boolean useConceptIdAsHint;
-    private final Locale locale;
+    private final ClientConceptNamer namer;
 
     private BuendiaXformBuilderEx() {
         useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
         // TODO(jonskeet): Have a parameter somewhere (URL parameter, Accept-Language header etc) which overrides this.
-        locale = Context.getLocale();
+        namer = new ClientConceptNamer(Context.getLocale());
     }
     
     /**
@@ -342,7 +302,7 @@ public class BuendiaXformBuilderEx {
     private void addCodedUiNodes(boolean multiplSel, Element controlNode, Collection<ConceptAnswer> answerList,
             Concept concept, String dataType) {
         for (ConceptAnswer answer : answerList) {
-            String conceptName = answer.getAnswerConcept().getName(locale).getName();
+            String conceptName = namer.getClientName(answer.getAnswerConcept());
             String conceptValue;
             
             if (answer.getAnswerConcept().getConceptClass().getConceptClassId().equals(HL7Constants.CLASS_DRUG)
@@ -353,13 +313,13 @@ public class BuendiaXformBuilderEx {
                 if(multiplSel)
                     conceptValue = FormUtil.getXmlToken(conceptName);
                 else {
-                    conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale) + "^" + FormUtil.drugToString(answer.getAnswerDrug());
+                    conceptValue = namer.getClientName(answer.getAnswerConcept()) + "^" + FormUtil.drugToString(answer.getAnswerDrug());
                 }
             } else {
                 if(multiplSel)
                     conceptValue = FormUtil.getXmlToken(conceptName);
                 else
-                    conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale);
+                    conceptValue = namer.getClientName(answer.getAnswerConcept());
             }
             
             Element itemNode = addSelectOption(controlNode, conceptName, conceptValue); 
@@ -372,7 +332,7 @@ public class BuendiaXformBuilderEx {
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
         
         Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL,
-                formField.getField().getConcept().getName(locale, false).getName());
+                namer.getClientName(formField.getField().getConcept()));
         
         addHintNode(labelNode, concept);
         
@@ -484,11 +444,7 @@ public class BuendiaXformBuilderEx {
     }
 
     private String getLabel(Concept concept) {
-        ConceptName name = concept.getName(locale, false);
-        if (name == null) {
-            name = concept.getName();
-        }        
-        return name.getName();
+        return namer.getClientName(concept);
     }
     
     private static Element addSelectOption(Element parent, String label, String value) {
@@ -504,8 +460,6 @@ public class BuendiaXformBuilderEx {
     /**
      * Builds a UI control node for a table field.
      * 
-     * @param node - the node whose UI control to build.
-     * @param bodyNode - the body node to add the UI control to.
      * @return - the created UI control node.
      */
     private Element addDatabaseElementUiNode(String bindName, FormField formField, Element parentUiNode) {

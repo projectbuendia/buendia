@@ -23,6 +23,13 @@ public class ClientConceptNamer {
     public static final Locale DEFAULT = new Locale.Builder()
             .setLanguage("en")
             .build();
+
+    private final Locale locale;
+
+    public ClientConceptNamer(Locale locale) {
+        this.locale = locale;
+    }
+
     /**
      * Get the name for the concept to display in the client. Suppose we are given the locale es_419. The algorithm
      * used is as follows:
@@ -46,10 +53,9 @@ public class ClientConceptNamer {
      * to english, client then default. For a given locale we will use the preferred String.
      *
      * @param concept the concept to get a name for
-     * @param locale the locale the client wants
      * @return a String for the client with the best match we can get for that locale
      */
-    public String getClientName(Concept concept, Locale locale) {
+    public String getClientName(Concept concept) {
         String variant = locale.getVariant();
         Locale.Builder builder;
         if (VARIANT.equals(variant)) {

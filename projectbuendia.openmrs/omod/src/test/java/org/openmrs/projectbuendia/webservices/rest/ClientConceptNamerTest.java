@@ -19,7 +19,7 @@ public class ClientConceptNamerTest {
         Concept concept = new Concept();
         ConceptName en = makePreferred("name en", ClientConceptNamer.DEFAULT);
         concept.setNames(Arrays.asList(en));
-        String name = new ClientConceptNamer().getClientName(concept, new Locale("fr"));
+        String name = new ClientConceptNamer(new Locale("fr")).getClientName(concept);
         assertEquals("name en", name);
     }
 
@@ -29,7 +29,7 @@ public class ClientConceptNamerTest {
         ConceptName en = makePreferred("name en", ClientConceptNamer.DEFAULT);
         ConceptName enClient = makePreferred("name en client", ClientConceptNamer.DEFAULT_CLIENT);
         concept.setNames(Arrays.asList(en, enClient));
-        String name = new ClientConceptNamer().getClientName(concept, new Locale("fr"));
+        String name = new ClientConceptNamer(new Locale("fr")).getClientName(concept);
         assertEquals("name en client", name);
     }
 
@@ -44,7 +44,7 @@ public class ClientConceptNamerTest {
                 .setVariant(ClientConceptNamer.VARIANT)
                 .build());
         concept.setNames(Arrays.asList(en, enClient, frClient));
-        String name = new ClientConceptNamer().getClientName(concept, new Locale("fr"));
+        String name = new ClientConceptNamer(new Locale("fr")).getClientName(concept);
         assertEquals("name fr client", name);
     }
 
@@ -60,7 +60,7 @@ public class ClientConceptNamerTest {
                 .setVariant(ClientConceptNamer.VARIANT)
                 .build());
         concept.setNames(Arrays.asList(en, enClient, fr, frClient));
-        String name = new ClientConceptNamer().getClientName(concept, new Locale("fr"));
+        String name = new ClientConceptNamer(new Locale("fr")).getClientName(concept);
         assertEquals("name fr client", name);
     }
 
@@ -71,7 +71,7 @@ public class ClientConceptNamerTest {
         ConceptName enClient = makePreferred("name en client", ClientConceptNamer.DEFAULT_CLIENT);
         ConceptName fr = makePreferred("name fr", new Locale("fr"));
         concept.setNames(Arrays.asList(en, enClient, fr));
-        String name = new ClientConceptNamer().getClientName(concept, new Locale("fr"));
+        String name = new ClientConceptNamer(new Locale("fr")).getClientName(concept);
         assertEquals("name fr", name);
     }
 
