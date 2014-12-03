@@ -1,8 +1,8 @@
 function print_success {
 	if [ $1 -eq 0 ]; then
-		echo -n "OK"
+		echo "OK"
 	else
-		echo -n "FAIL"
+		echo "FAIL"
 		exit $STATUS
 	fi
 }
