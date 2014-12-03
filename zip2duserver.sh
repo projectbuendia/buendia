@@ -47,7 +47,7 @@ if [ "$ext" == "bz2" ]; then
 fi
 
 echo -n "Uploading extracted files to 104.155.15.141..."
-scp -r $out/* 104.155.15.141:/var/www/versions/ > /dev/null
+scp -r $out/* duserver.projectbuendia.org:/var/www/versions/ > /dev/null
 print_success $?
 
 echo -n "Removing extracted files..."
