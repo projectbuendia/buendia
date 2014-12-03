@@ -1,6 +1,8 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
+import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Person;
 import org.openmrs.Provider;
@@ -40,5 +42,31 @@ public class DefaultXformCustomizer implements XformCustomizer {
         }
         String identifier = provider.getIdentifier();
         return name + " [" + identifier + "]";
+    }
+
+    @Override
+    public String getGroupLabel(FormField formField) {
+        String name = formField.getDescription();
+        if (StringUtils.isNotEmpty(name)) {
+            return name;
+        }
+        name = formField.getName();
+        if (StringUtils.isNotEmpty(name)) {
+            return name;
+        }
+        name = formField.getField().getDescription();
+        if (StringUtils.isNotEmpty(name)) {
+            return name;
+        }
+        name = formField.getField().getName();
+        if (StringUtils.isNotEmpty(name)) {
+            return name;
+        }
+        throw new IllegalArgumentException("No field name available");
+    }
+
+    @Override
+    public String getAppearanceAttribute(FormField field) {
+        return null;
     }
 }

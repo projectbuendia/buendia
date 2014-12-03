@@ -1,6 +1,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
+import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Provider;
 
@@ -29,4 +30,14 @@ public interface XformCustomizer {
      * @return the String label to use when displaying providers.
      */
     public String getLabel(Provider provider);
+
+    /**
+     * @return the label to attach to a group (section) in the form.
+     */
+    public String getGroupLabel(FormField field);
+
+    /**
+     * @return the contents of the appearance attribute, or null if none
+     */
+    public String getAppearanceAttribute(FormField field);
 }
