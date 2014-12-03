@@ -2,6 +2,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Location;
+import org.openmrs.Provider;
 
 import java.util.List;
 
@@ -23,4 +24,9 @@ public interface XformCustomizer {
      * @return the String label to use for the given encounter location.
      */
     public String getLabel(Location location);
+
+    /**
+     * @return the String label to use when displaying providers.
+     */
+    public String getLabel(Provider provider);
 }

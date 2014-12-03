@@ -2,6 +2,8 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Location;
+import org.openmrs.Person;
+import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
 
 import java.util.ArrayList;
@@ -28,5 +30,15 @@ public class BuendiaXformCustomizer implements XformCustomizer {
     @Override
     public String getLabel(Location location) {
         return location.getName();
+    }
+
+    @Override
+    public String getLabel(Provider provider) {
+        String name = provider.getName();
+        if (name == null) {
+            Person person = provider.getPerson();
+            name = person.getPersonName().toString();
+        }
+        return name;
     }
 }

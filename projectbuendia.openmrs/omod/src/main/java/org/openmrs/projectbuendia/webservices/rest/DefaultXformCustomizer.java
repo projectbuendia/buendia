@@ -2,13 +2,15 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Location;
+import org.openmrs.Person;
+import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
 
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Created by nfortescue on 12/3/14.
+ * The default implementation of XformCustomizer taken from the original OpenMRS code.
  */
 public class DefaultXformCustomizer implements XformCustomizer {
 
@@ -27,5 +29,16 @@ public class DefaultXformCustomizer implements XformCustomizer {
     @Override
     public String getLabel(Location loc) {
         return loc.getName() + " [" + loc.getLocationId() + "]";
+    }
+
+    @Override
+    public String getLabel(Provider provider) {
+        String name = provider.getName();
+        if (name == null) {
+            Person person = provider.getPerson();
+            name = person.getPersonName().toString();
+        }
+        String identifier = provider.getIdentifier();
+        return name + " [" + identifier + "]";
     }
 }
