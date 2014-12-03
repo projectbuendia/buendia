@@ -8,6 +8,7 @@ import org.openmrs.api.context.Context;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Project Buendia choices about how to display elements in the XForms.
@@ -24,7 +25,14 @@ public class BuendiaXformCustomizer implements XformCustomizer {
     @Override
     public List<Location> getEncounterLocations() {
         Location emc = Context.getLocationService().getLocationByUuid(LocationResource.EMC_UUID);
-        return new ArrayList<>(emc.getChildLocations());
+
+        ArrayList<Location> result = new ArrayList<>();
+        for (Location child : emc.getChildLocations()) {
+            if (!child.isRetired()) {
+                result.add(child);
+            }
+        }
+        return result;
     }
 
     @Override
