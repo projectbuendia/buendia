@@ -20,7 +20,7 @@ archive=$1
 
 ext="${1##*.}"
 
-out=`mktemp -d`
+out=`mktemp -d tmp.XXXXXXXXXX`
 
 if [ "$ext" == "zip" ]; then
 	echo -n "Extracting zip file..."
