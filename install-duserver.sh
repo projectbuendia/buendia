@@ -1,8 +1,8 @@
 function print_success {
 	if [ $1 -eq 0 ]; then
-		echo "OK"
+		echo -n "OK"
 	else
-		echo "FAIL"
+		echo -n "FAIL"
 		exit $STATUS
 	fi
 }
@@ -11,29 +11,29 @@ echo -n "Installing nginx..."
 apt-get -y install nginx > /dev/null
 print_success $?
 
-echo "Adapting configuration..."
+echo -n "Adapting configuration..."
 cat <<EOF > /etc/nginx/sites-available/default
 server {
-	root /var/www/;
-    index index.html index.htm;
+    root /var/www/;
+    index index.html index.htm version.json;
 
-	server_name localhost;
+    server_name localhost;
 
-	location /versions/ {
-			allow all;
-	}
+    location /versions/ {
+        allow all;
+    }
 }
 EOF
 print_success $?
 
-echo "Create root directory for nginx-served files..."
+echo -n "Create root directory for nginx-served files..."
 if [ ! -d "/var/www" ]; then
 	mkdir /var/www
 	chown www-data:www-data /var/www
 fi
 print_success $?
 
-echo "Create root directory for versions..."
+echo -n "Create root directory for versions..."
 if [ ! -d "/var/www/versions" ]; then
 	mkdir /var/www/versions
 	chown www-data:www-data /var/www/versions
@@ -41,7 +41,7 @@ if [ ! -d "/var/www/versions" ]; then
 fi
 print_success $?
 
-echo "Create directory for openmrs versions..."
+echo -n "Create directory for openmrs versions..."
 if [ ! -d "/var/www/versions/openmrs" ]; then
 	mkdir /var/www/versions/openmrs
 	chown www-data:www-data /var/www/versions/openmrs
@@ -49,7 +49,7 @@ if [ ! -d "/var/www/versions/openmrs" ]; then
 fi
 print_success $?
 
-echo "Create directory for androidclient versions..."
+echo -n "Create directory for androidclient versions..."
 if [ ! -d "/var/www/versions/androidclient" ]; then
 	mkdir /var/www/versions/androidclient
 	chown www-data:www-data /var/www/versions/androidclient
@@ -58,7 +58,7 @@ if [ ! -d "/var/www/versions/androidclient" ]; then
 fi
 print_success $?
 
-echo "Starting nginx..."
+echo -n "Starting nginx..."
 /etc/init.d/nginx start > /dev/null
 print_success $?
 
