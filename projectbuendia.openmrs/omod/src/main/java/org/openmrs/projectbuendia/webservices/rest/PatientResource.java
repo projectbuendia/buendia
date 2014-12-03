@@ -688,7 +688,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     locationJson.add(BED, bed.getDisplayString());
                     locationJson.add(BED_UUID, bed.getUuid());
                 }
-                jsonForm.add(ASSIGNED_LOCATION, location);
+                jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
 
             PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
