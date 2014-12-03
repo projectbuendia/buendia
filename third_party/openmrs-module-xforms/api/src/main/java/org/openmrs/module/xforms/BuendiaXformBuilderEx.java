@@ -265,6 +265,11 @@ public class BuendiaXformBuilderEx {
                 fieldUiNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
                 Element label = appendElement(fieldUiNode, NAMESPACE_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
+                String appearanceAttribute = customizer.getAppearanceAttribute(formField);
+                if (appearanceAttribute != null) {
+                    fieldUiNode.setAttribute(null, ATTRIBUTE_APPEARANCE, appearanceAttribute);
+                }
+
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_DATABASE) {
                 fieldUiNode = addDatabaseElementUiNode(name, formField, parentUiNode);
             }
