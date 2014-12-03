@@ -52,7 +52,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
 
     // Known locations.
     // The root location.
-    private static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
+    public static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
     private static final String EMC_NAME = "Facility Kailahun";
     // The hard-coded zones. These are (name, UUID) pairs, and are children of the EMC.
     private static final String[][] ZONE_NAMES_AND_UUIDS = {

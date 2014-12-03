@@ -1,13 +1,5 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrowNS;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementIterable;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Form;
@@ -24,6 +16,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
+
 /**
  * Resource for xform templates (i.e. forms without data). Note: this is under
  * org.openmrs as otherwise the resource annotation isn't picked up.
@@ -31,8 +29,8 @@ import org.xml.sax.SAXException;
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformResource extends AbstractReadOnlyResource<Form> {
 
-    private static String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
-    private static String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
+    private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
+    private static final String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
 
     @SuppressWarnings("unused")
     private final Log log = LogFactory.getLog(getClass());
@@ -53,7 +51,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         if (context.getRepresentation() == Representation.FULL) {
             try {
                 // TODO(jonskeet): Use description instead of name?
-                String xml = BuendiaXformBuilderEx.buildXform(form);
+                String xml = BuendiaXformBuilderEx.buildXform(form, new BuendiaXformCustomizer());
                 xml = convertToOdkCollect(xml, form.getName());
                 xml = removeRelationshipNodes(xml);
                 json.add("xml", xml);
