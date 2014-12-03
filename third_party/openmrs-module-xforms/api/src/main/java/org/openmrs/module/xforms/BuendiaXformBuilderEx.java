@@ -520,17 +520,11 @@ public class BuendiaXformBuilderEx {
      * 
      * @param controlNode - the UI control node.
      */
-    private static void populateProviders(Element controlNode) {
+    private void populateProviders(Element controlNode) {
         for (Provider provider : Context.getProviderService().getAllProviders()) {
-            String name = provider.getName();
-            if (name == null) {
-                Person person = provider.getPerson();
-                name = person.getPersonName().toString();
-            }
-            
-            String identifier = provider.getIdentifier();
-            Integer providerId = provider.getId();            
-            addSelectOption(controlNode, name + " [" + identifier + "]", providerId.toString());
+
+            Integer providerId = provider.getId();
+            addSelectOption(controlNode, customizer.getLabel(provider), providerId.toString());
         }
     }
     
