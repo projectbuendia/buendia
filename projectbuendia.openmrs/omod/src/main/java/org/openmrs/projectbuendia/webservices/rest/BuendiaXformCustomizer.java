@@ -83,6 +83,9 @@ public class BuendiaXformCustomizer implements XformCustomizer {
         if (fieldType.getFieldTypeId().equals(FormConstants.FIELD_TYPE_SECTION)) {
             // use binary anywhere in the section to add binary select 1
             String name = formField.getName();
+            if (name == null) {
+                name = field.getName();
+            }
             if (name != null && name.contains("binary")) {
                 return "binary-select-one";
             }

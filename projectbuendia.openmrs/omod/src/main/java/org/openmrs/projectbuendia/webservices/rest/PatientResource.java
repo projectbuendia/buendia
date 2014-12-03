@@ -47,9 +47,18 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
+    @Deprecated
     private static final String ZONE = "zone";
+    @Deprecated
+    private static final String ZONE_UUID = "zone_uuid";
+    @Deprecated
     private static final String TENT = "tent";
+    @Deprecated
+    private static final String TENT_UUID = "tent_uuid";
+    @Deprecated
     private static final String BED = "bed";
+    @Deprecated
+    private static final String BED_UUID = "bed_uuid";
     private static final String STATUS = "status";
     private static final String ADMISSION_TIMESTAMP_SECS = "admission_timestamp";
 
@@ -62,12 +71,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String EBOLA_STATUS_PROGRAM_UUID = "849c86fa-6f3d-11e4-b2f4-040ccecfdba4";
     private static final String EBOLA_STATUS_PROGRAM_CONCEPT_UUID = "8c00e1b5-6f35-11e4-a3fa-040ccecfdba4";
     private static final String EBOLA_STATUS_WORKFLOW_CONCEPT_UUID = "107f9c7a-6f3b-11e4-ba22-040ccecfdba4";
-    private static final String ZONE_LOCATION_TAG_UUID = "1c22989d-3b87-47d3-9459-b54aafbd1169";
-    private static final String TENT_LOCATION_TAG_UUID = "4c92578f-cde9-4b99-b641-f3b9e0cc268d";
-    private static final String BED_LOCATION_TAG_UUID = "f2cf9e4e-a197-4c44-9290-0d3dd963838e";
-    public static final String ASSIGNED_ZONE_PERSON_ATTRIBUTE_TYPE_UUID = "1c22989d-3b87-47d3-9459-b54aafbd1169";
-    public static final String ASSIGNED_TENT_PERSON_ATTRIBUTE_TYPE_UUID = "4c92578f-cde9-4b99-b641-f3b9e0cc268d";
-    public static final String ASSIGNED_BED_PERSON_ATTRIBUTE_TYPE_UUID = "f2cf9e4e-a197-4c44-9290-0d3dd963838e";
+    public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID = "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
 
     // The elements of each triple are:
     // 1. The key, which is how the status is represented in JSON.
@@ -98,18 +102,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static Log log = LogFactory.getLog(PatientResource.class);
 
     private final PatientService patientService;
-    private final PersonAttributeType assignedZoneAttrType;
-    private final PersonAttributeType assignedTentAttrType;
-    private final PersonAttributeType assignedBedAttrType;
+
+    private final PersonAttributeType assignedLocationAttrType;
 
     public PatientResource() {
         patientService = Context.getPatientService();
-        assignedZoneAttrType = getPersonAttributeType(
-                ASSIGNED_ZONE_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_zone");
-        assignedTentAttrType = getPersonAttributeType(
-                ASSIGNED_TENT_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_tent");
-        assignedBedAttrType = getPersonAttributeType(
-                ASSIGNED_BED_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_bed");
+        assignedLocationAttrType = getPersonAttributeType(
+                ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_bed");
     }
 
     @Override
@@ -204,11 +203,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         identifier.setPreferred(true);
         patient.addIdentifier(identifier);
 
-        // Assigned zone, tent, and bed (convert integer 2 to string "2")
-        setPatientAssignedLocation(patient, FACILITY_NAME,
-                "" + simpleObject.get("assigned_zone"),
-                "" + simpleObject.get("assigned_tent"),
-                "" + simpleObject.get("assigned_bed"));
         patientService.savePatient(patient);
 
         // Status
@@ -430,19 +424,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return list;
     }
 
-    private static LocationTag getLocationTag(String uuid, String name) {
-        LocationService locationService = Context.getLocationService();
-        LocationTag tag = locationService.getLocationTagByUuid(uuid);
-        if (tag == null) {
-            tag = new LocationTag();
-            tag.setUuid(uuid);
-            tag.setName(name);
-            tag.setDescription(name);
-            locationService.saveLocationTag(tag);
-        }
-        return tag;
-    }
-
     private static PersonAttributeType getPersonAttributeType(String uuid, String name) {
         PersonService personService = Context.getPersonService();
         PersonAttributeType personAttributeType = personService.getPersonAttributeTypeByUuid(uuid);
@@ -451,6 +432,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             personAttributeType.setUuid(uuid);
             personAttributeType.setName(name);
             personAttributeType.setDescription(name);
+            personAttributeType.setForeignKey(0);
             personService.savePersonAttributeType(personAttributeType);
         }
         return personAttributeType;
@@ -476,74 +458,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return location;
     }
 
-    private static String getLocationLeafName(String locationId) {
-        LocationService locationService = Context.getLocationService();
-        Location location = locationService.getLocation(Integer.valueOf(locationId));
-        if (location != null) {
-            // The location name is a path consisting of comma-separated components,
-            // with each component prefixed by the tag name for that level.
-            String locationName = location.getName();
-            String[] components = locationName.split(",");
-            String leafName = components[components.length - 1].trim();
-            for (LocationTag tag : location.getTags()) {
-                String tagUuid = tag.getUuid();
-                String tagName = tag.getName();
-                if (ZONE_LOCATION_TAG_UUID.equals(tagUuid) ||
-                        TENT_LOCATION_TAG_UUID.equals(tagUuid) ||
-                        BED_LOCATION_TAG_UUID.equals(tagUuid)) {
-                    if (leafName.startsWith(tagName)) {
-                        leafName = leafName.substring(tagName.length()).trim();
-                    }
-                }
-            }
-            return leafName;
-        }
-        return null;
-    }
-
-    private static Location getLocationByPath(String facilityName, String zoneName, String tentName, String bedName) {
-        LocationTag zoneTag = getLocationTag(ZONE_LOCATION_TAG_UUID, "Zone");
-        LocationTag tentTag = getLocationTag(TENT_LOCATION_TAG_UUID, "Tent");
-        LocationTag bedTag = getLocationTag(BED_LOCATION_TAG_UUID, "Bed");
-
-        // To ensure that each Location has a unique name, construct a fully qualified
-        // location name consisting of comma-separated components, with each component
-        // prefixed by the tag name for that level, e.g. "Facility Kailahun, Zone 2, Tent 1"
-        // as distinct from "Tent 1" in any other zone or facility.
-        String facilityLocationName;
-        String zoneLocationName;
-        String tentLocationName;
-        String bedLocationName;
-        Location result = null;
-        if (facilityName != null) {
-            facilityLocationName = "Facility " + facilityName;
-            Location facility = result = getLocationByName(facilityLocationName, null, null);
-            if (zoneName != null) {
-                zoneLocationName = facilityLocationName + ", Zone " + zoneName;
-                Location zone = result = getLocationByName(zoneLocationName, zoneTag, facility);
-                if (tentName != null) {
-                    tentLocationName = zoneLocationName + ", Tent " + tentName;
-                    Location tent = result = getLocationByName(tentLocationName, tentTag, zone);
-                    if (bedName != null) {
-                        bedLocationName = tentLocationName + ", Bed " + bedName;
-                        Location bed = result = getLocationByName(bedLocationName, bedTag, tent);
-                    }
-                }
-            }
-        }
-        return result;
-    }
-
-    private static void setLocationUuid(String locationId, SimpleObject locationObject) {
-        LocationService locationService = Context.getLocationService();
-        Location location = locationService.getLocation(Integer.valueOf(locationId));
-        locationObject.add(UUID, location.getUuid());
-        Location parentLocation = location.getParentLocation();
-        if (parentLocation != null) {
-            locationObject.add(PARENT_UUID, parentLocation.getUuid());
-        }
-    }
-
     /**
      * The SimpleObject arriving is a Gson serialization of a client Patient Bean. It has the following semantics:
      * <ul>
@@ -562,7 +476,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             throw new ObjectNotFoundException();
         }
 
-        String facilityName = FACILITY_NAME;
         boolean changedPatient = false;
         for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
             Date newBirthday;
@@ -589,10 +502,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     break;
                 case ASSIGNED_LOCATION:
                     Map assignedLocation = (Map) entry.getValue();
-                    String zoneName = (String) assignedLocation.get(ZONE);
-                    String tentName = (String) assignedLocation.get(TENT);
-                    String bedName = (String) assignedLocation.get(BED);
-                    setPatientAssignedLocation(patient, facilityName, zoneName, tentName, bedName);
+                    String locationUuid = (String) assignedLocation.get(UUID);
+                    if (locationUuid != null) {
+                        Location location = Context.getLocationService().getLocationByUuid(locationUuid);
+                        if (location != null) {
+                            setPersonAttributeValue(patient, assignedLocationAttrType,
+                                    Integer.toString(location.getId()));
+                        }
+                    }
                     break;
                 case AGE:
                     Map age = (Map) entry.getValue();
@@ -684,22 +601,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         workflowService.savePatientProgram(patientProgram);
     }
 
-    private void setPatientAssignedLocation(
-            Patient patient, String facilityName, String zoneName, String tentName, String bedName) {
-        if (zoneName != null) {
-            setPersonAttributeValue(patient, assignedZoneAttrType,
-                    "" + getLocationByPath(facilityName, zoneName, null, null).getLocationId());
-            if (tentName != null) {
-                setPersonAttributeValue(patient, assignedTentAttrType,
-                        "" + getLocationByPath(facilityName, zoneName, tentName, null).getLocationId());
-                if (bedName != null) {
-                    setPersonAttributeValue(patient, assignedBedAttrType,
-                            "" + getLocationByPath(facilityName, zoneName, tentName, bedName).getLocationId());
-                }
-            }
-        }
-    }
-
     private static String getPersonAttributeValue(Person person, PersonAttributeType attrType) {
         PersonAttribute attribute = person.getAttribute(attrType);
         return attribute != null ? attribute.getValue() : null;
@@ -746,23 +647,45 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
             // TODO(nfortescue): refactor so we have a single assigned location with a uuid,
             // and we walk up the tree to get extra information for the patient.
-            String assignedZoneId = getPersonAttributeValue(patient, assignedZoneAttrType);
-            String assignedTentId = getPersonAttributeValue(patient, assignedTentAttrType);
-            String assignedBedId = getPersonAttributeValue(patient, assignedBedAttrType);
-            if (assignedZoneId != null || assignedTentId != null || assignedBedId != null) {
-                SimpleObject location = new SimpleObject();
-                if (assignedZoneId != null) {
-                    location.add(ZONE, getLocationLeafName(assignedZoneId));
-                    setLocationUuid(assignedZoneId, location);
+            String assignedLocation = getPersonAttributeValue(patient, assignedLocationAttrType);
+            if (assignedLocation != null) {
+                LocationService locationService = Context.getLocationService();
+                Location location = locationService.getLocation(Integer.valueOf(assignedLocation));
+
+                // last entry in branch is zone, second last is tent, third is bed, ignore the rest.
+                SimpleObject locationJson = new SimpleObject();
+                locationJson.add(UUID, location.getUuid());
+                if (location.getParentLocation() != null) {
+                    locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
                 }
-                if (assignedTentId != null) {
-                    location.add(TENT, getLocationLeafName(assignedTentId));
-                    // If we have a tent, use the tent.
-                    setLocationUuid(assignedTentId, location);
+
+                // Walk up the tree and then count back.
+                // TODO(nfortescue): remove this code when the client does it's own tree traversal.
+                ArrayList<Location> branch = new ArrayList<>();
+                while(!location.getUuid().equals(LocationResource.EMC_UUID)) {
+                    branch.add(location);
+                    location = location.getParentLocation();
+                    if (location == null) {
+                        // If we never end up at the camp root, then it is an illegal location, ignore.
+                        branch.clear();
+                        break;
+                    }
                 }
-                if (assignedBedId != null) {
-                    location.add(BED, getLocationLeafName(assignedBedId));
-                    setLocationUuid(assignedBedId, location);
+
+                if (branch.size() > 1) {
+                    Location zone = branch.get(branch.size()-1);
+                    locationJson.add(ZONE, zone.getDisplayString());
+                    locationJson.add(ZONE_UUID, zone.getUuid());
+                }
+                if (branch.size() > 2) {
+                    Location tent = branch.get(branch.size()-2);
+                    locationJson.add(TENT, tent.getDisplayString());
+                    locationJson.add(TENT_UUID, tent.getUuid());
+                }
+                if (branch.size() > 3) {
+                    Location bed = branch.get(branch.size()-2);
+                    locationJson.add(BED, bed.getDisplayString());
+                    locationJson.add(BED_UUID, bed.getUuid());
                 }
                 jsonForm.add(ASSIGNED_LOCATION, location);
             }
