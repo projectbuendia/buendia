@@ -29,24 +29,32 @@ print_success $?
 echo "Create root directory for nginx-served files..."
 if [ ! -d "/var/www" ]; then
 	mkdir /var/www
+	chown www-data:www-data /var/www
 fi
 print_success $?
 
 echo "Create root directory for versions..."
 if [ ! -d "/var/www/versions" ]; then
 	mkdir /var/www/versions
+	chown www-data:www-data /var/www/versions
+	chmod ug+rw /var/www/versions
 fi
 print_success $?
 
 echo "Create directory for openmrs versions..."
 if [ ! -d "/var/www/versions/openmrs" ]; then
 	mkdir /var/www/versions/openmrs
+	chown www-data:www-data /var/www/versions/openmrs
+	chmod ug+rw /var/www/versions/openmrs
 fi
 print_success $?
 
 echo "Create directory for androidclient versions..."
 if [ ! -d "/var/www/versions/androidclient" ]; then
 	mkdir /var/www/versions/androidclient
+	chown www-data:www-data /var/www/versions/androidclient
+	chmod ug+rw /var/www/versions/androidclient
+
 fi
 print_success $?
 
