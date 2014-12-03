@@ -15,7 +15,7 @@ echo -n "Adapting configuration..."
 cat <<EOF > /etc/nginx/sites-available/default
 server {
     root /var/www/;
-    index index.html index.htm version.json;
+    index index.html index.htm versions.json;
 
     server_name localhost;
 
@@ -26,37 +26,36 @@ server {
 EOF
 print_success $?
 
-echo -n "Create root directory for nginx-served files..."
 if [ ! -d "/var/www" ]; then
+	echo -n "Create root directory for nginx-served files..."
 	mkdir /var/www
+	print_success $?
 	chown www-data:www-data /var/www
 fi
-print_success $?
 
-echo -n "Create root directory for versions..."
 if [ ! -d "/var/www/versions" ]; then
+	echo -n "Create root directory for versions..."
 	mkdir /var/www/versions
+	print_success $?
 	chown www-data:www-data /var/www/versions
 	chmod ug+rw /var/www/versions
 fi
-print_success $?
 
-echo -n "Create directory for openmrs versions..."
 if [ ! -d "/var/www/versions/openmrs" ]; then
+	echo -n "Create directory for openmrs versions..."
 	mkdir /var/www/versions/openmrs
+	print_success $?
 	chown www-data:www-data /var/www/versions/openmrs
 	chmod ug+rw /var/www/versions/openmrs
 fi
-print_success $?
 
-echo -n "Create directory for androidclient versions..."
 if [ ! -d "/var/www/versions/androidclient" ]; then
+	echo -n "Create directory for androidclient versions..."
 	mkdir /var/www/versions/androidclient
+	print_success $?
 	chown www-data:www-data /var/www/versions/androidclient
 	chmod ug+rw /var/www/versions/androidclient
-
 fi
-print_success $?
 
 echo -n "Starting nginx..."
 /etc/init.d/nginx start > /dev/null
