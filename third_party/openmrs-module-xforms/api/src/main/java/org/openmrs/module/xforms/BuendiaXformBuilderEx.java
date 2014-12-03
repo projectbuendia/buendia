@@ -56,6 +56,7 @@ import static org.openmrs.module.xforms.XformBuilder.*;
  * creation code separately from the module itself.
  */
 public class BuendiaXformBuilderEx {
+
     private static final int MALE_CONCEPT_ID = 1534;
     private static final int FEMALE_CONCEPT_ID = 1535;
     
@@ -65,13 +66,13 @@ public class BuendiaXformBuilderEx {
     private final Map<FormField, String> fieldTokens = new HashMap<>();
     private final boolean useConceptIdAsHint;
     private final Locale locale;
-    private final ClientConceptNamer namer;
+    private final XformCustomizer customizer;
 
-    private BuendiaXformBuilderEx() {
+    private BuendiaXformBuilderEx(XformCustomizer customizer) {
         useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
         // TODO(jonskeet): Have a parameter somewhere (URL parameter, Accept-Language header etc) which overrides this.
         locale = Context.getLocale();
-        namer = new ClientConceptNamer(locale);
+        this.customizer = customizer;
     }
     
     /**
@@ -79,8 +80,11 @@ public class BuendiaXformBuilderEx {
      * public member in the class; it constructs an instance (to avoid
      * nasty statics) and then invokes private methods appropriately.
      */
-    public static String buildXform(Form form) throws Exception {
-        return new BuendiaXformBuilderEx().buildXformImpl(form); 
+    public static String buildXform(Form form, XformCustomizer customizer) throws Exception {
+        if (customizer == null) {
+            customizer = new DefaultXformCustomizer();
+        }
+        return new BuendiaXformBuilderEx(customizer).buildXformImpl(form);
     }
     
     private String buildXformImpl(Form form) throws Exception {
@@ -314,7 +318,7 @@ public class BuendiaXformBuilderEx {
     private void addCodedUiNodes(boolean multiplSel, Element controlNode, Collection<ConceptAnswer> answerList,
             Concept concept, String dataType) {
         for (ConceptAnswer answer : answerList) {
-            String conceptName = namer.getClientName(answer.getAnswerConcept());
+            String conceptName = customizer.getLabel(answer.getAnswerConcept());
             String conceptValue;
             
             if (answer.getAnswerConcept().getConceptClass().getConceptClassId().equals(HL7Constants.CLASS_DRUG)
@@ -344,7 +348,7 @@ public class BuendiaXformBuilderEx {
         Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
         
         Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL,
-                namer.getClientName(formField.getField().getConcept()));
+                customizer.getLabel(formField.getField().getConcept()));
         
         addHintNode(labelNode, concept);
         
@@ -456,7 +460,7 @@ public class BuendiaXformBuilderEx {
     }
 
     private String getLabel(Concept concept) {
-        return namer.getClientName(concept);
+        return customizer.getLabel(concept);
     }
     
     private static Element addSelectOption(Element parent, String label, String value) {
@@ -535,11 +539,11 @@ public class BuendiaXformBuilderEx {
      * 
      * @param controlNode - the UI control node.
      */
-    private static void populateLocations(Element controlNode) {
-        List<Location> locations = Context.getLocationService().getAllLocations(false);
+    private void populateLocations(Element controlNode) {
+        List<Location> locations = customizer.getEncounterLocations();
         for (Location loc : locations) {
             Integer id = loc.getLocationId();
-            addSelectOption(controlNode, loc.getName() + " [" + id + "]",  id.toString());
+            addSelectOption(controlNode, customizer.getLabel(loc),  id.toString());
         }
     }
 }
