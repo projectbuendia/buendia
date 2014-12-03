@@ -37,6 +37,10 @@ public interface XformCustomizer {
     public String getGroupLabel(FormField field);
 
     /**
+     * The xform spec says that appearance should be full, compact, or minimal.
+     * In order to add extra qualifiers, ODK separates them with pipes |.
+     * So you could add for example "full|binary-select-one".
+     *
      * @return the contents of the appearance attribute, or null if none
      */
     public String getAppearanceAttribute(FormField field);

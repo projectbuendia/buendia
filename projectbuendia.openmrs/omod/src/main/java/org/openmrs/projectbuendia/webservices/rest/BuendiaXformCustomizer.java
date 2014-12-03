@@ -81,16 +81,24 @@ public class BuendiaXformCustomizer implements XformCustomizer {
         Field field = formField.getField();
         FieldType fieldType = field.getFieldType();
         if (fieldType.getFieldTypeId().equals(FormConstants.FIELD_TYPE_SECTION)) {
+            // Prefix with "full" compact or minimal, as per xforms spec.
+            StringBuilder attribute = new StringBuilder("full");
+            boolean changed = false;
             // use binary anywhere in the section to add binary select 1
             String name = formField.getName();
             if (name == null) {
                 name = field.getName();
             }
             if (name != null && name.contains("binary")) {
-                return "binary-select-one";
+                attribute.append("|binary-select-one");
+                changed = true;
             }
             if (name != null && name.contains("invisible")) {
-                return "invisible";
+                attribute.append("|invisible");
+                changed = true;
+            }
+            if (changed) {
+                return attribute.toString();
             }
         }
         return null;
