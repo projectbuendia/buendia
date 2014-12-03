@@ -1,3 +1,8 @@
+#!/bin/bash
+#
+# Installation script for a dynamic update server.
+# Run with sudo.
+
 function print_success {
 	if [ $1 -eq 0 ]; then
 		echo "OK"
