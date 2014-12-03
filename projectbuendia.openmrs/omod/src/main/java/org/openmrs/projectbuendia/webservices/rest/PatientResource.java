@@ -673,17 +673,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     }
                 }
 
-                if (branch.size() > 1) {
+                if (branch.size() > 0) {
                     Location zone = branch.get(branch.size()-1);
                     locationJson.add(ZONE, zone.getDisplayString());
                     locationJson.add(ZONE_UUID, zone.getUuid());
                 }
-                if (branch.size() > 2) {
+                if (branch.size() > 1) {
                     Location tent = branch.get(branch.size()-2);
                     locationJson.add(TENT, tent.getDisplayString());
                     locationJson.add(TENT_UUID, tent.getUuid());
                 }
-                if (branch.size() > 3) {
+                if (branch.size() > 2) {
                     Location bed = branch.get(branch.size()-2);
                     locationJson.add(BED, bed.getDisplayString());
                     locationJson.add(BED_UUID, bed.getUuid());
