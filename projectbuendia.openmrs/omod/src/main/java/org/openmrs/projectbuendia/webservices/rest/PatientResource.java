@@ -108,7 +108,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public PatientResource() {
         patientService = Context.getPatientService();
         assignedLocationAttrType = getPersonAttributeType(
-                ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_bed");
+                ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_location");
     }
 
     @Override
@@ -433,6 +433,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             personAttributeType.setName(name);
             personAttributeType.setDescription(name);
             personAttributeType.setForeignKey(0);
+            personAttributeType.setFormat("org.openmrs.Location");
             personService.savePersonAttributeType(personAttributeType);
         }
         return personAttributeType;
