@@ -77,8 +77,8 @@ else
 	echo "SKIP (directory already exists)"
 fi
 
+echo -n "Create root directory for packages..."
 if [ ! -d "/var/www/packages" ]; then
-	echo -n "Create root directory for packages..."
 	mkdir /var/www/packages
 	print_success $?
 	chown www-data:www-data /var/www/packages
