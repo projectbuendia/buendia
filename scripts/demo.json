@@ -1,0 +1,13 @@
+{
+  "users": [
+    {"username": "guest", "given_name": "Guest", "family_name": "User"}
+  ],
+  "patients": [
+    {
+      "given_name": "Horatio",
+      "family_name": "Thornthrower",
+      "gender": "M",
+      "age": "48Y"
+    }
+  ]
+}
