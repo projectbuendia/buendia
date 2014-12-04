@@ -46,10 +46,10 @@ if [ "$ext" == "bz2" ]; then
 	print_success $?
 fi
 
-uploaddir=`ssh duserver.projectbuendia.org "mktemp -d /tmp/tmp.XXXXXXXXXX"`
+uploaddir=`ssh packages.projectbuendia.org "mktemp -d /tmp/tmp.XXXXXXXXXX"`
 
 echo -n "Uploading extracted files to a temporary folder on the duserver..."
-scp -r $extractdir/* duserver.projectbuendia.org:$uploaddir > /dev/null
+scp -r $extractdir/* packages.projectbuendia.org:$uploaddir > /dev/null
 print_success $?
 
 echo -n "Removing extracted files locally..."
@@ -57,7 +57,7 @@ rm -R $extractdir
 print_success $?
 
 echo -n "Deploying the extracted files..."
-ssh -q duserver.projectbuendia.org <<ENDSSH > /dev/null
+ssh -q packages.projectbuendia.org <<ENDSSH > /dev/null
 sudo chown -R www-data:www-data $uploaddir
 sudo su www-data
 cp -R $uploaddir/* /var/www/packages/

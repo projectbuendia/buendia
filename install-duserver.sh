@@ -30,7 +30,7 @@ fi
 echo -n "Adding configuration..."
 cat <<EOF > /etc/nginx/sites-available/duserver.conf
 server {
-    root /var/www/modules;
+    root /var/www/packages;
     server_name packages.*;
 
     location / {
