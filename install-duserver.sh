@@ -17,9 +17,9 @@ if [ ! -e "/etc/init.d/nginx" ]; then
 	apt-get -y install nginx > /dev/null
 	STATUS=$?
 	if [ $STATUS -eq 100 ]; then
-		echo "deb http://nginx.org/packages/debian/ squeeze nginx" >> /etc/apt/sources.list
-		echo "deb-src http://nginx.org/packages/debian/ squeeze nginx" >> /etc/apt/sources.list
-		apt-get update
+		echo "deb http://nginx.org/packages/debian/ wheezy nginx" >> /etc/apt/sources.list
+		echo "deb-src http://nginx.org/packages/debian/ wheezy nginx" >> /etc/apt/sources.list
+		apt-get update > /dev/null
 		apt-get -y install nginx > /dev/null
 		print_success $?
 	else
