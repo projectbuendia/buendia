@@ -15,7 +15,15 @@ function print_success {
 if [ ! -e "/etc/init.d/nginx" ]; then
 	echo -n "Installing nginx..."
 	apt-get -y install nginx > /dev/null
-	print_success $?
+	STATUS=$?
+	if [ $STATUS -eq 100 ]; then
+		echo "deb http://nginx.org/packages/debian/ squeeze nginx" >> /etc/apt/sources.list
+		echo "deb-src http://nginx.org/packages/debian/ squeeze nginx" >> /etc/apt/sources.list
+		apt-get -y install nginx > /dev/null
+		print_success $?
+	else
+		print_success $STATUS
+	fi
 fi
 
 echo -n "Adding configuration..."
