@@ -61,6 +61,7 @@ ssh -q packages.projectbuendia.org <<ENDSSH > /dev/null
 sudo chown -R www-data:www-data $uploaddir
 sudo su www-data
 cp -R $uploaddir/* /var/www/packages/
+duserver_make_index.py
 exit
 sudo rm -R $uploaddir
 ENDSSH
