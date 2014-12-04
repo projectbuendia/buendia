@@ -60,7 +60,7 @@ echo -n "Deploying the extracted files..."
 ssh -q duserver.projectbuendia.org <<ENDSSH > /dev/null
 sudo chown -R www-data:www-data $uploaddir
 sudo su www-data
-cp -R $uploaddir/* /var/www/modules/
+cp -R $uploaddir/* /var/www/packages/
 exit
 sudo rm -R $uploaddir
 ENDSSH
