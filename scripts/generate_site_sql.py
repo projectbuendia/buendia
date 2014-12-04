@@ -117,14 +117,17 @@ for patient in data["patients"]:
 	age = patient["age"].strip().upper()
 	if age[-1] == 'Y':
 		dateSql = "DATE_SUB(CURDATE(), INTERVAL %s MONTH)" % (str(int(age[:-1]) * 12 + 6))
-	else:
+	elif age[-1] == 'Y':
 		dateSql = "DATE_SUB(CURDATE(), INTERVAL %s DAY)" % (str(int(age[:-1]) * 30 + 15))
-	sql.append("INSERT INTO person (gender,birthdate,creator,date_created) VALUES (%s,%s,@android,NOW());\n" %
-	    (wrap(patient["gender"]),dateSql))
+	else:
+		raise Exception("Bad age ending, must be M or Y:" + age)
+	sql.append("INSERT INTO person (gender,birthdate,creator,date_created) ")
+	sql.append("VALUES (%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY));\n" %
+	    (wrap(patient["gender"]),dateSql,patient["admitted_days_ago"]))
 	sql.append("SELECT @person_id := LAST_INSERT_ID();\n")
 	sql.append("INSERT INTO person_name (person_id,given_name,family_name,creator,date_created,uuid) ")
-	sql.append("VALUES (@person_id,%s,%s,@android,NOW(),UUID());\n" %
-	    (wrap(patient["given_name"]),wrap(patient["family_name"])))
+	sql.append("VALUES (@person_id,%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY),UUID());\n" %
+	    (wrap(patient["given_name"]),wrap(patient["family_name"]),patient["admitted_days_ago"]))
 	
 	
 print "trying to write %s.sql" % sitename
