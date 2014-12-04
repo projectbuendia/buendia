@@ -145,7 +145,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
         ArrayList<SimpleObject> jsonResults = new ArrayList<>();
-        Location root = locationService.getLocationByUuid(EMC_UUID);
+        Location root = emcLocation;
         if (root == null) {
             throw new IllegalStateException("Somehow the management centre UUID does not exist " + EMC_UUID);
         }
