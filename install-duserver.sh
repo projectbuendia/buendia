@@ -34,6 +34,15 @@ else
 	echo "SKIP (nginx is already installed)"
 fi
 
+echo -n "Installing python..."
+which python > /dev/null
+if [ $? -eq 1 ]; then
+	apt-get -y install python > /dev/null
+	print_success $?
+else
+	echo "SKIP (python is already installed)"
+fi
+
 echo -n "Adding configuration..."
 if [ ! -e "/etc/nginx/sites-available/duserver.conf" ]; then
 	cat <<EOF > /etc/nginx/sites-available/duserver.conf
