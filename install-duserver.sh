@@ -104,5 +104,15 @@ echo -n "Reload environment..."
 source /etc/profile
 print_success $?
 
+echo -n "Downloading duserver_make_index.py..."
+if [ ! -e "/usr/local/bin/duserver_make_index.py" ]; then
+	curl "https://raw.githubusercontent.com/ProjectBuendia/buendia-scripts/master/duserver_make_index.py" \
+		-o "/usr/local/bin/duserver_make_index.py"
+	print_success $?
+	chmod +x "/usr/local/bin/duserver_make_index.py"
+else
+	echo "SKIP (script already exists)"
+fi
+
 #TODO: wget a script that needs to be run when a usb drive is entered
 #TODO: add udev rule file that triggers the script to be run on 'add'
