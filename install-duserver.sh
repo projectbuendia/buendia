@@ -17,14 +17,14 @@ apt-get -y install nginx > /dev/null
 print_success $?
 
 echo -n "Adapting configuration..."
-cat <<EOF > /etc/nginx/sites-available/default
+cat <<EOF > /etc/nginx/sites-available/duserver
 server {
-    root /var/www/;
-    index index.html index.htm versions.json;
+    root /var/www/modules;
+    index versions.json;
 
-    server_name localhost;
+    server_name duserver.*;
 
-    location /versions/ {
+    location / {
         allow all;
     }
 }
