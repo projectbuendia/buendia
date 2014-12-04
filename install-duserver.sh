@@ -19,6 +19,7 @@ if [ ! -e "/etc/init.d/nginx" ]; then
 	if [ $STATUS -eq 100 ]; then
 		echo "deb http://nginx.org/packages/debian/ squeeze nginx" >> /etc/apt/sources.list
 		echo "deb-src http://nginx.org/packages/debian/ squeeze nginx" >> /etc/apt/sources.list
+		apt-get update
 		apt-get -y install nginx > /dev/null
 		print_success $?
 	else
