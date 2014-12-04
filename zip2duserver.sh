@@ -60,6 +60,7 @@ echo -n "Deploying the extracted files..."
 ssh -q packages.projectbuendia.org <<ENDSSH > /dev/null
 sudo chown -R www-data:www-data $uploaddir
 sudo su www-data
+source /etc/profile
 cp -R $uploaddir/* /var/www/packages/
 duserver_make_index.py
 exit
