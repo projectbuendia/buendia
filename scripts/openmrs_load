@@ -26,7 +26,7 @@ fi
 $mysql -s -e 'create database '$db
 
 echo 'Wiping database...'
-$mysql -s -e 'show tables;' $db | sed -e 's/^/; drop table/' | $mysql $db
+$mysql -s -e 'show tables;' $db | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
 
 # Unpack the zip file in the temporary directory.
 mkdir -p $tmpdir

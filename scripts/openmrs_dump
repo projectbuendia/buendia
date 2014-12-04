@@ -36,6 +36,7 @@ $mysqldump --tab=$tmpdir --single-transaction --default-character-set=utf8 --opt
 cd $tmpdir
 echo '/*!40014 SET SESSION FOREIGN_KEY_CHECKS=0 */;' > $tmpsql
 echo "select 'Creating tables...' as ' ';" >> $tmpsql
+shopt -s nullglob
 for i in *.sql; do
     echo "source $i;" >> $tmpsql
 done
