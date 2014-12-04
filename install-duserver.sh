@@ -12,13 +12,13 @@ function print_success {
 	fi
 }
 
-echo "Welcome to the installation script for the package server."
+echo "Welcome to the installation script for the package server.\n"
 echo "What is the domain at which the package server will be made available?"
 echo -n "(Default: packages.local) "
 read base_url
 
+echo -n "Installing nginx..."
 if [ ! -e "/etc/init.d/nginx" ]; then
-	echo -n "Installing nginx..."
 	apt-get -y install nginx > /dev/null
 	STATUS=$?
 	if [ $STATUS -eq 100 ]; then
@@ -30,30 +30,42 @@ if [ ! -e "/etc/init.d/nginx" ]; then
 	else
 		print_success $STATUS
 	fi
+else
+	echo "SKIP (nginx is already installed)"
 fi
 
 echo -n "Adding configuration..."
-cat <<EOF > /etc/nginx/sites-available/duserver.conf
-server {
-    root /var/www/packages;
-    server_name $base_url;
+if [ ! -e "/etc/nginx/sites-available/duserver.conf" ]; then
+	cat <<EOF > /etc/nginx/sites-available/duserver.conf
+	server {
+		root /var/www/packages;
+		server_name $base_url;
 
-    location / {
-        allow all;
-    }
-}
+		location / {
+			allow all;
+		}
+	}
 EOF
-print_success $?
+	print_success $?
+else
+	echo "SKIP (file already exists)"
+fi
 
 echo -n "Enabling configuration..."
-ln -s /etc/nginx/sites-available/duserver.conf /etc/nginx/sites-enabled/ > /dev/null
-print_success $?
+if [ ! -e "/etc/nginx/sites-enabled/duserver.conf" ]; then
+	ln -s /etc/nginx/sites-available/duserver.conf /etc/nginx/sites-enabled/ > /dev/null
+	print_success $?
+else
+	echo "SKIP (link already exists)"
+fi
 
+echo -n "Create root directory for nginx-served files..."
 if [ ! -d "/var/www" ]; then
-	echo -n "Create root directory for nginx-served files..."
 	mkdir /var/www
 	print_success $?
 	chown www-data:www-data /var/www
+else
+	echo "SKIP (directory already exists)"
 fi
 
 if [ ! -d "/var/www/packages" ]; then
@@ -62,25 +74,30 @@ if [ ! -d "/var/www/packages" ]; then
 	print_success $?
 	chown www-data:www-data /var/www/packages
 	chmod ug+rw /var/www/packages
+else
+	echo "SKIP (directory already exists)"
 fi
 
-echo -n "Starting nginx..."
-/etc/init.d/nginx start > /dev/null
+echo -n "(Re)starting nginx..."
+/etc/init.d/nginx restart > /dev/null
 print_success $?
 
-#TODO: CHECK IF NOT ALREADY THERE
-grep 'DUSERVER_PACKAGE_DIR' /etc/profile > /dev/null
+grep 'export DUSERVER_PACKAGE_DIR' /etc/profile > /dev/null
 if [ $? -eq 1 ]; then
 	echo -n 'Add DUSERVER_PACKAGE_DIR variable to the environment...'
 	echo "export DUSERVER_PACKAGE_DIR=/var/www/packages" >> /etc/profile
 	print_success $?
+else
+	echo "SKIP (variable is already added)"
 fi
 
-grep 'DUSERVER_PACKAGE_BASE_URL' /etc/profile > /dev/null
+grep 'export DUSERVER_PACKAGE_BASE_URL' /etc/profile > /dev/null
 if [ $? -eq 1 ]; then
 	echo -n 'Add DUSERVER_PACKAGE_BASE_URL variable to the environment...'
 	echo "export DUSERVER_PACKAGE_BASE_URL=\"http://$base_url\"" >> /etc/profile
 	print_success $?
+else
+	echo "SKIP (variable is already added)"
 fi
 
 #TODO: wget a script that needs to be run when a usb drive is entered
