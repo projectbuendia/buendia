@@ -12,7 +12,7 @@ function print_success {
 	fi
 }
 
-echo "Welcome to the installation script for the package server.\n"
+echo -e "Welcome to the installation script for the package server.\n"
 echo "What is the domain at which the package server will be made available?"
 echo -n "(Default: packages.local) "
 read base_url
