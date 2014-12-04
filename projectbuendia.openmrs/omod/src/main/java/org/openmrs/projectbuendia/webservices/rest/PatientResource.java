@@ -198,7 +198,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         identifier.setCreator(patient.getCreator());
         identifier.setDateCreated(patient.getDateCreated());
         identifier.setIdentifier(id);
-        identifier.setLocation(getLocationByName(FACILITY_NAME, null, null));
+        identifier.setLocation(getLocationByName(FACILITY_NAME, null));
         identifier.setIdentifierType(identifierType);
         identifier.setPreferred(true);
         patient.addIdentifier(identifier);
@@ -439,18 +439,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return personAttributeType;
     }
 
-    private static Location getLocationByName(String locationName, LocationTag tag, Location parent) {
+    private static Location getLocationByName(String locationName, Location parent) {
         LocationService locationService = Context.getLocationService();
         Location location = locationService.getLocation(locationName);
         if (location == null) {
             location = new Location();
             location.setName(locationName);
             location.setDescription(locationName);
-            if (tag != null) {
-                Set<LocationTag> tags = new HashSet<>();
-                tags.add(tag);
-                location.setTags(tags);
-            }
             if (parent != null) {
                 location.setParentLocation(parent);
             }
