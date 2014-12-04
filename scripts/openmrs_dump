@@ -1,0 +1,54 @@
+#!/bin/bash
+
+db=$1
+dumpfile=$2
+tmpdir=/tmp/openmrs_dump.$$
+tmpzip=/tmp/openmrs_dump.$$.zip
+tmpsql=/tmp/openmrs_sump.$$.sql
+pwd=$(pwd)
+
+mysqldump="mysqldump"
+if [ -n "$MYSQL_USER" ]; then
+    mysqldump="mysqldump -u $MYSQL_USER -p$MYSQL_PASSWORD"
+fi
+
+if [ -z "$dumpfile" ]; then
+    echo "Usage: $0 <database-name> <dump-file.zip>"
+    echo 'Dumps a MySQL database to a dump file.'
+    echo
+    echo 'Requires a MySQL user that has been granted the FILE privilege with'
+    echo '    GRANT FILE ON *.* to <user>@<host>'
+    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
+    echo
+    exit 1
+fi
+
+# Make a temporary directory (mode 777 so it is writable by mysqld).
+mkdir -m 777 -p $tmpdir
+
+# Assign an ID to the dump.
+date +'%Y-%m-%dT%H:%M:%SZ' > $tmpdir/ID
+
+# Dump to the temporary directory.
+$mysqldump --tab=$tmpdir --single-transaction --default-character-set=utf8 --opt -q -v --skip-dump-date $db || exit 1
+
+# Construct a SQL file that will load the data quickly.
+cd $tmpdir
+echo '/*!40014 SET SESSION FOREIGN_KEY_CHECKS=0 */;' > $tmpsql
+echo "select 'Creating tables...' as ' ';" >> $tmpsql
+for i in *.sql; do
+    echo "source $i;" >> $tmpsql
+done
+for i in *.txt; do
+    echo "select 'Loading $i...' as ' ';" >> $tmpsql
+    echo "load data local infile '$i' into table ${i%.txt} character set utf8;" >> $tmpsql
+done
+echo "select 'Done.' as ' ';" >> $tmpsql
+mv $tmpsql 000_load.sql
+
+# Pack the results into a zip file.
+zip -j $tmpzip * || exit 1
+cd $pwd
+rm -rf $tmpdir
+mv $tmpzip $dumpfile
+ls -l $dumpfile
