@@ -68,8 +68,20 @@ echo -n "Starting nginx..."
 /etc/init.d/nginx start > /dev/null
 print_success $?
 
-echo "export DUSERVER_PACKAGE_DIR=/var/www/packages" >> /etc/profile
-echo "export DUSERVER_PACKAGE_BASE_URL=\"http://$base_url\"" >> /etc/profile
+#TODO: CHECK IF NOT ALREADY THERE
+grep 'DUSERVER_PACKAGE_DIR' /etc/profile > /dev/null
+if [ $? -eq 1 ]; then
+	echo -n 'Add DUSERVER_PACKAGE_DIR variable to the environment...'
+	echo "export DUSERVER_PACKAGE_DIR=/var/www/packages" >> /etc/profile
+	print_success $?
+fi
+
+grep 'DUSERVER_PACKAGE_BASE_URL' /etc/profile > /dev/null
+if [ $? -eq 1 ]; then
+	echo -n 'Add DUSERVER_PACKAGE_BASE_URL variable to the environment...'
+	echo "export DUSERVER_PACKAGE_BASE_URL=\"http://$base_url\"" >> /etc/profile
+	print_success $?
+fi
 
 #TODO: wget a script that needs to be run when a usb drive is entered
 #TODO: add udev rule file that triggers the script to be run on 'add'
