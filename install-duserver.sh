@@ -12,6 +12,11 @@ function print_success {
 	fi
 }
 
+echo "Welcome to the installation script for the package server."
+echo "What is the domain at which the package server will be made available?"
+echo -n "(Default: packages.local) "
+read base_url
+
 if [ ! -e "/etc/init.d/nginx" ]; then
 	echo -n "Installing nginx..."
 	apt-get -y install nginx > /dev/null
@@ -31,7 +36,7 @@ echo -n "Adding configuration..."
 cat <<EOF > /etc/nginx/sites-available/duserver.conf
 server {
     root /var/www/packages;
-    server_name packages.*;
+    server_name $base_url;
 
     location / {
         allow all;
@@ -62,6 +67,9 @@ fi
 echo -n "Starting nginx..."
 /etc/init.d/nginx start > /dev/null
 print_success $?
+
+echo "export DUSERVER_PACKAGE_DIR=/var/www/packages" >> /etc/profile
+echo "export DUSERVER_PACKAGE_BASE_URL=\"http://$base_url\"" >> /etc/profile
 
 #TODO: wget a script that needs to be run when a usb drive is entered
 #TODO: add udev rule file that triggers the script to be run on 'add'
