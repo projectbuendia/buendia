@@ -1,4 +1,4 @@
-#!/bin/python
+#!/usr/bin/python
 import os, sys, json
 
 package_directory = os.environ.get('DUSERVER_PACKAGE_DIR')
