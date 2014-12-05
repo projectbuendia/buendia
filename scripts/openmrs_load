@@ -1,0 +1,40 @@
+#!/bin/bash
+
+db=$1
+dumpfile=$2
+tmpdir=/tmp/openmrs_load.$$
+tmpzip=/tmp/openmrs_dump.$$.zip
+pwd=$(pwd)
+
+mysql="mysql"
+if [ -n "$MYSQL_USER" ]; then
+    mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
+fi
+
+if [ -z "$dumpfile" ]; then
+    echo "Usage: $0 <database-name> <dump-file.zip>"
+    echo 'Wipes a MySQL database and loads a dump file into it.'
+    echo
+    echo 'Requires a MySQL user that has been granted database access with'
+    echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
+    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
+    echo
+    exit 1
+fi
+
+# Create an empty database.
+$mysql -s -e 'create database '$db
+
+echo 'Wiping database...'
+$mysql -s -e 'show tables;' $db | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+
+# Unpack the zip file in the temporary directory.
+mkdir -p $tmpdir
+cp $dumpfile $tmpzip
+cd $tmpdir
+unzip -j $tmpzip
+
+# Load the data.
+$mysql --local-infile -s -e 'source 000_load.sql;' $db || exit 1
+cd $pwd
+rm -rf $tmpdir $tmpzip
