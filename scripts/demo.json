@@ -9,10 +9,12 @@
       "gender": "M",
       "age": "48Y",
       "admitted_days_ago": 7,
+      "assigned_location": "Suspect 1",
       "encounters": [
         { 
           "location": "Suspect Zone",
           "days_ago": 2,
+          "time": "09:00",
           "provider": "Guest User",
           "observations": [
             {"concept":"Nausea", "value":"Yes"},
