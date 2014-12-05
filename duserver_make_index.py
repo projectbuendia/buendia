@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os, sys, json
+from distutils.version import StrictVersion
 
 package_directory = os.environ.get('DUSERVER_PACKAGE_DIR')
 if package_directory is None:
@@ -28,12 +29,20 @@ for filename in files:
 
     # If both strings are non-empty
     if module and version:
+        try:
+            version = StrictVersion(version)
+        except ValueError:
+            continue
         # Create package index
         packages[module] = packages.get(module, [])
         packages[module].append(
-            {"version": version, "src": "%s/%s" % (base_url, filename)})
+            {"version": str(version), "src": "%s/%s" % (base_url, filename)})
 
 # Write each package index to their respective files
 for module in packages:
+    # Order the packages on their version label
+    package_list = sorted(packages[module], key=lambda x:
+            StrictVersion(x['version']))
+    # Write the index file
     open('%s/%s.json' % (package_directory, module), 'w').write(
-        json.dumps(packages[module]))
+        json.dumps(package_list))
