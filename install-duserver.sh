@@ -121,7 +121,7 @@ print_success $?
 echo -n "Downloading duserver_make_index.py..."
 if [ ! -e "/usr/local/bin/duserver_make_index.py" ]; then
 	wget "https://raw.githubusercontent.com/ProjectBuendia/buendia-scripts/master/duserver_make_index.py" > /dev/null
-	if [ $? -eq 0 ]
+	if [ $? -eq 0 ]; then
 		mv duserver_make_index.py "/usr/local/bin/duserver_make_index.py"
 		print_success $?
 	else
