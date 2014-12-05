@@ -13,9 +13,21 @@ function print_success {
 }
 
 echo -e "Welcome to the installation script for the package server.\n"
-echo "What is the domain at which the package server will be made available?"
-echo -n "(e.g.: packages.local) "
+echo "What is the domain name of the package server?"
+echo -n "(Default: packages.local) "
 read base_url
+
+if [ -z $base_url ]; then
+	base_url=packages.local
+fi
+
+echo "What is the site id?"
+echo -n "(Default: kailahun) "
+read site_id
+
+if [ -z $site_id ]; then
+	site_id=kailahun
+fi
 
 echo -n "Updating apt-get..."
 apt-get update > /dev/null
@@ -45,6 +57,15 @@ if [ $? -eq 1 ]; then
 	print_success $?
 else
 	echo "SKIP (python is already installed)"
+fi
+
+echo -n "Installing unzip..."
+which unzip > /dev/null
+if [ $? -eq 1 ]; then
+	apt-get -y install unzip > /dev/null
+	print_success $?
+else
+	echo "SKIP (unzip is already installed)"
 fi
 
 echo -n "Adding configuration..."
@@ -114,6 +135,15 @@ else
 	echo "SKIP (variable is already added)"
 fi
 
+echo -n 'Add SITE_ID variable to the environment...'
+grep 'export SITE_ID' /etc/profile > /dev/null
+if [ $? -eq 1 ]; then
+	echo "export SITE_ID=\"$site_id\"" >> /etc/profile
+	print_success $?
+else
+	echo "SKIP (variable is already added)"
+fi
+
 echo -n "Reload environment..."
 source /etc/profile
 print_success $?
@@ -136,13 +166,26 @@ echo -n "Creating usb-import script..."
 if [ ! -e "/usr/local/bin/import-updates-from-usb" ]; then
 	cat <<EOF > /usr/local/bin/import-updates-from-usb
 #!/bin/bash
+. /etc/profile
 mkdir /tmp/usb
 mount /dev/duserver_usb /tmp/usb
-ls -l /tmp/usb/*
-cp -R /tmp/usb/* /var/www/packages/
+for f in /tmp/usb/projectbuendia-all*.zip; do
+	exdir=\`mktemp -d /tmp/tmp.XXXXXXXXXX\`
+	unzip \$f -d \$exdir
+	cp -R \$exdir/* /var/www/packages/
+	rm -R \$exdir
+done
+if [ ! -z \$SITE_ID ]; then
+	for f in /tmp/usb/projectbuendia-\$SITE_ID*.zip; do
+		exdir=\`mktemp -d /tmp/tmp.XXXXXXXXXX\`
+		unzip \$f -d \$exdir
+		cp -R \$exdir/* /var/www/packages/
+		rm -R \$exdir
+	done
+fi
 umount /tmp/usb
 rmdir /tmp/usb
-su -u www-data duserver_make_index.py
+su www-data -c ". /etc/profile; duserver_make_index.py"
 EOF
 	print_success $?
 else
