@@ -126,6 +126,7 @@ if [ ! -e "/usr/local/bin/duserver_make_index.py" ]; then
 		print_success $?
 	else
 		print_success 1
+	fi
 	chmod +x "/usr/local/bin/duserver_make_index.py"
 else
 	echo "SKIP (script already exists)"
