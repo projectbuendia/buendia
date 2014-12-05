@@ -83,6 +83,12 @@ def appendNewUser(user, sql, next_system_id):
 	sql.append("  VALUES (%s,%s,%s,%s,@android,NOW(),@person_id,UUID());\n" % 
 	    (wrap(system_id),wrap(user["username"]),wrap(password),wrap(salt)))
 	
+	# Insert provider (for encounters)
+	sql.append("INSERT INTO provider (person_id,name,creator,date_created,uuid) ")
+	sql.append("VALUES (@person_id,%s,@android,NOW(),UUID());\n" %
+	    (wrap(user["given_name"]+" "+user["family_name"])))
+	
+	
 try:                                
 	opts, args = getopt.getopt(sys.argv, "", [])
 except getopt.GetoptError:          
@@ -125,9 +131,28 @@ for patient in data["patients"]:
 	sql.append("VALUES (%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY));\n" %
 	    (wrap(patient["gender"]),dateSql,patient["admitted_days_ago"]))
 	sql.append("SELECT @person_id := LAST_INSERT_ID();\n")
+	
 	sql.append("INSERT INTO person_name (person_id,given_name,family_name,creator,date_created,uuid) ")
 	sql.append("VALUES (@person_id,%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY),UUID());\n" %
 	    (wrap(patient["given_name"]),wrap(patient["family_name"]),patient["admitted_days_ago"]))
+
+	sql.append("INSERT INTO patient (patient_id,creator,date_created) ")
+	sql.append("VALUES (@person_id,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY));\n" % (patient["admitted_days_ago"]))
+	
+	for encounter in patient["encounters"]:
+		sql.append("SELECT @location_id := location_id FROM location WHERE name=%s;\n" % 
+		    (wrap(encounter['location'])))
+		sql.append("INSERT INTO encounter (encounter_type,patient_id,location_id,encounter_datetime,creator,date_created,uuid) \n")
+		sql.append("  VALUES (2,@person_id,@location_id,DATE_SUB(CURDATE(), INTERVAL %d DAY),@android,NOW(),UUID());\n" %
+		    (encounter["days_ago"]))
+		sql.append("SELECT @encounter_id := LAST_INSERT_ID();\n")
+		
+		sql.append("SELECT @provider_id := provider_id FROM provider WHERE name=%s;\n" % 
+		    (wrap(encounter['provider'])))
+		sql.append("INSERT INTO encounter_provider (encounter_id,provider_id,encounter_role_id,creator,date_created,uuid) \n")
+		sql.append("  VALUES (@encounter_id,@provider_id,3,@android,NOW(),UUID());\n")
+		
+		
 	
 	
 print "trying to write %s.sql" % sitename

@@ -10,8 +10,10 @@
       "age": "48Y",
       "admitted_days_ago": 7,
       "encounters": [
-        {
-          "days_ago": 2
+        { 
+          "location": "Suspect Zone",
+          "days_ago": 2,
+          "provider": "Guest User"
         }
       ]
     }
