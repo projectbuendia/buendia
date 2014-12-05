@@ -17,6 +17,10 @@ echo "What is the domain at which the package server will be made available?"
 echo -n "(Default: packages.local) "
 read base_url
 
+echo -n "Updating apt-get..."
+apt-get update
+print_success $?
+
 echo -n "Installing nginx..."
 if [ ! -e "/etc/init.d/nginx" ]; then
 	apt-get -y install nginx > /dev/null
@@ -123,7 +127,7 @@ else
 	echo "SKIP (script already exists)"
 fi
 
-echo -n "Creating usb-import script"
+echo -n "Creating usb-import script..."
 if [ ! -e "/usr/local/bin/import-updates-from-usb" ]; then
 	cat <<EOF > /usr/local/bin/import-updates-from-usb
 	#!/bin/bash
@@ -140,7 +144,7 @@ else
 	echo "SKIP (script already exists)"
 fi
 
-echo -n "Adding udev rule for usb trigger"
+echo -n "Adding udev rule for usb trigger..."
 if [ ! -e "/etc/udev/rules.d/80-usb-add.rules" ]; then
 	cat <<EOF > /etc/udev/rules.d/80-usb-add.rules
 	KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="duserver_usb", RUN+="/usr/local/bin/import-updates-from-usb"
