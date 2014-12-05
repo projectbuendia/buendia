@@ -51,6 +51,7 @@ echo -n "Adding configuration..."
 if [ ! -e "/etc/nginx/sites-available/duserver.conf" ]; then
 	cat <<EOF > /etc/nginx/sites-available/duserver.conf
 	server {
+		listen 8080;
 		root /var/www/packages;
 		server_name $base_url;
 
