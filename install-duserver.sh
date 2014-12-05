@@ -14,7 +14,7 @@ function print_success {
 
 echo -e "Welcome to the installation script for the package server.\n"
 echo "What is the domain at which the package server will be made available?"
-echo -n "(Default: packages.local) "
+echo -n "(e.g.: packages.local) "
 read base_url
 
 echo -n "Updating apt-get..."
@@ -50,15 +50,15 @@ fi
 echo -n "Adding configuration..."
 if [ ! -e "/etc/nginx/sites-available/duserver.conf" ]; then
 	cat <<EOF > /etc/nginx/sites-available/duserver.conf
-	server {
-		listen 8080;
-		root /var/www/packages;
-		server_name $base_url;
+server {
+	listen 8080;
+	root /var/www/packages;
+	server_name $base_url;
 
-		location / {
-			allow all;
-		}
+	location / {
+		allow all;
 	}
+}
 EOF
 	print_success $?
 else
@@ -131,14 +131,14 @@ fi
 echo -n "Creating usb-import script..."
 if [ ! -e "/usr/local/bin/import-updates-from-usb" ]; then
 	cat <<EOF > /usr/local/bin/import-updates-from-usb
-	#!/bin/bash
-	mkdir /tmp/usb
-	mount /dev/duserver_usb /tmp/usb
-	ls -l /tmp/usb/*
-	cp -R /tmp/usb/* /var/www/packages/
-	umount /tmp/usb
-	rmdir /tmp/usb
-	su -u www-data duserver_make_index.py
+#!/bin/bash
+mkdir /tmp/usb
+mount /dev/duserver_usb /tmp/usb
+ls -l /tmp/usb/*
+cp -R /tmp/usb/* /var/www/packages/
+umount /tmp/usb
+rmdir /tmp/usb
+su -u www-data duserver_make_index.py
 EOF
 	print_success $?
 else
@@ -148,7 +148,7 @@ fi
 echo -n "Adding udev rule for usb trigger..."
 if [ ! -e "/etc/udev/rules.d/80-usb-add.rules" ]; then
 	cat <<EOF > /etc/udev/rules.d/80-usb-add.rules
-	KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="duserver_usb", RUN+="/usr/local/bin/import-updates-from-usb"
+KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="duserver_usb", RUN+="/usr/local/bin/import-updates-from-usb"
 EOF
 	print_success $?
 else
