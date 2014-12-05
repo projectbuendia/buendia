@@ -120,7 +120,8 @@ print_success $?
 
 echo -n "Downloading duserver_make_index.py..."
 if [ ! -e "/usr/local/bin/duserver_make_index.py" ]; then
-	wget "https://raw.githubusercontent.com/ProjectBuendia/buendia-scripts/master/duserver_make_index.py" > /dev/null
+	wget "https://raw.githubusercontent.com/ProjectBuendia/buendia-scripts/master/duserver_make_index.py" \
+		"/usr/local/bin/duserver_make_index.py" > /dev/null
 	print_success $?
 	chmod +x "/usr/local/bin/duserver_make_index.py"
 else
