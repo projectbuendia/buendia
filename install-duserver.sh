@@ -123,5 +123,33 @@ else
 	echo "SKIP (script already exists)"
 fi
 
-#TODO: wget a script that needs to be run when a usb drive is entered
-#TODO: add udev rule file that triggers the script to be run on 'add'
+echo -n "Creating usb-import script"
+if [ ! -e "/usr/local/bin/import-updates-from-usb" ]; then
+	cat <<EOF > /usr/local/bin/import-updates-from-usb
+	#!/bin/bash
+	mkdir /tmp/usb
+	mount /dev/duserver_usb /tmp/usb
+	ls -l /tmp/usb/*
+	cp -R /tmp/usb/* /var/www/packages/
+	umount /tmp/usb
+	rmdir /tmp/usb
+	su -u www-data duserver_make_index.py
+EOF
+	print_success $?
+else
+	echo "SKIP (script already exists)"
+fi
+
+echo -n "Adding udev rule for usb trigger"
+if [ ! -e "/etc/udev/rules.d/80-usb-add.rules" ]; then
+	cat <<EOF > /etc/udev/rules.d/80-usb-add.rules
+	KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="duserver_usb", RUN+="/usr/local/bin/import-updates-from-usb"
+EOF
+	print_success $?
+else
+	echo "SKIP (rule already exists)"
+fi
+
+echo -n "Restarting udev"
+/etc/init.d/udev restart > /dev/null
+print_success $?
