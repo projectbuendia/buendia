@@ -13,7 +13,12 @@
         { 
           "location": "Suspect Zone",
           "days_ago": 2,
-          "provider": "Guest User"
+          "provider": "Guest User",
+          "observations": [
+            {"concept":"Nausea", "value":"Yes"},
+            {"concept":"Vomiting", "value":"Mild"},            
+            {"concept":"Pulse", "value":110.0}            
+          ]
         }
       ]
     }

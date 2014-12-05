@@ -13,18 +13,25 @@ def usage():
 	print "generate_site_sql.py sitename"
 	print "reads sitename.json outputs sitename.sql"
 
+def is_number(s):
+	try:
+		float(s)
+		return True
+	except ValueError:
+		return False
+
 def encode(s):
 	m = hashlib.sha512()
 	m.update(s)
 	return m.hexdigest()
-	
+
 # Generate the salt/password values needed by OpenMRS, see UserServiceImpl.java
 def passwordAndSalt(password):
 	now = long(time.time() * 1000)
 	extra = random.getrandbits(64)
 	salt = encode(str(now) + str(extra))
 	return encode(password + salt),salt
-	
+
 # Generate the check digit needed by OpenMRS, see LuhnIdentifierValidator.java
 def luhnIdentifier(base):
 	trimmedUppercaseUndecoratedIdentifier = str(base).strip().upper();
@@ -62,7 +69,7 @@ def luhnIdentifier(base):
 def wrap(s):
 	# TODO(nfortescue): this is terrible, use properly escaped SQL arguments
 	return '"' + s + '"'
-	
+
 # Add SQL to add a new system user into the users and person table
 # assumes the @android has been defined so we can use it as creator
 def appendNewUser(user, sql, next_system_id):
@@ -87,8 +94,13 @@ def appendNewUser(user, sql, next_system_id):
 	sql.append("INSERT INTO provider (person_id,name,creator,date_created,uuid) ")
 	sql.append("VALUES (@person_id,%s,@android,NOW(),UUID());\n" %
 	    (wrap(user["given_name"]+" "+user["family_name"])))
-	
-	
+
+def getConceptId(varname, name):
+	sql.append(("SELECT @%s := concept_id FROM concept_name " % (varname)) + 
+	    "INNER JOIN locale_order ON concept_name.locale=locale_order.locale " +
+	    "where name=%s ORDER BY locale_order.id ASC LIMIT 1;\n" % (wrap(name)))
+
+
 try:                                
 	opts, args = getopt.getopt(sys.argv, "", [])
 except getopt.GetoptError:          
@@ -105,7 +117,12 @@ data = json.load(open("%s.json" % sitename))
 
 
 sql = []
+sql.append("--\n-- Working data\n--\n")
 sql.append("SELECT @android := user_id FROM users WHERE username='android' LIMIT 1;\n")
+# Set up a temporary table to order our locales by preference
+sql.append("CREATE TEMPORARY TABLE locale_order (id INT PRIMARY KEY,locale VARCHAR(30));")
+sql.append("INSERT INTO locale_order (id, locale) VALUES (1, 'en_GB_client'), (2, 'en');")
+
 # Ideally we would get the max id from the database. However legal system ids must have a check digit,
 # which we have to add. And we can't do that without SQL fetch, then python/Java, then SQL insert.
 # Instead we will make the assumption that users are already mostly deleted, and start from a constant (like 20),
@@ -118,7 +135,7 @@ for user in data["users"]:
 
 sql.append("--\n-- Patients\n--\n")
 for patient in data["patients"]:
-	sql.append("-- %s %s\n" % (patient["given_name"],patient["family_name"]))
+	sql.append("--\n-- %s %s\n" % (patient["given_name"],patient["family_name"]))
 	# MySQL date format is YYYY-MM-DD	
 	age = patient["age"].strip().upper()
 	if age[-1] == 'Y':
@@ -146,15 +163,27 @@ for patient in data["patients"]:
 		sql.append("  VALUES (2,@person_id,@location_id,DATE_SUB(CURDATE(), INTERVAL %d DAY),@android,NOW(),UUID());\n" %
 		    (encounter["days_ago"]))
 		sql.append("SELECT @encounter_id := LAST_INSERT_ID();\n")
+		sql.append("SELECT @encounter_datetime := encounter_datetime FROM encounter WHERE encounter_id=@encounter_id;\n")
 		
 		sql.append("SELECT @provider_id := provider_id FROM provider WHERE name=%s;\n" % 
 		    (wrap(encounter['provider'])))
 		sql.append("INSERT INTO encounter_provider (encounter_id,provider_id,encounter_role_id,creator,date_created,uuid) \n")
 		sql.append("  VALUES (@encounter_id,@provider_id,3,@android,NOW(),UUID());\n")
-		
-		
-	
-	
+		for observation in encounter["observations"]:
+			getConceptId("concept_id", observation["concept"])
+			val = observation["value"]
+			if is_number(val):
+				value = val
+				value_column = "value_numeric"
+			else:
+				getConceptId("value_id", val)
+				value = "@value_id"
+				value_column = "value_coded"
+			sql.append(("INSERT INTO obs (person_id,concept_id,encounter_id,obs_datetime,%s,uuid) " % (value_column)) +
+				("\n  VALUES (@person_id,@concept_id,@encounter_id,@encounter_datetime,%s,UUID())\n" % (value)))
+
+
+
 print "trying to write %s.sql" % sitename
 with open("%s.sql" % sitename, "w") as out:
-	out.write("".join(sql))	
+	out.write("".join(sql))
