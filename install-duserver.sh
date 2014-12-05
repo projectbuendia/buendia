@@ -120,9 +120,12 @@ print_success $?
 
 echo -n "Downloading duserver_make_index.py..."
 if [ ! -e "/usr/local/bin/duserver_make_index.py" ]; then
-	wget "https://raw.githubusercontent.com/ProjectBuendia/buendia-scripts/master/duserver_make_index.py" \
-		-o "/usr/local/bin/duserver_make_index.py" > /dev/null
-	print_success $?
+	wget "https://raw.githubusercontent.com/ProjectBuendia/buendia-scripts/master/duserver_make_index.py" > /dev/null
+	if [ $? -eq 0 ]
+		mv duserver_make_index.py "/usr/local/bin/duserver_make_index.py"
+		print_success $?
+	else
+		print_success 1
 	chmod +x "/usr/local/bin/duserver_make_index.py"
 else
 	echo "SKIP (script already exists)"
