@@ -18,7 +18,7 @@ echo -n "(Default: packages.local) "
 read base_url
 
 echo -n "Updating apt-get..."
-apt-get update
+apt-get update > /dev/null
 print_success $?
 
 echo -n "Installing nginx..."
