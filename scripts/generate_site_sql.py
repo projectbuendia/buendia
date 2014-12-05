@@ -179,8 +179,8 @@ for patient in data["patients"]:
 				getConceptId("value_id", val)
 				value = "@value_id"
 				value_column = "value_coded"
-			sql.append(("INSERT INTO obs (person_id,concept_id,encounter_id,obs_datetime,%s,uuid) " % (value_column)) +
-				("\n  VALUES (@person_id,@concept_id,@encounter_id,@encounter_datetime,%s,UUID())\n" % (value)))
+			sql.append(("INSERT INTO obs (person_id,concept_id,encounter_id,obs_datetime,%s,creator,date_created,uuid) " % (value_column)) +
+				("\n  VALUES (@person_id,@concept_id,@encounter_id,@encounter_datetime,%s,@android,NOW(),UUID());\n" % (value)))
 
 
 
