@@ -1,14 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElements;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
+import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
@@ -30,6 +22,16 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
+
 /**
  * Resource for instances of xforms (i.e. filled in forms). Currently write-only
  */
@@ -39,7 +41,7 @@ import org.xml.sax.SAXException;
 public class XformInstanceResource implements Creatable {
 
     // Everything not in this set is assumed to be a group of observations.
-    private static final Set<String> KNOWN_CHILD_ELEMENTS = new HashSet<String>();
+    private static final Set<String> KNOWN_CHILD_ELEMENTS = new HashSet<>();
 
     static {
         KNOWN_CHILD_ELEMENTS.add("header");
@@ -144,7 +146,25 @@ public class XformInstanceResource implements Creatable {
         Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
         getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
-        
+
+        // Modify encounter.encounter_datetime to make sure the timezone format has a minute section
+        // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
+        // for an explanation why. Saxon datetime parsing can't cope with timezones without minutes
+        Element encounterDatetimeElement =
+                getElementOrThrow(getElementOrThrow(root, "encounter"), "encounter.encounter_datetime");
+        String datetime = encounterDatetimeElement.getTextContent();
+        if (datetime != null) {
+            try {
+                // SimpleDateFormat to handle ISO8601, being lenient on timezone.
+                Date date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").parse(datetime);
+               // Reformat with the stricter apache class
+                String corrected = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(date);
+                encounterDatetimeElement.setTextContent(corrected);
+            } catch (ParseException e) {
+                LogFactory.getLog(XformInstanceResource.class).warn("failed to do date correction on " + datetime);
+            }
+        }
+
         // Make sure that all observations are under the obs element, with appropriate attributes
         Element obs = getFirstElementOrCreate(doc, root, "obs");
         obs.setAttribute("openmrs_concept", "1238^MEDICAL RECORD OBSERVATIONS^99DCT");
