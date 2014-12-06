@@ -181,6 +181,7 @@ if [ ! -z \$SITE_ID ]; then
 		unzip \$f -d \$exdir
 		cp -R \$exdir/* /var/www/packages/
 		rm -R \$exdir
+		mv \$f /tmp/usb/installed-\`basename \$f\`
 	done
 fi
 umount /tmp/usb
