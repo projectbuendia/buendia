@@ -164,6 +164,8 @@ public class XformInstanceResource implements Creatable {
                 LogFactory.getLog(XformInstanceResource.class).warn("failed to do date correction on " + datetime);
             }
         }
+        //TODO(nfortescue); we should also have some code here to ensure that the correct XLST exists for every form
+        // otherwise we lose it on form rename.
 
         // Make sure that all observations are under the obs element, with appropriate attributes
         Element obs = getFirstElementOrCreate(doc, root, "obs");
