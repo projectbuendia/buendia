@@ -145,7 +145,8 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
         ArrayList<SimpleObject> jsonResults = new ArrayList<>();
-        Location root = emcLocation;
+        // A new fetch is needed to sort out the hibernate cache.
+        Location root = locationService.getLocationByUuid(EMC_UUID);
         if (root == null) {
             throw new IllegalStateException("Somehow the management centre UUID does not exist " + EMC_UUID);
         }
