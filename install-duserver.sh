@@ -189,6 +189,7 @@ rmdir /tmp/usb
 su www-data -c ". /etc/profile; duserver_make_index.py"
 EOF
 	print_success $?
+	chmod +x /usr/local/bin/import-updates-from-usb
 else
 	echo "SKIP (script already exists)"
 fi
