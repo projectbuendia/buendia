@@ -104,11 +104,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private final PatientService patientService;
 
     private final PersonAttributeType assignedLocationAttrType;
+    private final PatientIdentifierType msfPatientIdentifierType;
+    private final List<PatientIdentifierType> identifierTypes;
 
     public PatientResource() {
         patientService = Context.getPatientService();
         assignedLocationAttrType = getPersonAttributeType(
                 ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_location");
+        msfPatientIdentifierType = getMsfIdentifierType();
+        identifierTypes = new ArrayList<>();
+        identifierTypes.add(msfPatientIdentifierType);
     }
 
     @Override
@@ -158,9 +163,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (!simpleObject.containsKey(ID)) {
             throw new InvalidObjectDataException("JSON object lacks required \"id\" field");
         }
-        PatientIdentifierType identifierType = getMsfIdentifierType();
-        ArrayList<PatientIdentifierType> identifierTypes = new ArrayList<>();
-        identifierTypes.add(identifierType);
         String id = (String) simpleObject.get(ID);
         List<Patient> existing =
                 patientService.getPatients(null, id, identifierTypes, true /* exact identifier match */);
@@ -199,7 +201,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         identifier.setDateCreated(patient.getDateCreated());
         identifier.setIdentifier(id);
         identifier.setLocation(getLocationByName(FACILITY_NAME, null));
-        identifier.setIdentifierType(identifierType);
+        identifier.setIdentifierType(msfPatientIdentifierType);
         identifier.setPreferred(true);
         patient.addIdentifier(identifier);
 
@@ -621,7 +623,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (patient != null) {
             jsonForm.add(UUID, patient.getUuid());
             PatientIdentifier patientIdentifier =
-                    patient.getPatientIdentifier(getMsfIdentifierType());
+                    patient.getPatientIdentifier(msfPatientIdentifierType);
             if (patientIdentifier != null) {
                 jsonForm.add(ID, patientIdentifier.getIdentifier());
             }
@@ -684,13 +686,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     locationJson.add(BED_UUID, bed.getUuid());
                 }
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
-            }
-
-            PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
-            PatientState patientState = patientProgram.getCurrentState(
-                    getEbolaStatusProgramWorkflow());
-            if (patientState != null) {
-                jsonForm.add(STATUS, getKeyByState(patientState.getState()));
             }
 
             jsonForm.add(CREATED_TIMESTAMP_MILLIS, patient.getDateCreated().getTime());

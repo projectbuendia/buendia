@@ -126,6 +126,8 @@ sql = []
 sql.append("--\n-- Working data\n--\n")
 sql.append("SELECT @android := user_id FROM users WHERE username='android' LIMIT 1;\n")
 sql.append("SELECT @assigned_location_id := person_attribute_type_id FROM person_attribute_type WHERE name='assigned_location' LIMIT 1;\n")
+sql.append("SELECT @msf_type := patient_identifier_type_id FROM patient_identifier_type WHERE name='MSF' LIMIT 1;\n")
+sql.append("SELECT @root_location := location_id FROM location WHERE uuid='3449f5fe-8e6b-4250-bcaa-fca5df28ddbf' LIMIT 1;\n")
 # Set up a temporary table to order our locales by preference
 sql.append("CREATE TEMPORARY TABLE locale_order (id INT PRIMARY KEY,locale VARCHAR(30));")
 sql.append("INSERT INTO locale_order (id, locale) VALUES (1, 'en_GB_client'), (2, 'en');")
@@ -155,8 +157,8 @@ for patient in data["patients"]:
         dateSql = "DATE_SUB(CURDATE(), INTERVAL %s DAY)" % (str(int(age[:-1]) * 30 + 15))
     else:
         raise Exception("Bad age ending, must be M or Y:" + age)
-    sql.append("INSERT INTO person (gender,birthdate,creator,date_created) ")
-    sql.append("VALUES (%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY));\n" %
+    sql.append("INSERT INTO person (gender,birthdate,creator,date_created,uuid) ")
+    sql.append("VALUES (%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY),UUID());\n" %
         (wrap(patient["gender"]),dateSql,patient["admitted_days_ago"]))
     sql.append("SELECT @person_id := LAST_INSERT_ID();\n")
 
@@ -166,6 +168,10 @@ for patient in data["patients"]:
 
     sql.append("INSERT INTO patient (patient_id,creator,date_created) ")
     sql.append("VALUES (@person_id,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY));\n" % (patient["admitted_days_ago"]))
+
+    # Patient identifier
+    sql.append("INSERT INTO patient_identifier (patient_id,identifier,identifier_type,location_id,creator,date_created,uuid) ")
+    sql.append("VALUES (@person_id,%s,@msf_type,@root_location,@android,NOW(),UUID());\n" % (wrap(patient["patient_id"])))
 
     # Person attribute for the assigned location
     if "assigned_location" in patient:
@@ -188,6 +194,9 @@ for patient in data["patients"]:
         sql.append("INSERT INTO encounter_provider (encounter_id,provider_id,encounter_role_id,creator,date_created,uuid) \n")
         sql.append("  VALUES (@encounter_id,@provider_id,3,@android,NOW(),UUID());\n")
         for observation in encounter["observations"]:
+            # if a value isn't set just ignore this line, makes the data export script easier to write.
+            if not "value" in observation:
+                continue
             getConceptId("concept_id", observation["concept"])
             val = observation["value"]
             if is_number(val):
