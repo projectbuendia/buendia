@@ -168,8 +168,8 @@ for patient in data["patients"]:
     for encounter in patient["encounters"]:
         getLocationId(encounter['location'])
         sql.append("INSERT INTO encounter (encounter_type,patient_id,location_id,encounter_datetime,creator,date_created,uuid) \n")
-        sql.append("  VALUES (2,@person_id,@location_id,DATE_SUB(CURDATE(), INTERVAL %d DAY),@android,NOW(),UUID());\n" %
-            (encounter["days_ago"]))
+        sql.append("  VALUES (2,@person_id,@location_id,ADDTIME(CAST(DATE_SUB(CURDATE(), INTERVAL %d DAY) AS DATETIME), %s),@android,NOW(),UUID());\n" %
+            (encounter["days_ago"], wrap(encounter["time"])))
         sql.append("SELECT @encounter_id := LAST_INSERT_ID();\n")
         sql.append("SELECT @encounter_datetime := encounter_datetime FROM encounter WHERE encounter_id=@encounter_id;\n")
 
