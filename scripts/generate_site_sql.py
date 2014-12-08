@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import binascii
+import codecs
 import getopt
 import hashlib
 import json
@@ -96,9 +97,11 @@ def appendNewUser(user, sql, next_system_id):
         (wrap(user["given_name"]+" "+user["family_name"])))
 
 def getConceptId(varname, name):
-    sql.append(("SELECT @%s := concept_id FROM concept_name " % (varname)) +
+    sql.append(("SELECT @%s := concept.concept_id FROM concept_name " % (varname)) +
+        " JOIN concept ON concept.concept_id=concept_name.concept_id "
         "INNER JOIN locale_order ON concept_name.locale=locale_order.locale " +
-        "where name=%s ORDER BY locale_order.id ASC LIMIT 1;\n" % (wrap(name)))
+        "WHERE name=%s AND voided=0 AND concept.retired=0 "
+        "ORDER BY locale_order.id ASC LIMIT 1;\n" % (wrap(name)))
 
 def getLocationId(location):
     sql.append("SELECT @location_id := location_id FROM location WHERE name=%s;\n" % (wrap(location)))
@@ -139,12 +142,16 @@ for user in data["users"]:
 
 sql.append("--\n-- Patients\n--\n")
 for patient in data["patients"]:
-    sql.append("--\n-- %s %s\n" % (patient["given_name"],patient["family_name"]))
+    if "given_name" not in patient:
+        print "No given name for " + str(patient)
+        continue
+    family_name = (patient["family_name"] if "family_name" in patient else "")
+    sql.append("--\n-- %s %s\n" % (patient["given_name"],family_name))
     # MySQL date format is YYYY-MM-DD
     age = patient["age"].strip().upper()
     if age[-1] == 'Y':
         dateSql = "DATE_SUB(CURDATE(), INTERVAL %s MONTH)" % (str(int(age[:-1]) * 12 + 6))
-    elif age[-1] == 'Y':
+    elif age[-1] == 'M':
         dateSql = "DATE_SUB(CURDATE(), INTERVAL %s DAY)" % (str(int(age[:-1]) * 30 + 15))
     else:
         raise Exception("Bad age ending, must be M or Y:" + age)
@@ -155,16 +162,19 @@ for patient in data["patients"]:
 
     sql.append("INSERT INTO person_name (person_id,given_name,family_name,creator,date_created,uuid) ")
     sql.append("VALUES (@person_id,%s,%s,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY),UUID());\n" %
-        (wrap(patient["given_name"]),wrap(patient["family_name"]),patient["admitted_days_ago"]))
+        (wrap(patient["given_name"]),wrap(family_name),patient["admitted_days_ago"]))
 
     sql.append("INSERT INTO patient (patient_id,creator,date_created) ")
     sql.append("VALUES (@person_id,@android,DATE_SUB(CURDATE(), INTERVAL %d DAY));\n" % (patient["admitted_days_ago"]))
 
     # Person attribute for the assigned location
-    getLocationId(patient["assigned_location"])
-    sql.append("INSERT INTO person_attribute (person_id,value,person_attribute_type_id,creator,date_created,uuid) ")
-    sql.append("VALUES (@person_id,@location_id,@assigned_location_id,@android,NOW(),UUID());\n")
+    if "assigned_location" in patient:
+        getLocationId(patient["assigned_location"])
+        sql.append("INSERT INTO person_attribute (person_id,value,person_attribute_type_id,creator,date_created,uuid) ")
+        sql.append("VALUES (@person_id,@location_id,@assigned_location_id,@android,NOW(),UUID());\n")
 
+    if not "encounters" in patient:
+        continue
     for encounter in patient["encounters"]:
         getLocationId(encounter['location'])
         sql.append("INSERT INTO encounter (encounter_type,patient_id,location_id,encounter_datetime,creator,date_created,uuid) \n")
@@ -193,5 +203,5 @@ for patient in data["patients"]:
 
 
 print "trying to write %s.sql" % sitename
-with open("%s.sql" % sitename, "w") as out:
+with codecs.open("%s.sql" % sitename, "w", "utf-8") as out:
     out.write("".join(sql))

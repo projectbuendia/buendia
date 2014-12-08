@@ -102,7 +102,7 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
                     break;
                 default:
                     // TODO(jonskeet): Turn this into a warning log entry?
-                    throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type);
+                    throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type + " for concept " + concept);
             }
             observations.put(concept.getUuid(), value);
         }
