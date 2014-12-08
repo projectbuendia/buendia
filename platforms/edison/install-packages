@@ -19,6 +19,6 @@ echo
 
 run_script_in_debian debian/install-essentials
 run_script_in_debian debian/install-dnsmasq
-$scp -pr debian/dnsmasq.d/* /debian/etc/dnsmasq.d/
+$scp -pr debian/dnsmasq.d/* $target:/debian/etc/dnsmasq.d/
 run_script_in_debian debian/install-mysql "$password"
 run_script_in_debian debian/install-tomcat "$password"
