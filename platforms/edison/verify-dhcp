@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: $0"
+  echo
+  echo "Confirms that the DHCP server on the Edison is working."
+  exit 1
+fi
+
+echo
+echo "Checking for DHCP server..."
+echo
+
+if [[ "$OSTYPE" == linux* ]]; then
+  dhclient -v usb0
+else
+  echo "(We don't know how to do this on $OSTYPE.)"
+fi
+
+echo
+echo '\o/  Success!  DHCP server is running.'
+echo

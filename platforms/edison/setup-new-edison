@@ -77,4 +77,5 @@ export TARGET_IPADDR=$(./connect-ethernet)
 ./enable-services
 ./reboot
 export TARGET_IPADDR=$(./connect-ethernet)
+./verify-dhcp
 ./verify-buendia
