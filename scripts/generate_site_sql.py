@@ -97,11 +97,13 @@ def appendNewUser(user, sql, next_system_id):
         (wrap(user["given_name"]+" "+user["family_name"])))
 
 def getConceptId(varname, name):
+    # order by preferred for locale DESC as some strings (like Alert) are duplicate, but
+    # but only marked as preferred for the right one.
     sql.append(("SELECT @%s := concept.concept_id FROM concept_name " % (varname)) +
         " JOIN concept ON concept.concept_id=concept_name.concept_id "
         "INNER JOIN locale_order ON concept_name.locale=locale_order.locale " +
         "WHERE name=%s AND voided=0 AND concept.retired=0 "
-        "ORDER BY locale_order.id ASC LIMIT 1;\n" % (wrap(name)))
+        "ORDER BY locale_order.id ASC, locale_preferred DESC LIMIT 1;\n" % (wrap(name)))
 
 def getLocationId(location):
     sql.append("SELECT @location_id := location_id FROM location WHERE name=%s;\n" % (wrap(location)))
