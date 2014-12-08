@@ -22,14 +22,40 @@ if [ "$1" == "-h" -o ! -n "$ssid" ]; then
   exit 1
 fi
 
+if [[ $omoddir != /* ]]; then
+  echo "Not an absolute path: $omoddir"
+  exit 1
+fi
+
+if [ ! -d "$omoddir" ]; then
+  echo "No such directory: $omoddir"
+  exit 1
+fi
+
+if [[ $(ls "$omoddir"/*.omod) == '' ]]; then
+  echo "No files found: $omoddir/*.omod"
+  exit 1
+fi
+
+if [[ $dumpfile != /* ]]; then
+  echo "Not an absolute path: $dumpfile"
+  exit 1
+fi
+
+if [ ! -f "$dumpfile" ]; then
+  echo "No such file: $dumpfile"
+  exit 1
+fi
+
 # Fetches a file from a URL to a local path.  If the file already exists at
 # the local path with the given MD5 hash, skips the fetch.
 function fetch_and_cache() {
   url=$1
   dest=$2
   expected_hash=$3
+  md5=$(which md5 || which md5sum)
 
-  hash=$((md5 $dest || md5sum $dest) 2>/dev/null | grep -o '[0-9a-f]\{32\}') || true
+  hash=$($md5 $dest | grep -o '[0-9a-f]\{32\}') || true
   if [ "$hash" != "$expected_hash" ]; then
     curl -o "$dest" -L "$url"
   fi
