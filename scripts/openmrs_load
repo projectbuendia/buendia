@@ -23,10 +23,12 @@ if [ -z "$dumpfile" ]; then
 fi
 
 # Create an empty database.
-$mysql -s -e 'create database '$db
-
-echo 'Wiping database...'
-$mysql -s -e 'show tables;' $db | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+if $mysql -s -e "create database $db" 2>/dev/null; then
+  echo 'Created a new empty database.'
+else
+  echo "Wiping existing database $db..."
+  $mysql -s -e 'show tables;' $db | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+fi
 
 # Unpack the zip file in the temporary directory.
 mkdir -p $tmpdir
@@ -35,6 +37,6 @@ cd $tmpdir
 unzip -j $tmpzip
 
 # Load the data.
-$mysql --local-infile -s -e 'source 000_load.sql;' $db || exit 1
+$mysql --local-infile --unbuffered -s -e 'source 000_load.sql;' $db || exit 1
 cd $pwd
 rm -rf $tmpdir $tmpzip
