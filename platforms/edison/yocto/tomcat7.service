@@ -1,0 +1,13 @@
+[Unit]
+Description=Apache Tomcat 7
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/enter-debian /etc/init.d/tomcat7 start
+ExecStop=/usr/local/bin/enter-debian /etc/init.d/tomcat7 stop
+Restart=on-failure
+RestartSec=2
+TimeoutSec=10
+
+[Install]
+WantedBy=multi-user.target

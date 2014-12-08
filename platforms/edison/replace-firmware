@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+firmware=$1
+tmpdir=/tmp/edison-firmware.$$
+
+if [ ! -n "$firmware" ]; then
+  echo "Usage: $0 <firmware-image>"
+  echo
+  echo "Installs a firmware image on an Edison, over USB."
+  exit 1
+fi
+
+if [ ! -n $(which dfu-util) ]; then
+  echo "dfu-util is required for installing firmware.  Please ensure it is"
+  echo "installed and available on the $PATH."
+  exit 1
+fi
+
+echo
+echo "-------------------------------------------------------------------"
+echo "Please unplug any Edisons from this computer now!"
+
+# Unzipping takes a long time, so check if we've unzipped this file before.
+hash=$((md5 $firmware || md5sum $firmware) 2>/dev/null | grep -o '[0-9a-f]\{32\}') || true
+if [ -f /tmp/$hash/flashall.sh ]; then
+  echo "-------------------------------------------------------------------"
+  echo
+  sleep 3
+else
+  echo
+  echo "Unzipping (please wait, you'll need to plug in a cable after)..."
+  echo "-------------------------------------------------------------------"
+  echo
+  rm -rf $tmpdir
+  mkdir -p $tmpdir
+  cp $firmware $tmpdir/firmware.zip
+  cd $tmpdir
+  unzip firmware.zip
+  rm firmware.zip
+  mv $tmpdir /tmp/$hash
+fi
+cd /tmp/$hash
+
+# Set OSTYPE to x so that flashall.sh doesn't try to install gnu-getopt.
+OSTYPE=x
+
+# flashall.sh uses readlink with the -f option, which isn't supported on Mac,
+# but it only uses readlink to find the path of the current script.
+function readlink() {
+  echo $(pwd)/flashall.sh
+}
+
+echo
+echo "--------------------------------------------------------------------"
+echo "To proceed, connect a USB cable from this computer to the Edison's"
+echo "micro-USB OTG port (the more rectangular of the two USB ports)."
+echo
+echo "After you do this, the process can continue unattended.  Take a nap!"
+echo
+echo "            ----------------           ----------------  "
+echo "           |                |         (                ) "
+echo "           |                |          \              /  "
+echo "            ----------------             ------------    "
+echo "              USB OTG port             regular USB port  "
+echo
+echo "The Edison will be ERASED.  The firmware update takes ~20 minutes"
+echo "(even though you may see a message saying it will take 5 minutes)."
+echo "--------------------------------------------------------------------"
+echo
+set +e
+source flashall.sh
+
+# The Edison has to reboot, install the firmware, and reboot again.
+# Unfortunately, we don't have a way to know when it has rebooted the
+# second time, so we have to just wait.
+echo
+echo "Almost there, just another couple of minutes..."
+echo
+sleep 120

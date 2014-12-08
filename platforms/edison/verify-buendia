@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: $0"
+  echo
+  echo "Waits for OpenMRS to come up and confirms that Buendia is working."
+  exit 1
+fi
+
+echo
+echo "Waiting to see if OpenMRS comes up..."
+echo
+
+while true; do
+  if curl --max-time 300 -v http://$TARGET_IPADDR:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123; then
+    break
+  fi
+  echo
+  echo "No answer.  Trying again..."
+  echo
+  sleep 5
+done
+
+echo
+echo
+echo '\o/  Success!  OpenMRS is running with Buendia installed.'
+echo
