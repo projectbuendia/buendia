@@ -50,12 +50,12 @@ INSERT INTO location (name,creator,date_created,uuid,parent_location) VALUES
     ('Confirmed 2',@android,NOW(),'0a49d383-7019-4f1f-bf4b-875f2cd58964',@confirmed_id),
     ('Confirmed 3',@android,NOW(),'4443985e-adbc-4c90-aaac-b27635cb73ac',@confirmed_id),
     ('Confirmed 4',@android,NOW(),'3ca154be-afd1-4074-893d-596bcb423a54',@confirmed_id),
-    ('Confirmed 5',@android,NOW(),'46a8cb21-d9eb-416d-86ee-90a018122859',@confirmed_id),
+    ('Confirmed 5',@android,NOW(),'6b993dab-7f0a-11e4-88ec-42010af084c0',@confirmed_id),
     ('Confirmed 6',@android,NOW(),'0cce735e-a0c8-4b21-a05e-539b6bb93441',@confirmed_id),
     ('Confirmed 7',@android,NOW(),'5542080a-45db-435e-8505-8e65309ae9d5',@confirmed_id),
     ('Confirmed 8',@android,NOW(),'87233c64-125a-4e8e-b292-f866a8ecb2b4',@confirmed_id),
     ('Suspect 1',@android,NOW(),'a72f944b-cb50-4bc5-9ac0-f93c44d71b10',@suspect_id),
     ('Suspect 2',@android,NOW(),'d81a33d9-2711-47e2-9d47-77e32e0281b9',@suspect_id),
-    ('Probable 1',@android,NOW(),'a72f944b-cb50-4bc5-9ac0-f93c44d71b10',@probable_id),
-    ('Probable 2',@android,NOW(),'d81a33d9-2711-47e2-9d47-77e32e0281b9',@probable_id)
+    ('Probable 1',@android,NOW(),'0d36bdce-7f0a-11e4-88ec-42010af084c0',@probable_id),
+    ('Probable 2',@android,NOW(),'0d36beb7-7f0a-11e4-88ec-42010af084c0',@probable_id)
     ON DUPLICATE KEY UPDATE uuid=uuid;
