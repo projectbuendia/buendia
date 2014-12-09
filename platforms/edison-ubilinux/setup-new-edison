@@ -62,10 +62,14 @@ function fetch_and_cache() {
 }
 
 # Get large files from the Internet for now, until we decide where to keep them.
-fetch_and_cache http://www.emutexlabs.com/files/ubilinux/ubilinux-edison-141030.tar.gz /tmp/edison-ubilinux.tar.gz 1086b0510cd1ad671d95449a4ea9bd77
+fetch_and_cache http://www.emutexlabs.com/files/ubilinux/ubilinux-edison-141030.tar.gz /tmp/ubilinux-edison.tar.gz 1086b0510cd1ad671d95449a4ea9bd77
 fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
 
-./replace-firmware /tmp/edison-ubilinux.tar.gz
+if [ $(id -u) != 0 ]; then
+  sudo ./replace-firmware /tmp/ubilinux-edison.tar.gz
+else
+  ./replace-firmware /tmp/ubilinux-edison.tar.gz
+fi
 ./configure-root-access "$password"
 ./connect-wifi "$ssid" "$psk"
 ./configure-debian

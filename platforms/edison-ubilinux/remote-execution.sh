@@ -13,7 +13,11 @@ scp="scp $ssh_opts"
 
 function connect_linux_ethernet() {
   if [[ "$OSTYPE" == linux* ]]; then
-    ifconfig usb0 up 192.168.2.1 2>/dev/null
+    if [ $(id -u) != 0 ]; then
+      sudo ifconfig usb0 up 192.168.2.1 2>/dev/null
+    else
+      ifconfig usb0 up 192.168.2.1 2>/dev/null
+    fi
   fi
 }
 
@@ -21,8 +25,12 @@ function connect_mac_ethernet() {
   if [[ "$OSTYPE" == darwin* ]]; then
     usbif=$(ifconfig | grep -v '^en[01]:' | grep -vw UP | grep -o '^en[0-9]\+')
     if [ -n "$usbif" ]; then
-      echo "Enter your Mac login password to connect to the Edison." 1>&2
-      sudo ifconfig $usbif up 192.168.2.1 2>/dev/null
+      if [ $(id -u) != 0 ]; then
+        echo "Username: $USER (on $(hostname))" 1>&2
+        sudo ifconfig $usbif up 192.168.2.1 2>/dev/null
+      else
+        ifconfig $usbif up 192.168.2.1 2>/dev/null
+      fi
     fi
   fi
 }
