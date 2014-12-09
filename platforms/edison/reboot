@@ -16,4 +16,5 @@ echo "Rebooting..."
 echo
 
 echo reboot | do_in_yocto || true
-sleep 30
+sleep 5
+./connect-ethernet

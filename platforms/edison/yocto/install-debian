@@ -41,6 +41,9 @@ PATH=$TMPDIR:$PATH ./cdebootstrap --allow-unauthenticated $DEBIAN_DIST $ROOT $MI
 # Clean up.
 rm -rf $TMPDIR
 
+# Empty out the /dev directory; devtmpfs will be mounted over it.
+rm -rf $ROOT/dev/*
+
 # Restore the /home mount to its former state.
 mount /home/ -o nodev,remount
 

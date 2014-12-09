@@ -17,13 +17,13 @@ echo
 
 function check_url() {
   retries=0
-  while [[ $retries -lt 20 ]]; do
-    echo "Trying $url..."
-    if curl --max-time 10 -I "$url"; then
+  while [[ $retries -lt 40 ]]; do
+    echo "Trying $@..."
+    if curl --max-time 10 -i $@; then
       return 0
     fi
     let retries=retries+1
-    sleep 20
+    sleep 5
   done
   false
 }
