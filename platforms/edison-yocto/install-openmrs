@@ -18,11 +18,7 @@ echo
 echo "Installing OpenMRS..."
 echo
 
-# Prevent hot deployment from exploding an incomplete WAR by ensuring Tomcat is down
-# before copying WAR file.
-echo "systemctl stop tomcat7" | do_in_yocto
 $scp $warfile $target:/debian/var/lib/tomcat7/webapps/openmrs.war
-echo "systemctl start tomcat7" | do_in_yocto
 
 # Construct the openmrs-runtime.properties file.
 cat <<EOF >/tmp/properties
@@ -50,4 +46,5 @@ service mysql start
 cat <<SQL | mysql -uroot -p"$root_password"
 grant all on openmrs.* to openmrs_user@localhost identified by '$new_password';
 SQL
+service mysql stop
 EOF

@@ -34,3 +34,7 @@ EOF
 install_jdk7  # JDK 7 is required
 install_tomcat7
 create_admin_user "$password"
+
+# Debian scripts should stop the services they install so as not to conflict
+# with yocto setup scripts.
+service tomcat7 stop

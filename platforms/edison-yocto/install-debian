@@ -22,6 +22,8 @@ echo
 
 run_script_in_yocto yocto/install-debian
 run_script_in_yocto yocto/enter-debian echo  # install enter-debian
+# Install enter-debian-nomount
+run_script_in_yocto yocto/enter-debian-nomount echo
 $scp -p debian/bashrc $target:/debian/root/.bashrc
 
 cat <<EOF | do_in_debian
