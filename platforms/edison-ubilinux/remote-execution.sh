@@ -14,6 +14,7 @@ scp="scp $ssh_opts"
 function connect_linux_ethernet() {
   if [[ "$OSTYPE" == linux* ]]; then
     if [ $(id -u) != 0 ]; then
+      echo "Username: $USER (on $(hostname))" 1>&2
       sudo ifconfig usb0 up 192.168.2.1 2>/dev/null
     else
       ifconfig usb0 up 192.168.2.1 2>/dev/null
@@ -41,6 +42,10 @@ function connect_ethernet() {
     connect_linux_ethernet || true
     connect_mac_ethernet || true
     if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null; then break; fi
+    if [[ $retry_count == 0 ]]; then
+      echo "Waiting for Edison to come up at $TARGET_IPADDR.  Connect"
+      echo "a USB cable from this computer to the Edison's USB OTG port."
+    fi
     sleep 1
 
     echo -n '.' 1>&2

@@ -21,7 +21,7 @@ echo
 
 $scp $dumpfile $target:/tmp/dumpfile.zip
 $scp ../../scripts/openmrs_load $target:
-cat <<EOF | do_in_debian
+cat <<EOF | do_on_target
 service mysql start
 export MYSQL_USER=dump
 export MYSQL_PASSWORD='$password'
