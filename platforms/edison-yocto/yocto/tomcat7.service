@@ -5,8 +5,8 @@ Requires=debian-mounts.service
 
 [Service]
 Type=forking
-ExecStart=/usr/local/bin/enter-debian /etc/init.d/tomcat7 start
-ExecStop=/usr/local/bin/enter-debian /etc/init.d/tomcat7 stop
+ExecStart=/usr/local/bin/enter-debian-nomount /etc/init.d/tomcat7 start
+ExecStop=/usr/local/bin/enter-debian-nomount /etc/init.d/tomcat7 stop
 Restart=on-failure
 RestartSec=10
 TimeoutSec=10

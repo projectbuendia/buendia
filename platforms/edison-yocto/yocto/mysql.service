@@ -6,8 +6,8 @@ Requires=debian-mounts.service
 [Service]
 Type=forking
 PIDFile=/debian/run/mysqld/mysqld.pid
-ExecStart=/usr/local/bin/enter-debian /etc/init.d/mysql start
-ExecStop=/usr/local/bin/enter-debian /etc/init.d/mysql stop
+ExecStart=/usr/local/bin/enter-debian-nomount /etc/init.d/mysql start
+ExecStop=/usr/local/bin/enter-debian-nomount /etc/init.d/mysql stop
 Restart=on-failure
 RestartSec=10
 TimeoutSec=10
