@@ -6,9 +6,15 @@ set -e
 ROOT=/home/root/debian
 
 # Make devices and other special filesystems appear where they should.
-for x in /dev /dev/pts /proc /sys; do
-  (mount | grep -q $ROOT$x) || mount --bind $x $ROOT$x
+for dir in dev proc sys; do
+  (mount | grep -q $ROOT/$dir) || mount --bind /$dir $ROOT/$dir
 done
+
+# Explicitly mount the devpts filesystem rather than binding to /dev/pts.
+# /dev/pts is not always mounted when this script runs, e.g. on boot.
+if ! (mount | grep -q $ROOT/dev/pts); then
+  (mount | grep -q $ROOT/dev/pts) || mount -t devpts devpts $ROOT/dev/pts
+fi
 
 # Copy current configuration information into /etc.
 for i in fstab host.conf hosts localtime nsswitch.conf resolv.conf timezone; do

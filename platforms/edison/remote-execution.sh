@@ -7,7 +7,7 @@ fi
 
 target="root@$TARGET_IPADDR"
 key_file=$HOME/.ssh/edison
-ssh_opts="-q -i $key_file -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+ssh_opts="-i $key_file -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 ssh="ssh $ssh_opts"
 scp="scp $ssh_opts"
 

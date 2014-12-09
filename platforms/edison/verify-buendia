@@ -15,15 +15,27 @@ echo
 echo "Waiting to see if OpenMRS comes up..."
 echo
 
-while true; do
-  if curl --max-time 300 -v http://$TARGET_IPADDR:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123; then
-    break
-  fi
-  echo
-  echo "No answer.  Trying again..."
-  echo
-  sleep 5
-done
+function check_url() {
+  retries=0
+  while [[ $retries -lt 20 ]]; do
+    echo "Trying $url..."
+    if curl --max-time 10 -I "$url"; then
+      return 0
+    fi
+    let retries=retries+1
+    sleep 20
+  done
+  false
+}
+
+# Tomcat
+check_url http://$TARGET_IPADDR:8080/
+
+# OpenMRS
+check_url http://$TARGET_IPADDR:8080/openmrs
+
+# Buendia
+check_url http://$TARGET_IPADDR:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
 
 echo
 echo
