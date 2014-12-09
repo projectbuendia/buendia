@@ -62,9 +62,11 @@ function fetch_and_cache() {
 }
 
 # Get large files from the Internet for now, until we decide where to keep them.
+fetchstart=$(date)
 fetch_and_cache http://downloadmirror.intel.com/24389/eng/edison-image-rel1-maint-rel1-ww42-14.zip /tmp/edison-firmware.zip 9a7509341cbf936c662af3e46f1b0f34
 fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
 
+start=$(date)
 ./replace-firmware /tmp/edison-firmware.zip
 export TARGET_IPADDR=$(./connect-ethernet)
 ./configure-root-access "$password"
@@ -75,7 +77,16 @@ export TARGET_IPADDR=$(./connect-ethernet)
 ./install-omods $omoddir
 ./load-database "$dumpfile" openmrs "$password"
 ./enable-services
+finish=$(date)
 ./reboot
 export TARGET_IPADDR=$(./connect-ethernet)
-./verify-dhcp
+# We aren't using DHCP yet.
+# ./verify-dhcp
 ./verify-buendia
+up=$(date)
+
+echo "$fetchstart - start firmware & openmrs.war download"
+echo "$start - start writing firmware"
+echo "$finish - reboot"
+echo "$up - server responding"
+echo

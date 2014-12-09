@@ -62,20 +62,22 @@ function fetch_and_cache() {
 }
 
 # Get large files from the Internet for now, until we decide where to keep them.
-fetch_and_cache http://downloadmirror.intel.com/24389/eng/edison-image-rel1-maint-rel1-ww42-14.zip /tmp/edison-firmware.zip 9a7509341cbf936c662af3e46f1b0f34
+fetch_and_cache http://www.emutexlabs.com/files/ubilinux/ubilinux-edison-141030.tar.gz /tmp/ubilinux-edison.tar.gz 1086b0510cd1ad671d95449a4ea9bd77
 fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
 
-./replace-firmware /tmp/edison-firmware.zip
-export TARGET_IPADDR=$(./connect-ethernet)
+if [ $(id -u) != 0 ]; then
+  echo "Username: $USER (on $(hostname))" 1>&2
+  #sudo ./replace-firmware /tmp/ubilinux-edison.tar.gz
+else
+  ./replace-firmware /tmp/ubilinux-edison.tar.gz
+fi
 ./configure-root-access "$password"
 ./connect-wifi "$ssid" "$psk"
-./install-debian
-./install-packages "$password"
+run_on_target ./configure-debian
 ./install-openmrs /tmp/openmrs.war "$password" "$password"
 ./install-omods $omoddir
 ./load-database "$dumpfile" openmrs "$password"
-./enable-services
 ./reboot
-export TARGET_IPADDR=$(./connect-ethernet)
-./verify-dhcp
+# We're not serving DHCP for now.
+# ./verify-dhcp
 ./verify-buendia

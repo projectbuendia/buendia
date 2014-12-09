@@ -18,7 +18,7 @@ echo
 echo "Installing OpenMRS..."
 echo
 
-$scp $warfile $target:/debian/var/lib/tomcat7/webapps/openmrs.war
+$scp $warfile $target:/var/lib/tomcat7/webapps/openmrs.war
 
 # Construct the openmrs-runtime.properties file.
 cat <<EOF >/tmp/properties
@@ -33,10 +33,10 @@ auto_update_database=true
 module.allow_web_admin=true
 EOF
 
-$scp /tmp/properties $target:/debian/tmp
+$scp /tmp/properties $target:/tmp
 
 # Install the properties file and create the openmrs_user MySQL user.
-cat <<EOF | do_in_debian
+cat <<EOF | do_on_target
 mkdir -p /usr/share/tomcat7/.OpenMRS/modules
 mv /tmp/properties /usr/share/tomcat7/.OpenMRS/openmrs-runtime.properties
 chown -R tomcat7:root /usr/share/tomcat7/.OpenMRS

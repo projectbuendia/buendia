@@ -15,6 +15,9 @@ echo
 echo "Rebooting..."
 echo
 
-echo reboot | do_in_yocto || true
-sleep 5
-./connect-ethernet
+echo reboot | do_on_target || true
+sleep 10
+
+echo 'Waiting for Edison to come back up...'
+echo
+connect_ethernet
