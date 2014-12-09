@@ -22,7 +22,7 @@ function init_ssh_access() {
     ssh-keygen -t dsa -f $key_file -P ''
   fi
   pubkey=$(cat $key_file.pub)
-  cat <<EOF | do_in_yocto
+  cat <<EOF | do_on_target
 mkdir -p .ssh
 echo "$pubkey" >> .ssh/authorized_keys && echo "Added ssh access to $target successfully."
 EOF
@@ -31,7 +31,7 @@ EOF
 # Sets the root password on the Edison.
 function set_root_password() {
   password=$1
-  cat <<EOF | do_in_yocto
+  cat <<EOF | do_on_target
 echo "root:$password" | chpasswd && echo "Password set successfully."
 EOF
 }

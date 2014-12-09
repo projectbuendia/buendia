@@ -28,14 +28,18 @@ function connect_mac_ethernet() {
 }
 
 function connect_ethernet() {
-  let tries=0
+  tries=0
   while true; do
-    connect_linux_ethernet
-    connect_mac_ethernet
+    connect_linux_ethernet || true
+    connect_mac_ethernet || true
     if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null; then break; fi
     sleep 1
+
+    echo -n '.' 1>&2
+    let tries=tries+1
     if [[ "$OSTYPE" == darwin* && $tries == 3 ]]; then
       cat <<EOF 1>&2
+
 If the Edison does not appear within 30 seconds of power-on, open
 Network Preferences and look for a new Ethernet device.  Try clicking
 the small + at the bottom of the list of network devices and looking
@@ -44,7 +48,6 @@ Select the new network device.  In the Configure IPv4 dropdown list,
 select Manually, set your IP Address to 192.168.2.1, and click Apply.
 EOF
     fi
-    echo -n '.' 1>&2
   done
 }
 
@@ -56,6 +59,7 @@ function do_on_target() {
   $ssh $target bash
 }
 
+# Copies everything in target/ to root's home directory on the Edison.
 function copy_target_directory() {
   if [ -n "$TARGET_COPIED" ]; then return; fi
   echo 'rm -rf target' | do_on_target
@@ -63,8 +67,9 @@ function copy_target_directory() {
   export TARGET_COPIED=1
 }
 
-# Invokes the specified script on the Edison.  The script runs in a copy of
-# the target/ subdirectory and is connected to the local stdin and stdout.
+# Invokes the specified script on the Edison.  The script runs in root's
+# home directory, which contains a copy of everything in the target/
+# subdirectory, and the script is connected to the local stdin and stdout.
 function run_on_target() {
   script=$1
   name=$(basename $script)
