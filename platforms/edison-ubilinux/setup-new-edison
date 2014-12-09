@@ -66,11 +66,9 @@ fetch_and_cache http://downloadmirror.intel.com/24389/eng/edison-image-rel1-main
 fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
 
 ./replace-firmware /tmp/edison-firmware.zip
-export TARGET_IPADDR=$(./connect-ethernet)
 ./configure-root-access "$password"
 ./connect-wifi "$ssid" "$psk"
-./install-debian
-./install-packages "$password"
+./configure-debian
 ./install-openmrs /tmp/openmrs.war "$password" "$password"
 ./install-omods $omoddir
 ./load-database "$dumpfile" openmrs "$password"
