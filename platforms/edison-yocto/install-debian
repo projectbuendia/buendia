@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: $0"
+  echo
+  echo "Installs Debian on an Edison in a chroot directory at /debian."
+  exit 1
+fi
+
+if echo '[ -f /debian/etc/debian_installed ]' | do_in_yocto; then
+  echo "Debian is already installed."
+  exit 0
+fi
+
+echo
+echo "Installing Debian (takes ~5 minutes)..."
+echo
+
+run_script_in_yocto yocto/install-debian
+run_script_in_yocto yocto/enter-debian echo  # install enter-debian
+$scp -p debian/bashrc $target:/debian/root/.bashrc
+
+cat <<EOF | do_in_debian
+echo UTC > /etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
+
+apt-get update
+
+mkdir -p /usr/local/bin
+touch /etc/debian_installed
+EOF

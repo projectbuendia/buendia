@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: $0"
+  echo
+  echo "Reboots the target Edison."
+  exit 1
+fi
+
+echo
+echo "Rebooting..."
+echo
+
+echo reboot | do_in_yocto || true
+sleep 5
+./connect-ethernet

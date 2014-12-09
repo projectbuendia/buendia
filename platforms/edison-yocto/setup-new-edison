@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+password=$1
+omoddir=$2
+dumpfile=$3
+ssid=$4
+psk=$5
+
+if [ "$1" == "-h" -o ! -n "$ssid" ]; then
+  echo "Usage: $0 <new-admin-password> <omod-dir> <dumpfile.zip> <ssid> [<psk-password>]"
+  echo
+  echo "Completely erases and sets up an Edison from scratch, first performing"
+  echo "a firmware update and then installing all necessary applications,"
+  echo "loading the database from a dump file, and installing OpenMRS modules."
+  echo "The root password and all application administrator passwords will be"
+  echo "set to <new-admin-password>."
+  echo
+  echo "Requires a wifi network with Internet access (which can be a wifi"
+  echo "network with no password or with a PSK password)."
+  exit 1
+fi
+
+if [[ $omoddir != /* ]]; then
+  echo "Not an absolute path: $omoddir"
+  exit 1
+fi
+
+if [ ! -d "$omoddir" ]; then
+  echo "No such directory: $omoddir"
+  exit 1
+fi
+
+if [[ $(ls "$omoddir"/*.omod) == '' ]]; then
+  echo "No files found: $omoddir/*.omod"
+  exit 1
+fi
+
+if [[ $dumpfile != /* ]]; then
+  echo "Not an absolute path: $dumpfile"
+  exit 1
+fi
+
+if [ ! -f "$dumpfile" ]; then
+  echo "No such file: $dumpfile"
+  exit 1
+fi
+
+# Fetches a file from a URL to a local path.  If the file already exists at
+# the local path with the given MD5 hash, skips the fetch.
+function fetch_and_cache() {
+  url=$1
+  dest=$2
+  expected_hash=$3
+  md5=$(which md5 || which md5sum)
+
+  hash=$($md5 $dest | grep -o '[0-9a-f]\{32\}') || true
+  if [ "$hash" != "$expected_hash" ]; then
+    curl -o "$dest" -L "$url"
+  fi
+}
+
+# Get large files from the Internet for now, until we decide where to keep them.
+fetch_and_cache http://downloadmirror.intel.com/24389/eng/edison-image-rel1-maint-rel1-ww42-14.zip /tmp/edison-firmware.zip 9a7509341cbf936c662af3e46f1b0f34
+fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
+
+./replace-firmware /tmp/edison-firmware.zip
+export TARGET_IPADDR=$(./connect-ethernet)
+./configure-root-access "$password"
+./connect-wifi "$ssid" "$psk"
+./install-debian
+./install-packages "$password"
+./install-openmrs /tmp/openmrs.war "$password" "$password"
+./install-omods $omoddir
+./load-database "$dumpfile" openmrs "$password"
+./enable-services
+./reboot
+export TARGET_IPADDR=$(./connect-ethernet)
+./verify-dhcp
+./verify-buendia

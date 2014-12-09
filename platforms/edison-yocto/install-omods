@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+omoddir=$1
+
+if [ "$1" == "-h" -o ! -n "$omoddir" ]; then
+  echo "Usage: $0 <omod-dir>"
+  echo
+  echo "Installs all the files in the given directory as OpenMRS modules."
+  exit 1
+fi
+
+echo
+echo "Installing OpenMRS modules..."
+echo
+
+$scp $omoddir/*.omod $target:/debian/usr/share/tomcat7/.OpenMRS/modules/
