@@ -16,4 +16,4 @@ echo
 echo "Installing OpenMRS modules..."
 echo
 
-$scp $omoddir/*.omod $target:/debian/usr/share/tomcat7/.OpenMRS/modules/
+$scp $omoddir/*.omod $target:/usr/share/tomcat7/.OpenMRS/modules/

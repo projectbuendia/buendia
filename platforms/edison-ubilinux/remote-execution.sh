@@ -28,7 +28,7 @@ function connect_mac_ethernet() {
 }
 
 function connect_ethernet() {
-  tries=0
+  retry_count=0
   while true; do
     connect_linux_ethernet || true
     connect_mac_ethernet || true
@@ -36,8 +36,8 @@ function connect_ethernet() {
     sleep 1
 
     echo -n '.' 1>&2
-    let tries=tries+1
-    if [[ "$OSTYPE" == darwin* && $tries == 3 ]]; then
+    let retry_count=retry_count+1
+    if [[ "$OSTYPE" == darwin* && $retry_count == 3 ]]; then
       cat <<EOF 1>&2
 
 If the Edison does not appear within 30 seconds of power-on, open

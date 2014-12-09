@@ -16,13 +16,13 @@ echo "Waiting to see if OpenMRS comes up..."
 echo
 
 function check_url() {
-  retries=0
-  while [[ $retries -lt 40 ]]; do
+  retry_count=0
+  while [[ $retry_count -lt 40 ]]; do
     echo "Trying $@..."
     if curl --max-time 10 -i $@; then
       return 0
     fi
-    let retries=retries+1
+    let retry_count=retry_count+1
     sleep 5
   done
   false
