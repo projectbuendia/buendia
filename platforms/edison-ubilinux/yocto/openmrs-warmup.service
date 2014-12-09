@@ -1,7 +1,0 @@
-[Unit]
-Description=OpenMRS warmup
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/curl -v -u android:Android123 http://localhost:8080/openmrs/ws/rest/v1/projectbuendia/user
-TimeoutStartSec=300
