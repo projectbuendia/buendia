@@ -37,6 +37,8 @@ EOF
 }
 
 echo
-echo 'Setting up root account.'
+echo 'Setting up root account...'
+echo
+connect_ethernet
 init_ssh_access
 set_root_password $password

@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 
 ssid=$1
 psk=$2
@@ -59,30 +59,30 @@ EOF
 fi
 
 # Bring up wpa_supplicant with the updated configuration.
-systemctl stop hostapd
-systemctl restart wpa_supplicant
+export IFACE=wlan0
+export IF_WPA_CONF="$conf"
+MODE=start PHASE=pre-up /etc/wpa_supplicant/ifupdown.sh
+MODE=start PHASE=post-up /etc/wpa_supplicant/ifupdown.sh
 
 # Wait for wpa_supplicant to be ready.
 while true; do
   if wpa_cli status 2>/dev/null | grep -q address=; then break; fi
-  sleep 1
+  sleep 0.5
 done
 
 # Select the network.
 echo "Selecting network $ssid..."
 wpa_cli select_network 0 || exit 1
 wpa_cli list_networks | grep CURRENT
-# sleep 5
 
 # Get an IP address using DHCP.
 echo "Getting IP address..."
-ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
-udhcpc -i $ifname -n -T 1 -t 30 || exit 1
+udhcpc -i $IFACE -n -T 1 -t 30 || exit 1
 
 # Wait until the network is up.
 ipaddr=''
 while [ -z "$ipaddr" ]; do
-  ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+  ipaddr=$(ifconfig | grep -A1 "^$IFACE" | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
   sleep 1
 done
 
