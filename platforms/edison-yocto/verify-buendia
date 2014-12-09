@@ -19,7 +19,7 @@ function check_url() {
   retries=0
   while [[ $retries -lt 40 ]]; do
     echo "Trying $@..."
-    if curl --max-time 10 -i $@; then
+    if curl --max-time 10 -i -L $@; then
       return 0
     fi
     let retries=retries+1
