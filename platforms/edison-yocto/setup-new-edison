@@ -68,7 +68,6 @@ fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_P
 
 start=$(date)
 ./replace-firmware /tmp/edison-firmware.zip
-export TARGET_IPADDR=$(./connect-ethernet)
 ./configure-root-access "$password"
 ./connect-wifi "$ssid" "$psk"
 ./install-debian
@@ -79,7 +78,6 @@ export TARGET_IPADDR=$(./connect-ethernet)
 ./enable-services
 finish=$(date)
 ./reboot
-export TARGET_IPADDR=$(./connect-ethernet)
 # We aren't using DHCP yet.
 # ./verify-dhcp
 ./verify-buendia

@@ -17,6 +17,7 @@ echo
 echo "Installing Debian packages (takes ~15 minutes)..."
 echo
 
+connect_ethernet
 run_script_in_debian debian/install-essentials
 run_script_in_debian debian/install-dnsmasq
 $scp -pr debian/dnsmasq.d/* $target:/debian/etc/dnsmasq.d/

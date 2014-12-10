@@ -20,6 +20,7 @@ echo
 echo "Installing Debian (takes ~5 minutes)..."
 echo
 
+connect_ethernet
 run_script_in_yocto yocto/install-debian
 run_script_in_yocto yocto/enter-debian echo  # install enter-debian
 # Install enter-debian-nomount

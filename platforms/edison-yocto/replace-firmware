@@ -6,9 +6,14 @@ firmware=$1
 tmpdir=/tmp/edison-firmware.$$
 
 if [ ! -n "$firmware" ]; then
-  echo "Usage: $0 <firmware-image>"
+  echo "Usage: $0 <firmware-image.{zip|tar|tar.gz}>"
   echo
   echo "Installs a firmware image on an Edison, over USB."
+  exit 1
+fi
+
+if [[ $firmware != *.zip && $firmware != *.tar.gz && $firmware != *.tgz ]]; then
+  echo "$firmware should be a .zip, .tar.gz, or .tgz file."
   exit 1
 fi
 
@@ -30,16 +35,27 @@ if [ -f /tmp/$hash/flashall.sh ]; then
   sleep 3
 else
   echo
-  echo "Unzipping (please wait, you'll need to plug in a cable after)..."
+  echo "Unpacking (please wait, you'll need to plug in a cable after)..."
   echo "-------------------------------------------------------------------"
   echo
   rm -rf $tmpdir
   mkdir -p $tmpdir
-  cp $firmware $tmpdir/firmware.zip
-  cd $tmpdir
-  unzip firmware.zip
-  rm firmware.zip
-  mv $tmpdir /tmp/$hash
+  if [[ $firmware == *.zip ]]; then
+    cp $firmware $tmpdir/firmware.zip
+    cd $tmpdir
+    unzip firmware.zip
+  else
+    cp $firmware $tmpdir/firmware.tar.gz
+    cd $tmpdir
+    tar xvfz firmware.tar.gz
+  fi
+  flashall=$(find $tmpdir -name 'flashall.sh')
+  if [ ! -n "$flashall" ]; then
+    echo "$firmware should contain a flashall.sh file."
+    exit 1
+  fi
+  mv $(dirname $flashall) /tmp/$hash
+  rm -rf $tmpdir
 fi
 cd /tmp/$hash
 

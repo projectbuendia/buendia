@@ -19,6 +19,7 @@ echo
 echo "Loading data into OpenMRS database (takes about 10 minutes)..."
 echo
 
+connect_ethernet
 $scp $dumpfile $target:/debian/tmp/dumpfile.zip
 $scp ../../scripts/openmrs_load $target:/debian/usr/local/bin/openmrs_load
 cat <<EOF | do_in_debian

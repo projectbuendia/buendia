@@ -16,4 +16,5 @@ echo
 echo "Installing OpenMRS modules..."
 echo
 
+connect_ethernet
 $scp $omoddir/*.omod $target:/debian/usr/share/tomcat7/.OpenMRS/modules/

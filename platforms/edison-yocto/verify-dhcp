@@ -15,6 +15,7 @@ echo
 echo "Checking for DHCP server..."
 echo
 
+connect_ethernet
 if [[ "$OSTYPE" == linux* ]]; then
   dhclient -v usb0
 else

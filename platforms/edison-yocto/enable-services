@@ -15,6 +15,7 @@ echo
 echo "Configuring services to run on startup..."
 echo
 
+connect_ethernet
 $scp yocto/*.service yocto/*.timer $target:/etc/systemd/system
 
 cat <<EOF | do_in_yocto
