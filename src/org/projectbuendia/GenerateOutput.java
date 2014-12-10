@@ -60,11 +60,14 @@ public class GenerateOutput {
 
         for(int i = 0; i < patients; i++) {
             patientStringBuilder.append(generatePatient(PATIENT_TEMPLATE, i, encounters) + (i == patients - 1 ? "" : ","));
-            System.out.println("Generating patient " + i);
+            if(i % 100 == 0 || i == patients - 1) {
+                System.out.println("Generating patient " + i);
+            }
+
         }
-        String finalOutput = null;
+        String finalOutput;
         finalOutput = MAIN_TEMPLATE.replace("@patients@", patientStringBuilder.toString());
-        FileUtils.writeToFile("output/out.json", finalOutput);
+        FileUtils.writeToFile("generator-out.json", finalOutput);
     }
 
 }
