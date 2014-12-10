@@ -20,4 +20,4 @@ sleep 10
 
 echo "Waiting for Edison to come back up..."
 echo
-connect-ethernet
+connect_ethernet
