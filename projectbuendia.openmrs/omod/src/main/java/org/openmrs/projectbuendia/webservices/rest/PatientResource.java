@@ -11,11 +11,7 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.resource.api.*;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -118,8 +114,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
+        Logger logger = new Logger("/web/log.txt");
+        logger.start("getAllPatients");
         List<Patient> patients = patientService.getAllPatients();
-        return getSimpleObjectWithResults(patients);
+        logger.end("getAllPatients");
+        logger.start("getSimpleObjectWithResults");
+        SimpleObject results = getSimpleObjectWithResults(patients);
+        logger.end("getSimpleObjectWithResults");
+        return results;
     }
 
     /**
