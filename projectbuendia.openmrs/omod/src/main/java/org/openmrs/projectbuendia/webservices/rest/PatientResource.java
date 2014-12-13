@@ -4,7 +4,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.*;
-import org.openmrs.api.*;
+import org.openmrs.api.LocationService;
+import org.openmrs.api.PatientService;
+import org.openmrs.api.PersonService;
+import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -40,6 +43,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
+    private static final String STATUS = "status";
+    private static final String ADMISSION_TIMESTAMP_SECS = "admission_timestamp";
 
     @Deprecated
     private static final String AGE = "age";
@@ -61,61 +66,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String BED = "bed";
     @Deprecated
     private static final String BED_UUID = "bed_uuid";
-    private static final String STATUS = "status";
-    private static final String ADMISSION_TIMESTAMP_SECS = "admission_timestamp";
-
-    // OpenMRS object names
-    public static final String MSF_IDENTIFIER = "MSF";
-    private static final String EBOLA_STATUS_PROGRAM_NAME = "Ebola status program";
-    private static final String EBOLA_STATUS_WORKFLOW_NAME = "Ebola status workflow";
-
-    // OpenMRS object UUIDs
-    private static final String EBOLA_STATUS_PROGRAM_UUID = "849c86fa-6f3d-11e4-b2f4-040ccecfdba4";
-    private static final String EBOLA_STATUS_PROGRAM_CONCEPT_UUID = "8c00e1b5-6f35-11e4-a3fa-040ccecfdba4";
-    private static final String EBOLA_STATUS_WORKFLOW_CONCEPT_UUID = "107f9c7a-6f3b-11e4-ba22-040ccecfdba4";
-    public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID = "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
-
-    // The elements of each triple are:
-    // 1. The key, which is how the status is represented in JSON.
-    // 2. The concept name, which is a short phrase to avoid collision with other concepts.
-    // 3. The UUID of the ProgramWorkflowState that represents the status.
-    private static final String[][] EBOLA_STATUS_KEYS_NAMES_AND_UUIDS = {
-            {"SUSPECTED_CASE", "suspected ebola case", "041a7b80-6f13-11e4-b6d3-040ccecfdba4"},
-            {"PROBABLE_CASE", "probable ebola case", "0ae8fd9c-6f13-11e4-9ad7-040ccecfdba4"},
-            {"CONFIRMED_CASE", "confirmed ebola case", "11a8a9c0-6f13-11e4-8c91-040ccecfdba4"},
-            {"NON_CASE", "not an ebola case", "b517037a-6f13-11e4-b5f2-040ccecfdba4"},
-            {"CONVALESCENT", "convalescing at ebola facility", "c1349bd7-6f13-11e4-b315-040ccecfdba4"},
-            {"READY_FOR_DISCHARGE", "ready for discharge from ebola facility", "e45ef19e-6f13-11e4-b630-040ccecfdba4"},
-            {"DISCHARGED", "discharged from ebola facility", "e4a20c4a-6f13-11e4-b315-040ccecfdba4"},
-            {"SUSPECTED_DEATH", "suspected death at ebola facility", "e4c09b7d-6f13-11e4-b315-040ccecfdba4"},
-            {"CONFIRMED_DEATH", "confirmed death at ebola facility", "e4da31e1-6f13-11e4-b315-040ccecfdba4"},
-    };
-    public static final String CREATED_TIMESTAMP_MILLIS = "created_timestamp_utc";
-    private static Map<String, String> EBOLA_STATUS_KEYS_BY_UUID = new HashMap<>();
-    private static Map<String, String> EBOLA_STATUS_UUIDS_BY_KEY = new HashMap<>();
-
-    static {
-        for (String[] keyNameUuid : EBOLA_STATUS_KEYS_NAMES_AND_UUIDS) {
-            EBOLA_STATUS_KEYS_BY_UUID.put(keyNameUuid[2], keyNameUuid[0]);
-            EBOLA_STATUS_UUIDS_BY_KEY.put(keyNameUuid[0], keyNameUuid[2]);
-        }
-    }
 
     private static Log log = LogFactory.getLog(PatientResource.class);
-
     private final PatientService patientService;
-
-    private final PersonAttributeType assignedLocationAttrType;
-    private final PatientIdentifierType msfPatientIdentifierType;
-    private final List<PatientIdentifierType> identifierTypes;
 
     public PatientResource() {
         patientService = Context.getPatientService();
-        assignedLocationAttrType = getPersonAttributeType(
-                ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_location");
-        msfPatientIdentifierType = getMsfIdentifierType();
-        identifierTypes = new ArrayList<>();
-        identifierTypes.add(msfPatientIdentifierType);
     }
 
     @Override
@@ -134,79 +90,24 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    /**
-     * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
-     * becomes 1970.0; Jul 1, 1970 becomes approximately 1970.5.
-     */
-    // TODO(kpy): Remove this after client v0.2 is no longer in use.
-    private double dateToFractionalYear(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        double daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
-        return calendar.get(Calendar.YEAR) +
-                calendar.get(Calendar.DAY_OF_YEAR) / daysInYear;
-    }
-
-    /** Estimate the age of a person in years, given their birthdate. */
-    // TODO(kpy): Remove this after client v0.2 is no longer in use.
-    private double birthDateToAge(Date birthDate) {
-        return dateToFractionalYear(new Date()) -
-                dateToFractionalYear(birthDate);
-    }
-
     @Override
-    public Object create(SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+    public Object create(SimpleObject json, RequestContext requestContext) throws ResponseException {
         // We really want this to use XForms, but lets have a simple default implementation for early testing
-
-        if (!simpleObject.containsKey(ID)) {
+        if (!json.containsKey(ID)) {
             throw new InvalidObjectDataException("JSON object lacks required \"id\" field");
         }
-        String id = (String) simpleObject.get(ID);
-        List<Patient> existing =
-                patientService.getPatients(null, id, identifierTypes, true /* exact identifier match */);
-        if (!existing.isEmpty()) {
+        String id = (String) json.get(ID);
+        if (isPatientIdInUse(id)) {
             throw new InvalidObjectDataException("Patient with this ID already exists: " + id);
         }
 
-        Patient patient = new Patient();
-        // TODO(nfortescue): do this properly from authentication
-        patient.setCreator(CREATOR);
-        patient.setDateCreated(new Date());
-
-        if (simpleObject.containsKey(GENDER)) {
-            patient.setGender((String) simpleObject.get(GENDER));
-        }
-        if (simpleObject.containsKey(BIRTHDATE)) {
-            patient.setBirthdate(parseDate((String) simpleObject.get(BIRTHDATE), BIRTHDATE));
-        }
-
-        PersonName pn = new PersonName();
-        if (simpleObject.containsKey(GIVEN_NAME)) {
-            pn.setGivenName((String) simpleObject.get(GIVEN_NAME));
-        }
-        if (simpleObject.containsKey(FAMILY_NAME)) {
-            pn.setFamilyName((String) simpleObject.get(FAMILY_NAME));
-        }
-
-        pn.setCreator(patient.getCreator());
-        pn.setDateCreated(patient.getDateCreated());
-        patient.addName(pn);
-
-        // Identifier with fake location
-        PatientIdentifier identifier = new PatientIdentifier();
-        identifier.setCreator(patient.getCreator());
-        identifier.setDateCreated(patient.getDateCreated());
-        identifier.setIdentifier(id);
-        identifier.setLocation(getLocationByName(FACILITY_NAME, null));
-        identifier.setIdentifierType(msfPatientIdentifierType);
-        identifier.setPreferred(true);
-        patient.addIdentifier(identifier);
-
+        Patient patient = jsonToPatient(json);
         patientService.savePatient(patient);
 
         // Status
-        if (simpleObject.containsKey(STATUS)) {
-            ProgramWorkflowState workflowState = getStateByKey((String) simpleObject.get(STATUS));
+        if (json.containsKey(STATUS)) {
+            ProgramWorkflowState workflowState =
+                    DbUtil.getStateByKey((String) json.get(STATUS));
             if (workflowState != null) {
                 statusChange(patient, workflowState);
                 patientService.savePatient(patient);
@@ -216,114 +117,52 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return patientToJson(patient);
     }
 
-    private PatientIdentifierType getMsfIdentifierType() {
-        PatientIdentifierType identifierType = patientService.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
-        if (identifierType == null) {
-            identifierType = new PatientIdentifierType();
-            identifierType.setName(MSF_IDENTIFIER);
-            identifierType.setDescription("MSF patient identifier");
-            identifierType.setFormatDescription("[facility code].[patient number]");
-            patientService.savePatientIdentifierType(identifierType);
-        }
-        return identifierType;
+    protected boolean isPatientIdInUse(String id) {
+        List<PatientIdentifierType> identifierTypes =
+                Arrays.asList(DbUtil.getMsfIdentifierType());
+        List<Patient> existing = Context.getPatientService().getPatients(
+                null, id, identifierTypes, true /* exact identifier match */);
+        return !existing.isEmpty();
     }
 
-    public static Concept getConcept(String name, String uuid, String typeUuid) {
-        ConceptService conceptService = Context.getConceptService();
-        Concept concept = conceptService.getConceptByUuid(uuid);
-        if (concept == null) {
-            concept = new Concept();
-            concept.setUuid(uuid);
-            concept.setShortName(new ConceptName(name, new Locale("en")));
-            concept.setDatatype(conceptService.getConceptDatatypeByUuid(typeUuid));
-            concept.setConceptClass(conceptService.getConceptClassByUuid(ConceptClass.MISC_UUID));
-            conceptService.saveConcept(concept);
+    protected static Patient jsonToPatient(SimpleObject json) {
+        Patient patient = new Patient();
+        // TODO(nfortescue): do this properly from authentication
+        patient.setCreator(CREATOR);
+        patient.setDateCreated(new Date());
+
+        if (json.containsKey(GENDER)) {
+            patient.setGender((String) json.get(GENDER));
         }
-        return concept;
-    }
-
-    /** Get the key (e.g. "confirmed") for an ebola status by workflow state. */
-    private String getKeyByState(ProgramWorkflowState state) {
-        return EBOLA_STATUS_KEYS_BY_UUID.get(state.getConcept().getUuid());
-    }
-
-    /** Get the workflow state for an ebola status by key (e.g. "suspected"). */
-    private ProgramWorkflowState getStateByKey(String key) {
-        ProgramWorkflow workflow = getEbolaStatusProgramWorkflow();
-        ConceptService conceptService = Context.getConceptService();
-        String uuid = EBOLA_STATUS_UUIDS_BY_KEY.get(key);
-        return uuid == null ? null : workflow.getState(conceptService.getConceptByUuid(uuid));
-    }
-
-    private ProgramWorkflow getEbolaStatusProgramWorkflow() {
-        ProgramWorkflow workflow = null;
-        for (ProgramWorkflow w : getEbolaStatusProgram().getWorkflows()) {
-            workflow = w;
+        if (json.containsKey(BIRTHDATE)) {
+            patient.setBirthdate(parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
         }
-        return workflow;
-    }
 
-    /**
-     * Get the "Ebola status" Program, creating the Program if it doesn't exist yet
-     * (including its ProgramWorkflow, the workflow's ProgramWorkflowStates, and the
-     * Concepts corresponding to those states).
-     */
-    public static Program getEbolaStatusProgram() {
-        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
+        PersonName pn = new PersonName();
+        if (json.containsKey(GIVEN_NAME)) {
+            pn.setGivenName((String) json.get(GIVEN_NAME));
+        }
+        if (json.containsKey(FAMILY_NAME)) {
+            pn.setFamilyName((String) json.get(FAMILY_NAME));
+        }
 
-        Program program = workflowService.getProgramByUuid(EBOLA_STATUS_PROGRAM_UUID);
-        if (program == null) {
-            program = new Program();
-            program.setName(EBOLA_STATUS_PROGRAM_NAME);
-            program.setUuid(EBOLA_STATUS_PROGRAM_UUID);
-            program.setDescription(EBOLA_STATUS_PROGRAM_NAME);
-            program.setConcept(getConcept(EBOLA_STATUS_PROGRAM_NAME,
-                    EBOLA_STATUS_PROGRAM_CONCEPT_UUID, ConceptDatatype.N_A_UUID));
-            workflowService.saveProgram(program);
-        }
-        Set<ProgramWorkflow> workflows = program.getWorkflows();
-        if (workflows.isEmpty()) {
-            ProgramWorkflow workflow = new ProgramWorkflow();
-            workflow.setName(EBOLA_STATUS_WORKFLOW_NAME);
-            workflow.setDescription(EBOLA_STATUS_WORKFLOW_NAME);
-            workflow.setConcept(getConcept(EBOLA_STATUS_WORKFLOW_NAME,
-                    EBOLA_STATUS_WORKFLOW_CONCEPT_UUID, ConceptDatatype.N_A_UUID));
-            workflow.setProgram(program);
-            for (String[] keyNameUuid : EBOLA_STATUS_KEYS_NAMES_AND_UUIDS) {
-                ProgramWorkflowState state = new ProgramWorkflowState();
-                state.setConcept(getConcept(keyNameUuid[1], keyNameUuid[2],
-                        ConceptDatatype.CODED_UUID));
-                state.setName(keyNameUuid[1]);
-                state.setInitial(false);
-                state.setTerminal(false);
-                workflow.addState(state);
-            }
-            program.addWorkflow(workflow);
-            workflowService.saveProgram(program);
-        }
-        return program;
-    }
+        pn.setCreator(patient.getCreator());
+        pn.setDateCreated(patient.getDateCreated());
+        patient.addName(pn);
 
-    /**
-     * Get the PatientProgram associating this Patient with the "Ebola status" Program,
-     * creating the PatientProgram if it doesn't exist yet.
-     */
-    public static PatientProgram getEbolaStatusPatientProgram(Patient patient) {
-        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
-        Program program = getEbolaStatusProgram();
-        List<PatientProgram> patientPrograms =
-                workflowService.getPatientPrograms(patient, program, null, null, null, null, false);
-        PatientProgram patientProgram;
-        if (patientPrograms.isEmpty()) {
-            patientProgram = new PatientProgram();
-            patientProgram.setPatient(patient);
-            patientProgram.setProgram(program);
-            patientProgram.setDateEnrolled(new Date());
-            workflowService.savePatientProgram(patientProgram);
-        } else {
-            patientProgram = patientPrograms.get(0);
+        // Identifier with fake location
+        if (json.containsKey(ID)) {
+            PatientIdentifier identifier = new PatientIdentifier();
+            identifier.setCreator(patient.getCreator());
+            identifier.setDateCreated(patient.getDateCreated());
+            identifier.setIdentifier((String) json.get(ID));
+            identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
+            identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
+            identifier.setPreferred(true);
+            patient.addIdentifier(identifier);
         }
-        return patientProgram;
+
+        return patient;
     }
 
     @Override
@@ -366,7 +205,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         // Filter patients by id, name, and MSF id. Don't use patientService.getPatients() for
         // this, as the behavior does not match the expected behavior from the API docs.
-        PatientIdentifierType msfIdentifierType = patientService.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
+        PatientIdentifierType msfIdentifierType = DbUtil.getMsfIdentifierType();
         for (Patient patient : allPatients) {
             boolean match = false;
 
@@ -410,35 +249,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return list;
     }
 
-    private static PersonAttributeType getPersonAttributeType(String uuid, String name) {
-        PersonService personService = Context.getPersonService();
-        PersonAttributeType personAttributeType = personService.getPersonAttributeTypeByUuid(uuid);
-        if (personAttributeType == null) {
-            personAttributeType = new PersonAttributeType();
-            personAttributeType.setUuid(uuid);
-            personAttributeType.setName(name);
-            personAttributeType.setDescription(name);
-            personAttributeType.setForeignKey(0);
-            personAttributeType.setFormat("org.openmrs.Location");
-            personService.savePersonAttributeType(personAttributeType);
-        }
-        return personAttributeType;
-    }
-
-    private static Location getLocationByName(String locationName, Location parent) {
-        LocationService locationService = Context.getLocationService();
-        Location location = locationService.getLocation(locationName);
-        if (location == null) {
-            location = new Location();
-            location.setName(locationName);
-            location.setDescription(locationName);
-            if (parent != null) {
-                location.setParentLocation(parent);
-            }
-            locationService.saveLocation(location);
-        }
-        return location;
-    }
 
     /**
      * The SimpleObject arriving is a Gson serialization of a client Patient Bean. It has the following semantics:
@@ -458,12 +268,21 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             throw new ObjectNotFoundException();
         }
 
+        if (applyEdits(patient, simpleObject)) {
+            patientService.savePatient(patient);
+        }
+        return patientToJson(patient);
+    }
+
+    /** Applies edits to a Patient.  Returns true if any changes were made. */
+    protected boolean applyEdits(Patient patient, SimpleObject edits) {
         boolean changedPatient = false;
-        for (Map.Entry<String, Object> entry : simpleObject.entrySet()) {
-            Date newBirthday;
-            PersonName oldName;
-            PersonName newName;
+        for (Map.Entry<String, Object> entry : edits.entrySet()) {
+            PersonName oldName, newName;
             switch (entry.getKey()) {
+
+                // ==== JSON keys that update attributes of the Patient entity.
+
                 case FAMILY_NAME:
                     oldName = patient.getPersonName();
                     newName = new PersonName();
@@ -488,7 +307,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     if (locationUuid != null) {
                         Location location = Context.getLocationService().getLocationByUuid(locationUuid);
                         if (location != null) {
-                            setPersonAttributeValue(patient, assignedLocationAttrType,
+                            DbUtil.setPersonAttributeValue(patient,
+                                    DbUtil.getAssignedLocationAttributeType(),
                                     Integer.toString(location.getId()));
                         }
                     }
@@ -504,12 +324,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                         changedPatient = true;
                     }
                     break;
-                case STATUS:
-                    ProgramWorkflowState workflowState = getStateByKey((String) entry.getValue());
-                    if (workflowState != null) {
-                        statusChange(patient, workflowState);
-                    }
-                    break;
                 case ADMISSION_TIMESTAMP_SECS:
                     // This is really evil and maybe shouldn't even be done. Instead we should have an admission event.
                     // TODO(nfortescue): switch to an admission event
@@ -519,16 +333,23 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                         changedPatient = true;
                     }
                     break;
+
+                // ==== JSON keys that change data OTHER than patient attributes.
+
+                case STATUS:
+                    ProgramWorkflowState workflowState =
+                            DbUtil.getStateByKey((String) entry.getValue());
+                    if (workflowState != null) {
+                        statusChange(patient, workflowState);
+                    }
+                    break;
+
                 default:
                     log.warn("Patient has no such property or property is not updatable (ignoring) Change: " + entry);
                     break;
             }
         }
-
-        if (changedPatient) {
-            patientService.savePatient(patient);
-        }
-        return patientToJson(patient);
+        return changedPatient;
     }
 
     private void statusChange(Patient patient, ProgramWorkflowState newWorkflowState) {
@@ -542,7 +363,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // TODO(nfortescue): decide on whether to merge changes similar in time.
 
         ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
-        PatientProgram patientProgram = getEbolaStatusPatientProgram(patient);
+        PatientProgram patientProgram = DbUtil.getEbolaStatusPatientProgram(patient);
         // If this method of set manipulation seems strange it is because hibernate is fussy about how you modify
         // collections in hibernate created objects.
         Set<PatientState> allStates = patientProgram.getStates();
@@ -571,36 +392,36 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         workflowService.savePatientProgram(patientProgram);
     }
 
-    private static String getPersonAttributeValue(Person person, PersonAttributeType attrType) {
-        PersonAttribute attribute = person.getAttribute(attrType);
-        return attribute != null ? attribute.getValue() : null;
+    /**
+     * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
+     * becomes 1970.0; Jul 1, 1970 becomes approximately 1970.5.
+     */
+    // TODO(kpy): Remove this after client v0.2 is no longer in use.
+    private static double dateToFractionalYear(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        double daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
+        return calendar.get(Calendar.YEAR) +
+                calendar.get(Calendar.DAY_OF_YEAR) / daysInYear;
     }
 
-    private static void setPersonAttributeValue(Patient patient, PersonAttributeType attrType, String value) {
-        PersonService personService = Context.getPersonService();
-        PersonAttribute attribute = patient.getAttribute(attrType);
-        if (attribute == null) {
-            attribute = new PersonAttribute();
-            attribute.setAttributeType(attrType);
-            attribute.setValue(value);
-            patient.addAttribute(attribute);
-        } else {
-            attribute.setValue(value);
-        }
-        personService.savePerson(patient);
+    /** Estimate the age of a person in years, given their birthdate. */
+    // TODO(kpy): Remove this after client v0.2 is no longer in use.
+    private static double birthDateToAge(Date birthDate) {
+        return dateToFractionalYear(new Date()) -
+                dateToFractionalYear(birthDate);
     }
 
-    private SimpleObject patientToJson(Patient patient) {
+    protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         if (patient != null) {
             jsonForm.add(UUID, patient.getUuid());
             PatientIdentifier patientIdentifier =
-                    patient.getPatientIdentifier(msfPatientIdentifierType);
+                    patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
             if (patientIdentifier != null) {
                 jsonForm.add(ID, patientIdentifier.getIdentifier());
             }
-
             jsonForm.add(GENDER, patient.getGender());
             if (patient.getBirthdate() != null) {
                 jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
@@ -619,13 +440,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 }
                 jsonForm.add(AGE, ageObject);
             }
-
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
 
             // TODO(nfortescue): refactor so we have a single assigned location with a uuid,
             // and we walk up the tree to get extra information for the patient.
-            String assignedLocation = getPersonAttributeValue(patient, assignedLocationAttrType);
+            String assignedLocation = DbUtil.getPersonAttributeValue(
+                    patient, DbUtil.getAssignedLocationAttributeType());
             if (assignedLocation != null) {
                 LocationService locationService = Context.getLocationService();
                 Location location = locationService.getLocation(Integer.valueOf(assignedLocation));
@@ -668,8 +489,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
 
-            jsonForm.add(CREATED_TIMESTAMP_MILLIS, patient.getDateCreated().getTime());
-            jsonForm.add(ADMISSION_TIMESTAMP_SECS, patient.getDateCreated().getTime() / 1000);
+            // TODO(kpy): Store the admission date/time in a patient attribute.
+            // Assuming that admission time is equal to database creation time
+            // prevents retroactive entry of existing patients or editing of
+            // incorrect admission times.
+            // NOTE(kpy): Client expects an integer value, not double.
+            jsonForm.add(ADMISSION_TIMESTAMP_SECS,
+                    patient.getDateCreated().getTime() / 1000);
         }
         return jsonForm;
     }
