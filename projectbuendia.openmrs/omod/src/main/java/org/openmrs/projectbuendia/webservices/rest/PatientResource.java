@@ -11,15 +11,14 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.resource.api.*;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -133,6 +132,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         } catch (ParseException e) {
             throw new InvalidObjectDataException("\"" + fieldName + "\" field is not in yyyy-mm-dd format");
         }
+    }
 
     /**
      * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
@@ -177,7 +177,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patient.setGender((String) simpleObject.get(GENDER));
         }
         if (simpleObject.containsKey(BIRTHDATE)) {
-            patient.setBirthdate(parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
+            patient.setBirthdate(parseDate((String) simpleObject.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
@@ -214,19 +214,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         return patientToJson(patient);
-    }
-
-    private Date calculateNewBirthdate(double ageValue, String ageType) {
-        Date newBirthdate;
-        if ("months".equals(ageType)) {
-            long millis = (long) Math.floor(
-                    new Date().getTime() - (ageValue + 0.5) * 365.24 / 12 * 24 * 3600 * 1000);
-            newBirthdate = new Date(millis);
-        } else {  // default to years
-            newBirthdate = fractionalYearToDate(
-                    dateToFractionalYear(new Date()) - (ageValue + 0.5));
-        }
-        return newBirthdate;
     }
 
     private PatientIdentifierType getMsfIdentifierType() {
