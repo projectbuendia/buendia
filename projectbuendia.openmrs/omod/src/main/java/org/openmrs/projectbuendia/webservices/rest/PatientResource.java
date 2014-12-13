@@ -11,15 +11,14 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
-import org.openmrs.module.webservices.rest.web.resource.api.Listable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.resource.api.*;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -36,17 +35,20 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String ID = "id";
     private static final String UUID = "uuid";
     private static final String GENDER = "gender";
-    private static final String AGE = "age";
-    private static final String AGE_UNIT = "age_unit";  // "years" or "months"
-    private static final String MONTHS_VALUE = "months";
-    private static final String AGE_TYPE = "type";
-    private static final String YEARS_VALUE = "years";
-    private static final String MONTHS_TYPE = "months";
-    private static final String YEARS_TYPE = "years";
+    private static final String BIRTHDATE = "birthdate";
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
+
+    @Deprecated
+    private static final String AGE = "age";
+    @Deprecated
+    private static final String AGE_TYPE = "type";
+    @Deprecated
+    private static final String YEARS = "years";
+    @Deprecated
+    private static final String MONTHS = "months";
     @Deprecated
     private static final String ZONE = "zone";
     @Deprecated
@@ -122,10 +124,21 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return getSimpleObjectWithResults(patients);
     }
 
+    /** Parses a date in YYYY-MM-DD format. */
+    private static Date parseDate(String text, String fieldName) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            return dateFormat.parse(text);
+        } catch (ParseException e) {
+            throw new InvalidObjectDataException("\"" + fieldName + "\" field is not in yyyy-mm-dd format");
+        }
+    }
+
     /**
      * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
      * becomes 1970.0; Jul 1, 1970 becomes approximately 1970.5.
      */
+    // TODO(kpy): Remove this after client v0.2 is no longer in use.
     private double dateToFractionalYear(Date date) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
@@ -134,23 +147,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 calendar.get(Calendar.DAY_OF_YEAR) / daysInYear;
     }
 
-    private Date fractionalYearToDate(double year) {
-        int yearInt = (int) Math.floor(year);
-        double yearFrac = year - yearInt;
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.YEAR, yearInt);
-        calendar.set(Calendar.DAY_OF_YEAR, 1);
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        long millis = calendar.getTimeInMillis();
-        int daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
-        millis += yearFrac * daysInYear * 24 * 3600 * 1000;
-        return new Date(millis);
-    }
-
     /** Estimate the age of a person in years, given their birthdate. */
+    // TODO(kpy): Remove this after client v0.2 is no longer in use.
     private double birthDateToAge(Date birthDate) {
         return dateToFractionalYear(new Date()) -
                 dateToFractionalYear(birthDate);
@@ -178,9 +176,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (simpleObject.containsKey(GENDER)) {
             patient.setGender((String) simpleObject.get(GENDER));
         }
-        if (simpleObject.containsKey(AGE)) {
-            patient.setBirthdate(calculateNewBirthdate(((Number) simpleObject.get(AGE)).doubleValue(),
-                    (String)simpleObject.get(AGE_UNIT)));
+        if (simpleObject.containsKey(BIRTHDATE)) {
+            patient.setBirthdate(parseDate((String) simpleObject.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
@@ -217,19 +214,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         return patientToJson(patient);
-    }
-
-    private Date calculateNewBirthdate(double ageValue, String ageType) {
-        Date newBirthdate;
-        if ("months".equals(ageType)) {
-            long millis = (long) Math.floor(
-                    new Date().getTime() - (ageValue + 0.5) * 365.24 / 12 * 24 * 3600 * 1000);
-            newBirthdate = new Date(millis);
-        } else {  // default to years
-            newBirthdate = fractionalYearToDate(
-                    dateToFractionalYear(new Date()) - (ageValue + 0.5));
-        }
-        return newBirthdate;
     }
 
     private PatientIdentifierType getMsfIdentifierType() {
@@ -509,20 +493,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                         }
                     }
                     break;
-                case AGE:
-                    Map age = (Map) entry.getValue();
-                    switch((String) age.get(AGE_TYPE)) {
-                        case MONTHS_TYPE:
-                            newBirthday = calculateNewBirthdate((Integer) age.get(MONTHS_VALUE), MONTHS_TYPE);
-                            break;
-                        case YEARS_TYPE:
-                            newBirthday = calculateNewBirthdate((Integer) age.get(YEARS_VALUE), YEARS_TYPE);
-                            break;
-                        default:
-                            continue;
-                    }
-                    patient.setBirthdate(newBirthday);
-                    patient.setBirthdateEstimated(true);
+                case BIRTHDATE:
+                    patient.setBirthdate(parseDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
                 case GENDER:
@@ -620,6 +592,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         if (patient != null) {
             jsonForm.add(UUID, patient.getUuid());
             PatientIdentifier patientIdentifier =
@@ -629,16 +602,23 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
 
             jsonForm.add(GENDER, patient.getGender());
-            double age = birthDateToAge(patient.getBirthdate());
-            SimpleObject ageObject = new SimpleObject();
-            if (age < 1.0) {
-                ageObject.add(MONTHS_VALUE, (int) Math.floor(age * 12));
-                ageObject.add(AGE_TYPE, MONTHS_TYPE);
-            } else {
-                ageObject.add(YEARS_VALUE, (int) Math.floor(age));
-                ageObject.add(AGE_TYPE, YEARS_TYPE);
+            if (patient.getBirthdate() != null) {
+                jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
+
+                // For backward compatibility.  Later clients ignore the "age"
+                // key and calculate the displayed age from the birthdate.
+                // TODO(kpy): Remove this after client v0.2 is no longer in use.
+                SimpleObject ageObject = new SimpleObject();
+                double age = birthDateToAge(patient.getBirthdate());
+                if (age < 1.0) {
+                    ageObject.add(MONTHS, (int) Math.floor(age * 12));
+                    ageObject.add(AGE_TYPE, MONTHS);
+                } else {
+                    ageObject.add(YEARS, (int) Math.floor(age));
+                    ageObject.add(AGE_TYPE, YEARS);
+                }
+                jsonForm.add(AGE, ageObject);
             }
-            jsonForm.add(AGE, ageObject);
 
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
