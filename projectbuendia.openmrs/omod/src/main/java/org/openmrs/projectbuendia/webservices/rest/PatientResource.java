@@ -3,15 +3,40 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.*;
-import org.openmrs.api.*;
+import org.openmrs.Concept;
+import org.openmrs.ConceptClass;
+import org.openmrs.ConceptDatatype;
+import org.openmrs.ConceptName;
+import org.openmrs.Location;
+import org.openmrs.Patient;
+import org.openmrs.PatientIdentifier;
+import org.openmrs.PatientIdentifierType;
+import org.openmrs.PatientProgram;
+import org.openmrs.PatientState;
+import org.openmrs.Person;
+import org.openmrs.PersonAttribute;
+import org.openmrs.PersonAttributeType;
+import org.openmrs.PersonName;
+import org.openmrs.Program;
+import org.openmrs.ProgramWorkflow;
+import org.openmrs.ProgramWorkflowState;
+import org.openmrs.User;
+import org.openmrs.api.ConceptService;
+import org.openmrs.api.LocationService;
+import org.openmrs.api.PatientService;
+import org.openmrs.api.PersonService;
+import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.*;
+import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.resource.api.Listable;
+import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
+import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
+import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -19,7 +44,16 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Resource for xform templates (i.e. forms without data).
@@ -124,13 +158,20 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return getSimpleObjectWithResults(patients);
     }
 
+    private String validateGender(String value) {
+        if (value.equals("F") || value.equals("M")) return value;
+        throw new InvalidObjectDataException(
+                "Gender should be specified as \"F\" or \"M\"");
+    }
+
     /** Parses a date in YYYY-MM-DD format. */
     private static Date parseDate(String text, String fieldName) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
             return dateFormat.parse(text);
         } catch (ParseException e) {
-            throw new InvalidObjectDataException("\"" + fieldName + "\" field is not in yyyy-mm-dd format");
+            throw new InvalidObjectDataException(String.format(
+                    "The %s field should be in YYYY-MM-DD format", fieldName));
         }
     }
 
@@ -159,13 +200,21 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // We really want this to use XForms, but lets have a simple default implementation for early testing
 
         if (!simpleObject.containsKey(ID)) {
-            throw new InvalidObjectDataException("JSON object lacks required \"id\" field");
+            throw new InvalidObjectDataException("Patient ID is required but not specified");
         }
         String id = (String) simpleObject.get(ID);
         List<Patient> existing =
                 patientService.getPatients(null, id, identifierTypes, true /* exact identifier match */);
         if (!existing.isEmpty()) {
-            throw new InvalidObjectDataException("Patient with this ID already exists: " + id);
+            Patient patient = existing.get(0);
+            String given = patient.getGivenName();
+            given = (given == null) ? "" : given;
+            String family = patient.getFamilyName();
+            family = (family == null) ? "" : family;
+            String name = (given + " " + family).trim();
+            throw new InvalidObjectDataException(
+                    String.format("Another patient (%s) already has the ID \"%s\"",
+                            name.isEmpty() ? "with no name" : "named " + name, id));
         }
 
         Patient patient = new Patient();
@@ -174,7 +223,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.setDateCreated(new Date());
 
         if (simpleObject.containsKey(GENDER)) {
-            patient.setGender((String) simpleObject.get(GENDER));
+            patient.setGender(validateGender((String) simpleObject.get(GENDER)));
         }
         if (simpleObject.containsKey(BIRTHDATE)) {
             patient.setBirthdate(parseDate((String) simpleObject.get(BIRTHDATE), BIRTHDATE));
@@ -498,11 +547,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case GENDER:
-                    String gender = (String) entry.getValue();
-                    if ("M".equalsIgnoreCase(gender) || "F".equalsIgnoreCase(gender)) {
-                        patient.setGender(gender);
-                        changedPatient = true;
-                    }
+                    patient.setGender(validateGender((String) entry.getValue()));
+                    changedPatient = true;
                     break;
                 case STATUS:
                     ProgramWorkflowState workflowState = getStateByKey((String) entry.getValue());
