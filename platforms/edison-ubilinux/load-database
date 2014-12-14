@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+dumpfile=$1
+database=$2
+password=$3
+
+if [ "$1" == "-h" -o ! -n "$password" ]; then
+  echo "Usage: $0 <dumpfile.zip> <mysql-database> <mysql-password>"
+  echo
+  echo "Loads a dump file into a MySQL database on an Edison using the"
+  echo "MySQL user dump@localhost."
+  exit 1
+fi
+
+echo
+echo "Loading data into OpenMRS database (takes about 10 minutes)..."
+echo
+
+$scp $dumpfile $target:/tmp/dumpfile.zip
+$scp ../../scripts/openmrs_load $target:
+cat <<EOF | do_on_target
+service mysql start
+export MYSQL_USER=dump
+export MYSQL_PASSWORD='$password'
+./openmrs_load '$database' /tmp/dumpfile.zip
+rm /tmp/dumpfile.zip
+EOF

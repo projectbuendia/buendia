@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+
+if [ "$1" == "-h" ]; then
+  echo "Usage: $0"
+  echo
+  echo "Waits for OpenMRS to come up and confirms that Buendia is working."
+  exit 1
+fi
+
+echo
+echo "Waiting to see if OpenMRS comes up..."
+echo
+
+function check_url() {
+  retry_count=0
+  while [[ $retry_count -lt 40 ]]; do
+    echo "Trying $@..."
+    connect_ethernet
+    if curl --max-time 10 -i -L $@; then
+      return 0
+    fi
+    let retry_count=retry_count+1
+    sleep 5
+  done
+  false
+}
+
+# Tomcat
+check_url http://$TARGET_IPADDR:8080/
+
+# OpenMRS
+check_url http://$TARGET_IPADDR:8080/openmrs
+
+# Buendia
+check_url http://$TARGET_IPADDR:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+
+echo
+echo
+echo '\o/  Success!  OpenMRS is running with Buendia installed.'
+echo
