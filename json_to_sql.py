@@ -118,8 +118,7 @@ if len(args) != 2:
 
 sitename = args[1]
 
-print "trying to load %s.json" % sitename
-data = json.load(open("%s.json" % sitename))
+data = json.load(open("output/%s.json" % sitename))
 
 
 sql = []
@@ -211,6 +210,6 @@ for patient in data["patients"]:
 
 
 
-print "trying to write %s.sql" % sitename
-with codecs.open("%s.sql" % sitename, "w", "utf-8") as out:
+print "trying to write output/%s.sql" % sitename
+with codecs.open("output/%s.sql" % sitename, "w", "utf-8") as out:
     out.write("".join(sql))

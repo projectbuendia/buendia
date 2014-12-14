@@ -67,7 +67,14 @@ public class GenerateOutput {
         }
         String finalOutput;
         finalOutput = MAIN_TEMPLATE.replace("@patients@", patientStringBuilder.toString());
-        FileUtils.writeToFile("generator-out.json", finalOutput);
+        String fileName = "output/"+patients+"p"+encounters+"e.json";
+        FileUtils.writeToFile(fileName, finalOutput);
+        if(ShellExecution.executeCommand("python json_to_sql.py " + fileName.replace(".json","").replace("output/", "") + "") == 0)  {
+            System.out.println("Successfully generated .sql also");
+        } else {
+            System.out.println("Did not generated .sql");
+        }
+
     }
 
 }

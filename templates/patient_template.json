@@ -1,6 +1,6 @@
 {
     "patient_id": "KH.@patient_id@",
-    "given_name": "FirstName",
+    "given_name": "@firstname@",
     "family_name": "LastName",
     "assigned_location": "Confirmed 1",
     "age": "26Y",
