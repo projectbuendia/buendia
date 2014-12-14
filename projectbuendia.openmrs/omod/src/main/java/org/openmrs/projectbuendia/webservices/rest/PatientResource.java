@@ -136,10 +136,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public Object create(SimpleObject json, RequestContext requestContext) throws ResponseException {
         // We really want this to use XForms, but lets have a simple default implementation for early testing
 
-        if (!simpleObject.containsKey(ID)) {
+        if (!json.containsKey(ID)) {
             throw new InvalidObjectDataException("Patient ID is required but not specified");
         }
-        String id = (String) simpleObject.get(ID);
+        String id = (String) json.get(ID);
+        List<PatientIdentifierType> identifierTypes =
+                Arrays.asList(DbUtil.getMsfIdentifierType());
         List<Patient> existing = patientService.getPatients(
             null, id, identifierTypes, true /* exact identifier match */);
         if (!existing.isEmpty()) {
