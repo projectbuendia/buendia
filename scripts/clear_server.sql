@@ -51,6 +51,7 @@ CREATE TEMPORARY TABLE keep_forms SELECT * FROM form WHERE uuid IN (
 UPDATE form_field SET parent_form_field=NULL WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
 DELETE FROM xforms_xform WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
 DELETE FROM form_field WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
+DELETE FROM form_resource WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
 DELETE FROM form WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
 
 -- Delete patients and people. 
