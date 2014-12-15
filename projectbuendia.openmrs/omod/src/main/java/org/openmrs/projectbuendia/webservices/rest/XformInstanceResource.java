@@ -17,6 +17,7 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
+import org.springframework.format.datetime.joda.JodaDateTimeFormatAnnotationFormatterFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -26,8 +27,11 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
@@ -60,7 +64,11 @@ public class XformInstanceResource implements Creatable {
     private static final XformsQueueProcessor processor = new XformsQueueProcessor();
 
     @SuppressWarnings("unused")
-    private final Log log = LogFactory.getLog(getClass());
+    private static final Log getLog() {
+        // TODO(kpy): Figure out why getLog(XformInstanceResource.class) gives
+        // no log output.  Using "org.openmrs.api" works, though.
+        return LogFactory.getLog("org.openmrs.api");
+    }
 
     private final PatientService patientService;
 
@@ -79,6 +87,7 @@ public class XformInstanceResource implements Creatable {
         try {
             String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
+            adjustSystemClock(xml);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
             throw new GenericRestException("Error storing xform data", e);
@@ -90,6 +99,75 @@ public class XformInstanceResource implements Creatable {
         }
         // FIXME
         return post;
+    }
+
+    /** Extracts the encounter date from a submitted encounter. */
+    private Date getEncounterDate(Document doc) {
+        Element root = doc.getDocumentElement();
+        Element encounterDatetime = getElementOrThrow(
+                getElementOrThrow(root, "encounter"),
+                "encounter.encounter_datetime");
+
+        // The code in completeXform converts the encounter_datetime using
+        // ISO_DATETIME_TIME_ZONE_FORMAT.format() to ensure that the time zone
+        // indicator contains a colon ("+01:00" instead of "+0100"); without
+        // this colon, OpenMRS fails to parse the date.  Surprisingly, a new
+        // SimpleDateFormat(ISO_DATETIME_TIME_ZONE_FORMAT.getPattern() cannot
+        // parse the string produced by ISO_DATETIME_TIME_ZONE_FORMAT.format().
+        // For safety we accept a few reasonable date formats, including
+        // "yyyy-MM-dd'T'HH:mm:ss.SSSX", which can parse both kinds of time
+        // zone indicator ("+01:00" and "+0100").
+        List<String> acceptablePatterns = Arrays.asList(
+                "yyyy-MM-dd'T'HH:mm:ss.SSSX",
+                "yyyy-MM-dd'T'HH:mm:ssX",
+                "yyyy-MM-dd HH:mm:ss"
+        );
+
+        String datetimeText = encounterDatetime.getTextContent();
+        for (String pattern : acceptablePatterns) {
+            try {
+                return new SimpleDateFormat(pattern).parse(datetimeText);
+            } catch (ParseException e) { }
+        }
+        return new Date();
+    }
+
+    /**
+     * Adjusts the system clock to ensure that the incoming encounter date
+     * is not in the future.  <b>This is a temporary hack</b> intended to work
+     * around the fact that the Edison system clock does not stay running
+     * while power is off; when it falls behind, a validation constraint in
+     * OpenMRS starts rejecting all incoming encounters because they have
+     * dates in the future.  To work around this, we attempt to push the
+     * system clock forward whenever we receive an encounter with a date that
+     * is in the future by an offset that is not too extreme (e.g. within a
+     * few days).  The system clock is set by a setuid executable program
+     * "/usr/local/bin/push_clock", which is also responsible for guarding
+     * against extreme clock changes.
+     * @param xml
+     */
+    private void adjustSystemClock(String xml) {
+        final String PUSH_CLOCK = "/usr/local/bin/push_clock";
+
+        if (!new File(PUSH_CLOCK).exists()) {
+            getLog().warn(PUSH_CLOCK + " is missing; not adjusting the clock");
+        }
+
+        try {
+            Document doc = XmlUtil.parse(xml);
+            Date date = getEncounterDate(doc);
+            getLog().info("encounter_datetime parsed as " + date);
+
+            // Convert to seconds.  Allow up to 60 sec for truncation to
+            // minutes and up to 60 sec for network and server latency.
+            long timeSecs = (date.getTime() / 1000) + 60 + 60;
+            Process pushClock = Runtime.getRuntime().exec(
+                    new String[] {PUSH_CLOCK, "" + timeSecs});
+            int code = pushClock.waitFor();
+            getLog().info("push_clock " + timeSecs + " -> exit code " + code);
+        } catch (SAXException | IOException | InterruptedException e) {
+            getLog().error("adjustSystemClock failed:", e);
+        }
     }
 
     private SimpleObject convertIdIfNecessary(SimpleObject post) {
@@ -161,7 +239,7 @@ public class XformInstanceResource implements Creatable {
                 String corrected = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(date);
                 encounterDatetimeElement.setTextContent(corrected);
             } catch (ParseException e) {
-                LogFactory.getLog(XformInstanceResource.class).warn("failed to do date correction on " + datetime);
+                getLog().warn("failed to do date correction on " + datetime);
             }
         }
         //TODO(nfortescue); we should also have some code here to ensure that the correct XLST exists for every form

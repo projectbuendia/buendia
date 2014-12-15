@@ -69,7 +69,7 @@ EOF
 # this host before execution, cat <<'EOF' | do_remote will not.
 function do_remote() {
   echo ">> $target" 1>&2
-  $ssh $target bash
+  $ssh $target sh
 }
 
 # Executes the specified script on the Edison.  The remotely running script
