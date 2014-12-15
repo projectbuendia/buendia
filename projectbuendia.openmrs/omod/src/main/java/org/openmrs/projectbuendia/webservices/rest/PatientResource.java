@@ -36,6 +36,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String ID = "id";
     private static final String UUID = "uuid";
     private static final String GENDER = "gender";
+    private static final String DOB_SECS = "dob";
     private static final String AGE = "age";
     private static final String AGE_UNIT = "age_unit";  // "years" or "months"
     private static final String MONTHS_VALUE = "months";
@@ -629,7 +630,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
 
             jsonForm.add(GENDER, patient.getGender());
-            double age = birthDateToAge(patient.getBirthdate());
+            Date birthdate = patient.getBirthdate();
+            jsonForm.add(DOB_SECS, birthdate.getTime() / 1000);
+            double age = birthDateToAge(birthdate);
             SimpleObject ageObject = new SimpleObject();
             if (age < 1.0) {
                 ageObject.add(MONTHS_VALUE, (int) Math.floor(age * 12));
@@ -639,7 +642,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 ageObject.add(AGE_TYPE, YEARS_TYPE);
             }
             jsonForm.add(AGE, ageObject);
-
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
 

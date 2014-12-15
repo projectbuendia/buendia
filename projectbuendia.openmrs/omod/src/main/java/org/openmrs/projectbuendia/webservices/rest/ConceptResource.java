@@ -31,6 +31,7 @@ import java.util.Set;
 public class ConceptResource extends AbstractReadOnlyResource<Concept> {    
     // TODO(jonskeet): Add versioning, possibly via a global property
 //    private static final String VERSION = "version";
+    private static final String XFORM_ID = "xform_id";
     private static final String TYPE = "type";
     private static final String LOCALES_PARAMETER = "locales";
     private static final String NAMES = "names";
@@ -92,6 +93,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
            throw new ConfigurationException("Concept %s has unmapped HL7 data type %s",
                    concept.getName().getName(), concept.getDatatype().getHl7Abbreviation());
        }
+       json.put(XFORM_ID, concept.getId());
        json.put(TYPE, jsonType);
        Map<String, String> names = new HashMap<>();
        for (Locale locale : locales) {
