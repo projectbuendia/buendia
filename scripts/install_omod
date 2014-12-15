@@ -1,40 +1,26 @@
 #!/bin/bash
 
+set -e
 cd $(dirname $0)
-target=$1
+host=$1
 omod=$2
 
 if [ "$1" == "-h" -o -z "$omod" ]; then
   echo "Usage: $0 <hostname> <filename.omod>"
   echo
-  echo "Installs a Buendia OMOD file in an OpenMRS server, replacing any"
-  echo "existing Buendia module and restarting the server to pik up the change".
+  echo "Installs a Buendia OMOD file on an OpenMRS server, replacing any"
+  echo "existing Buendia module; restarts the server to pick up the change."
   exit 1
 fi
 
-export TARGET=$target
+export TARGET=root@$host
 source remote-execution.sh
 
-omodname=$(basename $omod)
-tempname=$omodname.$$
-scp $omod $target:/tmp/$tempname
-
-cat <<EOF >> /tmp/install_omod.$$
-
-function restart() {
-  service=\$1
-  if [ -x "\$(which systemctl)" ]; then
-    systemctl restart \$service
-  else
-    service \$service restart
-  fi
-}
-
-function check_url() {
+check_url() {
   retry_count=0
-  while [[ \$retry_count -lt 40 ]]; do
-    echo "Trying \$@..."
-    if curl -s --max-time 10 -i -L \$@ 1>/dev/null; then
+  while [[ $retry_count -lt 40 ]]; do
+    echo "Trying $@..."
+    if curl -s --max-time 10 -i -L $@ 1>/dev/null; then
       return 0
     fi
     let retry_count=retry_count+1
@@ -43,8 +29,25 @@ function check_url() {
   false
 }
 
+echo
+echo "Copying $omod to $host..."
+echo
+omodname=$(basename $omod)
+tempname=$omodname.$$
+scp $omod $TARGET:/tmp/$tempname
+
+cat <<EOF | do_remote
+
+# This script must be written to run both on GCE and Edison:
+#   - GCE: shell is /bin/bash, services in /etc/init.d, Tomcat in /usr/...
+#   - Edison: shell is /bin/ash, services by systemd, Tomcat in /debian/usr/...
+
 set -e
-cd /usr/share/tomcat7/.OpenMRS
+if [ -d /debian ]; then
+  cd /debian/usr/share/tomcat7/.OpenMRS
+else
+  cd /usr/share/tomcat7/.OpenMRS
+fi
 
 echo
 echo "Previous set of modules:"
@@ -65,27 +68,27 @@ ls -l modules
 
 echo
 echo "Restarting tomcat7..."
-restart tomcat7
+if [ -x "\$(which systemctl)" ]; then
+  systemctl restart tomcat7
+else
+  service tomcat7 restart
+fi
+EOF
 
 echo
 echo "Waiting for new module to come up..."
 echo
 
 # Tomcat
-check_url http://localhost:8080/
+check_url http://$host:8080/
 
 # OpenMRS
-check_url http://localhost:8080/openmrs
+check_url http://$host:8080/openmrs
 
 # Buendia
-check_url http://localhost:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+check_url http://$host:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
 
 echo
 echo
 echo "\o/  Success!  Module $omod installed and running."
 echo
-
-EOF
-
-scp /tmp/install_omod.$$ $target:/tmp
-echo "sudo bash /tmp/install_omod.$$" | do_remote
