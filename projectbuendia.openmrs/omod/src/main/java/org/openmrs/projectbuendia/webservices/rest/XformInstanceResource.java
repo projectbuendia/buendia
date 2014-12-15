@@ -79,6 +79,7 @@ public class XformInstanceResource implements Creatable {
         try {
             String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
+            adjustSystemClock(xml);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
             throw new GenericRestException("Error storing xform data", e);
@@ -90,6 +91,65 @@ public class XformInstanceResource implements Creatable {
         }
         // FIXME
         return post;
+    }
+
+    /** Extracts the encounter date from a submitted encounter. */
+    private Date getEncounterDate(Document doc) {
+        Element root = doc.getDocumentElement();
+        Element encounterDateTime = getElementOrThrow(
+                getElementOrThrow(root, "encounter"),
+                "encounter.encounter_datetime");
+
+        String dateTimeText = encounterDateTime.getTextContent();
+        // <encounter.encounter_datetime> elements produced directly by ODK
+        // seem to contain just a date in "2014-12-13" form.
+        SimpleDateFormat yyyyMmDd = new SimpleDateFormat("yyyy-MM-dd");
+        // The code in completeXform converts the encounter_datetime to
+        // yyyy-MM-ddThh:mm:ssZZZ form, so accept that as well.
+        SimpleDateFormat isoWithTimeZone = new SimpleDateFormat(
+                DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.getPattern());
+        try {
+            return yyyyMmDd.parse(dateTimeText);
+        } catch (ParseException e) {
+            try {
+                return isoWithTimeZone.parse(dateTimeText);
+            } catch (ParseException e1) {
+                return new Date();
+            }
+        }
+    }
+
+    /**
+     * Adjusts the system clock to ensure that the incoming encounter date
+     * is not in the future.  <b>This is a temporary hack</b> intended to work
+     * around the fact that the Edison system clock does not stay running
+     * while power is off; when it falls behind, a validation constraint in
+     * OpenMRS starts rejecting all incoming encounters because they have
+     * dates in the future.  To work around this, we attempt to push the
+     * system clock forward whenever we receive an encounter with a date that
+     * is in the future by an offset that is not too extreme (e.g. within a
+     * few days).  The system clock is set by a setuid executable program
+     * "/usr/local/bin/push_clock", which is also responsible for guarding
+     * against extreme clock changes.
+     * @param xml
+     */
+    private void adjustSystemClock(String xml) {
+        final String PUSH_CLOCK = "/usr/local/bin/push_clock";
+
+        try {
+            Document doc = XmlUtil.parse(xml);
+            long timeMillis = getEncounterDate(doc).getTime();
+
+            // Convert to seconds; to ensure that the clock stays ahead of the
+            // encounter date, add 1 sec to compensate for rounding and add
+            // 5 sec to allow for network latency and server latency.
+            long timeSecs = (timeMillis / 1000) + 2;
+            Process pushClock = Runtime.getRuntime().exec(
+                    new String[] {PUSH_CLOCK, "" + timeSecs});
+            pushClock.waitFor();
+        } catch (SAXException | IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private SimpleObject convertIdIfNecessary(SimpleObject post) {
