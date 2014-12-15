@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo UTC > /etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
+
+apt-get -y update
+apt-get -y install less curl netcat screen python2.7 python-pip ntp git zip
+
+# We aren't using dnsmasq yet.
+# ./install-dnsmasq
+
+./install-mysql
+./install-tomcat

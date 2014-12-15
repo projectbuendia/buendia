@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Installs dnsmasq.
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get -y install dnsmasq
+
+# ../install-packages is responsible for copying dnsmasq.d/*
+# into /etc/dnsmasq.d.  We can't do that here because this
+# script is copied over to the Edison and executed by itself,
+# without any of the surrounding files in this directory.
+
+# Debian scripts are responsible for stopping their services so
+# as to not conflict with yocto setup scripts.
+service dnsmasq stop

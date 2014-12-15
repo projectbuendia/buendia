@@ -1,0 +1,89 @@
+#!/bin/bash
+
+ssid=$1
+psk=$2
+confdir=/etc/wpa_supplicant
+conf=$confdir/wpa_supplicant.conf
+
+if [ ! -n "$ssid" ]; then
+  echo "Usage: $0 <ssid> [<psk-password>]"
+  echo "Connects the Edison to an open, WEP, or WPA-PSK wireless network."
+  echo
+  echo "Current status:"
+  wpa_cli status
+  exit 1
+fi
+
+# Back up the existing configuration file.
+if [ ! -e $confdir/backup.conf ]; then
+  cp $conf $confdir/backup.conf
+fi
+
+# Remove all the existing network configurations from the configuration file.
+sed -n '/network/,$!p' $conf > $confdir/empty.conf
+
+# Add the new network configuration as the only one in the configuration file.
+cp $confdir/empty.conf $conf
+if [ -n "$psk" ]; then
+  cat >> $conf << EOF
+network={
+  ssid="$ssid"
+  scan_ssid=1
+  key_mgmt=WPA-PSK
+  pairwise=CCMP TKIP
+  group=CCMP TKIP WEP104 WEP40
+  eap=TTLS PEAP TLS
+  psk="$psk"
+}
+EOF
+else
+  if [ -n "$wep" ]; then
+    cat >> $conf << EOF
+network={
+  ssid="$ssid"
+  scan_ssid=1
+  key_mgmt=NONE
+  group=WEP104 WEP40
+  wep_key0="$wep"
+}
+EOF
+  else
+    cat >> $conf << EOF
+network={
+  ssid="$ssid"
+  scan_ssid=1
+  key_mgmt=NONE
+}
+EOF
+  fi
+fi
+
+# Bring up wpa_supplicant with the updated configuration.
+export IFACE=wlan0
+export IF_WPA_CONF="$conf"
+MODE=start PHASE=pre-up /etc/wpa_supplicant/ifupdown.sh
+MODE=start PHASE=post-up /etc/wpa_supplicant/ifupdown.sh
+
+# Wait for wpa_supplicant to be ready.
+while true; do
+  if wpa_cli status 2>/dev/null | grep -q address=; then break; fi
+  sleep 0.5
+done
+
+# Select the network.
+echo "Selecting network $ssid..."
+wpa_cli select_network 0 || exit 1
+wpa_cli list_networks | grep CURRENT
+
+# Get an IP address using DHCP.
+echo "Getting IP address..."
+udhcpc -i $IFACE -n -T 1 -t 30 || exit 1
+
+# Wait until the network is up.
+ipaddr=''
+while [ -z "$ipaddr" ]; do
+  ipaddr=$(ifconfig | grep -A1 "^$IFACE" | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+  sleep 1
+done
+
+echo "Connected to $ssid as $ipaddr."

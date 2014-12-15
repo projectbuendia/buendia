@@ -1,0 +1,18 @@
+[Unit]
+Description=Special filesystem mounts for Debian
+
+# Running enter-debian causes /dev, /proc, and /sys to be mounted inside
+# the Debian chroot directory.  Services that run in Debian must specify
+# After=debian-mounts.service so that these mounts are done before they start.
+# If they do not, there is a risk that multiple services will concurrently
+# attempt to mount these special directories, which results in mayhem.
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/enter-debian echo
+Restart=on-failure
+RestartSec=10
+TimeoutSec=10
+
+[Install]
+WantedBy=multi-user.target

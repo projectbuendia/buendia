@@ -108,15 +108,15 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     @Override
     public Object create(SimpleObject request, RequestContext requestContext) throws ResponseException {
         if (request.containsKey(UUID)) {
-            throw new InvalidObjectDataException("Cannot specify uuid for create");
+            throw new InvalidObjectDataException("UUID is specified but not allowed");
         }
         String parentUuid = (String)request.get(PARENT_UUID);
         if (parentUuid == null) {
-            throw new InvalidObjectDataException("No parent uuid specified for create");
+            throw new InvalidObjectDataException("Parent UUID is required but not specified");
         }
         Location parent = locationService.getLocationByUuid(parentUuid);
         if (parent == null) {
-            throw new InvalidObjectDataException("unknown parent on create " +parentUuid);
+            throw new InvalidObjectDataException("No parent location found with UUID " + parentUuid);
         }
         Location location = new Location();
         updateNames(request, parentUuid, location);
@@ -127,16 +127,17 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     private void updateNames(SimpleObject request, String uuid, Location location) {
         Map names = (Map) request.get(NAMES);
         if (names == null || names.isEmpty()) {
-            throw new InvalidObjectDataException("No name specified for new location " + uuid);
+            throw new InvalidObjectDataException("No name specified for new location");
         }
         // TODO(nfortescue): work out if locations can be localized.
         String name = (String) names.values().iterator().next();
         if (name.isEmpty()) {
-            throw new InvalidObjectDataException("Empty name specified for new location " + uuid);
+            throw new InvalidObjectDataException("Empty name specified for new location");
         }
         Location duplicate = locationService.getLocation(name);
         if (duplicate != null) {
-            throw new InvalidObjectDataException("Location already exists " + name);
+            throw new InvalidObjectDataException(
+                    String.format("Another location already has the name \"%s\"", name));
         }
         location.setName(name);
         location.setDescription(name);
@@ -148,7 +149,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
         // A new fetch is needed to sort out the hibernate cache.
         Location root = locationService.getLocationByUuid(EMC_UUID);
         if (root == null) {
-            throw new IllegalStateException("Somehow the management centre UUID does not exist " + EMC_UUID);
+            throw new IllegalStateException("Somehow the management centre does not exist with UUID " + EMC_UUID);
         }
         addRecursively(root, jsonResults);
         SimpleObject list = new SimpleObject();
@@ -202,7 +203,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     public Object update(String uuid, SimpleObject request, RequestContext requestContext) throws ResponseException {
         Location existing = locationService.getLocationByUuid(uuid);
         if (existing == null) {
-            throw new InvalidObjectDataException("Location does not exist " + uuid);
+            throw new InvalidObjectDataException("No location found with UUID " + uuid);
         }
         updateNames(request, uuid, existing);
         Location location = locationService.saveLocation(existing);
@@ -219,23 +220,22 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     @Override
     public void delete(String uuid, String reason, RequestContext context) throws ResponseException {
         if (EMC_UUID.equals(uuid)) {
-            throw new InvalidObjectDataException("Cannot delete root node");
+            throw new InvalidObjectDataException("Cannot delete the root location");
         }
         for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
             if (nameAndUuid[1].equals(uuid)) {
-                throw new InvalidObjectDataException("Cannot delete zone " + uuid);
+                throw new InvalidObjectDataException("Cannot delete the zone \"" + nameAndUuid[0] + "\"");
             }
         }
         Location location = locationService.getLocationByUuid(uuid);
         if (location == null) {
-            throw new InvalidObjectDataException("Location does not exist " + uuid);
+            throw new InvalidObjectDataException("No location found with UUID " + uuid);
         }
 
         deleteLocationRecursively(location);
     }
 
     private void deleteLocationRecursively(Location location) {
-
         // We can't rely on database constraints to fail if we delete a location, as we only store as string.
         // This is really slow, and slower than it need be, but deleting locations should be rare.
         PatientService patientService = Context.getPatientService();
@@ -243,8 +243,10 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
             Set<PersonAttribute> attributes = patient.getAttributes();
             for (PersonAttribute attribute : attributes) {
                 if (attribute.getValue().equals(location.getUuid())) {
-                    throw new InvalidObjectDataException("There are patients in location : " +
-                            location.getDisplayString());
+                    throw new InvalidObjectDataException(
+                            String.format("Cannot delete the location \"%s\""
+                                    + " because it has patients assigned to it",
+                                    location.getDisplayString()));
                 }
             }
         }
