@@ -158,9 +158,9 @@ public class XformInstanceResource implements Creatable {
             Date date = getEncounterDate(doc);
             getLog().info("encounter_datetime parsed as " + date);
 
-            // Convert to seconds.  Allow up to 1 sec for truncation to int
-            // and up to 60 sec for network and server latency.
-            long timeSecs = (date.getTime() / 1000) + 1 + 60;
+            // Convert to seconds.  Allow up to 60 sec for truncation to
+            // minutes and up to 60 sec for network and server latency.
+            long timeSecs = (date.getTime() / 1000) + 60 + 60;
             Process pushClock = Runtime.getRuntime().exec(
                     new String[] {PUSH_CLOCK, "" + timeSecs});
             int code = pushClock.waitFor();

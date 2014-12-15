@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO(kpy): Remove push_clock and this installation script when we have
+# a better way to ensure that the Edison's clock keeps correct time.
+
 set -e
 cd $(dirname $0)
 source remote-execution.sh
@@ -24,72 +27,7 @@ EOF
 }
 
 function compile_push_clock() {
-  cat <<EOF > /tmp/push_clock.c
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-#define MAX_PUSH_SEC (3600 * 24 * 7)
-
-long rv = 0;
-
-void check(char* name) {
-  fprintf(stderr, "%s() exit code %ld\n", name, rv);
-  if (rv != 0) {
-    perror(name);
-    if (errno == EPERM) fprintf(stderr, "EPERM\n");
-    if (errno == EINVAL) fprintf(stderr, "EINVAL\n");
-    if (errno == EFAULT) fprintf(stderr, "EFAULT\n");
-  }
-}
-
-void show(char* name, long value) {
-  fprintf(stderr, "%s: %ld\n", name, value);
-}
-
-long gettime() {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  show("gettime", tv.tv_sec);
-  return tv.tv_sec;
-}
-
-void settime(long sec) {
-  struct timeval tv;
-  tv.tv_sec = sec;
-  tv.tv_usec = 0;
-
-  show("settime", tv.tv_sec);
-  rv = settimeofday(&tv, NULL);
-  check("settimeofday");
-}
-
-int main(int argc, char** argv) {
-  struct timeval tv;
-  long old_sec = 0;
-  long new_sec = 0;
-
-  new_sec = atol(argv[1] ? argv[1] : "0");
-  show("argument", new_sec);
-
-  old_sec = gettime();
-  if (new_sec > old_sec && new_sec < old_sec + MAX_PUSH_SEC) {
-    show("geteuid", geteuid());
-    rv = seteuid(0);
-    check("seteuid");
-    show("geteuid", geteuid());
-
-    settime(new_sec);
-    gettime();
-  }
-  show("result", rv);
-  exit(rv);
-}
-EOF
-
-  scp /tmp/push_clock.c $target:/debian/root
+  scp debian/push_clock.c $target:/debian/root
   cat <<EOF | do_in_debian
 gcc -o /usr/local/bin/push_clock push_clock.c
 chmod u+s /usr/local/bin/push_clock
