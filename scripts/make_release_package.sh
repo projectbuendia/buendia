@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# TODO(kpy): This currently builds the zip file from a combination of
+# externally built binaries (downloaded from Jenkins by build number)
+# and files in the current working repo (platforms/ and scripts/).
+# This is bad -- it will be inconsistent when HEAD in the current working
+# repo doesn't match the build numbers specified as arguments.  Instead,
+# this should be a "make" target that builds everything based on the current
+# working repo.  To enable this, we need to add android-client as a submodule
+# so that this repo records the version of android-client that we've selected
+# to go with this release, and then we can configure Jenkins to build the
+# entire package whenever we apply an "rc" tag to this repo.
+
 start=$(pwd)
 cd $(dirname $0)
 cd ..  # root directory is one up from scripts/
