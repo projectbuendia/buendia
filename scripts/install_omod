@@ -4,16 +4,26 @@ set -e
 cd $(dirname $0)
 host=$1
 omod=$2
+user=$3
 
 if [ "$1" == "-h" -o -z "$omod" ]; then
-  echo "Usage: $0 <hostname> <filename.omod>"
+  echo "Usage: $0 <hostname> <filename.omod> [username]"
   echo
   echo "Installs a Buendia OMOD file on an OpenMRS server, replacing any"
   echo "existing Buendia module; restarts the server to pick up the change."
   exit 1
 fi
 
-export TARGET=root@$host
+if [ -z "$user" ]; then
+  user='root'
+fi
+export TARGET=$user@$host
+if [ "$user" == "root" ]; then
+  export sudo=""
+else
+  export sudo="sudo"
+fi
+
 source remote-execution.sh
 
 check_url() {
@@ -49,6 +59,7 @@ else
   cd /usr/share/tomcat7/.OpenMRS
 fi
 
+
 echo
 echo "Previous set of modules:"
 ls -l modules
@@ -58,9 +69,9 @@ mkdir -p old_modules
 # old names start with "projectbuendia"; new names start with "buendia-server".
 mv -f modules/projectbuendia*omod modules/buendia-server*omod old_modules 2>/dev/null || true
 
-cp -f /tmp/$tempname $tempname  # get the file onto the same filesystem
-mv -f $tempname modules/$omodname  # atomically install the file into modules/
-rm -f /tmp/$tempname
+$sudo cp -f /tmp/$tempname $tempname  # get the file onto the same filesystem
+$sudo mv -f $tempname modules/$omodname  # atomically install the file into modules/
+$sudo rm -f /tmp/$tempname
 
 echo
 echo "New set of modules:"
@@ -71,7 +82,7 @@ echo "Restarting tomcat7..."
 if [ -x "\$(which systemctl)" ]; then
   systemctl restart tomcat7
 else
-  service tomcat7 restart
+  $sudo service tomcat7 restart
 fi
 EOF
 
