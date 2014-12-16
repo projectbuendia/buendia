@@ -1,7 +1,9 @@
 #!/bin/bash
 
-SOURCE_INSTANCE="openmrs-2"
-TMP_INSTANCE="openmrs"
+SRC_ZONE="europe-west1-b"
+SRC_INSTANCE="openmrs-2"
+TMP_ZONE="europe-west1-b"
+TMP_INSTANCE="jenkins-3"
 dump="complete.zip"
 cleandump="clean.zip"
 
@@ -19,13 +21,13 @@ fi
 cat <(echo "export MYSQL_USER=\"$MYSQL_USER\"") \
 <(echo "export MYSQL_PASSWORD=\"$MYSQL_PASSWORD\"") \
 openmrs_dump \
-  | gcloud compute ssh --zone europe-west1-b $SOURCE_INSTANCE --command "bash -s openmrs $dump"
+  | gcloud compute ssh --zone $SRC_ZONE $SRC_INSTANCE --command "bash -s openmrs $dump"
 
 # copy file to local computer
-gcloud compute copy-files $SOURCE_INSTANCE:$dump /tmp/$dump --zone europe-west1-b
+gcloud compute copy-files $SRC_INSTANCE:$dump /tmp/$dump --zone $SRC_ZONE
 
 # copy dump over to our processing instance
-gcloud compute copy-files /tmp/$dump clear_server.sql $TMP_INSTANCE:/home/nfortescue --zone europe-west1-b
+gcloud compute copy-files /tmp/$dump clear_server.sql $TMP_INSTANCE:. --zone $TMP_ZONE
 
 # Clear the server of added data, and add fresh data. Then dump again from the tmp instance.
 # At the moment we don't add Kailahum locations, if we did, add in the following line
@@ -35,14 +37,14 @@ runsql="mysql -u $MYSQL_USER -p'$MYSQL_PASSWORD' openmrs "
 cat <(echo "export MYSQL_USER=\"$MYSQL_USER\"") \
 <(echo "export MYSQL_PASSWORD=\"$MYSQL_PASSWORD\"") \
 openmrs_load \
-<(echo "$runsql -e \"source /home/nfortescue/clear_server.sql\" ") \
-  | gcloud compute ssh --zone europe-west1-b $TMP_INSTANCE --command "bash -s openmrs $dump"
+<(echo "$runsql -e \"source clear_server.sql\" ") \
+  | gcloud compute ssh --zone $TMP_ZONE $TMP_INSTANCE --command "bash -s openmrs $dump"
 
 # run dump again to get a dump of the clean instance
 cat <(echo "export MYSQL_USER=\"$MYSQL_USER\"") \
 <(echo "export MYSQL_PASSWORD=\"$MYSQL_PASSWORD\"") \
 openmrs_dump \
-  | gcloud compute ssh --zone europe-west1-b $TMP_INSTANCE --command "bash -s openmrs $cleandump"
+  | gcloud compute ssh --zone $TMP_ZONE $TMP_INSTANCE --command "bash -s openmrs $cleandump"
 
 # copy the clean dump to local machine
-gcloud compute copy-files $TMP_INSTANCE:$cleandump /tmp/$cleandump --zone europe-west1-b
+gcloud compute copy-files $TMP_INSTANCE:$cleandump /tmp/$cleandump --zone $TMP_ZONE
