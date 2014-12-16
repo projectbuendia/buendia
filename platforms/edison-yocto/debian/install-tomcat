@@ -31,9 +31,21 @@ EOF
   mv /tmp/tomcat-users.xml /etc/tomcat7/tomcat-users.xml
 }
 
+function adjust_java_opts() {
+  f="/etc/default/tomcat7"
+  old="-Djava.awt.headless=true -Xmx128m -XX:+UseConcMarkSweepGC"
+  new="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"
+
+  #Replace string and remove old file.
+  sed "s/$old/$new/g" $f > $f.new
+  mv $f.new $f
+  echo $f done
+}
+
 install_jdk7  # JDK 7 is required
 install_tomcat7
 create_admin_user "$password"
+adjust_java_opts
 
 # Debian scripts should stop the services they install so as not to conflict
 # with yocto setup scripts.
