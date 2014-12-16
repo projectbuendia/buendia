@@ -5,11 +5,12 @@ cd $(dirname $0)
 password=$1
 omoddir=$2
 dumpfile=$3
-ssid=$4
-psk=$5
+sitesql=$4
+ssid=$5
+psk=$6
 
 if [ "$1" == "-h" -o ! -n "$ssid" ]; then
-  echo "Usage: $0 <new-admin-password> <omod-dir> <dumpfile.zip> <ssid> [<psk-password>]"
+  echo "Usage: $0 <new-admin-password> <omod-dir> <dumpfile.zip> <site.sql> <ssid> [<psk-password>]"
   echo
   echo "Completely erases and sets up an Edison from scratch, first performing"
   echo "a firmware update and then installing all necessary applications,"
@@ -47,6 +48,11 @@ if [ ! -f "$dumpfile" ]; then
   exit 1
 fi
 
+if [ ! -f "$sitesql" ]; then
+  echo "No such file: $sitesql"
+  exit 1
+fi
+
 # Fetches a file from a URL to a local path.  If the file already exists at
 # the local path with the given MD5 hash, skips the fetch.
 function fetch_and_cache() {
@@ -68,6 +74,7 @@ fetch_and_cache http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_P
 
 start=$(date)
 ./replace-firmware /tmp/edison-firmware.zip
+flashed=$(date)
 ./configure-root-access "$password"
 ./connect-wifi "$ssid" "$psk"
 ./install-debian
@@ -75,6 +82,7 @@ start=$(date)
 ./install-openmrs /tmp/openmrs.war "$password" "$password"
 ./install-omods $omoddir
 ./load-database "$dumpfile" openmrs "$password"
+./load-sql "$sitesql" openmrs "$password"
 ./enable-services
 finish=$(date)
 ./reboot
@@ -83,8 +91,9 @@ finish=$(date)
 ./verify-buendia
 up=$(date)
 
-echo "$fetchstart - start firmware & openmrs.war download"
+echo "$fetchstart - start downloading firmware & openmrs.war"
 echo "$start - start writing firmware"
+echo "$flashed - finished writing firmware"
 echo "$finish - reboot"
 echo "$up - server responding"
 echo
