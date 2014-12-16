@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+sql=$1
+database=$2
+password=$3
+
+if [ "$1" == "-h" -o ! -n "$password" ]; then
+  echo "Usage: $0 <commands.sql> <mysql-database> <mysql-password>"
+  echo
+  echo "Loads a SQL file into a MySQL database on an Edison using the"
+  echo "MySQL user dump@localhost."
+  exit 1
+fi
+
+echo
+echo "Loading site SQL into OpenMRS database..."
+echo
+
+connect_ethernet
+$scp $sql $target:/debian/tmp/site.sql
+cat <<EOF | do_in_debian
+service mysql start
+mysql -udump -p"$password" < /tmp/site.sql
+rm /tmp/site.sql
+EOF
