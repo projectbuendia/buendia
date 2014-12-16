@@ -33,7 +33,8 @@ function create_dump_user() {
   # FILE privilege can only be granted to *.*, not a specific database.
   cat <<EOF | mysql -uroot -p"$root_password"
 grant file on *.* to dump@localhost identified by '$dump_user_password';
-grant select, drop, create, insert, update, delete on *.* to dump@localhost;
+grant select, drop, create, insert on *.* to dump@localhost;
+grant create temporary tables, update, delete on *.* to dump@localhost;
 EOF
 }
 
