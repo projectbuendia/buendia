@@ -3,28 +3,17 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.Concept;
-import org.openmrs.ConceptClass;
-import org.openmrs.ConceptDatatype;
-import org.openmrs.ConceptName;
 import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.PatientIdentifierType;
 import org.openmrs.PatientProgram;
 import org.openmrs.PatientState;
-import org.openmrs.Person;
-import org.openmrs.PersonAttribute;
-import org.openmrs.PersonAttributeType;
 import org.openmrs.PersonName;
-import org.openmrs.Program;
-import org.openmrs.ProgramWorkflow;
 import org.openmrs.ProgramWorkflowState;
 import org.openmrs.User;
-import org.openmrs.api.ConceptService;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.PatientService;
-import org.openmrs.api.PersonService;
 import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -48,10 +37,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -206,7 +193,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         pn.setDateCreated(patient.getDateCreated());
         patient.addName(pn);
 
-        // Identifier with fake location
         if (json.containsKey(ID)) {
             PatientIdentifier identifier = new PatientIdentifier();
             identifier.setCreator(patient.getCreator());
@@ -216,6 +202,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
             identifier.setPreferred(true);
             patient.addIdentifier(identifier);
+        }
+
+        // Set assigned location last, as doing so saves the patient, which could fail
+        // if performed in the middle of patient creation.
+        if (json.containsKey(ASSIGNED_LOCATION)) {
+            Map assignedLocation = (Map)json.get(ASSIGNED_LOCATION);
+            if (assignedLocation != null) {
+                setLocation(patient, (String) assignedLocation.get(UUID));
+            }
         }
 
         return patient;
@@ -359,16 +354,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case ASSIGNED_LOCATION:
-                    Map assignedLocation = (Map) entry.getValue();
-                    String locationUuid = (String) assignedLocation.get(UUID);
-                    if (locationUuid != null) {
-                        Location location = Context.getLocationService().getLocationByUuid(locationUuid);
-                        if (location != null) {
-                            DbUtil.setPersonAttributeValue(patient,
-                                DbUtil.getAssignedLocationAttributeType(),
-                                Integer.toString(location.getId()));
-                        }
-                    }
+                    Map assignedLocation = (Map)entry.getValue();
+                    setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
                     patient.setBirthdate(parseDate((String) entry.getValue(), BIRTHDATE));
@@ -404,6 +391,20 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
         }
         return changedPatient;
+    }
+
+    private static void setLocation(Patient patient, String locationUuid) {
+        // Apply the given assigned location to a patient, if locationUuid is not null.
+        if (locationUuid == null) {
+            return;
+        }
+
+        Location location = Context.getLocationService().getLocationByUuid(locationUuid);
+        if (location != null) {
+            DbUtil.setPersonAttributeValue(patient,
+                    DbUtil.getAssignedLocationAttributeType(),
+                    Integer.toString(location.getId()));
+        }
     }
 
     private void statusChange(Patient patient, ProgramWorkflowState newWorkflowState) {
