@@ -81,6 +81,7 @@ flashed=$(date)
 ./install-packages "$password"
 ./install-openmrs /tmp/openmrs.war "$password" "$password"
 ./install-omods $omoddir
+./install-push-clock
 ./load-database "$dumpfile" openmrs "$password"
 ./load-sql "$sitesql" openmrs "$password"
 ./enable-services
