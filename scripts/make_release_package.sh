@@ -12,12 +12,21 @@ clean_dump_zip=$3
 site=$4
 
 if [ "$1" == "-h" -o -z "$site" ]; then
-  echo "Usage: $0 <app-build-number> <server-build-number> <cleandb.zip> <site>"
+  echo "Usage: $0 <app-build-number> <server-build-number> <clean-dump.zip> <site>"
   echo
   echo "Constructs a zip file containing the specified builds of the app and"
   echo "the server module, using the specified cleaned database dump and the"
   echo "site-specific initialization SQL for the specified site, together with"
-  echo "the scripts needed to set up the Edison."
+  echo "the scripts needed to set up the Edison.  Example:"
+  echo
+  echo "    ./make-release-package.sh 456 123 /tmp/dec14-clean.zip kailahun"
+  echo
+  echo "This produces buendia-a456-s123-dec14-kailahun.zip; then, to prepare"
+  echo "a new Edison server, transfer the zip file to a workstation and do:"
+  echo
+  echo "    unzip buendia-a456-s123-dec14-kailahun.zip"
+  echo "    cd buendia-a456-s123-dec14-kailahun"
+  echo "    ./setup rootpassword GoogleGuest"
   exit 1
 fi
 
