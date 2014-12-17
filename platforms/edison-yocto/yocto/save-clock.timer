@@ -1,0 +1,16 @@
+[Unit]
+Description=Periodically save the clock time to disk
+
+# Saving the clock periodically gives us a fighting chance of keeping the clock
+# increasing monotonically even after a sudden power loss.  If we save the clock
+# every 15 seconds, then we lose at most 15 seconds when is power is lost; boot
+# takes about 20 seconds, so by the time boot finishes and services come up, the
+# restored clock should have advanced past the value it had when power was lost.
+
+[Timer]
+OnBootSec=15
+OnUnitActiveSec=15
+Unit=save-clock.service
+
+[Install]
+WantedBy=multi-user.target

@@ -32,14 +32,12 @@ EOF
 }
 
 function adjust_java_opts() {
-  f="/etc/default/tomcat7"
-  old="-Djava.awt.headless=true -Xmx128m -XX:+UseConcMarkSweepGC"
-  new="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"
+  filename=/etc/default/tomcat7
 
-  #Replace string and remove old file.
-  sed "s/$old/$new/g" $f > $f.new
-  mv $f.new $f
-  echo $f done
+  # Increase memory limit from Xmx128m to Xmx256m.
+  # Add the CMSIncrementalMode option.
+  sed 's/^ *JAVA_OPTS.*/JAVA_OPTS="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"/' $filename > $filename.new
+  mv $filename.new $filename
 }
 
 install_jdk7  # JDK 7 is required
