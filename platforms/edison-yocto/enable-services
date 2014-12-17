@@ -38,12 +38,15 @@ systemctl enable debian-mounts.service
 # We aren't using dnsmasq yet.
 # systemctl enable dnsmasq.service
 
+# mdns generates a lot of log volume and we don't use it.
+systemctl disable mdns.service
+
 # Make MySQL and Tomcat 7 start automatically on boot.
 systemctl enable mysql.service
 systemctl enable tomcat7.service
 
 # Connect to the network automatically on boot.
-systemctl enable wpa_supplicant
+systemctl enable wpa_supplicant.service
 
 # Warm up OpenMRS every few minutes, starting shortly after boot.
 systemctl enable openmrs-warmup.timer
