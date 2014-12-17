@@ -2,14 +2,20 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.BaseOpenmrsMetadata;
+import org.openmrs.Field;
 import org.openmrs.Form;
+import org.openmrs.FormField;
+import org.openmrs.Provider;
 import org.openmrs.api.FormService;
+import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.xforms.util.XformsUtil;
+import org.openmrs.util.FormConstants;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -18,6 +24,7 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
@@ -36,31 +43,71 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     private final Log log = LogFactory.getLog(getClass());
 
     private final FormService formService;
+    private final ProviderService providerService;
 
     public XformResource() {
         super("xform", Representation.DEFAULT, Representation.FULL, Representation.REF);
         this.formService = Context.getFormService();
+        this.providerService = Context.getProviderService();
     }
     
     @Override
     protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json) {
         json.add("name", form.getName());
-        json.add("date_changed", form.getDateChanged());
+        Date dateChanged = form.getDateChanged();
         json.add("date_created", form.getDateCreated());
         json.add("version", form.getVersion());
+        boolean includesProviders = false;
         if (context.getRepresentation() == Representation.FULL) {
             try {
                 // TODO(jonskeet): Use description instead of name?
-                String xml = BuendiaXformBuilderEx.buildXform(form, new BuendiaXformCustomizer());
-                xml = convertToOdkCollect(xml, form.getName());
+                FormData formData = BuendiaXformBuilderEx.buildXform(form, new BuendiaXformCustomizer());
+                String xml = convertToOdkCollect(formData.xml, form.getName());
+                includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);
                 json.add("xml", xml);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        } else {
+            // Do a linear search, as otherwise it puts too many assumptions on comparison order.
+            // Also FormField overrides compare to be based on lots of fields, but leaves .equals() based
+            // on UUID unchanged, which is really dangerous.
+            for (FormField formField : form.getFormFields()) {
+                Field field = formField.getField();
+                if (FormConstants.FIELD_TYPE_DATABASE.equals(field.getFieldType().getFieldTypeId()) &&
+                        "encounter".equals(field.getTableName())) {
+                    includesProviders = true;
+                }
+                dateChanged = maxDate(dateChanged, dateChanged(formField));
+            }
         }
+        if (includesProviders) {
+            for (Provider provider : providerService.getAllProviders()) {
+                dateChanged = maxDate(dateChanged, dateChanged(provider));
+            }
+        }
+        json.add("date_changed", dateChanged);
     }
-    
+
+    private Date dateChanged(BaseOpenmrsMetadata d) {
+        Date dateChanged = d.getDateChanged();
+        if (dateChanged != null) {
+            return dateChanged;
+        }
+        return d.getDateCreated();
+    }
+
+    private Date maxDate(Date d1, Date d2) {
+        if (d1 == null) {
+            return d2;
+        }
+        if (d2 == null) {
+            return d1;
+        }
+        return d1.before(d2) ? d2 : d1;
+    }
+
     @Override
     protected Form retrieveImpl(String uuid, RequestContext context) {
         return formService.getFormByUuid(uuid);
