@@ -89,7 +89,7 @@ public final class BuendiaXformBuilder {
     /**
      * Sets the value of a child node in a parent node.
      * 
-     * @param doc - the document.
+     * @param parentNode - the node to add a child to.
      * @param name - the name of the node whose value to set.
      * @param value - the value to set.
      * @return - true if the node with the name was found, else false.
@@ -159,11 +159,10 @@ public final class BuendiaXformBuilder {
         ConceptService cs = Context.getConceptService();
         try {
             Concept concept = cs.getConcept(Integer.valueOf(tokens[0].trim()));
-            ConceptSource preferredSource = null;
             String prefSourceName = Context.getAdministrationService().getGlobalProperty(
                 XformConstants.GLOBAL_PROP_KEY_PREFERRED_CONCEPT_SOURCE);
             if (StringUtils.isNotBlank(prefSourceName)) {
-                preferredSource = cs.getConceptSourceByName(prefSourceName);
+                ConceptSource preferredSource = cs.getConceptSourceByName(prefSourceName);
                 if (concept.getConceptMappings().size() > 0) {
                     if (preferredSource != null) {
                         for (ConceptMap map : concept.getConceptMappings()) {
@@ -190,7 +189,6 @@ public final class BuendiaXformBuilder {
      * @param modelElement - the model element to add bindings to.
      * @param formNode the form node.
      * @param bindings - a hash table to populate with the built bindings.
-     * @param bodyNode - the body node to add the UI control to.
      */
     public static void parseTemplate(Element modelElement, Element formNode, Element formChild, Map<String, Element> bindings,
                                      Map<String, String> problemList,
@@ -332,7 +330,7 @@ public final class BuendiaXformBuilder {
      * delimited list of selected answers, which will later on be used to fill the true or false
      * values as expected by openmrs multiple select questions.
      * 
-     * @param child - the multiple select node to add the value node to.
+     * @param node - the multiple select node to add the value node to.
      */
     private static void addMultipleSelectXformValueNode(Element node) {
         //Element xformsValueNode = modelElement.createElement(null, null);
@@ -346,7 +344,7 @@ public final class BuendiaXformBuilder {
      * Set data types for the openmrs fixed table fields.
      * 
      * @param name - the name of the question node.
-     * @param bindingNode - the binding node whose type attribute we are to set.
+     * @param bindNode - the binding node whose type attribute we are to set.
      */
     private static void setTableFieldDataType(String name, Element bindNode) {
         if (name.equalsIgnoreCase(NODE_ENCOUNTER_ENCOUNTER_DATETIME)) {
@@ -370,7 +368,7 @@ public final class BuendiaXformBuilder {
      * Set required and readonly attributes for the openmrs fixed table fields.
      * 
      * @param name - the name of the question node.
-     * @param bindingNode - the binding node whose required and readonly attributes we are to set.
+     * @param bindNode - the binding node whose required and readonly attributes we are to set.
      */
     private static void setTableFieldBindingAttributes(String name, Element bindNode) {
         
@@ -442,15 +440,15 @@ public final class BuendiaXformBuilder {
     }
     
     private static String getFieldDefaultValue(String name, Integer formId, boolean forAllPatients) {
-        XformsService xformsService = (XformsService) Context.getService(XformsService.class);
-        String val = (String) xformsService.getFieldDefaultValue(formId, name);
+        XformsService xformsService = Context.getService(XformsService.class);
+        String val = xformsService.getFieldDefaultValue(formId, name);
         if (val == null) {
-            val = (String) xformsService.getFieldDefaultValue(formId, name.replace('_', ' '));
+            val = xformsService.getFieldDefaultValue(formId, name.replace('_', ' '));
             if (val == null)
                 return null;
         }
         
-        if (val.indexOf("$!{") == -1)
+        if (!val.contains("$!{"))
             return val;
         else if (!forAllPatients) {
             Integer id = getDefaultValueId(val);
