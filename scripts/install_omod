@@ -71,6 +71,7 @@ mv -f modules/projectbuendia*omod modules/buendia-server*omod old_modules 2>/dev
 
 $sudo cp -f /tmp/$tempname $tempname  # get the file onto the same filesystem
 $sudo mv -f $tempname modules/$omodname  # atomically install the file into modules/
+$sudo chmod a+r modules/$omodname # make sure it is tomcat readable
 $sudo rm -f /tmp/$tempname
 
 echo
