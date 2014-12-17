@@ -18,6 +18,9 @@ echo
 connect_ethernet
 $scp yocto/*.service yocto/*.timer $target:/etc/systemd/system
 
+# Add journald workaround to compensate for /etc/machine-id changing on every boot.
+$scp yocto/systemd-journal-flush.service $target:/lib/systemd/system
+
 # Change sshd configuration to allow for remote connections.
 $scp yocto/sshd.socket $target:/lib/systemd/system
 
@@ -45,8 +48,12 @@ systemctl enable wpa_supplicant
 # Warm up OpenMRS every few minutes, starting shortly after boot.
 systemctl enable openmrs-warmup.timer
 
+# Save the clock periodically to keep it moving forward after a reboot.
+systemctl enable save-clock.timer
+
 # Start up all the services to confirm that they can start successfully.
 systemctl restart mysql.service
 systemctl restart tomcat7.service
 systemctl restart openmrs-warmup.timer
+systemctl restart save-clock.timer
 EOF

@@ -27,7 +27,7 @@ EOF
 }
 
 function compile_push_clock() {
-  scp debian/push_clock.c $target:/debian/root
+  $scp debian/push_clock.c $target:/debian/root
   cat <<EOF | do_in_debian
 gcc -o /usr/local/bin/push_clock push_clock.c
 chmod u+s /usr/local/bin/push_clock

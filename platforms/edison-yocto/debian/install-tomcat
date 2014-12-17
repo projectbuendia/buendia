@@ -31,9 +31,19 @@ EOF
   mv /tmp/tomcat-users.xml /etc/tomcat7/tomcat-users.xml
 }
 
+function adjust_java_opts() {
+  filename=/etc/default/tomcat7
+
+  # Increase memory limit from Xmx128m to Xmx256m.
+  # Add the CMSIncrementalMode option.
+  sed 's/^ *JAVA_OPTS.*/JAVA_OPTS="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"/' $filename > $filename.new
+  mv $filename.new $filename
+}
+
 install_jdk7  # JDK 7 is required
 install_tomcat7
 create_admin_user "$password"
+adjust_java_opts
 
 # Debian scripts should stop the services they install so as not to conflict
 # with yocto setup scripts.

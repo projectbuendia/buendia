@@ -23,6 +23,6 @@ connect_ethernet
 $scp $sql $target:/debian/tmp/site.sql
 cat <<EOF | do_in_debian
 service mysql start
-mysql -udump -p"$password" < /tmp/site.sql
+mysql -udump -p"$password" "$database" < /tmp/site.sql
 rm /tmp/site.sql
 EOF
