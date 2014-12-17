@@ -3,11 +3,10 @@
 set -e
 cd $(dirname $0)
 source remote-execution.sh
-ssid=$1
-psk=$2
+ssid_psk=$1
 
-if [ "$1" == "-h" -o ! -n "$ssid" ]; then
-  echo "Usage: $0 <ssid> [<psk-password>]"
+if [ "$1" == "-h" -o ! -n "$ssid_psk" ]; then
+  echo "Usage: $0 <ssid>[:<psk-password>]"
   echo
   echo "Connects the target Edison to the specified wifi network."
   exit 1
@@ -15,4 +14,4 @@ fi
 
 echo
 echo "Connecting to $ssid."
-run_script_in_yocto yocto/wifi "$ssid" "$psk"
+run_script_in_yocto yocto/wifi "$ssid_psk"

@@ -1,18 +1,22 @@
 #!/bin/ash
 
-ssid=$1
-psk=$2
+ssid_psk=$1
 confdir=/etc/wpa_supplicant
 conf=$confdir/wpa_supplicant.conf
 
-if [ ! -n "$ssid" ]; then
-  echo "Usage: $0 <ssid> [<psk-password>]"
-  echo "Connects the Edison to an open, WEP, or WPA-PSK wireless network."
+if [ ! -n "$ssid_psk" ]; then
+  echo "Usage: $0 <ssid>[:<psk-password>]"
+  echo "Connects the Edison to an open or WPA/WPA2-PSK wireless network."
   echo
   echo "Current status:"
   wpa_cli status
   exit 1
 fi
+
+# Split ssid_psk into ssid and optional psk.
+ssid="${ssid_psk%:*}"
+psk="${ssid_psk#*:}"
+if [ "$psk" == "$ssid_psk" ]; then psk=; fi
 
 # Back up the existing configuration file.
 if [ ! -e $confdir/backup.conf ]; then
@@ -37,25 +41,13 @@ network={
 }
 EOF
 else
-  if [ -n "$wep" ]; then
-    cat >> $conf << EOF
-network={
-  ssid="$ssid"
-  scan_ssid=1
-  key_mgmt=NONE
-  group=WEP104 WEP40
-  wep_key0="$wep"
-}
-EOF
-  else
-    cat >> $conf << EOF
+  cat >> $conf << EOF
 network={
   ssid="$ssid"
   scan_ssid=1
   key_mgmt=NONE
 }
 EOF
-  fi
 fi
 
 # Bring up wpa_supplicant with the updated configuration.
