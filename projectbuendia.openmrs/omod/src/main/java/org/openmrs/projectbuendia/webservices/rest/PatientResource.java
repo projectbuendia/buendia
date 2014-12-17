@@ -207,7 +207,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // Set assigned location last, as doing so saves the patient, which could fail
         // if performed in the middle of patient creation.
         if (json.containsKey(ASSIGNED_LOCATION)) {
-            Map assignedLocation = (Map)json.get(ASSIGNED_LOCATION);
+            Map assignedLocation = (Map) json.get(ASSIGNED_LOCATION);
             if (assignedLocation != null) {
                 setLocation(patient, (String) assignedLocation.get(UUID));
             }
@@ -354,7 +354,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case ASSIGNED_LOCATION:
-                    Map assignedLocation = (Map)entry.getValue();
+                    Map assignedLocation = (Map) entry.getValue();
                     setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
