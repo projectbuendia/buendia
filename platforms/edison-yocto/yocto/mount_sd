@@ -12,5 +12,5 @@ fi
 
 target=/home/root/debian/var/log
 if [ -z "$(mount | grep "$device.*$target")" ]; then
-  mount $device -o umask=0000 $target && mkdir -p $target/large
+  mount $device -o umask=0000 $target && mkdir -p $target/large $target/apt $target/fsck $target/mysql $target/ntpstats $target/tomcat7
 fi
