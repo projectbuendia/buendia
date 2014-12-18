@@ -22,8 +22,9 @@ echo
 
 connect_ethernet
 run_script_in_yocto yocto/install-debian
-run_script_in_yocto yocto/enter-debian echo  # install enter-debian
-# Install enter-debian-nomount
+
+# Install enter-debian and enter-debian-nomount in /usr/local/bin.
+run_script_in_yocto yocto/enter-debian echo
 run_script_in_yocto yocto/enter-debian-nomount echo
 $scp -p debian/bashrc $target:/debian/root/.bashrc
 

@@ -36,11 +36,11 @@ grant file on *.* to dump@localhost identified by '$dump_user_password';
 grant select, drop, create, insert on *.* to dump@localhost;
 grant create temporary tables, update, delete on *.* to dump@localhost;
 EOF
+
+  # Debian scripts should bring down their services so as to not conflict
+  # with yocto scripts.
+  service mysql stop
 }
 
 install_mysql_server "$password"
 create_dump_user "$password" "$password"
-
-# Debian scripts should bring down their services so as to not conflict
-# with yocto scripts.
-service mysql stop

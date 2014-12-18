@@ -25,4 +25,5 @@ cat <<EOF | do_in_debian
 service mysql start
 mysql -udump -p"$password" "$database" < /tmp/site.sql
 rm /tmp/site.sql
+service mysql stop
 EOF

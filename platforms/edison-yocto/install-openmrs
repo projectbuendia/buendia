@@ -18,35 +18,61 @@ echo
 echo "Installing OpenMRS..."
 echo
 
-connect_ethernet
-$scp $warfile $target:/debian/var/lib/tomcat7/webapps/openmrs.war
-
 # Construct the openmrs-runtime.properties file.
-cat <<EOF >/tmp/properties
+function install_runtime_properties() {
+  openmrs_user_password="$1"
+
+  cat <<EOF >/tmp/properties
 encryption.key=$(dd if=/dev/urandom bs=16 count=1 | base64 | sed -e 's/=/\\=/g')
 encryption.vector=$(dd if=/dev/urandom bs=16 count=1 | base64 | sed -e 's/=/\\=/g')
 
 connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
 connection.username=openmrs_user
-connection.password=$new_password
+connection.password=$openmrs_user_password
 
 auto_update_database=true
 module.allow_web_admin=true
 EOF
 
-connect_ethernet
-$scp /tmp/properties $target:/debian/tmp
-
-# Install the properties file and create the openmrs_user MySQL user.
-cat <<EOF | do_in_debian
-mkdir -p /usr/share/tomcat7/.OpenMRS/modules
-mv /tmp/properties /usr/share/tomcat7/.OpenMRS/openmrs-runtime.properties
+  connect_ethernet
+  cat <<EOF | do_in_debian
+mkdir -p /usr/share/tomcat7/.OpenMRS
 chown -R tomcat7:root /usr/share/tomcat7/.OpenMRS
+EOF
+  $scp /tmp/properties $target:/debian/usr/share/tomcat7/.OpenMRS/openmrs-runtime.properties
+  rm /tmp/properties
+}
 
+# Set up the openmrs_user MySQL user for OpenMRS to use.
+function create_openmrs_user() {
+  cat <<EOF | do_in_debian
 service mysql start
-
-cat <<SQL | mysql -uroot -p"$root_password"
-grant all on openmrs.* to openmrs_user@localhost identified by '$new_password';
-SQL
+echo "grant all on openmrs.* to openmrs_user@localhost identified by '$new_password';" | mysql -uroot -p"$root_password"
 service mysql stop
 EOF
+}
+
+# Create the /usr/local/bin/openmrs_backup script.
+function install_openmrs_backup() {
+  openmrs_user_password="$1"
+
+  cat <<EOF > /usr/local/bin/openmrs_backup
+#!/bin/bash
+export MYSQL_USER=openmrs_user
+export MYSQL_PASSWORD="$openmrs_user_password"
+
+# Only perform the backup if the SD card can be mounted.
+if [ -d /var/backups/large ]; then
+  # Granularity is one hour, so we keep at most one per hour.
+  /usr/local/bin/openmrs_dump openmrs /var/backups/large/$(date +"%Y-%m-%d.%H").zip
+fi
+EOF
+  chmod 755 /usr/local/bin/openmrs_backup
+}
+
+connect_ethernet
+$scp $warfile $target:/debian/var/lib/tomcat7/webapps/openmrs.war
+
+install_runtime_properties
+create_openmrs_user "$password"
+install_openmrs_backup "$password"

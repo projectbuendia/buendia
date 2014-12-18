@@ -1,0 +1,19 @@
+[Unit]
+Description=Mount SD card as /debian/sd
+
+[Service]
+Type=simple
+# Set up the /var/log/large and /var/log/backups/large directories, which point
+# to the SD card.  If an SD card isn't present, we want to continue writing
+# ordinary logs (but not any new large logs) to the main filesystem.
+# So ordinary logs are kept in /var/log, which may be on the main filesystem
+# or the card, and large logs are kept in /var/log/large, which only exists
+# on the SD card.
+ExecStart=/bin/ash -c '((/bin/mount | /usr/bin/grep " /debian/var/backups ") || /bin/mount /dev/mmcblk1p1 /debian/var/backups) && /bin/mkdir -p /debian/var/backups/large || /bin/true'
+ExecStart=/bin/ash -c '((/bin/mount | /usr/bin/grep " /debian/var/log ") || /bin/mount /dev/mmcblk1p1 /debian/var/log && /bin/mkdir -p /debian/var/logs/large || /bin/true'
+Restart=always
+RestartSec=30
+TimeoutSec=10
+
+[Install]
+WantedBy=multi-user.target

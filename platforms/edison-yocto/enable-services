@@ -41,6 +41,9 @@ systemctl enable debian-mounts.service
 # mdns generates a lot of log volume and we don't use it.
 systemctl disable mdns.service
 
+# Point /var/backups and /var/log to the SD card so logs get written there.
+systemctl enable mount-sd.service
+
 # Make MySQL and Tomcat 7 start automatically on boot.
 systemctl enable mysql.service
 systemctl enable tomcat7.service
@@ -51,6 +54,9 @@ systemctl enable wpa_supplicant.service
 # Warm up OpenMRS every few minutes, starting shortly after boot.
 systemctl enable openmrs-warmup.timer
 
+# Periodically back up the contents of the OpenMRS database.
+systemctl enable openmrs-backup.timer
+
 # Save the clock periodically to keep it moving forward after a reboot.
 systemctl enable save-clock.timer
 
@@ -59,4 +65,5 @@ systemctl restart mysql.service
 systemctl restart tomcat7.service
 systemctl restart openmrs-warmup.timer
 systemctl restart save-clock.timer
+systemctl restart openmrs-backup.timer
 EOF
