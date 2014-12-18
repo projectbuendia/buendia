@@ -79,6 +79,7 @@ start=$(date)
 ./replace-firmware /tmp/edison-firmware.zip
 flashed=$(date)
 ./configure-root-access "$password"
+./configure-hostname
 ./connect-wifi "$setup_ssid_psk"
 ./install-debian
 ./install-packages "$password"
