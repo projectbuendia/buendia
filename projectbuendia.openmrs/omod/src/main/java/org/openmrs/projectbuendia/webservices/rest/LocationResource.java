@@ -65,6 +65,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     };
 
     private static Log log = LogFactory.getLog(PatientResource.class);
+    static final RequestLogger logger = RequestLogger.LOGGER;
 
     private final LocationService locationService;
     private final Location emcLocation;
@@ -106,11 +107,23 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     @Override
-    public Object create(SimpleObject request, RequestContext requestContext) throws ResponseException {
+    public Object create(SimpleObject request, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "create", request);
+            Object result = createInner(request, context);
+            logger.reply(context, this, "create", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "create", e);
+            throw e;
+        }
+    }
+
+    private Object createInner(SimpleObject request, RequestContext requestContext) throws ResponseException {
         if (request.containsKey(UUID)) {
             throw new InvalidObjectDataException("UUID is specified but not allowed");
         }
-        String parentUuid = (String)request.get(PARENT_UUID);
+        String parentUuid = (String) request.get(PARENT_UUID);
         if (parentUuid == null) {
             throw new InvalidObjectDataException("Parent UUID is required but not specified");
         }
@@ -144,7 +157,19 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     @Override
-    public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "getAll");
+            SimpleObject result = getAllInner(context);
+            logger.reply(context, this, "getAll", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "getAll", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject getAllInner(RequestContext requestContext) throws ResponseException {
         ArrayList<SimpleObject> jsonResults = new ArrayList<>();
         // A new fetch is needed to sort out the hibernate cache.
         Location root = locationService.getLocationByUuid(EMC_UUID);
@@ -184,12 +209,36 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     @Override
-    public SimpleObject search(RequestContext requestContext) throws ResponseException {
-        return getAll(requestContext);
+    public SimpleObject search(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "search");
+            SimpleObject result = searchInner(context);
+            logger.reply(context, this, "search", null);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "search", e);
+            throw e;
+        }
     }
 
+
+    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
+        return getAll(requestContext);
+    }
     @Override
-    public Object retrieve(String uuid, RequestContext requestContext) throws ResponseException {
+    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "retrieve", uuid);
+            Object result = retrieveInner(uuid, context);
+            logger.reply(context, this, "retrieve", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "retrieve", e);
+            throw e;
+        }
+    }
+
+    private Object retrieveInner(String uuid, RequestContext requestContext) throws ResponseException {
         Location location = locationService.getLocationByUuid(uuid);
         return location == null ? null : locationToJson(location);
     }
@@ -199,8 +248,21 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
         return Arrays.asList(Representation.DEFAULT);
     }
 
+
     @Override
-    public Object update(String uuid, SimpleObject request, RequestContext requestContext) throws ResponseException {
+    public Object update(String uuid, SimpleObject request, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "update", uuid + ", " + request);
+            Object result = updateInner(uuid, request, context);
+            logger.reply(context, this, "update", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "update", e);
+            throw e;
+        }
+    }
+
+    private Object updateInner(String uuid, SimpleObject request, RequestContext requestContext) throws ResponseException {
         Location existing = locationService.getLocationByUuid(uuid);
         if (existing == null) {
             throw new InvalidObjectDataException("No location found with UUID " + uuid);
@@ -219,6 +281,17 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
 
     @Override
     public void delete(String uuid, String reason, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "update", uuid + ", " + reason);
+            deleteInner(uuid, reason, context);
+            logger.reply(context, this, "update", null);
+        } catch (Exception e) {
+            logger.error(context, this, "update", e);
+            throw e;
+        }
+    }
+
+    private void deleteInner(String uuid, String reason, RequestContext context) throws ResponseException {
         if (EMC_UUID.equals(uuid)) {
             throw new InvalidObjectDataException("Cannot delete the root location");
         }

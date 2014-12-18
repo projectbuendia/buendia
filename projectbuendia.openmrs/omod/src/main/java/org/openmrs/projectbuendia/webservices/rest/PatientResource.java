@@ -55,6 +55,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     // Fake values
     private static final User CREATOR = new User(1);
     private static final String FACILITY_NAME = "Kailahun";  // TODO(kpy): Use a real facility name.
+    static final RequestLogger logger = RequestLogger.LOGGER;
 
     // JSON property names
     private static final String ID = "id";
@@ -97,7 +98,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override
-    public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "getAll");
+            SimpleObject result = getAllInner(context);
+            logger.reply(context, this, "getAll", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "getAll", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject getAllInner(RequestContext requestContext) throws ResponseException {
         List<Patient> patients = patientService.getAllPatients();
         return getSimpleObjectWithResults(patients);
     }
@@ -119,8 +132,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    @Override
-    public Object create(SimpleObject json, RequestContext requestContext) throws ResponseException {
+    public Object create(SimpleObject json, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "create");
+            Object result = createInner(json, context);
+            logger.reply(context, this, "create", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "create", e);
+            throw e;
+        }
+    }
+
+    private Object createInner(SimpleObject json, RequestContext requestContext) throws ResponseException {
         // We really want this to use XForms, but lets have a simple default implementation for early testing
 
         if (!json.containsKey(ID)) {
@@ -224,7 +248,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override
-    public SimpleObject search(RequestContext requestContext) throws ResponseException {
+    public SimpleObject search(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "create");
+            SimpleObject result = searchInner(context);
+            logger.reply(context, this, "create", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "create", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
         // Partial string query for searches.
         String query = requestContext.getParameter("q");
 
@@ -239,7 +275,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override
-    public Object retrieve(String uuid, RequestContext requestContext) throws ResponseException {
+    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "retrieve", uuid);
+            Object result = retrieveInner(uuid, context);
+            logger.reply(context, this, "retrieve", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "retrieve", e);
+            throw e;
+        }
+    }
+
+    private Object retrieveInner(String uuid, RequestContext requestContext) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
         if (patient == null) {
             throw new ObjectNotFoundException();
@@ -301,6 +349,18 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return list;
     }
 
+    @Override
+    public Object update(String uuid, SimpleObject simpleObject, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "update", uuid + ", " + simpleObject);
+            Object result = updateInner(uuid, simpleObject, context);
+            logger.reply(context, this, "update", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "update", e);
+            throw e;
+        }
+    }
 
     /**
      * The SimpleObject arriving is a Gson serialization of a client Patient Bean. It has the following semantics:
@@ -313,8 +373,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
      *         but for now there may be partial updates
      * </ul>
      */
-    @Override
-    public Object update(String uuid, SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+    private Object updateInner(String uuid, SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
         if (patient == null) {
             throw new ObjectNotFoundException();
