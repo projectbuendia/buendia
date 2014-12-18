@@ -38,6 +38,10 @@ check_url http://$TARGET_IPADDR:8080/openmrs
 # Buendia
 check_url http://$TARGET_IPADDR:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
 
+# Once more, as sometimes the first /user request gives the error "Username guest or system id 6-7 is already in use."
+sleep 1
+check_url http://$TARGET_IPADDR:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+
 echo
 echo
 echo '\o/  Success!  OpenMRS is running with Buendia installed.'
