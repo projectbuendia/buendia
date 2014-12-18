@@ -41,7 +41,7 @@ function connect_ethernet() {
   while true; do
     connect_linux_ethernet || true
     connect_mac_ethernet || true
-    if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null; then break; fi
+    if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null 2>/dev/null; then break; fi
     if [[ $retry_count == 0 ]]; then
       echo "Waiting for Edison to come up at $TARGET_IPADDR.  Connect"
       echo "a USB cable from this computer to the Edison's USB OTG port."

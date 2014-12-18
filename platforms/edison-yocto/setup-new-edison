@@ -3,14 +3,14 @@
 set -e
 cd $(dirname $0)
 password=$1
-omoddir=$2
-dumpfile=$3
-sitesql=$4
-ssid=$5
-psk=$6
+omod_dir=$2
+dump_file=$3
+site_sql=$4
+setup_ssid_psk=$5
+production_ssid_psk=$6
 
-if [ "$1" == "-h" -o ! -n "$ssid" ]; then
-  echo "Usage: $0 <new-admin-password> <omod-dir> <dumpfile.zip> <site.sql> <ssid> [<psk-password>]"
+if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
+  echo "Usage: $0 <new-admin-password> <omod-dir> <dump_file.zip> <site.sql> <setup-ssid>[:<psk-password>] [<production-ssid>[:<psk-password>]]"
   echo
   echo "Completely erases and sets up an Edison from scratch, first performing"
   echo "a firmware update and then installing all necessary applications,"
@@ -18,38 +18,41 @@ if [ "$1" == "-h" -o ! -n "$ssid" ]; then
   echo "The root password and all application administrator passwords will be"
   echo "set to <new-admin-password>."
   echo
-  echo "Requires a wifi network with Internet access (which can be a wifi"
-  echo "network with no password or with a PSK password)."
+  echo "<setup-ssid> should be a network with Internet access that the Edison"
+  echo "will use during this setup process to download and install software."
+  echo "<production-ssid> is the network that the Edison will be configured"
+  echo "to join automatically on boot, in production.  Each network can be"
+  echo "a wifi network with no password or with a PSK password."
   exit 1
 fi
 
-if [[ $omoddir != /* ]]; then
-  echo "Not an absolute path: $omoddir"
+if [[ $omod_dir != /* ]]; then
+  echo "Not an absolute path: $omod_dir"
   exit 1
 fi
 
-if [ ! -d "$omoddir" ]; then
-  echo "No such directory: $omoddir"
+if [ ! -d "$omod_dir" ]; then
+  echo "No such directory: $omod_dir"
   exit 1
 fi
 
-if [[ $(ls "$omoddir"/*.omod) == '' ]]; then
-  echo "No files found: $omoddir/*.omod"
+if [[ $(ls "$omod_dir"/*.omod) == '' ]]; then
+  echo "No files found: $omod_dir/*.omod"
   exit 1
 fi
 
-if [[ $dumpfile != /* ]]; then
-  echo "Not an absolute path: $dumpfile"
+if [[ $dump_file != /* ]]; then
+  echo "Not an absolute path: $dump_file"
   exit 1
 fi
 
-if [ ! -f "$dumpfile" ]; then
-  echo "No such file: $dumpfile"
+if [ ! -f "$dump_file" ]; then
+  echo "No such file: $dump_file"
   exit 1
 fi
 
-if [ ! -f "$sitesql" ]; then
-  echo "No such file: $sitesql"
+if [ ! -f "$site_sql" ]; then
+  echo "No such file: $site_sql"
   exit 1
 fi
 
@@ -76,14 +79,14 @@ start=$(date)
 ./replace-firmware /tmp/edison-firmware.zip
 flashed=$(date)
 ./configure-root-access "$password"
-./connect-wifi "$ssid" "$psk"
+./connect-wifi "$setup_ssid_psk"
 ./install-debian
 ./install-packages "$password"
 ./install-openmrs /tmp/openmrs.war "$password" "$password"
-./install-omods $omoddir
+./install-omods $omod_dir
 ./install-push-clock
-./load-database "$dumpfile" openmrs "$password"
-./load-sql "$sitesql" openmrs "$password"
+./load-database "$dump_file" openmrs "$password"
+./load-sql "$site_sql" openmrs "$password"
 ./enable-services
 finish=$(date)
 ./reboot
@@ -91,6 +94,9 @@ finish=$(date)
 # ./verify-dhcp
 ./verify-buendia
 up=$(date)
+if [ -n "$production_ssid_psk" ]; then
+  ./connect-wifi "$production_ssid_psk" >/dev/null 2>/dev/null
+fi
 
 echo "$fetchstart - start downloading firmware & openmrs.war"
 echo "$start - start writing firmware"

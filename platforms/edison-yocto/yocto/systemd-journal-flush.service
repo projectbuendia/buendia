@@ -23,8 +23,8 @@ Before=systemd-user-sessions.service
 #
 # To work around this, we symlink all the /var/log/journal subdirectories
 # to a single directory, /var/log/journal/all, so that journald can see
-# and manage its logs across all boots.
-ExecStart=/bin/ash -c '/bin/rm -rf /var/log/journal/$(cat /etc/machine-id)'
+# and manage its logs across all boots; we remove everything other than all.
+ExecStart=/bin/ash -c '/bin/rm -rf /var/log/journal/????*'
 ExecStart=/bin/ash -c '/bin/mkdir -p /var/log/journal/all'
 ExecStart=/bin/ash -c '/bin/ln -s all /var/log/journal/$(cat /etc/machine-id)'
 # journald won't write anything unless system.journal exists.

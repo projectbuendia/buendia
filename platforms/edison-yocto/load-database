@@ -21,11 +21,15 @@ echo
 
 connect_ethernet
 $scp $dumpfile $target:/debian/tmp/dumpfile.zip
-$scp ../../scripts/openmrs_load $target:/debian/usr/local/bin/openmrs_load
+chmod 755 ../../scripts/openmrs_load
+$scp -p ../../scripts/openmrs_load $target:/debian/usr/local/bin
 cat <<EOF | do_in_debian
+set -e
 service mysql start
 export MYSQL_USER=dump
 export MYSQL_PASSWORD='$password'
 openmrs_load '$database' /tmp/dumpfile.zip
 rm /tmp/dumpfile.zip
+sleep 5
+service mysql stop
 EOF

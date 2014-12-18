@@ -16,13 +16,16 @@ if [ "$1" == "-h" -o ! -n "$password" ]; then
 fi
 
 echo
-echo "Loading site SQL into OpenMRS database..."
+echo "Loading $sql into OpenMRS database..."
 echo
 
 connect_ethernet
-$scp $sql $target:/debian/tmp/site.sql
+$scp $sql $target:/debian/tmp/tmp.sql
 cat <<EOF | do_in_debian
+set -e
 service mysql start
-mysql -udump -p"$password" "$database" < /tmp/site.sql
-rm /tmp/site.sql
+mysql -udump -p"$password" "$database" < /tmp/tmp.sql
+rm /tmp/tmp.sql
+sleep 5
+service mysql stop
 EOF

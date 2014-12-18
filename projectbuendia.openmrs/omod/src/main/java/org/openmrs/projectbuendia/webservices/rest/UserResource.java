@@ -56,6 +56,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private static final String[] REQUIRED_FIELDS = {USER_NAME, GIVEN_NAME, PASSWORD};
 
     private static Log log = LogFactory.getLog(UserResource.class);
+    static final RequestLogger logger = RequestLogger.LOGGER;
 
     private final PersonService personService;
     private final ProviderService providerService;
@@ -68,7 +69,19 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     }
 
     @Override
-    public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "search");
+            SimpleObject result = getAllInner(context);
+            logger.reply(context, this, "search", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "search", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject getAllInner(RequestContext requestContext) throws ResponseException {
         List<Provider> providers = providerService.getAllProviders();
         addGuestIfNotPresent(providers);
         return getSimpleObjectWithResults(providers);
@@ -89,16 +102,29 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
             guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
             guestDetails.put(USER_NAME, GUEST_USER_NAME);
             guestDetails.put(PASSWORD, GUEST_PASSWORD);
-            providers.add(create(guestDetails));
+            providers.add(createFromSimpleObject(guestDetails));
         }
     }
 
+
     @Override
-    public Object create(SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
-        return providerToJson(create(simpleObject));
+    public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "create", obj);
+            Object result = createInner(obj, context);
+            logger.reply(context, this, "create", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "create", e);
+            throw e;
+        }
     }
 
-    private Provider create(SimpleObject simpleObject) {
+    private Object createInner(SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+        return providerToJson(createFromSimpleObject(simpleObject));
+    }
+
+    private Provider createFromSimpleObject(SimpleObject simpleObject) {
         checkRequiredFields(simpleObject, REQUIRED_FIELDS);
 
         // TODO(akalachman): Localize full name construction?
@@ -136,7 +162,19 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     }
 
     @Override
-    public Object retrieve(String uuid, RequestContext requestContext) throws ResponseException {
+    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "retrieve", uuid);
+            Object result = retrieveInner(uuid, context);
+            logger.reply(context, this, "retrieve", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "retrieve", e);
+            throw e;
+        }
+    }
+
+    private Object retrieveInner(String uuid, RequestContext requestContext) throws ResponseException {
         Provider provider = providerService.getProviderByUuid(uuid);
         if (provider == null) {
             throw new ObjectNotFoundException();
@@ -150,7 +188,19 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     }
 
     @Override
-    public SimpleObject search(RequestContext requestContext) throws ResponseException {
+    public SimpleObject search(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "search");
+            SimpleObject result = searchInner(context);
+            logger.reply(context, this, "search", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "search", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
         // Partial string query for searches.
         String query = requestContext.getParameter("q");
 

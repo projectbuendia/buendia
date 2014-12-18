@@ -27,7 +27,8 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     static final String UUID = "uuid";
     static final String LINKS = "links";
     static final String SELF = "self";
-    
+    static final RequestLogger logger = RequestLogger.LOGGER;
+
     private final String resourceAlias;
     private final List<Representation> availableRepresentations;
     
@@ -43,11 +44,20 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         return RestConstants.URI_PREFIX + res.name() + "/" + mrsObject.getUuid();
     }
 
-    /**
-     * By default, searching and listing are 
-     */
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "search");
+            SimpleObject result = searchInner(context);
+            logger.reply(context, this, "search", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "search", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject searchInner(RequestContext context) throws ResponseException {
         List<SimpleObject> results = new ArrayList<>();
         for (T item : searchImpl(context)) {
             results.add(convertToJson(item, context));
@@ -59,6 +69,18 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
 
     @Override
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "retrieve", uuid);
+            Object result = retrieveInner(uuid, context);
+            logger.reply(context, this, "retrieve", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "retrieve", e);
+            throw e;
+        }
+    }
+
+    private Object retrieveInner(String uuid, RequestContext context) throws ResponseException {
         T item = retrieveImpl(uuid, context);
         if (item == null) {
             throw new ObjectNotFoundException();

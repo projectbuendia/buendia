@@ -1,0 +1,16 @@
+#!/bin/ash
+
+device=/dev/mmcblk1p1
+if [ -n "$(mount | sed -e "s+$device.*mask=0000++" | grep $device)" ]; then
+  while mount | grep -s $device; do umount $device; done
+fi
+
+target=/home/root/debian/var/backups
+if [ -z "$(mount | grep "$device.*$target")" ]; then
+  mount $device -o umask=0000 $target && mkdir -p $target/large
+fi
+
+target=/home/root/debian/var/log
+if [ -z "$(mount | grep "$device.*$target")" ]; then
+  mount $device -o umask=0000 $target && mkdir -p $target/large
+fi

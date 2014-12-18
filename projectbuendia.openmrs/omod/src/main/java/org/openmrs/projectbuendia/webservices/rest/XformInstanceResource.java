@@ -43,6 +43,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
 // we omit it?
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
+    static final RequestLogger logger = RequestLogger.LOGGER;
 
     // Everything not in this set is assumed to be a group of observations.
     private static final Set<String> KNOWN_CHILD_ELEMENTS = new HashSet<>();
@@ -83,7 +84,19 @@ public class XformInstanceResource implements Creatable {
     }
 
     @Override
-    public Object create(SimpleObject post, RequestContext context) throws ResponseException {
+    public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "create", obj);
+            Object result = createInner(obj, context);
+            logger.reply(context, this, "create", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "create", e);
+            throw e;
+        }
+    }
+
+    private Object createInner(SimpleObject post, RequestContext context) throws ResponseException {
         try {
             String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
