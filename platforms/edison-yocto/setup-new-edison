@@ -9,7 +9,7 @@ site_sql=$4
 setup_ssid_psk=$5
 production_ssid_psk=$6
 
-if [ "$1" == "-h" -o ! -n "$setup_ssid" ]; then
+if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
   echo "Usage: $0 <new-admin-password> <omod-dir> <dump_file.zip> <site.sql> <setup-ssid>[:<psk-password>] [<production-ssid>[:<psk-password>]]"
   echo
   echo "Completely erases and sets up an Edison from scratch, first performing"

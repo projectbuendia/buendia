@@ -75,11 +75,11 @@ cat <<'EOF' > $work_dir/setup
 cd $(dirname $0)
 root=$(pwd)
 password=$1
-ssid=$2
-psk=$3
+setup_ssid_psk=$2
+production_ssid_psk=$3
 
-if [ "$1" == "-h" -o -z "$ssid" ]; then
-  echo "Usage: $0 <new-admin-password> <ssid> [<psk-password>]"
+if [ "$1" == "-h" -o -z "$setup_ssid_psk" ]; then
+  echo "Usage: $0 <new-admin-password> <setup-ssid>[:<psk-password>] <production-ssid>[:<psk-password>]"
   echo
   echo "Completely erases and sets up an Edison from scratch, first performing"
   echo "a firmware update and then installing all necessary applications,"
@@ -87,8 +87,11 @@ if [ "$1" == "-h" -o -z "$ssid" ]; then
   echo "The root password and all application administrator passwords will be"
   echo "set to <new-admin-password>."
   echo
-  echo "Requires a wifi network with Internet access (which can be a wifi"
-  echo "network with no password or with a PSK password)."
+  echo "<setup-ssid> should be a network with Internet access that the Edison"
+  echo "will use during this setup process to download and install software."
+  echo "<production-ssid> is the network that the Edison will be configured"
+  echo "to join automatically on boot, in production.  Each network can be"
+  echo "a wifi network with no password or with a PSK password."
   exit 1
 fi
 
@@ -99,7 +102,7 @@ site_sql="$site_sql"
 EOF
 cat <<'EOF' >> $work_dir/setup
 
-platforms/edison-yocto/setup-new-edison "$password" "$root/omods" "$root/$clean_dump_name" "$root/$site_sql" "$ssid" "$psk"
+platforms/edison-yocto/setup-new-edison "$password" "$root/omods" "$root/$clean_dump_name" "$root/$site_sql" "$setup_ssid_psk" "$production_ssid_psk"
 EOF
 
 chmod 755 $work_dir/setup
