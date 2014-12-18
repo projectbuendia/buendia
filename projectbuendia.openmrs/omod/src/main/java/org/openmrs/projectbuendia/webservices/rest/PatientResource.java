@@ -134,7 +134,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "create");
+            logger.request(context, this, "create", json);
             Object result = createInner(json, context);
             logger.reply(context, this, "create", result);
             return result;
@@ -250,12 +250,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "create");
+            logger.request(context, this, "search");
             SimpleObject result = searchInner(context);
-            logger.reply(context, this, "create", result);
+            logger.reply(context, this, "search", result);
             return result;
         } catch (Exception e) {
-            logger.error(context, this, "create", e);
+            logger.error(context, this, "search", e);
             throw e;
         }
     }
