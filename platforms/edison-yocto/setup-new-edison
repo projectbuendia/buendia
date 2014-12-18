@@ -94,7 +94,9 @@ finish=$(date)
 # ./verify-dhcp
 ./verify-buendia
 up=$(date)
-if [ -n "$production_ssid_psk" ]; then ./connect-wifi "$production_ssid_psk"; fi
+if [ -n "$production_ssid_psk" ]; then
+  ./connect-wifi "$production_ssid_psk" >/dev/null 2>/dev/null
+fi
 
 echo "$fetchstart - start downloading firmware & openmrs.war"
 echo "$start - start writing firmware"

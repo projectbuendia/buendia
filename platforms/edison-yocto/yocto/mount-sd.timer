@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodically try to mount the SD card
+
+[Timer]
+OnBootSec=0
+OnUnitActiveSec=120
+Unit=mount-sd.service
+
+[Install]
+WantedBy=multi-user.target

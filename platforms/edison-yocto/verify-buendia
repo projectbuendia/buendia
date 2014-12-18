@@ -12,7 +12,7 @@ if [ "$1" == "-h" ]; then
 fi
 
 echo
-echo "Waiting to see if OpenMRS comes up..."
+echo "Waiting to see if OpenMRS comes up (can take 5 minutes)..."
 echo
 
 function check_url() {

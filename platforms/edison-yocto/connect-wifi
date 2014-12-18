@@ -12,6 +12,4 @@ if [ "$1" == "-h" -o ! -n "$ssid_psk" ]; then
   exit 1
 fi
 
-echo
-echo "Connecting to $ssid."
 run_script_in_yocto yocto/wifi "$ssid_psk"

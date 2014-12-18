@@ -16,6 +16,8 @@ fi
 
 function disable_home_nosuid() {
   cat << EOF | do_in_yocto
+set -e
+
 # Remove the "nosuid" option from the /home mount entry in fstab.
 grep -v /home /etc/fstab > /tmp/fstab.$$
 grep /home /etc/fstab | sed -e 's/,nosuid,/,/' >> /tmp/fstab.$$
@@ -29,6 +31,8 @@ EOF
 function compile_push_clock() {
   $scp debian/push_clock.c $target:/debian/root
   cat <<EOF | do_in_debian
+set -e
+apt-get -y install gcc libc-dev
 gcc -o /usr/local/bin/push_clock push_clock.c
 chmod u+s /usr/local/bin/push_clock
 ls -al /usr/local/bin/push_clock

@@ -1,11 +1,10 @@
 [Unit]
 Description=Periodically back up the OpenMRS Database to an SD card
 
-
 [Timer]
-OnBootSec=60
-OnUnitActiveSec=60
-Unit=openmrs-db-backup.service
+OnBootSec=3600
+OnUnitActiveSec=14400
+Unit=openmrs-backup.service
 
 [Install]
 WantedBy=multi-user.target

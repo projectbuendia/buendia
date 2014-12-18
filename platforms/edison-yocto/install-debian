@@ -29,6 +29,7 @@ run_script_in_yocto yocto/enter-debian-nomount echo
 $scp -p debian/bashrc $target:/debian/root/.bashrc
 
 cat <<EOF | do_in_debian
+set -e
 echo UTC > /etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
