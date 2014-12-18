@@ -69,4 +69,9 @@ public class DefaultXformCustomizer implements XformCustomizer {
     public String getAppearanceAttribute(FormField field) {
         return null;
     }
+
+    @Override
+    public Integer getRows(Concept concept) {
+        return null;
+    }
 }

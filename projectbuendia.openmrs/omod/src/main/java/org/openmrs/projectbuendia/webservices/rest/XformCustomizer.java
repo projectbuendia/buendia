@@ -44,4 +44,12 @@ public interface XformCustomizer {
      * @return the contents of the appearance attribute, or null if none
      */
     public String getAppearanceAttribute(FormField field);
+
+    /**
+     * Get the number of rows for querying a particular text question.
+     *
+     * @param concept the concept used for the question
+     * @return null for default (single line) or an integer number of rows
+     */
+    public Integer getRows(Concept concept);
 }

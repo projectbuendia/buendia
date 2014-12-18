@@ -49,7 +49,8 @@ public class BuendiaXformBuilderEx {
 
     private static final int MALE_CONCEPT_ID = 1534;
     private static final int FEMALE_CONCEPT_ID = 1535;
-    
+    private static final String ATTRIBUTE_ROWS = "rows";
+
     private static Log log = LogFactory.getLog(BuendiaXformBuilderEx.class);
 
     private final Map<String, Element> bindings = new HashMap<>();
@@ -284,6 +285,12 @@ public class BuendiaXformBuilderEx {
         
         Element controlNode = appendElement(bodyNode, NAMESPACE_XFORMS, controlName);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
+        if (DATA_TYPE_TEXT.equals(dataType)) {
+            Integer rows = customizer.getRows(concept);
+            if (rows != null) {
+                controlNode.setAttribute(null, ATTRIBUTE_ROWS, rows.toString());
+            }
+        }
         
         Element bindNode = bindings.get(bindName);
         if (bindNode == null) {
@@ -293,7 +300,7 @@ public class BuendiaXformBuilderEx {
         bindNode.setAttribute(null, ATTRIBUTE_TYPE, dataType);
         
         Element labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, getLabel(concept));
-        
+
         addHintNode(labelNode, concept);
         
         if(concept instanceof ConceptNumeric) {
