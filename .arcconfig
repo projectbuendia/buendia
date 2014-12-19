@@ -1,5 +1,5 @@
 {
-  "phabricator.uri" : "http://23.251.143.173/",
+  "phabricator.uri" : "http://p.projectbuendia.org/",
   "arc.land.onto.default" : "dev",
   "history.immutable" : true
 }
