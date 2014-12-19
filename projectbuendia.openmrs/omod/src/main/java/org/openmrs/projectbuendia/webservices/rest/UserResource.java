@@ -69,8 +69,13 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
     @Override
     public SimpleObject getAll(RequestContext requestContext) throws ResponseException {
-        List<Provider> providers = providerService.getAllProviders();
-        addGuestIfNotPresent(providers);
+        List<Provider> providers;
+        // Returning providers is not a thread-safe operation as it may add the guest user
+        // to the database, which is not idempotent.
+        synchronized(this) {
+            providers = providerService.getAllProviders();
+            addGuestIfNotPresent(providers);
+        }
         return getSimpleObjectWithResults(providers);
     }
 
