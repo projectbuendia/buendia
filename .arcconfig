@@ -1,0 +1,5 @@
+{
+  "phabricator.uri" : "http://23.251.143.173/",
+  "arc.land.onto.default" : "dev",
+  "history.immutable" : true
+}
