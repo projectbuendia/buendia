@@ -7,7 +7,7 @@ omod=$2
 user=$3
 
 if [ "$1" == "-h" -o -z "$omod" ]; then
-  echo "Usage: $0 <hostname> <filename.omod> [username]"
+  echo "Usage: $0 <host-ip-address> <filename.omod> [username]"
   echo
   echo "Installs a Buendia OMOD file on an OpenMRS server, replacing any"
   echo "existing Buendia module; restarts the server to pick up the change."
@@ -64,13 +64,14 @@ echo
 echo "Previous set of modules:"
 ls -l modules
 
-mkdir -p old_modules
+$sudo mkdir -p old_modules
 
-# old names start with "projectbuendia"; new names start with "buendia-server".
-mv -f modules/projectbuendia*omod modules/buendia-server*omod old_modules 2>/dev/null || true
+# old names start with "projectbuendia"; new names start with "buendia".
+$sudo mv -f modules/*buendia*.omod old_modules 2>/dev/null || true
 
 $sudo cp -f /tmp/$tempname $tempname  # get the file onto the same filesystem
 $sudo mv -f $tempname modules/$omodname  # atomically install the file into modules/
+$sudo chmod a+r modules/$omodname # make sure it is tomcat readable
 $sudo rm -f /tmp/$tempname
 
 echo

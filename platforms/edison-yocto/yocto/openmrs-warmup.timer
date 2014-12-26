@@ -1,9 +1,12 @@
 [Unit]
-Description=Warms up OpenMRS periodically
+Description=Periodically warm up OpenMRS
+
+# Tomcat and OpenMRS can take several minutes to start up; periodically making
+# HTTP requests to them keeps them warm and responsive.
 
 [Timer]
 OnBootSec=30
-OnUnitActiveSec=300
+OnUnitActiveSec=60
 Unit=openmrs-warmup.service
 
 [Install]

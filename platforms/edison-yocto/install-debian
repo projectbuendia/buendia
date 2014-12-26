@@ -22,16 +22,22 @@ echo
 
 connect_ethernet
 run_script_in_yocto yocto/install-debian
-run_script_in_yocto yocto/enter-debian echo  # install enter-debian
-# Install enter-debian-nomount
+
+# Install enter-debian and enter-debian-nomount in /usr/local/bin.
+run_script_in_yocto yocto/enter-debian echo
 run_script_in_yocto yocto/enter-debian-nomount echo
 $scp -p debian/bashrc $target:/debian/root/.bashrc
 
 cat <<EOF | do_in_debian
+set -e
 echo UTC > /etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
 apt-get update
+
+# When installing packages, install only the required dependencies.
+echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
+echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
 
 mkdir -p /usr/local/bin
 touch /etc/debian_installed

@@ -14,7 +14,6 @@ import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Location;
-import org.openmrs.Person;
 import org.openmrs.Provider;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
@@ -50,7 +49,8 @@ public class BuendiaXformBuilderEx {
 
     private static final int MALE_CONCEPT_ID = 1534;
     private static final int FEMALE_CONCEPT_ID = 1535;
-    
+    private static final String ATTRIBUTE_ROWS = "rows";
+
     private static Log log = LogFactory.getLog(BuendiaXformBuilderEx.class);
 
     private final Map<String, Element> bindings = new HashMap<>();
@@ -58,6 +58,9 @@ public class BuendiaXformBuilderEx {
     private final boolean useConceptIdAsHint;
     private final Locale locale;
     private final XformCustomizer customizer;
+    private boolean includesLocations;
+    private boolean includesProviders;
+
 
     private BuendiaXformBuilderEx(XformCustomizer customizer) {
         useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
@@ -71,14 +74,14 @@ public class BuendiaXformBuilderEx {
      * public member in the class; it constructs an instance (to avoid
      * nasty statics) and then invokes private methods appropriately.
      */
-    public static String buildXform(Form form, XformCustomizer customizer) throws Exception {
+    public static FormData buildXform(Form form, XformCustomizer customizer) throws Exception {
         if (customizer == null) {
             customizer = new DefaultXformCustomizer();
         }
         return new BuendiaXformBuilderEx(customizer).buildXformImpl(form);
     }
     
-    private String buildXformImpl(Form form) throws Exception {
+    private FormData buildXformImpl(Form form) throws Exception {
         boolean includeRelationshipNodes = false;
         /*
          * TODO(jonskeet): Reinstate this code when we're using a version of the
@@ -116,7 +119,7 @@ public class BuendiaXformBuilderEx {
         Element instanceNode = appendElement(modelNode, NAMESPACE_XFORMS, NODE_INSTANCE);
         instanceNode.setAttribute(null, ATTRIBUTE_ID, INSTANCE_ID);
         
-        Element formNode = (Element) BuendiaXformBuilder.getDocument(new StringReader(templateXml)).getRootElement();
+        Element formNode = BuendiaXformBuilder.getDocument(new StringReader(templateXml)).getRootElement();
         formNode.setAttribute(null, ATTRIBUTE_UUID, form.getUuid());
         instanceNode.addChild(Element.ELEMENT, formNode);
         
@@ -124,8 +127,8 @@ public class BuendiaXformBuilderEx {
         
         //TODO This block should be replaced with using database field items instead of
         //     parsing the template document.
-        Hashtable<String, String> problemList = new Hashtable<String, String>();
-        Hashtable<String, String> problemListItems = new Hashtable<String, String>();
+        Hashtable<String, String> problemList = new Hashtable<>();
+        Hashtable<String, String> problemListItems = new Hashtable<>();
         BuendiaXformBuilder.parseTemplate(modelNode, formNode, formNode, bindings, problemList, problemListItems, 0);
         
         buildUInodes(form, bodyNode);
@@ -153,15 +156,17 @@ public class BuendiaXformBuilderEx {
         if (includeRelationshipNodes) {
             RelativeBuilder.build(modelNode, bodyNode, formNode);
         }
-        return BuendiaXformBuilder.fromDoc2String(doc);
+
+        String xml = BuendiaXformBuilder.fromDoc2String(doc);
+        return new FormData(xml, includesProviders, includesLocations);
     }     
     
     private void buildUInodes(Form form, Element bodyNode) {
         TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-        buildUInodes(form, formStructure, 0, bodyNode);
+        buildUInodes(formStructure, 0, bodyNode);
     }
     
-    private void buildUInodes(Form form, TreeMap<Integer, TreeSet<FormField>> formStructure,
+    private void buildUInodes(TreeMap<Integer, TreeSet<FormField>> formStructure,
             Integer sectionId, Element parentUiNode) {         
         TreeSet<FormField> section = formStructure.get(sectionId);
         if (section == null) {
@@ -271,7 +276,7 @@ public class BuendiaXformBuilderEx {
             }
             
             // Recurse down to subnodes.
-            buildUInodes(form, formStructure, formField.getFormFieldId(), fieldUiNode);
+            buildUInodes(formStructure, formField.getFormFieldId(), fieldUiNode);
         }
     }
 
@@ -280,6 +285,12 @@ public class BuendiaXformBuilderEx {
         
         Element controlNode = appendElement(bodyNode, NAMESPACE_XFORMS, controlName);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
+        if (DATA_TYPE_TEXT.equals(dataType)) {
+            Integer rows = customizer.getRows(concept);
+            if (rows != null) {
+                controlNode.setAttribute(null, ATTRIBUTE_ROWS, rows.toString());
+            }
+        }
         
         Element bindNode = bindings.get(bindName);
         if (bindNode == null) {
@@ -289,7 +300,7 @@ public class BuendiaXformBuilderEx {
         bindNode.setAttribute(null, ATTRIBUTE_TYPE, dataType);
         
         Element labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, getLabel(concept));
-        
+
         addHintNode(labelNode, concept);
         
         if(concept instanceof ConceptNumeric) {
@@ -312,7 +323,7 @@ public class BuendiaXformBuilderEx {
     }
     
     private void addCodedUiNodes(boolean multiplSel, Element controlNode, Collection<ConceptAnswer> answerList,
-            Concept concept, String dataType) {
+            Concept concept) {
         for (ConceptAnswer answer : answerList) {
             String conceptName = customizer.getLabel(answer.getAnswerConcept());
             String conceptValue;
@@ -420,7 +431,7 @@ public class BuendiaXformBuilderEx {
             
             String controlName = field.getSelectMultiple() ? CONTROL_SELECT : CONTROL_SELECT1;
             Element controlNode = addUiNode(name, concept, DATA_TYPE_TEXT, controlName, parentUiNode);
-            addCodedUiNodes(field.getSelectMultiple(), controlNode, answers, concept, DATA_TYPE_TEXT);
+            addCodedUiNodes(field.getSelectMultiple(), controlNode, answers, concept);
             return controlNode;
         }
     }
@@ -517,6 +528,7 @@ public class BuendiaXformBuilderEx {
      * @param controlNode - the UI control node.
      */
     private void populateProviders(Element controlNode) {
+        includesProviders = true;
         for (Provider provider : Context.getProviderService().getAllProviders()) {
 
             Integer providerId = provider.getId();
@@ -530,6 +542,7 @@ public class BuendiaXformBuilderEx {
      * @param controlNode - the UI control node.
      */
     private void populateLocations(Element controlNode) {
+        includesLocations = true;
         List<Location> locations = customizer.getEncounterLocations();
         for (Location loc : locations) {
             Integer id = loc.getLocationId();

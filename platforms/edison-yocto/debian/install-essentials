@@ -3,4 +3,4 @@
 # Installs some essential Debian packages.
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get -y install less curl netcat screen python2.7 python-pip ntp git zip
+apt-get -y install less curl netcat screen python2.7 python-pip ntp git ssh rsync zip unzip

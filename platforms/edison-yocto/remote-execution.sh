@@ -15,6 +15,7 @@ scp="scp $ssh_opts"
 # Note that whereas cat <<EOF | do_in_yocto will expand shell variables on
 # this host before execution, cat <<'EOF' | do_in_yocto will not.
 function do_in_yocto() {
+  connect_ethernet
   echo ">> $target" 1>&2
   $ssh $target ash
 }
@@ -26,6 +27,7 @@ function run_script_in_yocto() {
   name=$(basename $script)
   shift
 
+  connect_ethernet
   $ssh $target mkdir -p /usr/local/bin
   chmod 755 $script
   echo "$script -> $target:/usr/local/bin/$name" 1>&2
@@ -40,6 +42,7 @@ function run_script_in_yocto() {
 # Debian chroot.  Whereas cat <<EOF | do_in_debian will expand shell variables
 # on this host before execution, cat <<'EOF' | do_in_debian will not.
 function do_in_debian() {
+  connect_ethernet
   echo ">> $target(debian)" 1>&2
   $ssh $target /usr/local/bin/enter-debian /bin/bash
 }
@@ -51,6 +54,7 @@ function run_script_in_debian() {
   name=$(basename $script)
   shift
 
+  connect_ethernet
   $ssh $target mkdir -p /debian/usr/local/bin
   chmod 755 $script
   echo "$script -> $target(debian):/usr/local/bin/$name" 1>&2
@@ -91,7 +95,7 @@ function connect_ethernet() {
   while true; do
     connect_linux_ethernet || true
     connect_mac_ethernet || true
-    if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null; then break; fi
+    if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null 2>/dev/null; then break; fi
     if [[ $retry_count == 0 ]]; then
       echo "Waiting for Edison to come up at $TARGET_IPADDR.  Connect"
       echo "a USB cable from this computer to the Edison's USB OTG port."

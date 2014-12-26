@@ -103,4 +103,10 @@ public class BuendiaXformCustomizer implements XformCustomizer {
         }
         return null;
     }
+
+    @Override
+    public Integer getRows(Concept concept) {
+        // Once you have 2, the carriage return is shown, so it will expand to more line.
+        return 2;
+    }
 }

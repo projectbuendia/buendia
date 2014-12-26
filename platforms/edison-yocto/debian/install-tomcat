@@ -23,7 +23,7 @@ function install_tomcat7() {
 function create_admin_user() {
   new_password="$1"
 
-  grep -v '</tomcat-users' /etc/tomcat7/tomcat-users.xml > /tmp/tomcat-users.xml
+  cat /etc/tomcat7/tomcat-users.xml | grep -v 'username="admin"' | grep -v '</tomcat-users' > /tmp/tomcat-users.xml
   cat <<EOF >> /tmp/tomcat-users.xml
 <user username="admin" password="$new_password" roles="manager-gui" />
 </tomcat-users>
@@ -32,14 +32,12 @@ EOF
 }
 
 function adjust_java_opts() {
-  f="/etc/default/tomcat7"
-  old="-Djava.awt.headless=true -Xmx128m -XX:+UseConcMarkSweepGC"
-  new="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"
+  filename=/etc/default/tomcat7
 
-  #Replace string and remove old file.
-  sed "s/$old/$new/g" $f > $f.new
-  mv $f.new $f
-  echo $f done
+  # Increase memory limit from Xmx128m to Xmx256m.
+  # Add the CMSIncrementalMode option.
+  sed 's/^ *JAVA_OPTS.*/JAVA_OPTS="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"/' $filename > $filename.new
+  mv $filename.new $filename
 }
 
 install_jdk7  # JDK 7 is required
@@ -49,4 +47,5 @@ adjust_java_opts
 
 # Debian scripts should stop the services they install so as not to conflict
 # with yocto setup scripts.
+sleep 5
 service tomcat7 stop
