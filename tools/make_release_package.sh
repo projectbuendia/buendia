@@ -2,7 +2,7 @@
 
 # TODO(kpy): This currently builds the zip file from a combination of
 # externally built binaries (downloaded from Jenkins by build number)
-# and files in the current working repo (platforms/ and scripts/).
+# and files in the current working repo (platforms/ and tools/).
 # This is bad -- it will be inconsistent when HEAD in the current working
 # repo doesn't match the build numbers specified as arguments.  Instead,
 # this should be a "make" target that builds everything based on the current
@@ -13,7 +13,7 @@
 
 start=$(pwd)
 cd $(dirname $0)
-cd ..  # root directory is one up from scripts/
+cd ..  # root directory is one up from tools/
 root=$(pwd)
 cd $start
 
@@ -52,14 +52,14 @@ package_name=buendia-c${client_rc_number}-s${server_rc_number}-$dump-$site
 work_dir=/tmp/buendia-package.$$/$package_name
 clean_dump_name=$(basename $clean_dump_zip)
 
-if [ ! -f $root/scripts/$site_sql ]; then
+if [ ! -f $root/tools/$site_sql ]; then
   echo Unknown site name: $site
   exit 1
 fi
 
 set -e
 mkdir -p $work_dir
-cp -pr $root/platforms $root/scripts $work_dir
+cp -pr $root/platforms $root/tools $work_dir
 mkdir $work_dir/omods
 curl -o $work_dir/$client_apk http://$host_port/client-rc/$client_apk
 unzip -tq $work_dir/$client_apk
@@ -67,7 +67,7 @@ curl -o $work_dir/omods/$server_omod http://$host_port/server-rc/$server_omod
 unzip -tq $work_dir/omods/$server_omod
 cp $root/modules/xforms-4.3.1.jar $work_dir/omods/xforms-4.3.1.omod
 cp $clean_dump_zip $work_dir/$clean_dump_name
-cp $root/scripts/$site_sql $work_dir/
+cp $root/tools/$site_sql $work_dir/
 
 cat <<'EOF' > $work_dir/setup
 #!/bin/bash

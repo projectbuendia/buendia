@@ -20,7 +20,7 @@ echo "Loading data into OpenMRS database (takes about 10 minutes)..."
 echo
 
 $scp $dumpfile $target:/tmp/dumpfile.zip
-$scp ../../scripts/openmrs_load $target:
+$scp ../../tools/openmrs_load $target:
 cat <<EOF | do_on_target
 service mysql start
 export MYSQL_USER=dump
