@@ -15,13 +15,8 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-import java.util.TimeZone;
 
 /**
  * Read-only resource representing multiple observations for a single patient.
@@ -31,8 +26,6 @@ import java.util.TimeZone;
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class PatientEncountersResource extends AbstractReadOnlyResource<Patient> {
 
-    private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
-    
     // JSON property names
     private static final String UUID = "uuid";
     private static final String ENCOUNTERS = "encounters";
@@ -50,18 +43,18 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
     }
     
     @Override
-    protected Patient retrieveImpl(String uuid, RequestContext context) {
+    protected Patient retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return patientService.getPatientByUuid(uuid);
     }
     
     @Override
-    public List<Patient> searchImpl(RequestContext context) {
+    public List<Patient> searchImpl(RequestContext context, long snapshotTime) {
         return patientService.getAllPatients();
     }
-    
-    
+
     @Override
-    protected void populateJsonProperties(Patient patient, RequestContext context, SimpleObject json) {
+    protected void populateJsonProperties(Patient patient, RequestContext context, SimpleObject json,
+                                          long snapshotTime) {
         String parameter = context.getParameter(START_MILLISECONDS_INCLUSIVE);
         Long startMillisecondsInclusive = null;
         if (parameter != null) {
@@ -80,7 +73,7 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
              *
              * Until this is done, we have two options. 1 Use the DAO directly, hooking in to the spring injection
              * code to get it. 2 load the encounters, and then filter before getting the observations, hoping this is
-             * efficient enough. For now we are going with 2
+             * efficient enough. For now we are going with 2.
              *
              * Nullable parameters for getEncounters(), put here for easier readability:
              * who - the patient the encounter is for
@@ -98,13 +91,14 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
                     encounterService.getEncountersByPatient(patient));
         }
         List<SimpleObject> encounters = new ArrayList<>();
-        for (Encounter encounter : encountersByPatient) {
+        for (Encounter encounter : filterBeforeSnapshotTime(snapshotTime, encountersByPatient)) {
             encounters.add(encounterToJson(encounter));
         }
         json.put(ENCOUNTERS, encounters);
     }
 
-    private List<Encounter> filterEncountersByModificationTime(Long startMillisecondsInclusive, List<Encounter> encountersByPatient) {
+    private List<Encounter> filterEncountersByModificationTime(Long startMillisecondsInclusive,
+                                                               List<Encounter> encountersByPatient) {
         ArrayList<Encounter> filtered = new ArrayList<>();
         for (Encounter encounter : encountersByPatient) {
             if (encounter.getDateCreated().getTime() >= startMillisecondsInclusive ||
@@ -113,17 +107,20 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
                 filtered.add(encounter);
             }
         }
-        encountersByPatient = filtered;
-        return encountersByPatient;
+        return filtered;
     }
 
-    // TODO(jonskeet): Move out, or find somewhere else this is already done.
-    private static String toIso8601(Date dateTime) {
-        DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-        format.setTimeZone(UTC);
-        return format.format(dateTime);
+    private List<Encounter> filterBeforeSnapshotTime(long snapshotTime,
+                                                     List<Encounter> encountersByPatient) {
+        ArrayList<Encounter> filtered = new ArrayList<>();
+        for (Encounter encounter : encountersByPatient) {
+            if (encounter.getDateCreated().getTime() < snapshotTime) {
+                filtered.add(encounter);
+            }
+        }
+        return filtered;
     }
-    
+
     private SimpleObject encounterToJson(Encounter encounter) {
         SimpleObject encounterJson = new SimpleObject();
         // TODO: Check what format this ends up in.
