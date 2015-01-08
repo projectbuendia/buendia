@@ -1,6 +1,6 @@
 [submodule "client"]
 	path = client
-	url = git@github.com:ProjectBuendia/client.git
+	url = ../client
 [submodule "buendia-libs"]
 	path = buendia-libs
-	url = git@github.com:ProjectBuendia/buendia-libs.git
+	url = ../buendia-libs
