@@ -86,7 +86,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         // Returning providers is not a thread-safe operation as it may add the guest user
         // to the database, which is not idempotent.
         synchronized(this) {
-            providers = providerService.getAllProviders();
+            providers = providerService.getAllProviders(false); // omit retired
             addGuestIfNotPresent(providers);
         }
         return getSimpleObjectWithResults(providers);
