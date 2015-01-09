@@ -71,12 +71,12 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     @Override
     public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "search");
+            logger.request(context, this, "getAll");
             SimpleObject result = getAllInner(context);
-            logger.reply(context, this, "search", result);
+            logger.reply(context, this, "getAll", result);
             return result;
         } catch (Exception e) {
-            logger.error(context, this, "search", e);
+            logger.error(context, this, "getAll", e);
             throw e;
         }
     }
@@ -213,7 +213,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         List<Provider> filteredProviders = new ArrayList<>();
 
         // Perform a substring search on username.
-        for (Provider provider : providerService.getAllProviders()) {
+        for (Provider provider : providerService.getAllProviders(false)) {
             if (StringUtils.containsIgnoreCase(provider.getName(), query)) {
                 filteredProviders.add(provider);
             }
