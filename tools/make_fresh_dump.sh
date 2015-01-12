@@ -1,13 +1,21 @@
 #!/bin/bash
+# Produces a cleaned snapshot of an OpenMRS MySQL database at /tmp/cleaned.zip.
 
-SRC_ZONE="europe-west1-b"
-SRC_INSTANCE="openmrs-2"
-TMP_ZONE="europe-west1-b"
-TMP_INSTANCE="jenkins-3"
-dump="complete.zip"
-cleandump="clean.zip"
+cd $(dirname $0)
+set -e
 
-# CHeck local values of username and password are set.
+SRC_HOST=104.155.15.141
+SRC_USER=jenkins  # a Unix account on SRC_HOST to which we have ssh access
+SRC_DATABASE=openmrs  # the MySQL database on SRC_HOST to take a snapshot of
+SRC=$SRC_USER@$SRC_HOST
+
+WORK_HOST=104.155.15.141  # 104.155.14.26
+WORK_USER=jenkins  # a Unix account on WORK_HOST to which we have ssh access
+WORK_DATABASE=scratch  # a MySQL database on WORK_HOST to use as a scratch area
+WORK=$WORK_USER@$WORK_HOST
+
+# Check local values of username and password are set.  These must be valid
+# for both the SRC_DATABASE and the WORK_DATABASE.
 if [ -z "$MYSQL_USER" ]; then
     echo "Need to set \$MYSQL_USER"
     exit 2
@@ -17,34 +25,46 @@ if [ -z "$MYSQL_PASSWORD" ]; then
     exit 2
 fi
 
-# Run OpenMRS dump on openmrs-2 VM instance, after setting username and password from local values
-cat <(echo "export MYSQL_USER=\"$MYSQL_USER\"") \
-<(echo "export MYSQL_PASSWORD=\"$MYSQL_PASSWORD\"") \
-openmrs_dump \
-  | gcloud compute ssh --zone $SRC_ZONE $SRC_INSTANCE --command "bash -s openmrs $dump"
+if [ $SRC:$SRC_DATABASE == $WORK:$WORK_DATABASE ]; then
+    echo "Source database and working database should not be the same;"
+    echo "the cleaning operation would mess up the source database."
+    exit 2
+fi
 
-# copy file to local computer
-gcloud compute copy-files $SRC_INSTANCE:$dump /tmp/$dump --zone $SRC_ZONE
+# Prepend two lines to the openmrs_dump script and run it on SRC_HOST.
+cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
+    <(echo "set -- $SRC_DATABASE dump.zip") \
+    openmrs_dump \
+    | ssh $SRC bash
 
-# copy dump over to our processing instance
-gcloud compute copy-files /tmp/$dump clear_server.sql $TMP_INSTANCE:. --zone $TMP_ZONE
+# If necessary, copy the dump file over to the WORK_HOST.
+if [ $SRC != $WORK ]; then
+    scp $SRC:dump.zip /tmp/dump.zip
+    scp /tmp/dump.zip $WORK:dump.zip
+fi
 
-# Clear the server of added data, and add fresh data. Then dump again from the tmp instance.
-# At the moment we don't add Kailahum locations, if we did, add in the following line
-# <(echo "$runsql -e \"source /home/nfortescue/add_fresh_start.sql\" ") \
+# No more touching the SRC!
+SRC_HOST=
+SRC_USER=
+SRC_DATABASE=
+SRC=
 
-runsql="mysql -u $MYSQL_USER -p'$MYSQL_PASSWORD' openmrs "
-cat <(echo "export MYSQL_USER=\"$MYSQL_USER\"") \
-<(echo "export MYSQL_PASSWORD=\"$MYSQL_PASSWORD\"") \
-openmrs_load \
-<(echo "$runsql -e \"source clear_server.sql\" ") \
-  | gcloud compute ssh --zone $TMP_ZONE $TMP_INSTANCE --command "bash -s openmrs $dump"
+# Load the dump into the scratch area.
+cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
+    <(echo "set -- $WORK_DATABASE dump.zip") \
+    openmrs_load \
+    | ssh $WORK bash
 
-# run dump again to get a dump of the clean instance
-cat <(echo "export MYSQL_USER=\"$MYSQL_USER\"") \
-<(echo "export MYSQL_PASSWORD=\"$MYSQL_PASSWORD\"") \
-openmrs_dump \
-  | gcloud compute ssh --zone $TMP_ZONE $TMP_INSTANCE --command "bash -s openmrs $cleandump"
+# Clear out dev/test data (patients, observations, etc.) to put the database
+# back in a starting state.
+cat clear_server.sql \
+    | ssh $WORK "mysql -u'$MYSQL_USER' -p'$MYSQL_PASSWORD' $WORK_DATABASE"
 
-# copy the clean dump to local machine
-gcloud compute copy-files $TMP_INSTANCE:$cleandump /tmp/$cleandump --zone $TMP_ZONE
+# Dump the cleaned database.
+cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
+    <(echo "set -- $WORK_DATABASE cleaned.zip") \
+    openmrs_dump \
+    | ssh $WORK bash
+
+# Copy the clean dump to the local machine.
+scp $WORK:cleaned.zip /tmp/cleaned.zip
