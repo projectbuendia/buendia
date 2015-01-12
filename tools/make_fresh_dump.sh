@@ -11,7 +11,7 @@ SRC=$SRC_USER@$SRC_HOST
 
 WORK_HOST=104.155.15.141  # 104.155.14.26
 WORK_USER=jenkins  # a Unix account on WORK_HOST to which we have ssh access
-WORK_DATABASE=openmrs-clean  # a MySQL database on WORK_HOST as a scratch area
+WORK_DATABASE=openmrs_clean  # a MySQL database on WORK_HOST as a scratch area
 WORK=$WORK_USER@$WORK_HOST
 
 # Check local values of username and password are set.  These must be valid
