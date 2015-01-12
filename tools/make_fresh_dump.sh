@@ -1,5 +1,5 @@
 #!/bin/bash
-# Produces a cleaned snapshot of an OpenMRS MySQL database at /tmp/cleaned.zip.
+# Produces a cleaned snapshot of an OpenMRS database at /tmp/clean-dump.zip
 
 cd $(dirname $0)
 set -e
@@ -11,7 +11,7 @@ SRC=$SRC_USER@$SRC_HOST
 
 WORK_HOST=104.155.15.141  # 104.155.14.26
 WORK_USER=jenkins  # a Unix account on WORK_HOST to which we have ssh access
-WORK_DATABASE=scratch  # a MySQL database on WORK_HOST to use as a scratch area
+WORK_DATABASE=openmrs-clean  # a MySQL database on WORK_HOST as a scratch area
 WORK=$WORK_USER@$WORK_HOST
 
 # Check local values of username and password are set.  These must be valid
@@ -25,7 +25,7 @@ if [ -z "$MYSQL_PASSWORD" ]; then
     exit 2
 fi
 
-if [ $SRC:$SRC_DATABASE == $WORK:$WORK_DATABASE ]; then
+if [ $SRC_HOST:$SRC_DATABASE == $WORK_HOST:$WORK_DATABASE ]; then
     echo "Source database and working database should not be the same;"
     echo "the cleaning operation would mess up the source database."
     exit 2
@@ -62,9 +62,9 @@ cat clear_server.sql \
 
 # Dump the cleaned database.
 cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
-    <(echo "set -- $WORK_DATABASE cleaned.zip") \
+    <(echo "set -- $WORK_DATABASE clean-dump.zip") \
     openmrs_dump \
     | ssh $WORK bash
 
 # Copy the clean dump to the local machine.
-scp $WORK:cleaned.zip /tmp/cleaned.zip
+scp $WORK:clean-dump.zip /tmp/clean-dump.zip
