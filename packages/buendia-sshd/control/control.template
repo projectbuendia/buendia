@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: nginx
+Depends: openssh-server
 Architecture: all
-Description: Serves up a repository of .deb and .apk package files.
+Description: Configures sshd for Buendia servers.
 Maintainer: projectbuendia.org
