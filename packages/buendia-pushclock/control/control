@@ -1,0 +1,6 @@
+Package: pushclock
+Version: 1.0
+Pre-Depends: gcc, libc-dev
+Architecture: all
+Description: Advances the system clock to a specified time.
+Maintainer: projectbuendia.org

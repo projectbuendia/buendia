@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+outfile="$1"
+control="$2"
+root="$3"
+
+if [ "$root" == "" ]; then
+    cat <<EOF
+Usage: $0 <output-file.deb> <control-dir-or-file> <root-path>
+
+Builds a Debian package at the specified output path, given the files
+to install arranged under the <root-path>.  If <control-dir-or-file>
+is a directory, all its files become control files; otherwise if it
+is a file, it becomes the single control file in the package.
+EOF
+    exit 1
+fi
+
+tmp=/tmp/make_package.$$
+mkdir -p $tmp
+
+if [ -f $control ]; then
+    tar cvfz $tmp/control.tar.gz $control
+else
+    tar cvfz $tmp/control.tar.gz -C $control .
+fi
+tar cvfz $tmp/data.tar.gz -C $root .
+echo 2.0 > $tmp/debian-binary
+
+pwd="$(pwd)"
+cd $tmp
+ar -r package.deb debian-binary control.tar.gz data.tar.gz
+cd "$pwd"
+
+cp $tmp/package.deb $outfile
+rm -rf $tmp
