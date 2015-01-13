@@ -1,4 +1,4 @@
-Package: pushclock
+Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: gcc, libc-dev
 Architecture: all

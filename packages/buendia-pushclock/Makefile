@@ -1,4 +1,5 @@
-export PACKAGE_VERSION=1.0
+export PACKAGE_VERSION := 1.0
+export PACKAGE_NAME := $(shell basename $$(pwd))
 export TOOLS := $(shell pwd)/../../tools
 
 all: buendia-pushclock_$(PACKAGE_VERSION).deb
