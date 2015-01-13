@@ -1,5 +1,7 @@
-Port 9022
 Protocol 2
+
+# Run on a non-standard port to avoid the most common attacks
+Port 9022
 
 # Host keys for protocol v2
 HostKey /etc/ssh/ssh_host_rsa_key
