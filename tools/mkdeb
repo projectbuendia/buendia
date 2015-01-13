@@ -1,37 +1,46 @@
 #!/bin/bash
 
-set -e
-outfile="$1"
-control="$2"
-root="$3"
+output="$1"; shift
+control="$1"; shift
+root="$1"; shift
 
-if [ "$root" == "" ]; then
+if [ "$control" == "" ]; then
     cat <<EOF
-Usage: $0 <output-file.deb> <control-dir-or-file> <root-path>
+Usage: $0 <output.deb> <control-dir> <root-path>
 
 Builds a Debian package at the specified output path, given the files
-to install arranged under the <root-path>.  If <control-dir-or-file>
-is a directory, all its files become control files; otherwise if it
-is a file, it becomes the single control file in the package.
+to install arranged under the <root-path> and the control files in
+<control-dir>.
+
+bash-style parameter expansion, command substitution, arithmetic expansion
+are performed on all the control files.  These are all the expansions
+triggered by the "\$" character: \$VAR and \${VAR} expand to environment
+variables, \$(command) expands to the output of a shell command, and
+\$((expression)) evaluates an arithmetic expression.
+
 EOF
     exit 1
 fi
 
+set -e
+pwd="$(pwd)"
 tmp=/tmp/make_package.$$
-mkdir -p $tmp
+
+# Apply bash expansion to each control file.
+mkdir -p $tmp/control
 
 if [ -f $control ]; then
-    tar cvfz $tmp/control.tar.gz $control
+    cat <(echo 'cat <<MKDEB_EOF') $control <(echo 'MKDEB_EOF') \
+        | bash > $tmp/control/control
 else
-    tar cvfz $tmp/control.tar.gz -C $control .
+    for file in $control/*; do
+        cat <(echo 'cat <<MKDEB_EOF') $file <(echo 'MKDEB_EOF') \
+            | bash > $tmp/control/$(basename $file)
+    done
 fi
+
+# Pack up the Debian package.
+tar cvfz $tmp/control.tar.gz -C $tmp/control .
 tar cvfz $tmp/data.tar.gz -C $root .
 echo 2.0 > $tmp/debian-binary
-
-pwd="$(pwd)"
-cd $tmp
-ar -r package.deb debian-binary control.tar.gz data.tar.gz
-cd "$pwd"
-
-cp $tmp/package.deb $outfile
-rm -rf $tmp
+ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz

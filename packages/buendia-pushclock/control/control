@@ -1,5 +1,5 @@
 Package: pushclock
-Version: 1.0
+Version: ${PACKAGE_VERSION}
 Pre-Depends: gcc, libc-dev
 Architecture: all
 Description: Advances the system clock to a specified time.

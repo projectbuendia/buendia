@@ -1,10 +1,8 @@
-VERSION=1.0
-
+export PACKAGE_VERSION=1.0
 export TOOLS := $(shell pwd)/../../tools
-$(shell hash)
 
-all: buendia-pushclock_$(VERSION).deb
+all: buendia-pushclock_$(PACKAGE_VERSION).deb
 
-buendia-pushclock_$(VERSION).deb: root/usr/src/pushclock.c control/*
+buendia-pushclock_$(PACKAGE_VERSION).deb: root/usr/src/pushclock.c control/*
 	touch root/usr/bin/pushclock
 	$(TOOLS)/mkdeb $@ control root
