@@ -1,0 +1,45 @@
+#!/bin/bash
+
+output="$1"; shift
+control="$1"; shift
+root="$1"; shift
+
+if [ "$control" == "" ]; then
+    cat <<EOF
+Usage: $0 <output.deb> <control-dir> <root-path>
+
+Builds a Debian package at the specified output path, given the files
+to install arranged under the <root-path> and the control files in
+<control-dir>.
+
+If <control-dir> contains a file named control.template, the actual control
+file is produced by performing bash-style parameter expansion, command
+substitution, and arithmetic expansion on control.template.  These are
+all the shell expansions triggered by the "\$" character: \$VAR and \${VAR}
+expand to environment variables, \$(command) expands to the output of a
+shell command, and \$((expression)) evaluates an arithmetic expression.
+
+EOF
+    exit 1
+fi
+
+set -e
+pwd="$(pwd)"
+tmp=/tmp/make_package.$$
+
+# Copy the control files into a temporary directory
+mkdir -p $tmp/control
+cp -pr $control/* $tmp/control
+
+# If there is a control.template file, apply bash expansion to it.
+if [ -f $tmp/control/control.template ]; then
+    cat <(echo 'cat <<EOF') $tmp/control/control.template <(echo 'EOF') \
+        | bash > $tmp/control/control
+    rm $tmp/control/control.template
+fi
+
+# Pack up the Debian package.
+tar cvfz $tmp/control.tar.gz -C $tmp/control .
+tar cvfz $tmp/data.tar.gz -C $root .
+echo 2.0 > $tmp/debian-binary
+ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz
