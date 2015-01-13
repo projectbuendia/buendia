@@ -58,7 +58,7 @@ for filename in files:
         # Create package index
         packages[module] = packages.get(module, [])
         packages[module].append(
-            {"version": str(version), "src": "%s/%s" % (base_url, filename)})
+            {"version": str(version), "url": "%s/%s" % (base_url, filename)})
 
 # Write each package index to their respective files
 for module in packages:
