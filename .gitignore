@@ -45,3 +45,4 @@ proguard/
 .classpath
 .settings
 .project
+packages/*.deb

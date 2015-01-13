@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd /tmp
+gcc -o pushclock /usr/src/pushclock.c
+install -m 4755 -v pushclock /usr/bin

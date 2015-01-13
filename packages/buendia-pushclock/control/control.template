@@ -1,0 +1,6 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Depends: gcc, libc-dev
+Architecture: all
+Description: Advances the system clock to a specified time.
+Maintainer: projectbuendia.org
