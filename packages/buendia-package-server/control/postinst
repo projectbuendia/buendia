@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled/buendia-packages
+service nginx restart

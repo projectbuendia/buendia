@@ -1,0 +1,6 @@
+server {
+    listen 9001;
+    root /usr/share/buendia/packages;
+    index index.html;
+    server_name packages;
+}
