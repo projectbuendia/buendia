@@ -1,6 +1,32 @@
 #!/usr/bin/python
 import os, sys, json
-from distutils.version import StrictVersion
+def split_into_components(version, boundary_chars="."):
+    """Splits a string into numeric and string components."""
+    components = []
+    force_new_component = True
+    for char in version:
+        # Check if char is a boundary character
+        if char in boundary_chars:
+            force_new_component = True
+            continue
+
+        # Determine the type of character
+        char_type = int if char.isdigit() else str
+
+        # If a new component is forced due to a boundary character or
+        #  an empty component list, create a new component
+        if force_new_component:
+            components.append([char_type, char])
+            force_new_component = False
+        # If the type of the character matches the current component,
+        #  add the character to the current component.
+        elif components[-1][0] == char_type:
+            components[-1][1] += char
+        # If the character is of another type, create a component.
+        else:
+            components.append([char_type, char])
+    # Cast the components to their respective types
+    return tuple([comp[0](comp[1]) for comp in components])
 
 package_directory = os.environ.get('DUSERVER_PACKAGE_DIR')
 if package_directory is None:
@@ -29,10 +55,6 @@ for filename in files:
 
     # If both strings are non-empty
     if module and version:
-        try:
-            version = StrictVersion(version)
-        except ValueError:
-            continue
         # Create package index
         packages[module] = packages.get(module, [])
         packages[module].append(
@@ -42,7 +64,7 @@ for filename in files:
 for module in packages:
     # Order the packages on their version label
     package_list = sorted(packages[module], key=lambda x:
-            StrictVersion(x['version']))
+            split_into_components(x['version']))
     # Write the index file
     open('%s/%s.json' % (package_directory, module), 'w').write(
         json.dumps(package_list))
