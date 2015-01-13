@@ -12,11 +12,12 @@ Builds a Debian package at the specified output path, given the files
 to install arranged under the <root-path> and the control files in
 <control-dir>.
 
-bash-style parameter expansion, command substitution, arithmetic expansion
-are performed on all the control files.  These are all the expansions
-triggered by the "\$" character: \$VAR and \${VAR} expand to environment
-variables, \$(command) expands to the output of a shell command, and
-\$((expression)) evaluates an arithmetic expression.
+If <control-dir> contains a file named control.template, the actual
+control file is produced by performing bash-style parameter expansion,
+command substitution, arithmetic expansion on control.template.  These
+are all the expansions triggered by the "\$" character: \$VAR and \${VAR}
+expand to environment variables, \$(command) expands to the output of a
+shell command, and \$((expression)) evaluates an arithmetic expression.
 
 EOF
     exit 1
@@ -26,17 +27,15 @@ set -e
 pwd="$(pwd)"
 tmp=/tmp/make_package.$$
 
-# Apply bash expansion to each control file.
+# Copy the control files into a temporary directory
 mkdir -p $tmp/control
+cp -pr $control/* $tmp/control
 
-if [ -f $control ]; then
-    cat <(echo 'cat <<MKDEB_EOF') $control <(echo 'MKDEB_EOF') \
+# If there is a control.template file, apply bash expansion to it.
+if [ -f $tmp/control/control.template ]; then
+    cat <(echo 'cat <<EOF') $tmp/control/control.template <(echo 'EOF') \
         | bash > $tmp/control/control
-else
-    for file in $control/*; do
-        cat <(echo 'cat <<MKDEB_EOF') $file <(echo 'MKDEB_EOF') \
-            | bash > $tmp/control/$(basename $file)
-    done
+    rm $tmp/control/control.template
 fi
 
 # Pack up the Debian package.
