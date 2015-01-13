@@ -12,5 +12,6 @@ all: $(PACKAGE)
 # included in data.tar.gz and later overwritten with the compiled binary.
 
 $(PACKAGE): root/usr/src/pushclock.c control/*
+	mkdir -p root/usr/bin
 	touch root/usr/bin/pushclock
 	$(TOOLS)/mkdeb $@ control root
