@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+PKG=buendia-sshd
+if [ "$1" = configure ]; then
+    file=/etc/ssh/sshd_config
+    dpkg-divert --add --package $PKG --rename --divert $file.buendia-orig $file
+    ln -sf /usr/share/buendia/etc/ssh/sshd_config $file
+fi
+service ssh restart
