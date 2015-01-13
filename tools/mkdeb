@@ -12,10 +12,10 @@ Builds a Debian package at the specified output path, given the files
 to install arranged under the <root-path> and the control files in
 <control-dir>.
 
-If <control-dir> contains a file named control.template, the actual
-control file is produced by performing bash-style parameter expansion,
-command substitution, arithmetic expansion on control.template.  These
-are all the expansions triggered by the "\$" character: \$VAR and \${VAR}
+If <control-dir> contains a file named control.template, the actual control
+file is produced by performing bash-style parameter expansion, command
+substitution, and arithmetic expansion on control.template.  These are
+all the shell expansions triggered by the "\$" character: \$VAR and \${VAR}
 expand to environment variables, \$(command) expands to the output of a
 shell command, and \$((expression)) evaluates an arithmetic expression.
 
