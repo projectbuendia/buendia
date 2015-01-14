@@ -2,3 +2,4 @@
 
 rm -f /etc/nginx/sites-enabled/buendia-packages
 service nginx restart
+/etc/init.d/udev restart

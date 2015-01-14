@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Load duserver settings
+. /usr/share/buendia/site/duserver
+# Load site id setting
+. /usr/share/buendia/site/id
+
+# Create temporary directories for mounting and extraction
+mntdir=`mktemp -d /tmp/tmp.XXXXXXXXXX`
+exdir=`mktemp -d /tmp/tmp.XXXXXXXXXX`
+
+# Mount usb to temporary directory
+mount /dev/duserver_usb $mntdir
+
+# For all generic updates on the usb
+for f in $mntdir/projectbuendia-all*.zip; do
+	# Extract the updates to the package directory
+    unzip $f -d $exdir
+    mv $exdir/* /usr/share/buendia/packages/
+done
+
+# If the site id has been set
+if [ ! -z $BUENDIA_SITE_ID ]; then
+	# For all site-specific updates on the usb
+    for f in $mntdir/projectbuendia-$BUENDIA_SITE_ID*.zip; do
+	# Extract the updates to the package directory
+        unzip $f -d $exdir
+        mv -R $exdir/* "$DUSERVER_PACKAGE_DIR"
+        mv $f $mntdir/installed-`basename $f`
+    done
+fi
+
+# Cleanup
+umount $mntdir
+rm -R $mntdir
+rm -R $exdir
+
+# Call indexer
+su www-data -c "duserver_make_index.py"
