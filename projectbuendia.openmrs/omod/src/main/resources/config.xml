@@ -59,5 +59,12 @@
 	</messages>
 	<!-- /Internationalization -->
 
+	<!-- Servlets -->
+	<!-- Accessed through the url /pageContext()/moduleServlet/<servlet-name> -->
+	<servlet>
+		<servlet-name>buendiadata</servlet-name>
+		<servlet-class>org.openmrs.projectbuendia.servlet.DataExportServlet</servlet-class>
+	</servlet>
+
 </module>
 
