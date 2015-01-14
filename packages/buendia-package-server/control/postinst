@@ -1,4 +1,27 @@
 #!/bin/bash
 
+function print_success {
+	if [ $1 -eq 0 ]; then
+		echo -e "\tOK"
+	else
+		echo -e "\tFAIL"
+		exit $STATUS
+	fi
+}
+
+echo "Setting permissions on package directory..."
+chgrp -R www-data /usr/share/buendia/packages
+chmod ug+rw /usr/share/buendia/packages
+print_success $?
+
+echo "Enabling nginx configuration..."
 ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled/buendia-packages
+print_success $?
+
+echo "Restarting nginx..."
 service nginx restart
+print_success $?
+
+echo "Restarting udev..."
+/etc/init.d/udev restart
+print_success $?
