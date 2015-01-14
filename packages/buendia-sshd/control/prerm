@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+PKG=buendia-sshd
+if [ "$1" = remove ]; then
+    file=/etc/ssh/sshd_config
+    [ -L $file ] && rm $file
+    dpkg-divert --remove --package $PKG --rename --divert $file.buendia-orig $file
+fi
+service ssh restart
