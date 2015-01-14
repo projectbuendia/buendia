@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+SERVICE=tomcat7
+FILE1=/etc/tomcat7/tomcat-users.xml
+REPLACEMENT1=/usr/share/buendia/etc/tomcat7/tomcat-users.xml
+FILE2=/etc/default/tomcat7
+REPLACEMENT2=/usr/share/buendia/etc/tomcat7/tomcat7
+
+if [ "$1" = configure ]; then
+    dpkg-divert --add --rename --divert $FILE1.pre-buendia $FILE1
+    ln -sf $REPLACEMENT1 $FILE1
+    dpkg-divert --add --rename --divert $FILE2.pre-buendia $FILE2
+    ln -sf $REPLACEMENT2 $FILE2
+    service $SERVICE restart
+fi

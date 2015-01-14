@@ -1,0 +1,7 @@
+TOMCAT7_USER=tomcat7
+TOMCAT7_GROUP=tomcat7
+
+# JVM parameters tuned for Edison
+# Increasing the memory limit from 128M to 256M reduces swapping overhead.
+# CMSIncrementalMode reduces latency by yielding periodically during GC sweeps.
+JAVA_OPTS="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"
