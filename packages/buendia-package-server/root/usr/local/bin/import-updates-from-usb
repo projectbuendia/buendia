@@ -1,0 +1,22 @@
+#!/bin/bash
+. /etc/profile
+mkdir /tmp/usb
+mount /dev/duserver_usb /tmp/usb
+for f in /tmp/usb/projectbuendia-all*.zip; do
+    exdir=`mktemp -d /tmp/tmp.XXXXXXXXXX`
+    unzip $f -d $exdir
+    cp -R $exdir/* /var/www/packages/
+    rm -R $exdir
+done
+if [ ! -z $BUENDIA_SITE_ID ]; then
+    for f in /tmp/usb/projectbuendia-$BUENDIA_SITE_ID*.zip; do
+        exdir=`mktemp -d /tmp/tmp.XXXXXXXXXX`
+        unzip $f -d $exdir
+        cp -R $exdir/* "$DUSERVER_PACKAGE_DIR"
+        rm -R $exdir
+        mv $f /tmp/usb/installed-`basename $f`
+    done
+fi
+umount /tmp/usb
+rmdir /tmp/usb
+su www-data -c "duserver_make_index.py"
