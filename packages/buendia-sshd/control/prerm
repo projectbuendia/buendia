@@ -1,11 +1,5 @@
 #!/bin/bash
 
 set -e
-SERVICE=ssh
-FILE=/etc/ssh/sshd_config
-
-if [ "$1" = remove ]; then
-    [ -L $FILE ] && rm $FILE
-    dpkg-divert --remove --rename --divert $FILE.pre-buendia $FILE
-    service $SERVICE restart
-fi
+buendia-divert $1 /etc/ssh/sshd_config
+service ssh restart

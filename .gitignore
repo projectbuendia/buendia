@@ -2,7 +2,6 @@
 *.class
 
 # Generated files
-bin/
 gen/
 projectbuendia.openmrs/api/target
 projectbuendia.openmrs/omod/target

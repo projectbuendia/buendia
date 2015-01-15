@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Generates a password consisting of 16 random characters in [0-9A-Za-z.-].
+dd if=/dev/urandom bs=1 count=12 2>/dev/null | base64 | tr /+ .-
