@@ -1,0 +1,1 @@
+KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="buendia_duserver_usb", RUN+="/usr/bin/buendia-package-usb-import"

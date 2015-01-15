@@ -1,5 +1,9 @@
 #!/bin/bash
+set -e
 
+# Disable buendia nginx configuration
 rm -f /etc/nginx/sites-enabled/buendia-packages
+
+# Restart services
 service nginx restart
 /etc/init.d/udev restart

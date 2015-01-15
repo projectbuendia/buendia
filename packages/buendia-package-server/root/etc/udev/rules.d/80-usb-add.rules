@@ -1,1 +1,0 @@
-KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="duserver_usb", RUN+="/usr/local/bin/import-updates-from-usb"
