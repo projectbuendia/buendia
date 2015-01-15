@@ -14,15 +14,11 @@ See https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html
 for details.
 
 If your package adjusts the configuration of another package,
-use `dpkg-divert` to move the original configuration file aside.
+use `buendia-divert` to move the original configuration file aside.
+Your package should provide the alternate configuration file at
+`/usr/share/buendia/diversions/`*original-path* and call `buendia-divert`
+on the original configuration file in both `postinst` and `prerm`.
 See [`buendia-sshd/control`](buendia-sshd/control) for an example.
-Note that the `--package` argument is not needed,
-as `dpkg-divert` will use `$DPKG_MAINTSCRIPT_PACKAGE` provided by dpkg.
-When you divert configuration files,
-replace them with symlinks to files installed by your package
-in the appropriate subdirectory of `/usr/share/buendia/etc`
-(e.g. a package named `buendia-foo` should place its alternate configuration
-files in the directory `/usr/share/buendia/etc/foo`).
 
 If your package uses site-specific settings, they should be defined
 as shell variables in a file in `/usr/share/buendia/site`
