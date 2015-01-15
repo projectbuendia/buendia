@@ -3,6 +3,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.junit.Test;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
+import org.openmrs.projectbuendia.ClientConceptNamer;
 
 import java.util.Arrays;
 import java.util.Locale;

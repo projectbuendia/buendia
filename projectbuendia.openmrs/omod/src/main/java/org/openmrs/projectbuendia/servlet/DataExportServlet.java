@@ -10,6 +10,9 @@ import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.xforms.util.XformsUtil;
+import org.openmrs.projectbuendia.ClientConceptNamer;
+import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.util.FormUtil;
 
@@ -57,6 +60,17 @@ public class DataExportServlet extends HttpServlet {
             return c1.getUuid().compareTo(c2.getUuid());
         }
     };
+    private static final String[] FIXED_HEADERS = new String[]{"Patient UUID",
+            "MSF Patient Id",
+            "Approximate date of birth",
+            "Encounter UUID",
+            "Encounter time epoch milliseconds",
+            "Encounter time ISO8601 UTC",
+            "Encounter time yyyy-MM-dd HH:mm:ss UTC",
+    };
+    private static final int COLUMNS_PER_OBS = 2;
+    private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
+
 
     /**
      * Indexes a fixed set of concepts in sorted UUID order.
@@ -65,11 +79,7 @@ public class DataExportServlet extends HttpServlet {
         final Concept [] concepts;
 
         public FixedSortedConceptIndexer(Collection<Concept> concepts) {
-            this.concepts = new Concept[concepts.size()];
-            int index = 0;
-            for (Concept concept : concepts) {
-                this.concepts[index++] = concept;
-            }
+            this.concepts = concepts.toArray(new Concept[concepts.size()]);
             Arrays.sort(this.concepts, CONCEPT_COMPARATOR);
         }
 
@@ -132,35 +142,10 @@ public class DataExportServlet extends HttpServlet {
         FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts);
 
         // Write English headers
-        final String[] fixedHeaders = new String[]{"Patient UUID",
-                "MSF Patient Id",
-                "Encounter UUID",
-                "Encounter time milliseconds",
-                "Encounter time string"};
-        final StringBuilder headers = new StringBuilder("");
-        for (String fixedHeader : fixedHeaders) {
-            headers.append(fixedHeader);
-            headers.append(",");
-        }
-        for (int i=0; i<indexer.size(); i++) {
-            headers.append(indexer.getConcept(i).getName());
-            headers.append(",");
-        }
-        writer.println(headers);
-
-        // Write UUID headers
-        final StringBuilder uuidHeaders = new StringBuilder("");
-        for (int i=0; i<fixedHeaders.length; i++) {
-            uuidHeaders.append(",");
-        }
-        for (int i=0; i<indexer.size(); i++) {
-            uuidHeaders.append(indexer.getConcept(i).getUuid());
-            uuidHeaders.append(",");
-        }
-        writer.println(uuidHeaders);
+        writeHeaders(writer, indexer);
 
         // Write one encounter per line
-        Object [] values = new Object[fixedHeaders.length + indexer.size()];
+        final Object [] values = new Object[FIXED_HEADERS.length + indexer.size() * COLUMNS_PER_OBS];
         final StringBuilder formatStringBuilder = new StringBuilder("");
         for (int i=0; i<values.length; i++) {
             formatStringBuilder.append("%s,");
@@ -173,19 +158,91 @@ public class DataExportServlet extends HttpServlet {
             for (Encounter encounter : encounters) {
                 values[0] = patient.getUuid();
                 values[1] = patient.getPatientIdentifier("MSF");
-                values[2] = encounter.getUuid();
-                values[3] = encounter.getEncounterDatetime().getTime();
-                values[4] = encounter.getEncounterDatetime().toString();
-                Arrays.fill(values, fixedHeaders.length + 1, fixedHeaders.length + indexer.size(), "");
+                values[2] = DateTimeUtils.YYYYMMDD_FORMAT.format(patient.getBirthdate());
+                values[3] = encounter.getUuid();
+                values[4] = encounter.getEncounterDatetime().getTime();
+                values[5] = DateTimeUtils.toIso8601(encounter.getEncounterDatetime());
+                values[6] = DateTimeUtils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
+                Arrays.fill(values, FIXED_HEADERS.length, FIXED_HEADERS.length + indexer.size() * COLUMNS_PER_OBS, "");
                 for (Obs obs : encounter.getAllObs()) {
                     Integer index = indexer.getIndex(obs.getConcept());
                     if (index == null) {
                         continue;
                     }
-                    values[fixedHeaders.length + index] = obs.getValueAsString(Locale.ENGLISH);
+                    // For each observation have two columns, first as a friendly English string,
+                    // secondly as a UUID.
+                    final int valueColumn = FIXED_HEADERS.length + index * COLUMNS_PER_OBS;
+                    VisitObsValue.visit(obs, new VisitObsValue.ObsValueVisitor<Void>() {
+                        @Override
+                        public Void visitCoded(Concept value) {
+                            if (value == null || value.getUuid() == null || value.getUuid().isEmpty()) {
+                                values[valueColumn] = "";
+                                values[valueColumn + 1] = "";
+                            } else {
+                                values[valueColumn] = NAMER.getClientName(value);
+                                values[valueColumn + 1] = value.getUuid();
+                            }
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitNumeric(Double value) {
+                            String s;
+                            if (value == null) {
+                                s = "";
+                            } else {
+                                s = Double.toString(value);
+                            }
+                            values[valueColumn] = s;
+                            values[valueColumn + 1] = s;
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitBoolean(Boolean value) {
+                            String s;
+                            if (value == null) {
+                                s = "";
+                            } else {
+                                s = Boolean.toString(value);
+                            }
+                            values[valueColumn] = s;
+                            values[valueColumn + 1] = s;
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitText(String value) {
+                            if (value == null) {
+                                value = "";
+                            }
+                            values[valueColumn] = value;
+                            values[valueColumn + 1] = value;
+                            return null;
+                        }
+                    });
                 }
                 writer.printf(formatString, values);
             }
         }
+    }
+
+    private void writeHeaders(PrintWriter writer, FixedSortedConceptIndexer indexer) {
+        final StringBuilder headers = new StringBuilder("");
+        for (String fixedHeader : FIXED_HEADERS) {
+            headers.append(fixedHeader);
+            headers.append(",");
+        }
+        for (int i=0; i<indexer.size(); i++) {
+            // For each observation have two columns, first as a friendly English string,
+            // secondly as a UUID.
+            assert COLUMNS_PER_OBS == 2;
+            Concept concept = indexer.getConcept(i);
+            headers.append(NAMER.getClientName(concept));
+            headers.append(",");
+            headers.append(concept.getUuid());
+            headers.append(",");
+        }
+        writer.println(headers);
     }
 }

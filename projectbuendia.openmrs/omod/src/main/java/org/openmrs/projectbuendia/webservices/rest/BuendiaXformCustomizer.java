@@ -9,11 +9,11 @@ import org.openmrs.Location;
 import org.openmrs.Person;
 import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
+import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.util.FormConstants;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Project Buendia choices about how to display elements in the XForms.

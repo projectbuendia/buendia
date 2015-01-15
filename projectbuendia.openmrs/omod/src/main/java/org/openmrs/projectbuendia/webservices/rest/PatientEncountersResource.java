@@ -13,6 +13,8 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
+import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.VisitObsValue;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -124,32 +126,32 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
     private SimpleObject encounterToJson(Encounter encounter) {
         SimpleObject encounterJson = new SimpleObject();
         // TODO: Check what format this ends up in.
-        encounterJson.put(TIMESTAMP, toIso8601(encounter.getEncounterDatetime()));
+        encounterJson.put(TIMESTAMP, DateTimeUtils.toIso8601(encounter.getEncounterDatetime()));
         SimpleObject observations = new SimpleObject();
         for (Obs obs : encounter.getObs()) {
             encounterJson.put(UUID, encounter.getUuid());
             Concept concept = obs.getConcept();
-            ConceptDatatype dataType = concept.getDatatype();
-            String hl7Type = dataType.getHl7Abbreviation();
-            String value;
-            switch (hl7Type) {
-                case HL7Constants.HL7_BOOLEAN:
-                    value = String.valueOf(obs.getValueAsBoolean());
-                    break;
-                case HL7Constants.HL7_CODED:
-                case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
-                    value = obs.getValueCoded().getUuid();
-                    break;
-                case HL7Constants.HL7_NUMERIC:
-                    value = String.valueOf(obs.getValueNumeric());
-                    break;
-                case HL7Constants.HL7_TEXT:
-                    value = obs.getValueText();
-                    break;
-                default:
-                    // TODO(jonskeet): Turn this into a warning log entry?
-                    throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type + " for concept " + concept);
-            }
+            String value = VisitObsValue.visit(obs, new VisitObsValue.ObsValueVisitor<String>() {
+                @Override
+                public String visitCoded(Concept value) {
+                    return value.getUuid();
+                }
+
+                @Override
+                public String visitNumeric(Double value) {
+                    return String.valueOf(value);
+                }
+
+                @Override
+                public String visitBoolean(Boolean value) {
+                    return String.valueOf(value);
+                }
+
+                @Override
+                public String visitText(String value) {
+                    return value;
+                }
+            });
             observations.put(concept.getUuid(), value);
         }
         encounterJson.put(OBSERVATIONS, observations);        
