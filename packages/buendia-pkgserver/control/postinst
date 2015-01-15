@@ -5,9 +5,6 @@ set -e
 chgrp -R www-data /usr/share/buendia/packages
 chmod ug+rw /usr/share/buendia/packages
 
-# Enabling nginx configuration
-ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled/buendia-packages
-
 # Restarting services
 service nginx restart
 /etc/init.d/udev restart

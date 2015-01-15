@@ -1,4 +1,4 @@
-package org.openmrs.projectbuendia.webservices.rest;
+package org.openmrs.projectbuendia;
 
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;

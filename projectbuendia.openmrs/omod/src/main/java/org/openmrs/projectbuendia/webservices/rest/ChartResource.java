@@ -77,7 +77,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
         return getCharts(formService);
     }
     
-    static List<Form> getCharts(FormService formService) {
+    public static List<Form> getCharts(FormService formService) {
         List<Form> charts = new ArrayList<>();
         String[] uuids = Context.getAdministrationService()
                 .getGlobalProperty(GlobalProperties.CHART_UUIDS)
