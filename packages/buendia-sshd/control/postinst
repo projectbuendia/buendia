@@ -1,12 +1,5 @@
 #!/bin/bash
 
 set -e
-SERVICE=ssh
-FILE=/etc/ssh/sshd_config
-REPLACEMENT=/usr/share/buendia/etc/ssh/sshd_config
-
-if [ "$1" = configure ]; then
-    dpkg-divert --add --rename --divert $FILE.pre-buendia $FILE
-    ln -sf $REPLACEMENT $FILE
-    service $SERVICE restart
-fi
+buendia-divert $1 /etc/ssh/sshd_config
+service ssh restart

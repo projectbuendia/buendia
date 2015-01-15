@@ -1,14 +1,6 @@
 #!/bin/bash
 
 set -e
-SERVICE=tomcat7
-FILE1=/etc/tomcat7/tomcat-users.xml
-FILE2=/etc/default/tomcat7
-
-if [ "$1" = remove ]; then
-    [ -L $FILE1 ] && rm $FILE1
-    dpkg-divert --remove --rename --divert $FILE1.pre-buendia $FILE1
-    [ -L $FILE2 ] && rm $FILE2
-    dpkg-divert --remove --rename --divert $FILE2.pre-buendia $FILE2
-    service $SERVICE restart
-fi
+buendia-divert $1 /etc/tomcat7/tomcat-users.xml
+buendia-divert $1 /etc/default/tomcat7
+service tomcat7 restart

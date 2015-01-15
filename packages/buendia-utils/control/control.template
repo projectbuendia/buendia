@@ -1,7 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Pre-Depends: buendia-utils
-Depends: openssh-server
+Depends: coreutils
 Architecture: all
-Description: Configures sshd for Buendia servers.
+Description: Utility functions for Buendia scripts.
 Maintainer: projectbuendia.org
