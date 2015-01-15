@@ -1,0 +1,13 @@
+#!/bin/bash
+apt-ftparchive --arch all packages pool > dists/stable/main/binary-all/Packages
+cat <<EOF > dists/stable/Release
+Origin: Buendia
+Label: Buendia Debian Packages
+Suite: stable
+Codename: stable
+Architectures: all
+Components: main
+Description: Buendia Debian Packages
+EOF
+apt-ftparchive release dists/stable >> dists/stable/Release
+gpg --homedir=/usr/share/buendia/.gnupg/ -abs -o dists/stable/Release.gpg dists/stable/Release
