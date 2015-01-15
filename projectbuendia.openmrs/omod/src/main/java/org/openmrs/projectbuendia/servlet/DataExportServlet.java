@@ -19,11 +19,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -96,6 +99,12 @@ public class DataExportServlet extends HttpServlet {
         if (!XformsUtil.isAuthenticated(request, response, null)) {
             return;
         }
+
+        Date now = new Date();
+        DateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String filename = String.format("buendiadata_%s.csv", format.format(now));
+        String contentDispositionHeader = String.format("attachment; filename=%s;", filename);
+        response.addHeader("Content-Disposition", contentDispositionHeader);
 
         PatientService patientService = Context.getPatientService();
         EncounterService encounterService = Context.getEncounterService();
