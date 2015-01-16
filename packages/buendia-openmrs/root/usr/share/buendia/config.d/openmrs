@@ -1,5 +1,6 @@
 #!/bin/bash
 
+mkdir -p /usr/share/buendia/site
 SETTINGS=/usr/share/buendia/site/openmrs
 PROPERTIES=/usr/share/buendia/openmrs/openmrs-runtime.properties
 
@@ -13,6 +14,7 @@ OPENMRS_MYSQL_USERPASS=\$OPENMRS_MYSQL_USER:\$OPENMRS_MYSQL_PASSWORD
 EOF
 fi
 
+# Read the settings.
 . /usr/share/buendia/site/mysql
 . $SETTINGS
 

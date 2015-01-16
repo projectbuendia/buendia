@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e
+/usr/share/buendia/config.d/mysql
+service mysql start
