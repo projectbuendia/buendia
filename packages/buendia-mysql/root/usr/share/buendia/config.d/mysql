@@ -48,7 +48,7 @@ sleep 1
 
 # Confirm that the root password was correctly set.
 if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
-  echo "MySQL root password successfully changed."
+  echo "Successfully set MySQL root password."
   exit 0
 else
   echo "Could not set MySQL root password!"
