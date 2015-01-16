@@ -22,7 +22,11 @@
 			<artifactId>library-name</artifactId> 
 		</dependency> 
 		-->
-		
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.0</version>
+		</dependency>
 		<!-- Begin OpenMRS modules -->
 		
 		<dependency>

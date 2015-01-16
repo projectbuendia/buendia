@@ -1,3 +1,10 @@
 #!/bin/bash
+set -e
 
+# Setting permissions on package directory
+chgrp -R www-data /usr/share/buendia/packages
+chmod ug+rw /usr/share/buendia/packages
+
+# Restarting services
 service nginx restart
+/etc/init.d/udev restart

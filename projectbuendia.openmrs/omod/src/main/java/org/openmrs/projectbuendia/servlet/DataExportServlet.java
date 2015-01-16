@@ -1,5 +1,7 @@
 package org.openmrs.projectbuendia.servlet;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Form;
@@ -21,7 +23,6 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -103,7 +104,7 @@ public class DataExportServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        PrintWriter writer = response.getWriter();
+        CSVPrinter printer = new CSVPrinter(response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
 
         //check for authenticated users
         if (!XformsUtil.isAuthenticated(request, response, null)) {
@@ -142,16 +143,10 @@ public class DataExportServlet extends HttpServlet {
         FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts);
 
         // Write English headers
-        writeHeaders(writer, indexer);
+        writeHeaders(printer, indexer);
 
         // Write one encounter per line
         final Object [] values = new Object[FIXED_HEADERS.length + indexer.size() * COLUMNS_PER_OBS];
-        final StringBuilder formatStringBuilder = new StringBuilder("");
-        for (int i=0; i<values.length; i++) {
-            formatStringBuilder.append("%s,");
-        }
-        formatStringBuilder.append("\n");
-        final String formatString = formatStringBuilder.toString();
         for (Patient patient : patients) {
             ArrayList<Encounter> encounters = new ArrayList<>(encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
@@ -222,27 +217,23 @@ public class DataExportServlet extends HttpServlet {
                         }
                     });
                 }
-                writer.printf(formatString, values);
+                printer.printRecord(values);
             }
         }
     }
 
-    private void writeHeaders(PrintWriter writer, FixedSortedConceptIndexer indexer) {
-        final StringBuilder headers = new StringBuilder("");
+    private void writeHeaders(CSVPrinter printer, FixedSortedConceptIndexer indexer) throws IOException {
         for (String fixedHeader : FIXED_HEADERS) {
-            headers.append(fixedHeader);
-            headers.append(",");
+            printer.print(fixedHeader);
         }
         for (int i=0; i<indexer.size(); i++) {
             // For each observation have two columns, first as a friendly English string,
             // secondly as a UUID.
             assert COLUMNS_PER_OBS == 2;
             Concept concept = indexer.getConcept(i);
-            headers.append(NAMER.getClientName(concept));
-            headers.append(",");
-            headers.append(concept.getUuid());
-            headers.append(",");
+            printer.print(NAMER.getClientName(concept));
+            printer.print(concept.getUuid());
         }
-        writer.println(headers);
+        printer.println();
     }
 }
