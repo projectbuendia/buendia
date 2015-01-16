@@ -1,0 +1,6 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Depends: buendia-tomcat7
+Architecture: all
+Description: OpenMRS, configured for buendia.
+Maintainer: projectbuendia.org

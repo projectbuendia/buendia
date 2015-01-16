@@ -1,0 +1,30 @@
+#!/bin/bash
+
+SETTINGS=/usr/share/buendia/site/openmrs
+PROPERTIES=/usr/share/buendia/openmrs/openmrs-runtime.properties
+
+if [ ! -f $SETTINGS ]; then
+    password=$(buendia-mkpass)
+    cat <<EOF > $SETTINGS
+OPENMRS_MYSQL_USER=openmrs_user
+OPENMRS_MYSQL_PASSWORD=$password
+OPENMRS_MYSQL_USERPASS=\$OPENMRS_MYSQL_USER:\$OPENMRS_MYSQL_PASSWORD
+EOF
+fi
+
+. /usr/share/buendia/site/mysql
+. $SETTINGS
+
+cat <<EOF >$PROPERTIES
+connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
+connection.username=openmrs_user
+connection.password=$OPENMRS_MYSQL_PASSWORD
+auto_update_database=true
+module.allow_web_admin=true
+EOF
+
+service mysql start
+echo "grant all on openmrs.* to openmrs_user@localhost identified by '$openmrs_user_password';" | mysql -uroot -p$MYSQL_ROOT_PASSWORD
+echo "grant file on *.* to openmrs_user@localhost;" | mysql -uroot -p$MYSQL_ROOT_PASSWORD
+sleep 5
+

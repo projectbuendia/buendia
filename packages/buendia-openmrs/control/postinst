@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e
+chown -R tomcat7:root /usr/share/buendia/openmrs
+service tomcat7 start
