@@ -7,4 +7,4 @@ chmod ug+rw /usr/share/buendia/packages
 
 # Restarting services
 service nginx restart
-/etc/init.d/udev restart
+/etc/init.d/udev restart 2> /dev/null | true

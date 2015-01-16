@@ -1,5 +1,5 @@
 #!/usr/bin/python
-import subprocess, json
+import os, subprocess, json
 
 def get_setting(setting, default=None, namespace='duserver'):
     """Get the value for a setting from the duserver settings file."""

@@ -9,3 +9,9 @@ all: $(PACKAGE)
 
 $(PACKAGE): control/* $(FILES)
 	$(TOOLS)/mkdeb $@ control root
+
+clean: $(PACKAGE)
+	rm $(PACKAGE)
+
+docker: $(PACKAGE)
+	docker build .
