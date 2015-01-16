@@ -2,15 +2,15 @@
 
 output="$1"; shift
 control="$1"; shift
-root="$1"; shift
 
-if [ "$control" == "" ]; then
+if [ "$1" == "" ]; then
     cat <<EOF
-Usage: $0 <output.deb> <control-dir> <root-path>
+Usage: $0 <output.deb> <control-dir> <root-path> [<root-path> ...]
 
-Builds a Debian package at the specified output path, given the files
-to install arranged under the <root-path> and the control files in
-<control-dir>.
+Builds a Debian package at the specified output path, given the files to
+install arranged under the given <root-path> and the control files in
+<control-dir>.  If more than one <root-path> is specified, all files under
+all roots are included; you must ensure that their contents do not collide.
 
 If <control-dir> contains a file named control.template, the actual control
 file is produced by performing bash-style parameter expansion, command
@@ -40,6 +40,10 @@ fi
 
 # Pack up the Debian package.
 tar cvfz $tmp/control.tar.gz -C $tmp/control .
-tar cvfz $tmp/data.tar.gz -C $root .
+while [ -n "$1" ]; do
+    tar rvf $tmp/data.tar -C $1 .
+    shift
+done
+gzip $tmp/data.tar
 echo 2.0 > $tmp/debian-binary
 ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz
