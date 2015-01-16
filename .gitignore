@@ -43,4 +43,6 @@ proguard/
 .classpath
 .settings
 .project
-packages/*.deb
+
+# Built .deb packages
+packages/**/*.deb
