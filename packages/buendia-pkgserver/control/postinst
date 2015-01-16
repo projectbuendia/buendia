@@ -5,6 +5,13 @@ set -e
 chgrp -R www-data /usr/share/buendia/packages
 chmod ug+rw /usr/share/buendia/packages
 
+if [ ! -f /usr/share/buendia/site/duserver ]; then
+	if [ ! -d /usr/share/buendia/site ]; then
+		mkdir /usr/share/buendia/site
+	fi
+	echo "export DUSERVER_PACKAGE_BASE_URL=http://localhost" >> /usr/share/buendia/site/duserver
+fi
+
 # Restarting services
 service nginx restart
 /etc/init.d/udev restart 2> /dev/null | true

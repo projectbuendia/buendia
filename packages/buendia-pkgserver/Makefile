@@ -11,7 +11,7 @@ $(PACKAGE): control/* $(FILES)
 	$(TOOLS)/mkdeb $@ control root
 
 clean: $(PACKAGE)
-	rm $(PACKAGE)
+	rm *.deb
 
 docker: $(PACKAGE)
 	docker build .

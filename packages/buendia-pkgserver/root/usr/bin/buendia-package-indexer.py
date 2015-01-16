@@ -5,8 +5,8 @@ def get_setting(setting, default=None, namespace='duserver'):
     """Get the value for a setting from the duserver settings file."""
     try:
         value = subprocess.check_output(
-                "source /usr/share/buendia/site/%s; echo -n \"$%s\"" % (
-                    namespace, setting,), shell=True)
+            ('/bin/bash -c "source /usr/share/buendia/site/%s; '
+             'echo -n \"$%s\""') % (namespace, setting,), shell=True)
     except subprocess.CalledProcessError:
         return default
     else:
