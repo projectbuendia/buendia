@@ -1,20 +1,21 @@
-export PACKAGE_VERSION := 1.0
+export PACKAGE_VERSION := 0.1
 export PACKAGE_NAME := $(shell basename $$(pwd))
 export TOOLS := $(shell pwd)/../../tools
 export FILES := $(shell find root)
 
 PACKAGE=$(PACKAGE_NAME)_$(PACKAGE_VERSION).deb
 
+EXTRA_ROOT=/tmp/buendia-openmrs
+WAR_URL=http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download
+WAR_PATH=$(EXTRA_ROOT)/var/lib/tomcat7/webapps/openmrs.war
+WAR_MD5=9fcad32a937bc433e4e866c56428b8be
+
 all: $(PACKAGE)
 
-/tmp/openmrs.war:
-	$(TOOLS)/fetch_unless_fetched http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
+.FORCE:
 
-$(PACKAGE): control/* $(FILES) /tmp/openmrs.war
-	$(TOOLS)/fetch_unless_fetched http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download /tmp/openmrs.war 9fcad32a937bc433e4e866c56428b8be
-	mkdir -p root/var/lib/tomcat7/webapps
-	cp /tmp/openmrs.war root/var/lib/tomcat7/webapps/openmrs.war
-	$(TOOLS)/mkdeb $@ control root
-	rm root/var/lib/tomcat7/webapps/openmrs.war
-	rmdir -p root/var/lib/tomcat7/webapps
+$(WAR_PATH): .FORCE
+	$(TOOLS)/fetch_or_skip $(WAR_URL) $(WAR_PATH) $(WAR_MD5)
 
+$(PACKAGE): control/* $(FILES) $(WAR_PATH)
+	$(TOOLS)/mkdeb $@ control root $(EXTRA_ROOT)
