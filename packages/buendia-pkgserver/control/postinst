@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Setting permissions
-chmod -R +rX /usr/share/buendia
+# Setting permissions on package directory
+chmod -R +rX /usr/share/buendia/packages
 
 if [ ! -f /usr/share/buendia/site/duserver ]; then
 	if [ ! -d /usr/share/buendia/site ]; then
