@@ -14,19 +14,19 @@ mount /dev/buendia_duserver_usb $mntdir
 
 # For all generic updates on the usb
 for f in $mntdir/projectbuendia-all*.zip; do
-	# Extract the updates to the package directory
+    # Extract the updates to the package directory
     unzip $f -d $exdir
     mv $exdir/* /usr/share/buendia/packages/
 done
 
 # If the site id has been set
 if [ ! -z $BUENDIA_SITE_ID ]; then
-	# For all site-specific updates on the usb
+    # For all site-specific updates on the usb
     for f in $mntdir/projectbuendia-$BUENDIA_SITE_ID*.zip; do
-	# Extract the updates to the package directory
+    # Extract the updates to the package directory
         unzip $f -d $exdir
         mv -R $exdir/* /usr/share/buendia/packages
-		mv $f $mntdir/installed-$(basename $f)
+        mv $f $mntdir/installed-$(basename $f)
     done
 fi
 
@@ -36,5 +36,6 @@ rm -R $mntdir
 rm -R $exdir
 
 # Call indexers
-su www-data -c "buendia-package-apt-indexer"
-su www-data -c "buendia-package-indexer.py"
+buendia-package-apt-indexer
+buendia-package-indexer.py
+chmod -R +r /usr/share/buendia/packages

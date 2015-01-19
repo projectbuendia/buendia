@@ -2,7 +2,7 @@
 set -e
 
 # Setting permissions on package directory
-chgrp -R www-data /usr/share/buendia/packages
+chown -R www-data:www-data /usr/share/buendia/packages
 chmod ug+rw /usr/share/buendia/packages
 
 if [ ! -f /usr/share/buendia/site/duserver ]; then
