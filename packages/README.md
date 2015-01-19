@@ -32,7 +32,9 @@ that does two things:
 2. Reads the settings file and applies the settings to the actual service
    or application (e.g. by editing its configuration files).
 
-The settings file and config script should also be named after the package
+The settings file and config script should also be named after the package,
+and the shell variables should be prefixed with this name to prevent collision
 (e.g. a package named `buendia-foo` should place its settings file
 at `/usr/share/buendia/site/foo` and its config script at
-`/usr/share/buendia/config.d/foo`).
+`/usr/share/buendia/config.d/foo`, and its settings should have
+names like `FOO_USER` and `FOO_PASSWORD`).

@@ -5,6 +5,8 @@ export FILES := $(shell find root)
 
 PACKAGE=$(PACKAGE_NAME)_$(PACKAGE_VERSION).deb
 
+EXTRA_ROOT=/tmp/buendia-pushclock
+
 all: $(PACKAGE)
 
 # buendia-pushclock is a slightly unusual; it contains source code that needs
@@ -13,6 +15,6 @@ all: $(PACKAGE)
 # included in data.tar.gz and later overwritten with the compiled binary.
 
 $(PACKAGE): control/* $(FILES)
-	mkdir -p root/usr/bin
-	touch root/usr/bin/buendia-pushclock
-	$(TOOLS)/mkdeb $@ control root
+	mkdir -p $(EXTRA_ROOT)/usr/bin
+	touch $(EXTRA_ROOT)/usr/bin/buendia-pushclock
+	$(TOOLS)/mkdeb $@ control root $(EXTRA_ROOT)
