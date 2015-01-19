@@ -1,7 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Pre-Depends: buendia-utils
-Depends: openssh-server
+Depends: buendia-utils, openssh-server
 Architecture: all
 Description: Configures sshd for Buendia servers.
 Maintainer: projectbuendia.org
