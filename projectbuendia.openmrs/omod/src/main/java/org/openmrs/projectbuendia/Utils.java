@@ -46,6 +46,9 @@ public class Utils {
         }
     };
 
+    // Note: Use of \L here assumes a string that is already NFC-normalized.
+    private static final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
+
     /**
      * Compares two strings in a way that sorts alphabetic parts in alphabetic
      * order and numeric parts in numeric order, while guaranteeing that:
@@ -59,9 +62,6 @@ public class Utils {
      * have the sort order ["a1", "a2", "a2a", "a2b", "a11", "a11a", "b1"].
      */
     public static Comparator<String> alphanumericComparator = new Comparator<String>() {
-        // Note: Use of \L here assumes a string that is already NFC-normalized.
-        private final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
-
         /**
          * Breaks a string into a list of Integers (from sequences of ASCII digits)
          * and Strings (from sequences of letters).  Other characters are ignored.
@@ -98,31 +98,4 @@ public class Utils {
             return nullIntStrListComparator.compare(aParts, bParts);
         }
     };
-
-    /**
-     * Formats a Concept UUID for spreadsheet export.  Null UUIDs become "".
-     * UUIDs consisting only of a decimal integer followed by "A"s,
-     * where the integer contains at most 8 digits and has no leading zeroes,
-     * are displayed as just the integer.  All other UUIDs are formatted in
-     * blocks of 8, 4, 4, 4, and 12 lowercase hex digits separated by hyphens.
-     */
-    public static String formatConceptUuid(Concept concept) {
-        String uuid = concept.getUuid();
-        if (uuid == null || uuid.isEmpty()) {
-            return "";
-        }
-        String hexDigits = uuid.replace("-", "").toLowerCase();
-        if (!hexDigits.matches("^[0-9a-f]{32}$")) {
-            throw new IllegalArgumentException("\"" + uuid + "\" is not a valid UUID");
-        }
-        Matcher matcher = Pattern.compile("^([1-9][0-9]{0,7})a+$").matcher(hexDigits);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        return hexDigits.substring(0, 8) + "-" +
-                hexDigits.substring(8, 12) + "-" +
-                hexDigits.substring(12, 16) + "-" +
-                hexDigits.substring(16, 20) + "-" +
-                hexDigits.substring(20, 32);
-    }
 }

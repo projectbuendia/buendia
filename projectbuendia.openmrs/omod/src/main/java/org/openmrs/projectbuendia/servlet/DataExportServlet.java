@@ -187,7 +187,7 @@ public class DataExportServlet extends HttpServlet {
                                 values[valueColumn + 1] = "";
                             } else {
                                 values[valueColumn] = NAMER.getClientName(value);
-                                values[valueColumn + 1] = Utils.formatConceptUuid(value);
+                                values[valueColumn + 1] = value.getUuid();
                             }
                             return null;
                         }
@@ -247,7 +247,7 @@ public class DataExportServlet extends HttpServlet {
             Concept concept = indexer.getConcept(i);
             headers.append(NAMER.getClientName(concept));
             headers.append(",");
-            headers.append(Utils.formatConceptUuid(concept));
+            headers.append(concept.getUuid());
             headers.append(",");
         }
         writer.println(headers);
