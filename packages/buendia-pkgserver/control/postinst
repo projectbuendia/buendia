@@ -14,4 +14,4 @@ fi
 
 # Restarting services
 service nginx restart
-/etc/init.d/udev restart 2> /dev/null | true
+/etc/init.d/udev restart || true

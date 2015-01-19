@@ -36,5 +36,5 @@ rm -R $mntdir
 rm -R $exdir
 
 # Call indexers
-su www-data -c "buendia-package-apt-indexer.py"
+su www-data -c "buendia-package-apt-indexer"
 su www-data -c "buendia-package-indexer.py"

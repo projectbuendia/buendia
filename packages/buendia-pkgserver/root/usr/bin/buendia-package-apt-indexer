@@ -1,4 +1,7 @@
 #!/bin/bash
+# APT Indexer - Creates Release and Package indexes for a pool of .deb files
+#  Debian packages are assumed to be located in /usr/share/buendia/packages
+
 pushd /usr/share/buendia/packages
 apt-ftparchive --arch all packages . > dists/stable/main/binary-all/Packages
 cat <<EOF > dists/stable/Release

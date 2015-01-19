@@ -50,6 +50,9 @@ def create_index(package_directory, base_url):
 
     packages = {}
     for filename in files:
+        if filename[-3:] == "deb":
+            # Skip debian packages
+            continue
         # Chop off the segment after the last period and split on '-'
         package_parts = '.'.join(filename.split(".")[:-1]).split("-")
         # Extract version string
