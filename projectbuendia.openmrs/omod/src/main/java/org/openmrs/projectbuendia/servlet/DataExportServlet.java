@@ -8,12 +8,14 @@ import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
+import org.openmrs.PatientIdentifier;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.util.FormUtil;
@@ -46,7 +48,12 @@ public class DataExportServlet extends HttpServlet {
     private static final Comparator<Patient> PATIENT_COMPARATOR = new Comparator<Patient>() {
         @Override
         public int compare(Patient p1, Patient p2) {
-            return p1.getPatientIdentifier("MSF").compareTo(p2.getPatientIdentifier("MSF"));
+            PatientIdentifier id1 = p1.getPatientIdentifier("MSF");
+            PatientIdentifier id2 = p2.getPatientIdentifier("MSF");
+            return Utils.alphanumericComparator.compare(
+                    id1 == null ? null : id1.getIdentifier(),
+                    id2 == null ? null : id2.getIdentifier()
+            );
         }
     };
     private static final Comparator<Encounter> ENCOUNTER_COMPARATOR = new Comparator<Encounter>() {
