@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-# Setting permissions on package directory
-chown -R www-data:www-data /usr/share/buendia/packages
-chmod ug+rw /usr/share/buendia/packages
-
 if [ ! -f /usr/share/buendia/site/duserver ]; then
 	if [ ! -d /usr/share/buendia/site ]; then
 		mkdir /usr/share/buendia/site
