@@ -15,7 +15,7 @@ public class Utils {
      * before everything; all Integers sort before all Strings; Integers sort
      * according to numeric value; Strings sort according to string value.
      */
-    public static Comparator<Object> integerOrStringComparator = new Comparator<Object>() {
+    public static Comparator<Object> nullIntStrComparator = new Comparator<Object>() {
         @Override
         public int compare(Object a, Object b) {
             if (a instanceof Integer && b instanceof Integer) {
@@ -33,11 +33,11 @@ public class Utils {
      * Compares two lists, each of whose elements is a null, Integer, or String,
      * lexicographically by element, just like Python does.
      */
-    public static Comparator<List<Object>> integerOrStringListComparator = new Comparator<List<Object>>() {
+    public static Comparator<List<Object>> nullIntStrListComparator = new Comparator<List<Object>>() {
         @Override
         public int compare(List<Object> a, List<Object> b) {
             for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
-                int result = integerOrStringComparator.compare(a.get(i), b.get(i));
+                int result = nullIntStrComparator.compare(a.get(i), b.get(i));
                 if (result != 0) {
                     return result;
                 }
@@ -60,7 +60,7 @@ public class Utils {
      */
     public static Comparator<String> alphanumericComparator = new Comparator<String>() {
         // Note: Use of \L here assumes a string that is already NFC-normalized.
-        private final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("[0-9]+|\\p{L}+");
+        private final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
 
         /**
          * Breaks a string into a list of Integers (from sequences of ASCII digits)
@@ -71,7 +71,8 @@ public class Utils {
             List<Object> parts = new ArrayList<>();
             while (matcher.find()) {
                 String part = matcher.group();
-                parts.add(part.matches("[0-9]+") ? Integer.valueOf(part) : part);
+                String intPart = matcher.group(1);
+                parts.add(intPart != null ? Integer.valueOf(intPart) : part);
             }
             return parts;
         }
@@ -94,7 +95,7 @@ public class Utils {
             // using the non-normalized string as a further tiebreaker.
             aParts.add(a);
             bParts.add(b);
-            return integerOrStringListComparator.compare(aParts, bParts);
+            return nullIntStrListComparator.compare(aParts, bParts);
         }
     };
 
