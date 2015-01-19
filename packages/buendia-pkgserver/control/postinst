@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Setting permissions
+chmod -R +rX /usr/share/buendia
+
 if [ ! -f /usr/share/buendia/site/duserver ]; then
 	if [ ! -d /usr/share/buendia/site ]; then
 		mkdir /usr/share/buendia/site

@@ -38,4 +38,4 @@ rm -R $exdir
 # Call indexers
 buendia-package-apt-indexer
 buendia-package-indexer.py
-chmod -R +r /usr/share/buendia/packages
+chmod -R +rX /usr/share/buendia/packages
