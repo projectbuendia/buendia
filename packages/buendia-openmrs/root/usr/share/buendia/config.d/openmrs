@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -e
+mkdir -p /usr/share/buendia/site
+SETTINGS=/usr/share/buendia/site/openmrs
+PROPERTIES=/usr/share/buendia/openmrs/openmrs-runtime.properties
+
+# Generate a random password for openmrs_user if one is not already set.
+if [ ! -f $SETTINGS ]; then
+    password=$(buendia-mkpass)
+    cat <<EOF > $SETTINGS
+OPENMRS_MYSQL_USER=openmrs_user
+OPENMRS_MYSQL_PASSWORD=$password
+EOF
+fi
+
+# Read the settings.
+. /usr/share/buendia/site/mysql
+. $SETTINGS
+
+# Check if the password is already correctly set.
+if mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD </dev/null 2>/dev/null &&
+    grep "connection.password=$OPENMRS_MYSQL_PASSWORD" $PROPERTIES >/dev/null; then
+  echo "OpenMRS MySQL password unchanged."
+  exit 0
+else
+  echo "Setting OpenMRS MySQL password..."
+fi
+
+service tomcat7 stop
+
+# Set openmrs_user's password in MySQL.
+service mysql restart
+sleep 1
+mysql -uroot -p$MYSQL_ROOT_PASSWORD <<EOF
+grant all on openmrs.* to openmrs_user@localhost identified by '$OPENMRS_MYSQL_PASSWORD';
+grant file on *.* to openmrs_user@localhost;
+flush privileges;
+EOF
+
+# Configure OpenMRS to use the specified password for openmrs_user.
+cat <<EOF >$PROPERTIES
+connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
+connection.username=openmrs_user
+connection.password=$OPENMRS_MYSQL_PASSWORD
+auto_update_database=true
+module.allow_web_admin=true
+EOF
+
+service tomcat7 start
+
+if mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD </dev/null 2>/dev/null; then
+  echo "Successfully set OpenMRS MySQL password."
+  exit 0
+else
+  echo "Could not set OpenMRS MySQL password!"
+  exit 1
+fi

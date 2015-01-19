@@ -25,23 +25,24 @@ proguard/
 
 # Android Studio files. See
 # https://intellij-support.jetbrains.com/entries/23393067.
-.idea/libraries/
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/.name
-.idea/codeStyleSettings.xml
-.idea/compiler.xml
-.idea/copyright/profiles_settings.xml
-.idea/dictionaries
-.idea/encodings.xml
-.idea/misc.xml
-.idea/modules.xml
-.idea/scopes/scope_settings.xml
-.idea/vcs.xml
+**/.idea/libraries/
+**/.idea/workspace.xml
+**/.idea/tasks.xml
+**/.idea/.name
+**/.idea/codeStyleSettings.xml
+**/.idea/compiler.xml
+**/.idea/copyright/profiles_settings.xml
+**/.idea/encodings.xml
+**/.idea/misc.xml
+**/.idea/modules.xml
+**/.idea/scopes/scope_settings.xml
+**/.idea/vcs.xml
 
 # User-specific configurations
 *.iml
 .classpath
 .settings
 .project
-packages/*.deb
+
+# Built .deb packages
+packages/**/*.deb

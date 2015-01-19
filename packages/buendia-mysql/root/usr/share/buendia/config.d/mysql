@@ -1,0 +1,56 @@
+#!/bin/bash
+
+mkdir -p /usr/share/buendia/site
+SETTINGS=/usr/share/buendia/site/mysql
+INITSQL=/tmp/buendia-mysql-init.sql
+CONF=/etc/mysql/conf.d/buendia-init.cnf
+
+# Generate a random MySQL root password if one is not already set.
+if [ ! -f $SETTINGS ]; then
+    password=$(buendia-mkpass)
+    echo "MYSQL_ROOT_PASSWORD=$password" > $SETTINGS
+fi
+
+# Read the settings.
+. $SETTINGS
+
+# Check if the root password is already correctly set.
+if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
+  echo "MySQL root password unchanged."
+  exit 0
+else
+  echo "Setting MySQL root password..."
+fi
+
+# Create a MySQL init-file that sets the root password.
+umask 066
+cat <<EOF >$INITSQL
+update mysql.user set password=password('$MYSQL_ROOT_PASSWORD') where user='root';
+flush privileges;
+EOF
+chgrp mysql $INITSQL
+chmod g+r $INITSQL
+
+# Configure MySQL to run the init-file on startup.
+cat <<EOF >$CONF
+[mysqld]
+init_file=$INITSQL
+EOF
+
+# Make MySQL restart and execute the init-file.
+service mysql restart
+sleep 1
+
+# Clean up the init-file and restart again under normal conditions.
+rm -f $INITSQL $CONF
+service mysql restart
+sleep 1
+
+# Confirm that the root password was correctly set.
+if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
+  echo "Successfully set MySQL root password."
+  exit 0
+else
+  echo "Could not set MySQL root password!"
+  exit 1
+fi

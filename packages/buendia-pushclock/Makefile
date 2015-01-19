@@ -1,9 +1,11 @@
-export PACKAGE_VERSION := 1.0
+export PACKAGE_VERSION := 0.1
 export PACKAGE_NAME := $(shell basename $$(pwd))
 export TOOLS := $(shell pwd)/../../tools
 export FILES := $(shell find root)
 
 PACKAGE=$(PACKAGE_NAME)_$(PACKAGE_VERSION).deb
+
+EXTRA_ROOT=/tmp/buendia-pushclock
 
 all: $(PACKAGE)
 
@@ -13,6 +15,6 @@ all: $(PACKAGE)
 # included in data.tar.gz and later overwritten with the compiled binary.
 
 $(PACKAGE): control/* $(FILES)
-	mkdir -p root/usr/bin
-	touch root/usr/bin/buendia-pushclock
-	$(TOOLS)/mkdeb $@ control root
+	mkdir -p $(EXTRA_ROOT)/usr/bin
+	touch $(EXTRA_ROOT)/usr/bin/buendia-pushclock
+	$(TOOLS)/mkdeb $@ control root $(EXTRA_ROOT)

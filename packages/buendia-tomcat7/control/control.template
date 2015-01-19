@@ -1,7 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Pre-Depends: buendia-utils
-Depends: openjdk-7-jdk, tomcat7, tomcat7-admin
+Depends: buendia-utils, openjdk-7-jdk, tomcat7, tomcat7-admin
 Architecture: all
-Description: Sets up tomcat7 as the OpenMRS server for Buendia.
+Description: Tomcat configuration for Buendia.
 Maintainer: projectbuendia.org

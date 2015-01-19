@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: buendia-utils, openssh-server
+Depends: buendia-tomcat7, buendia-mysql
 Architecture: all
-Description: Configures sshd for Buendia servers.
+Description: OpenMRS, configured for buendia.
 Maintainer: projectbuendia.org
