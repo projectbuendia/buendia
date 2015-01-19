@@ -50,8 +50,8 @@ def create_index(package_directory, base_url):
 
     packages = {}
     for filename in files:
-        if filename[-3:] == "deb":
-            # Skip debian packages
+        if filename[-3:] != "apk":
+            # Skip anything other than an apk packages
             continue
         # Chop off the segment after the last period and split on '-'
         package_parts = '.'.join(filename.split(".")[:-1]).split("-")
