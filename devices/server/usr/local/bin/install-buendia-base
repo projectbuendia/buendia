@@ -1,0 +1,54 @@
+#!/bin/ash
+
+set -e
+ROOT=/home/root/debian  # must be on the /home filesystem
+PATH=/usr/local/bin:$PATH
+
+if [ -f /etc/buendia-base-installed ]; then
+  echo "Buendia base system is installed."
+  exit 0
+fi
+
+# Turn on wifi.
+echo "Starting wifi."
+if wifi -; ! ping -c 1 -w 1 debian.org; then
+  if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then
+    if sleep 20; wifi -; ! ping -c 1 -w 1 debian.org; then
+      echo 'Could not connect wifi.'
+      exit 1
+    fi
+  fi
+fi
+
+# Wipe and install Debian under $ROOT using cdebootstrap.
+rm -rf $ROOT
+install-debian
+
+# Install a .bashrc file for root in the Debian chroot.
+cat '<<EOF' >$ROOT/root/.bashrc
+PATH=/usr/local/bin:$PATH
+PS1='\[\033[33m\]\h(debian)[\!]\$\[\033[0m\] '
+export LS_OPTIONS='--color=auto'
+alias ls='ls $LS_OPTIONS'
+alias ll='ls -l $LS_OPTIONS'
+EOF
+
+# Add custom package repositories.
+cp /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
+
+# Do the rest of the setup operations within Debian.
+cat <<EOF | enter-debian
+set -e
+
+# Set time zone to UTC.
+echo UTC > /etc/timezone
+dpkg-reconfigure -f noninteractive tzdata
+
+# Configure apt.
+echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
+echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
+apt-get update
+EOF
+
+echo "Buendia base system successfully installed."
+touch /etc/buendia-base-installed
