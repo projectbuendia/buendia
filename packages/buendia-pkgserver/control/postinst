@@ -2,9 +2,11 @@
 set -e
 
 # Setting permissions on package directory
-chgrp -R www-data /usr/share/buendia/packages
-chmod ug+rw /usr/share/buendia/packages
+chmod -R +rX /usr/share/buendia/packages
+
+# Run setting configuration
+. /usr/share/buendia/config.d/pkgserver
 
 # Restarting services
 service nginx restart
-/etc/init.d/udev restart
+/etc/init.d/udev restart || true
