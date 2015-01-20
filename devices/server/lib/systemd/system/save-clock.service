@@ -1,0 +1,13 @@
+[Unit]
+Description=Save the clock time to disk
+
+# The Edison clock is reset to the mtime of /var/lib/systemd/clock on each boot.
+# Touching this file regularly keeps the clock from falling too far behind, even
+# if the system suffers a sudden power loss.
+
+[Service]
+Type=simple
+ExecStart=/bin/touch /var/lib/systemd/clock
+
+[Install]
+WantedBy=multi-user.target
