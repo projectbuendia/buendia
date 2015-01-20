@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ -f /usr/share/buendia/site/pkgserver ]; then
+	. /usr/share/buendia/site/pkgserver
+fi
+
+URL=${PKGSERVER_PACKAGE_BASE_URL-"http://localhost"}
+
+cat <<EOF > /etc/apt/sources.list.d/pkgclient.list
+deb [arch=all] $URL stable main
+EOF

@@ -1,0 +1,6 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Depends: cron
+Description: Connects to a buendia repository of .deb package files.
+Maintainer: projectbuendia.org

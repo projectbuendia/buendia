@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+# Run setting configuration
+. /usr/share/buendia/config.d/pkgclient
+
