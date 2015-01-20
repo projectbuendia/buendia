@@ -57,7 +57,7 @@ systemctl enable wpa_supplicant.service
 EOF
 
 # Reboot to continue installation.
-echo 'nohup ash -c "(sync; sleep 20; reboot) >/dev/null &"' | do_in_yocto
+echo '(sync; reboot) &' | do_in_yocto
 reboot=$(date)
 
 echo
