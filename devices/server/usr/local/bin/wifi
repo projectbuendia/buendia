@@ -6,8 +6,10 @@ conf=$confdir/wpa_supplicant.conf
 
 if [ ! -n "$ssid_psk" ]; then
   echo "Usage: $0 <ssid>[:<psk-password>]"
-  echo "Connects the Edison to an open or WPA/WPA2-PSK wireless network."
-  echo "Use 'wifi -' to reuse the previous SSID."
+  echo "    Connects the Edison to an open or WPA/WPA2-PSK wireless network,"
+  echo "    updating $conf with the given settings."
+  echo "Usage: $0 -"
+  echo "    Reconnect to the network in $conf."
   echo
   echo "Current status:"
   wpa_cli status
