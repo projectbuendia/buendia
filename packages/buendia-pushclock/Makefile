@@ -1,13 +1,7 @@
 export PACKAGE_VERSION := 0.1
-export PACKAGE_NAME := $(shell basename $$(pwd))
-export TOOLS := $(shell pwd)/../../tools
-export FILES := $(shell find root)
-
-PACKAGE=$(PACKAGE_NAME)_$(PACKAGE_VERSION).deb
+include ../Makefile.vars
 
 EXTRA_ROOT=/tmp/buendia-pushclock
-
-all: $(PACKAGE)
 
 # buendia-pushclock is a slightly unusual; it contains source code that needs
 # to be compiled on the target platform, so it Depends on gcc and performs the

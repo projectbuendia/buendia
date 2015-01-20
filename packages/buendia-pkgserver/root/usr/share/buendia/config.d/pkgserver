@@ -1,9 +1,7 @@
 #!/bin/bash
 
+mkdir -p /usr/share/buendia/site
 if [ ! -f /usr/share/buendia/site/pkgserver ]; then
-	if [ ! -d /usr/share/buendia/site ]; then
-		mkdir /usr/share/buendia/site
-	fi
 	cat <<EOF > /usr/share/buendia/site/pkgserver
 PKGSERVER_PACKAGE_BASE_URL="http://localhost"
 EOF

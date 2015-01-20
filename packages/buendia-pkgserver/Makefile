@@ -1,13 +1,8 @@
 export PACKAGE_VERSION := 0.1
-export PACKAGE_NAME := $(shell basename $$(pwd))
-export TOOLS := $(shell pwd)/../../tools
-export FILES := $(shell find root)
-export SOURCE_DIR := $(shell pwd)/../../pkgserver
-export BUILD_DIR :=$(shell mktemp -d)
+include ../Makefile.vars
 
-PACKAGE=$(PACKAGE_NAME)_$(PACKAGE_VERSION).deb
-
-all: $(PACKAGE)
+export SOURCE_DIR := $(TOP)/pkgserver
+export BUILD_DIR :=$(shell mktemp -d /tmp/buendia-pkgserver.XXXXXXXX)
 
 $(PACKAGE): control/* $(FILES)
 	mkdir -p $(BUILD_DIR)/usr/bin

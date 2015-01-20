@@ -3,6 +3,7 @@
 #  Debian packages are assumed to be located in /usr/share/buendia/packages
 
 pushd /usr/share/buendia/packages
+mkdir -p dists/stable/main/binary-all
 apt-ftparchive --arch all packages . > dists/stable/main/binary-all/Packages
 cat <<EOF > dists/stable/Release
 Origin: Buendia
