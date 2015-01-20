@@ -11,26 +11,21 @@ fi
 
 # Turn on wifi.
 echo "Starting wifi."
-wifi -
-if ! ping -c 1 -w 1 debian.org; then
-  sleep 10
-  wifi -
-  if ! ping -c 1 -w 1 debian.org; then
-    sleep 20
-    wifi -
-    if ! ping -c 1 -w 1 debian.org; then
+if wifi -; ! ping -c 1 -w 1 debian.org; then
+  if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then
+    if sleep 20; wifi -; ! ping -c 1 -w 1 debian.org; then
       echo 'Could not connect wifi.'
       exit 1
     fi
   fi
 fi
 
-# Install Debian under $ROOT using cdebootstrap.
+# Wipe and install Debian under $ROOT using cdebootstrap.
 rm -rf $ROOT
 install-debian
 
-# Install a .bashrc file in the Debian user root in the Debian chroot.
-cat <<EOF >$ROOT/root/.bashrc
+# Install a .bashrc file for root in the Debian chroot.
+cat '<<EOF' >$ROOT/root/.bashrc
 PATH=/usr/local/bin:$PATH
 PS1='\[\033[33m\]\h(debian)[\!]\$\[\033[0m\] '
 export LS_OPTIONS='--color=auto'
@@ -39,15 +34,13 @@ alias ll='ls -l $LS_OPTIONS'
 EOF
 
 # Add custom package repositories.
-if [ -f /etc/buendia.sources.list ]; then
-  cat /etc/buendia.sources.list >> $ROOT/etc/apt/sources.list
-fi
+cp /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
 
 # Do the rest of the setup operations within Debian.
 cat <<EOF | enter-debian
 set -e
 
-# Set time zone to UTC
+# Set time zone to UTC.
 echo UTC > /etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
@@ -55,8 +48,6 @@ dpkg-reconfigure -f noninteractive tzdata
 echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
 echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
 apt-get update
-
-mkdir -p /usr/local/bin
 EOF
 
 echo "Buendia base system successfully installed."

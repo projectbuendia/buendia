@@ -5,7 +5,7 @@
 set -e
 ROOT=/home/root/debian  # must be on the /home filesystem
 
-if [ -f $ROOT/etc/debian_installed ]; then
+if [ -f $ROOT/etc/debian-installed ]; then
   echo "Debian is already installed at $ROOT."
   exit 0
 fi
@@ -29,8 +29,11 @@ tar xzf cdebootstrap_$VER.tar.gz
 wget -q $SHA1SUM_SOURCE_URL
 cc -O3 -o sha1sum sha1sum.c
 
-# Needed for cdebootstrap to work.
-mount /home/ -o dev,remount
+# Enable devices and setuid (/home is mounted nodev,nosuid by default).
+grep -v /home /etc/fstab > /etc/fstab.$$
+grep /home /etc/fstab | sed -e 's/,nodev,/,/' -e 's/,nosuid,/,/' >> /etc/fstab.$$
+mv /etc/fstab.$$ /etc/fstab
+mount -o remount /home
 
 # Unmount any mounts within $ROOT so we can safely rm -rf $ROOT.
 for dir in $(mount | grep $ROOT | sed -e 's/.* on //' -e 's/ .*//'); do
@@ -49,12 +52,9 @@ rm -rf $TMPDIR
 # Empty out the /dev directory; devtmpfs will be mounted over it.
 rm -rf $ROOT/dev/*
 
-# Restore the /home mount to its former state.
-mount /home/ -o nodev,remount
-
 # Add a handy symlink from /debian.
 rm -f /debian
 ln -s $ROOT /debian
 
 echo "Debian successfully installed at $ROOT."
-touch $ROOT/etc/debian_installed
+touch $ROOT/etc/debian-installed
