@@ -12,10 +12,18 @@ fi
 # Turn on wifi.
 echo "Starting wifi."
 wifi -
-if ! ping -c 1 -w 1 debian.org; then sleep 5; wifi -; fi
-if ! ping -c 1 -w 1 debian.org; then sleep 10; wifi -; fi
-if ! ping -c 1 -w 1 debian.org; then sleep 20; wifi -; fi
-if ! ping -c 1 -w 1 debian.org; then echo 'Could not connect wifi.'; exit 1; fi
+if ! ping -c 1 -w 1 debian.org; then
+  sleep 10
+  wifi -
+  if ! ping -c 1 -w 1 debian.org; then
+    sleep 20
+    wifi -
+    if ! ping -c 1 -w 1 debian.org; then
+      echo 'Could not connect wifi.'
+      exit 1
+    fi
+  fi
+fi
 
 # Install Debian under $ROOT using cdebootstrap.
 rm -rf $ROOT
