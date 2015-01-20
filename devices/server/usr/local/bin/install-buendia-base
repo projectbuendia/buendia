@@ -31,7 +31,6 @@ install-debian
 
 # Install a .bashrc file in the Debian user root in the Debian chroot.
 cat <<EOF >$ROOT/root/.bashrc
-
 PATH=/usr/local/bin:$PATH
 PS1='\[\033[33m\]\h(debian)[\!]\$\[\033[0m\] '
 export LS_OPTIONS='--color=auto'
@@ -39,8 +38,10 @@ alias ls='ls $LS_OPTIONS'
 alias ll='ls -l $LS_OPTIONS'
 EOF
 
-# Add a package repository.
-cat /etc/buendia.sources.list >> $ROOT/etc/apt/sources.list
+# Add custom package repositories.
+if [ -f /etc/buendia.sources.list ]; then
+  cat /etc/buendia.sources.list >> $ROOT/etc/apt/sources.list
+fi
 
 # Do the rest of the setup operations within Debian.
 cat <<EOF | enter-debian
@@ -50,12 +51,10 @@ set -e
 echo UTC > /etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
-# Update sources.
-apt-get update
-
-# When installing packages, install only the required dependencies.
+# Configure apt.
 echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
 echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
+apt-get update
 
 mkdir -p /usr/local/bin
 EOF
