@@ -1,6 +1,8 @@
 [Unit]
 Conflicts=sshd.service
 
+# As a rudimentary measure to avoid attack, serve SSH on a non-standard port.
+
 [Socket]
 ExecStartPre=/bin/mkdir -p /var/run/sshd
 ListenStream=9022
