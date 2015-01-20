@@ -4,12 +4,8 @@ set -e
 # Setting permissions on package directory
 chmod -R +rX /usr/share/buendia/packages
 
-if [ ! -f /usr/share/buendia/site/duserver ]; then
-	if [ ! -d /usr/share/buendia/site ]; then
-		mkdir /usr/share/buendia/site
-	fi
-	echo "export DUSERVER_PACKAGE_BASE_URL=http://localhost" >> /usr/share/buendia/site/duserver
-fi
+# Run setting configuration
+. /usr/share/buendia/config.d/pkgserver
 
 # Restarting services
 service nginx restart

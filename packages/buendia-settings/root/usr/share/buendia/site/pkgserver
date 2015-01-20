@@ -1,0 +1,2 @@
+#!/bin/bash
+export PKGSERVER_PACKAGE_BASE_URL="http://packages.projectbuendia.org"

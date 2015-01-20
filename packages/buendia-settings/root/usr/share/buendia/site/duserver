@@ -1,2 +1,0 @@
-#!/bin/bash
-export DUSERVER_PACKAGE_BASE_URL="http://packages.projectbuendia.org"

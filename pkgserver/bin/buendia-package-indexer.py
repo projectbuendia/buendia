@@ -1,8 +1,8 @@
 #!/usr/bin/python
 import os, subprocess, json
 
-def get_setting(setting, default=None, namespace='duserver'):
-    """Get the value for a setting from the duserver settings file."""
+def get_setting(setting, default=None, namespace='pkgserver'):
+    """Get the value for a setting from the pkgserver settings file."""
     try:
         value = subprocess.check_output(
             ('/bin/bash -c "source /usr/share/buendia/site/%s; '
@@ -50,7 +50,7 @@ def create_index(package_directory, base_url):
 
     packages = {}
     for filename in files:
-        if filename[-3:] != "apk":
+        if not filename.endswith(".apk"):
             # Skip anything other than an apk packages
             continue
         # Chop off the segment after the last period and split on '-'
@@ -78,9 +78,9 @@ def create_index(package_directory, base_url):
 
 if __name__ == '__main__':
     # Retrieve the package base url from the settings file
-    base_url = get_setting('DUSERVER_PACKAGE_BASE_URL')
+    base_url = get_setting('PKGSERVER_PACKAGE_BASE_URL')
     if base_url is None:
-        print("Requires $DUSERVER_PACKAGE_BASE_URL to be set to the base url.")
+        print("Requires $PKGSERVER_PACKAGE_BASE_URL to be set to the base url.")
         exit(1)
     # Create the index of the default location for buendia packages
     create_index("/usr/share/buendia/packages/", base_url)
