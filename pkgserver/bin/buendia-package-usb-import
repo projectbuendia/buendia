@@ -10,7 +10,7 @@ mntdir=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
 exdir=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
 
 # Mount usb to temporary directory
-mount /dev/buendia_pkserver_usb $mntdir
+mount /dev/buendia_pkgserver_usb $mntdir
 
 # For all generic updates on the usb
 for f in $mntdir/projectbuendia-all*.zip; do
