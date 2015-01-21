@@ -47,14 +47,21 @@ dpkg-reconfigure -f noninteractive tzdata
 # Configure apt.
 echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
 echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
-apt-get update
 
-# Install essential packages.  These are considered part of the base system
-# and won't be included in backups of the software installation state.
-apt-get -qy install less zip unzip
-apt-get -qy install screen ssh git rsync
-apt-get -qy install python2.7 python-pip
-apt-get -qy install openjdk-7-jdk
+# These packages are considered part of the base system and won't be included
+# in backups of the software installation state.
+BASE_PACKAGES='less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk'
+
+# The first time we run apt-get, ignore failure; install as much as possible.
+if apt-get update; then
+  echo "APT sources updated; installing base packages."
+else  # ignore apt-get failure
+  echo "APT sources didn't all update; trying to install base packages anyway."
+fi
+apt-get -qy install $BASE_PACKAGES
+
+# This time, fail if apt-get fails.
+apt-get update
 EOF
 
 echo "Buendia base system successfully installed."
