@@ -26,7 +26,7 @@ done
 if [ ! -z $BUENDIA_SITE_ID ]; then
     # For all site-specific updates on the usb
     for f in $mntdir/projectbuendia-$BUENDIA_SITE_ID*.zip; do
-		# Extract the updates to the package directory
+        # Extract the updates to the package directory
         unzip $f -d $exdir
         mv -R $exdir/* /usr/share/buendia/packages
         mv $f $mntdir/installed-$(basename $f)
