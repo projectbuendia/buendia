@@ -15,7 +15,7 @@ fi
 # Determine the network location (URL) of the package server.
 # Either the `PKGSERVER_URL` variable is set by the settings file,
 # or we assume that the package server can be fond at the default location.
-URL=${PKGSERVER_URL-"http://packages.local"}
+URL=${PKGSERVER_URL-"http://packages.local:9001"}
 
 # Generate the pkgclient apt sources list containing the pkgserver repository.
 cat <<EOF > /etc/apt/sources.list.d/pkgclient.list
