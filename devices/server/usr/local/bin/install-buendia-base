@@ -22,7 +22,6 @@ fi
 
 # Wipe and install Debian under $ROOT using cdebootstrap.  If the installation
 # fails (most likely due to network unavailability), reboot and try again.
-rm -rf $ROOT
 install-debian || reboot
 
 # Install a .bashrc file for root in the Debian chroot.

@@ -43,7 +43,7 @@ echo $flashed
 
 # Leave the repo URL where usr/local/bin/install-buendia-base will find it.
 [ -n "$repo_url" ] && cat <<EOF | do_in_yocto
-echo deb '$repo_url' / > /etc/buendia-base.sources.list
+echo deb [arch=all] '$repo_url' stable main > /etc/buendia-base.sources.list
 EOF
 
 # Copy all the setup files and scripts onto the Edison.
