@@ -31,8 +31,7 @@ if [ ! -z $BUENDIA_SITE_ID ]; then
 fi
 
 # Cleanup
-umount $mntdir
-rm -R $mntdir
+umount $mntdir && rm -R $mntdir
 rm -R $exdir
 
 # Call indexers
