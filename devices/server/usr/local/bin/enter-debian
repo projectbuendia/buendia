@@ -5,17 +5,6 @@
 set -e
 ROOT=/home/root/debian
 
-# Make devices and other special filesystems appear where they should.
-if [ ! -e $ROOT/dev/null ]; then
-  mount --bind /dev $ROOT/dev
-fi
-if [ ! -e $ROOT/proc/1 ]; then
-  mount --bind /proc $ROOT/proc
-fi
-if [ ! -e $ROOT/sys/fs ]; then
-  mount --bind /sys $ROOT/sys
-fi
-
 # Copy current configuration information into /etc.
 for i in fstab host.conf hosts localtime nsswitch.conf resolv.conf timezone; do
   cp -p /etc/$i $ROOT/etc || true
