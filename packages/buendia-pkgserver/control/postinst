@@ -4,6 +4,11 @@ set -e
 # Setting permissions on package directory
 chmod -R +rX /usr/share/buendia/packages
 
+# Disable the default nginx configuration
+if [ -e /etc/nginx/sites-enabled/default ]; then
+	rm /etc/nginx/sites-enabled/default
+fi
+
 # Run setting configuration
 . /usr/share/buendia/config.d/pkgserver
 
