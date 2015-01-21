@@ -8,7 +8,7 @@ setup_ssid_psk=$2
 repo_url=$3
 
 # Default to using our jenkins server as the repo for our released packages.
-repo_url=${repo_url-http://104.155.14.26:9001}
+repo_url=${repo_url:-http://104.155.14.26:9001}
 
 if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
   echo "Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<repo-url>]"
