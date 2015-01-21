@@ -1,5 +1,29 @@
 #!/usr/bin/env python
 
+# This script generates a SQL file (buendia_concept_dictionary.sql) to add ProjectBuendia concepts 
+# into the standard CIEL concept dictionary.
+# This will probably not need to be run again, but has been added to the git repository for 
+# historical information on how the buendia_concept_dictionary.sql file was generated.
+# 
+# Rather than doing a diff between the manually edited dictionary state and the official CIEL dictionary
+# this script uses various heuristics to spot where we have made manual edits.
+# The heuristics are:
+# - Standard CIEL concepts have UUIDs which are the id then end with repeated 'A' characters. 
+#   We look for not having 'AAAAA' as that is low enough chance probability to be sure it is our added concept
+# - Any special string we added for the purpose of a better android UI is stored in
+#   the locale %_client (actually 'en_GB_client')
+# - Any original concept_answer in the original CIEL dictionary had sort weight matching the concept_answer_id,
+#   had a UUID ending in repeated 'C" characters, and a creator id of 1. If ANY of these are not true 
+#   the script assumes it has been manually edited 
+# - Any concept which had answers edited, we assume it may have had a datatype edited as well 
+#   (in case it wasn't coded before)
+
+# This script also renumbers all manually edited concepts to start at 777,000,000 to avoid collisions when the CIEL 
+# dictionary adds new concepts.
+
+# It also takes care to get UTF-8 encoding right for the concept names with special characters.
+
+
 from __future__ import print_function
 
 import pymysql
@@ -48,8 +72,6 @@ concept_renumber = {}
 
 print('\n#\n# Extra dictionary changes for the Google/MSF Ebola effort (Project Buendia)\n#')
 
-
-# TODO: renumber concepts to avoid potential number conflicts with future dictionary
 # Read all new concepts (by making assumptions about the UUID), and create INSERT statements for them.
 # If we renumber we will need to renumber all forms as well.
 # We will also need to renumber data if we keep old data.
@@ -72,7 +94,6 @@ for row in cur:
 	print(insert("concept", concept_columns, values).encode('utf-8'))
 cur.close()
 
-# TODO: renumber concept_names to avoid potential number conflicts with future dictionary
 # insert all the non-voided strings for the given concepts
 print('\n#\n# Names for Buendia specific concepts\n#')
 cur = conn.cursor()
