@@ -1,0 +1,12 @@
+[Unit]
+Description=Buendia base install service
+Requires=dev-disk-by\x2dpartlabel-home.device dev-disk-by\x2dpartlabel-update.device
+After=dev-disk-by\x2dpartlabel-home.device dev-disk-by\x2dpartlabel-update.device
+
+[Service]
+ExecStart=/bin/sh /usr/local/bin/install-buendia-base
+TimeoutStartSec=1800
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

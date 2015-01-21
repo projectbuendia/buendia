@@ -26,6 +26,7 @@ fi
 set -e
 pwd="$(pwd)"
 tmp=/tmp/make_package.$$
+TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
 
 # Copy the control files into a temporary directory
 mkdir -p $tmp/control
@@ -39,9 +40,9 @@ if [ -f $tmp/control/control.template ]; then
 fi
 
 # Pack up the Debian package.
-tar cvfz $tmp/control.tar.gz -C $tmp/control .
+$TAR cvfz $tmp/control.tar.gz -C $tmp/control .
 while [ -n "$1" ]; do
-    tar --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .
+    $TAR --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .
     shift
 done
 gzip $tmp/data.tar

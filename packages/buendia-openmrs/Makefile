@@ -1,9 +1,5 @@
 export PACKAGE_VERSION := 0.1
-export PACKAGE_NAME := $(shell basename $$(pwd))
-export TOOLS := $(shell pwd)/../../tools
-export FILES := $(shell find root)
-
-PACKAGE=$(PACKAGE_NAME)_$(PACKAGE_VERSION).deb
+include ../Makefile.vars
 
 EXTRA_ROOT=/tmp/buendia-openmrs
 WAR_URL=http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_1.10.1/openmrs.war/download

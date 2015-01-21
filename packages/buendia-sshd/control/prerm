@@ -1,5 +1,0 @@
-#!/bin/bash
-
-set -e
-buendia-divert $1 /etc/ssh/sshd_config
-service ssh restart
