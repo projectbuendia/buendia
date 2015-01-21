@@ -39,6 +39,7 @@ EOF
 cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
 
 # Do the rest of the setup steps below within Debian.
+init-debian-mounts
 cat <<'EOF' | enter-debian
 set -e
 
