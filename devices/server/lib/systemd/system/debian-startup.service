@@ -5,6 +5,7 @@ Description=Debian: mount special filesystems and execute startup scripts
 Type=simple
 ExecStartPre=/usr/local/bin/init-debian-mounts
 ExecStart=/usr/local/bin/enter-debian bash -c 'for i in /etc/rc2.d/S*; do echo $i start; $i start; done'
+StandardOutput=journal+console
 
 [Install]
 WantedBy=multi-user.target
