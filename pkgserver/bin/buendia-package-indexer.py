@@ -78,9 +78,9 @@ def create_index(package_directory, base_url):
 
 if __name__ == '__main__':
     # Retrieve the package base url from the settings file
-    base_url = get_setting('PKGSERVER_PACKAGE_BASE_URL')
+    base_url = get_setting('PKGSERVER_URL')
     if base_url is None:
-        print("Requires $PKGSERVER_PACKAGE_BASE_URL to be set to the base url.")
+        print("Requires $PKGSERVER_URL to be set to the base url.")
         exit(1)
     # Create the index of the default location for buendia packages
     create_index("/usr/share/buendia/packages/", base_url)
