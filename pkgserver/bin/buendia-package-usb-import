@@ -10,7 +10,10 @@ mntdir=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
 exdir=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
 
 # Mount usb to temporary directory
-mount /dev/buendia_pkserver_usb $mntdir
+mount /dev/buendia_pkgserver_usb $mntdir
+
+# Ensure to only loop through matching filenames
+shopt -s nullglob
 
 # For all generic updates on the usb
 for f in $mntdir/projectbuendia-all*.zip; do
@@ -23,7 +26,7 @@ done
 if [ ! -z $BUENDIA_SITE_ID ]; then
     # For all site-specific updates on the usb
     for f in $mntdir/projectbuendia-$BUENDIA_SITE_ID*.zip; do
-    # Extract the updates to the package directory
+		# Extract the updates to the package directory
         unzip $f -d $exdir
         mv -R $exdir/* /usr/share/buendia/packages
         mv $f $mntdir/installed-$(basename $f)
