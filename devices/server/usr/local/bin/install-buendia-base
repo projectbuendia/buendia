@@ -11,7 +11,7 @@ if [ -f /etc/buendia-base-installed ]; then
   exit 0
 fi
 
-# Turn on wifi.
+# Turn on wifi, using the last saved configuration.
 echo "Starting wifi."
 if wifi -; ! ping -c 1 -w 1 debian.org; then
   if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then

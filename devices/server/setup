@@ -56,12 +56,10 @@ tar cf - etc lib usr | $ssh $target 'tar xf - -C /; systemctl daemon-reload'
 # The above step updates sshd.socket, moving sshd to port 9022 instead of 22.
 ssh_port=9022
 
-# Ensure that the Edison can connect to the setup network.  This has the side
-# effect of updating the wpa_supplicant configuration; enabling wpa_supplicant
-# causes the Edison to automatically try to reconnect to this network on boot.
+# Ensure that the Edison can connect to the setup network.  The configuration
+# will be saved and reused when wifi is turned on again in the future.
 cat <<EOF | do_in_yocto
 /usr/local/bin/wifi '$setup_ssid_psk'
-systemctl enable wpa_supplicant.service
 EOF
 
 # Reboot to continue installation.
