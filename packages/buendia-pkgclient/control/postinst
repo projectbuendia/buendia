@@ -4,3 +4,6 @@ set -e
 # Run setting configuration
 . /usr/share/buendia/config.d/pkgclient
 
+# Run the updater once on initial install
+/etc/cron.hourly/pkgclient-update.sh
+
