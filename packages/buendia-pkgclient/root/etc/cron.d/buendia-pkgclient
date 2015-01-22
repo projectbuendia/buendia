@@ -1,0 +1,4 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+*/5	*	*	*	*	root	/usr/bin/pkgclient-update >> /var/log/buendia.log 2> /var/log/buendia.error.log
