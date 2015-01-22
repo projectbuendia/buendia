@@ -5,7 +5,7 @@ cd $(dirname $0)
 source remote-execution.sh
 password=$1
 setup_ssid_psk=$2
-site_id=${3:-dev}  # default to "dev" site
+site_id=$3
 
 # Default to using our jenkins server as the repo for our released packages.
 repo_url=http://104.155.14.26:9001
@@ -46,13 +46,14 @@ echo $flashed
 ./configure-root-access "$password"
 
 # Set the clock to something approximately correct.
+date=$(date '+%Y-%m-%d %H:%M:%S')
 cat <<EOF | do_in_yocto
-date -s '$(date '+%Y-%m-%d %H:%M:%S')'
+date -s '$date'
 touch /var/lib/systemd/clock
 EOF
 
 # Leave the site ID where usr/local/bin/install-buendia-base will find it.
-cat <<EOF | do_in_yocto
+[ -n "$site_id" ] && cat <<EOF | do_in_yocto
 echo "SITE_ID=$site_id" > /etc/buendia-site-id
 EOF
 
