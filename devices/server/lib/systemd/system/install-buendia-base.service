@@ -4,6 +4,7 @@ Requires=dev-disk-by\x2dpartlabel-home.device dev-disk-by\x2dpartlabel-update.de
 After=dev-disk-by\x2dpartlabel-home.device dev-disk-by\x2dpartlabel-update.device
 
 [Service]
+Type=forking
 ExecStart=/bin/sh -c '/usr/local/bin/install-buendia-base 2>&1 | /usr/bin/tee -a /var/log/install-buendia-base.log'
 TimeoutStartSec=1800
 StandardOutput=journal+console
