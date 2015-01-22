@@ -75,8 +75,8 @@ apt-get update
 . /usr/share/buendia/site/id || true
 if [ -n "$SITE_ID" ]; then
   echo "Buendia site ID configured: $SITE_ID"
-  apt-get -y install buendia-site-$SITE_ID  # get the site settings
-  apt-get -y install buendia-pkgclient  # trigger installation of all else
+  apt-get -y --allow-unauthenticated install buendia-site-$SITE_ID  # get the site settings
+  apt-get -y --allow-unauthenticated install buendia-pkgclient  # trigger installation of all else
 else
   echo "Buendia site ID not selected."
   exit 1
