@@ -1,0 +1,18 @@
+#!/bin/ash
+
+# Make devices and other special filesystems available in Debian.
+# This script should only be executed once on system startup.
+
+set -e
+ROOT=/home/root/debian
+
+if [ ! -e $ROOT/dev/null ]; then
+  mount --bind /dev $ROOT/dev
+  mount --bind /dev/pts $ROOT/dev/pts
+fi
+if [ ! -e $ROOT/proc/1 ]; then
+  mount --bind /proc $ROOT/proc
+fi
+if [ ! -e $ROOT/sys/fs ]; then
+  mount --bind /sys $ROOT/sys
+fi

@@ -2,8 +2,10 @@
 Description=Debian: mount special filesystems and execute startup scripts
 
 [Service]
-Type=simple
-ExecStart=/usr/local/bin/enter-debian bash -c 'for i in /etc/rc2.d/S*; do echo $i start; $i start; done'
+Type=forking
+ExecStartPre=/usr/local/bin/init-debian-mounts
+ExecStart=/usr/local/bin/enter-debian /etc/init.d/rc 2
+StandardOutput=journal+console
 
 [Install]
 WantedBy=multi-user.target

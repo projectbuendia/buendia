@@ -4,12 +4,14 @@ set -e
 ROOT=/home/root/debian  # must be on the /home filesystem
 PATH=/usr/local/bin:$PATH
 
+echo -ne '\n---- install-buendia-base: '; date
+
 if [ -f /etc/buendia-base-installed ]; then
   echo "Buendia base system is installed."
   exit 0
 fi
 
-# Turn on wifi.
+# Turn on wifi, using the last saved configuration.
 echo "Starting wifi."
 if wifi -; ! ping -c 1 -w 1 debian.org; then
   if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then
@@ -37,7 +39,8 @@ EOF
 cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
 
 # Do the rest of the setup steps below within Debian.
-cat <<EOF | enter-debian
+init-debian-mounts
+cat <<'EOF' | enter-debian
 set -e
 
 # Set time zone to UTC.
@@ -58,9 +61,9 @@ if apt-get update; then
 else  # ignore apt-get failure
   echo "APT sources didn't all update; trying to install base packages anyway."
 fi
-apt-get -qy install $BASE_PACKAGES
+apt-get -y install $BASE_PACKAGES
 
-# This time, fail if apt-get fails.
+# Try apt-get update again; this time, fail if apt-get fails.
 apt-get update
 EOF
 
