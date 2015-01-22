@@ -1,1 +1,1 @@
-*	*	*	*	*	root	/usr/bin/pkgclient-update > /dev/null
+*/5	*	*	*	*	root	/usr/bin/pkgclient-update > /dev/null
