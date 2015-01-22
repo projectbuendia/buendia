@@ -5,13 +5,13 @@ cd $(dirname $0)
 source remote-execution.sh
 password=$1
 setup_ssid_psk=$2
-repo_url=$3
+site_id=${3:-dev}  # default to "dev" site
 
 # Default to using our jenkins server as the repo for our released packages.
-repo_url=${repo_url:-http://104.155.14.26:9001}
+repo_url=http://104.155.14.26:9001
 
 if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
-  echo "Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<repo-url>]"
+  echo "Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<site-id>]"
   echo
   echo "Completely erases an Edison and brings it to a basic state enabling"
   echo "all further installation and configuration to be done by .deb packages:"
@@ -25,7 +25,8 @@ if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
   echo "will use during this setup process to download and install software."
   echo "It can be a wifi network with no password or with a PSK password."
   echo
-  echo "If <repo-url> is specified, it will be added as a source for apt-get."
+  echo "If <site-id> is specified, there should be an available package named"
+  echo "buendia-site-<site-id>."
   exit 1
 fi
 
@@ -43,6 +44,11 @@ echo $flashed
 
 # Set up the root password.
 ./configure-root-access "$password"
+
+# Leave the site ID where usr/local/bin/install-buendia-base will find it.
+cat <<EOF | do_in_yocto
+echo "SITE_ID=$site_id" > /etc/buendia-site-id
+EOF
 
 # Leave the repo URL where usr/local/bin/install-buendia-base will find it.
 [ -n "$repo_url" ] && cat <<EOF | do_in_yocto

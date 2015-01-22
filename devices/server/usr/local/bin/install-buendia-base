@@ -26,6 +26,9 @@ fi
 # fails (most likely due to network unavailability), reboot and try again.
 install-debian || reboot
 
+# Everything after this point is designed to be idempotent so that this script
+# can run safely without a site ID on every boot until a site ID is selected.
+
 # Install a .bashrc file for root in the Debian chroot.
 cat <<'EOF' >$ROOT/root/.bashrc
 PATH=/usr/local/bin:$PATH
@@ -37,6 +40,10 @@ EOF
 
 # Add custom package repositories (no need to quit if this file is missing).
 cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
+
+# Make the site ID available within Debian.
+mkdir -p $ROOT/usr/share/buendia/site
+cp -f /etc/buendia-site-id $ROOT/usr/share/buendia/site/id || true
 
 # Do the rest of the setup steps below within Debian.
 init-debian-mounts
@@ -51,20 +58,30 @@ dpkg-reconfigure -f noninteractive tzdata
 echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
 echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
 
-# These packages are considered part of the base system and won't be included
-# in backups of the software installation state.
-BASE_PACKAGES='less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk'
+# All the non-Buendia packages that are considered part of the base system.
+# These won't be included in backups of the software installation state.
+BASE_PACKAGES='less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk nginx'
 
 # The first time we run apt-get, ignore failure; install as much as possible.
-if apt-get update; then
-  echo "APT sources updated; installing base packages."
-else  # ignore apt-get failure
-  echo "APT sources didn't all update; trying to install base packages anyway."
-fi
+apt-get update || true
 apt-get -y install $BASE_PACKAGES
+
+# Save the state of the base package installation for future comparison.
+dpkg-query -W --showformat '${Package}=${Version}\n' > /etc/base.package.list
 
 # Try apt-get update again; this time, fail if apt-get fails.
 apt-get update
+
+. /usr/share/buendia/site/id || true
+if [ -n "$SITE_ID" ]; then
+  echo "Buendia site ID configured: $SITE_ID"
+  # Install the Buendia packages that trigger installation of everything else.
+  apt-get -y install buendia-pkgclient buendia-site-$SITE_ID
+else
+  echo "Buendia site ID not selected."
+  exit 1
+fi
+
 EOF
 
 echo "Buendia base system successfully installed."
