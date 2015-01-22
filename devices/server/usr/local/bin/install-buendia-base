@@ -61,7 +61,7 @@ echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
 
 # All the non-Buendia packages that are considered part of the base system.
 # These won't be included in backups of the software installation state.
-BASE_PACKAGES='less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk nginx'
+BASE_PACKAGES='less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk nginx gcc libc-dev'
 
 # The first time we run apt-get, ignore failure; install as much as possible.
 apt-get update || true
