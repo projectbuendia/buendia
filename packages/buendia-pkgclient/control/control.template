@@ -1,0 +1,6 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Depends: cron
+Description: Periodically installs packages from a buendia repository of .deb package files.
+Maintainer: projectbuendia.org
