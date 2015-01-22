@@ -57,10 +57,7 @@ EOF
 
 # Copy all the setup files and scripts onto the Edison.
 echo 'tar cf /var/backups/systemd.tar /etc/systemd /lib/systemd/system' | do_in_yocto
-tar cf - etc lib usr | $ssh $target 'tar xf - -C /; systemctl daemon-reload'
-
-# The above step updates sshd.socket, moving sshd to port 9022 instead of 22.
-ssh_port=9022
+tar cf - etc lib usr | $ssh $target 'tar xf - -C /'
 
 # Ensure that the Edison can connect to the setup network.  The configuration
 # will be saved and reused when wifi is turned on again in the future.
