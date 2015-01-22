@@ -1,5 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Description: Set default settings on Buendia servers.
+Description: Buendia settings for development servers.
 Maintainer: projectbuendia.org
+Provides: buendia-site
+Conflicts: buendia-site

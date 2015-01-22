@@ -1,5 +1,0 @@
-Package: ${PACKAGE_NAME}
-Version: ${PACKAGE_VERSION}
-Architecture: all
-Description: Settings for a demo Buendia site.
-Maintainer: projectbuendia.org
