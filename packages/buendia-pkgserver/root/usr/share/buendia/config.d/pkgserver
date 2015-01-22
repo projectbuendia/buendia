@@ -22,5 +22,5 @@ DOMAIN=$(echo $PKGSERVER_URL | sed -r -e "s%^.*://([a-z0-9.-]+):?.*$%\1%I")
 
 # If DOMAIN is not already defined in the hosts file, add it.
 if ! grep -Fq "$DOMAIN" /etc/hosts; then
-	cat /etc/hosts | sed -e "s/^127.0.0.1\s.*/& ${DOMAIN}/" > /etc/hosts
+	sed -i /etc/hosts -e "s/^127.0.0.1\s.*/& ${DOMAIN}/"
 fi
