@@ -8,7 +8,7 @@ echo -ne '\n---- install-buendia-base: '; date
 
 if [ -f /etc/buendia-base-installed ]; then
   echo "Buendia base system is installed."
-  /usr/bin/buendia-pkgclient-update
+  echo "/usr/bin/buendia-pkgclient-update" | enter-debian
   exit 0
 fi
 
@@ -65,6 +65,8 @@ BASE_PACKAGES='coreutils less zip unzip screen ssh git rsync python2.7 python-pi
 
 # The first time we run apt-get, ignore failure; install as much as possible.
 apt-get update || true
+# Explicitly state to apt that no interaction is possible.
+export DEBIAN_FRONTEND=noninteractive
 apt-get -y install $BASE_PACKAGES
 
 # Save the state of the base package installation for future comparison.
