@@ -1,0 +1,6 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Depends: ntp
+Architecture: all
+Description: A NTP server
+Maintainer: projectbuendia.org
