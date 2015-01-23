@@ -47,4 +47,5 @@ while [ -n "$1" ]; do
 done
 gzip $tmp/data.tar
 echo 2.0 > $tmp/debian-binary
+mkdir -p $(dirname "$output")
 ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz
