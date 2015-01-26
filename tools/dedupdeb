@@ -1,0 +1,13 @@
+#!/bin/bash
+
+TOOLS=$(cd $(dirname $0) && pwd)
+names=$(ls | grep '\.deb' | sed -e 's/_.*//' | sort | uniq)
+
+for name in $names; do
+    last=$(ls -alt $name*.deb | head -1)
+    second_last=$(ls -alt $name*.deb | head -2 | tail -1)
+    if [ "$last" != "$second_last" ] && $(TOOLS)/diffdeb $last $second_last; then
+        rm $last
+        ln -s $second_last $last
+    fi
+done

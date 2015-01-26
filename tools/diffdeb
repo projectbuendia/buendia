@@ -1,0 +1,52 @@
+#!/bin/bash
+
+a=$1
+b=$2
+if [ "$b" == "" ]; then
+    echo "Usage: $0 <file1.deb> <file2.deb>"
+    echo "Exits with status 0 if two .deb files are identical in all aspects"
+    echo "except for the declared version number ("Version:") in the control"
+    echo "file.  Otherwise exits with status 1."
+    exit 1
+fi
+
+# Unpacks a .deb file into a directory ready for comparison.  The file named
+# "deb" is destructively unpacked into the current directory.  The final
+# directory contains the original data.tar.gz, uncompressed to data.tar
+# (which is compared directly, thus comparing timestamps, permissions,
+# symlinks, etc.) and control.tar, which is a repacking of control.tar.gz
+# except with the control file edited to remove the Version line.
+function unpack_and_remove_version() {
+    # Unpack deb -> control.tar.gz, data.tar.gz, debian-binary
+    ar x deb
+    rm deb
+
+    # Unzip data.tar to remove the gzip timestamp from the header
+    gunzip data.tar.gz
+
+    # Unpack control.tar.gz and delete the "Version:" line
+    mkdir control
+    cd control
+    tar xvfz ../control.tar.gz
+    grep -v '^Version: ' control > control.unversioned
+    touch --date='1970-01-01 00:00:00 -0000' control.unversioned
+    rm control ../control.tar.gz
+    tar cvf ../control.tar *
+}
+
+atmp=/tmp/diffdeb.$$.1
+btmp=/tmp/diffdeb.$$.2
+mkdir -p $atmp $btmp
+cp $a $atmp/deb
+cp $b $btmp/deb
+
+cd $atmp
+unpack_and_remove_version
+cd $btmp
+unpack_and_remove_version
+
+diff -r $atmp $btmp >/dev/null
+result=$?
+
+rm -r $atmp $btmp
+exit $result
