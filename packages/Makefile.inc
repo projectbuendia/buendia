@@ -20,7 +20,10 @@ export PACKAGE := $(PACKAGE_NAME)_$(PACKAGE_VERSION)_all.deb
 all: $(PACKAGE)
 
 clean:
-	rm -rf $(EXTRA_ROOT) *.deb
+	rm -rf *.deb
+
+pristine: clean
+	rm -rf $(EXTRA_ROOT)
 
 $(PACKAGE): control/* $(FILES) $(EXTRA_ROOT)
 	$(TOOLS)/mkdeb $@ control root $(EXTRA_ROOT)
