@@ -1,4 +1,6 @@
-LAST_TAG := $(shell git log --format=format:"%d" | sed -e 's/.*tag: \(v[0-9.]*\).*/\1/' | grep '^v' | sed -e 's/^v//' | head -1)
+# Find the most recent tag (consisting of a "v" followed by a version number)
+# from which the current commit is descended.
+LAST_TAG := $(shell git log --format=format:"%d" | sed -e 's/.*(.*\(v[0-9.]\+\).*).*/\1/' | grep '^v' | sed -e 's/v//' | head -1)
 ifeq ($(strip $(LAST_TAG)),)
   LAST_TAG := 0.0
 endif
