@@ -45,7 +45,8 @@ CREATE TEMPORARY TABLE keep_forms SELECT * FROM form WHERE uuid IN (
 	"c47d4d3d-f9a3-4f97-9623-d7acee81d401", -- new patient
 	"736b90ee-fda6-4438-a6ed-71acd36381f3", -- new observation
 	"ea43f213-66fb-4af6-8a49-70fd6b9ce5d4", -- chart observations
-	"975afbce-d4e3-4060-a25f-afcd0e5564ef" -- chart constants
+	"975afbce-d4e3-4060-a25f-afcd0e5564ef", -- chart constants
+	"34d727a6-e515-4f27-ae91-703ba2c164ae"  -- test results
 	);
 -- Clear out the parent_form_field otherwise foreign key constraints stop the delete
 UPDATE form_field SET parent_form_field=NULL WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
