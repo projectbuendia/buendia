@@ -3,7 +3,11 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.Concept;
+import org.openmrs.Encounter;
+import org.openmrs.EncounterType;
 import org.openmrs.Location;
+import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.PatientIdentifierType;
@@ -12,7 +16,10 @@ import org.openmrs.PatientState;
 import org.openmrs.PersonName;
 import org.openmrs.ProgramWorkflowState;
 import org.openmrs.User;
+import org.openmrs.api.ConceptService;
+import org.openmrs.api.EncounterService;
 import org.openmrs.api.LocationService;
+import org.openmrs.api.ObsService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
@@ -69,14 +76,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String STATUS = "status";
     private static final String ADMISSION_TIMESTAMP = "admission_timestamp";
 
-    @Deprecated
-    private static final String AGE = "age";
-    @Deprecated
-    private static final String AGE_TYPE = "type";
-    @Deprecated
-    private static final String YEARS = "years";
-    @Deprecated
-    private static final String MONTHS = "months";
+    /**
+     * Really these should come through as xforms, but as an expedient short term fix we will put an observations
+     * section into the JSON RPC. JSON should be of the form:
+     * observations : [
+     *   {}
+     * ]
+     */
+    private static final String OBSERVATIONS = "observations";
+    private static final String QUESTION_UUID = "question_uuid";
+    private static final String ANSWER_DATE = "answer_date";
+    private static final String ANSWER_NUMBER = "answer_number";
+    private static final String ANSWER_UUID = "answer_uuid";
+
     @Deprecated
     private static final String ZONE = "zone";
     @Deprecated
@@ -101,7 +113,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner(context);
+            SimpleObject result = getAllInner();
             logger.reply(context, this, "getAll", result);
             return result;
         } catch (Exception e) {
@@ -110,7 +122,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private SimpleObject getAllInner(RequestContext requestContext) throws ResponseException {
+    private SimpleObject getAllInner() throws ResponseException {
         List<Patient> patients = patientService.getAllPatients();
         return getSimpleObjectWithResults(patients);
     }
@@ -135,7 +147,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", json);
-            Object result = createInner(json, context);
+            Object result = createInner(json);
             logger.reply(context, this, "create", result);
             return result;
         } catch (Exception e) {
@@ -144,7 +156,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private Object createInner(SimpleObject json, RequestContext requestContext) throws ResponseException {
+    private Object createInner(SimpleObject json) throws ResponseException {
         // We really want this to use XForms, but lets have a simple default implementation for early testing
 
         if (!json.containsKey(ID)) {
@@ -180,15 +192,65 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
         }
 
+        // Observation for first symptom date
+        if (json.containsKey(OBSERVATIONS)) {
+            addInitialObservations(json, patient);
+        }
+
         return patientToJson(patient);
     }
 
-    protected boolean isPatientIdInUse(String id) {
-        List<PatientIdentifierType> identifierTypes =
-            Arrays.asList(DbUtil.getMsfIdentifierType());
-        List<Patient> existing = Context.getPatientService().getPatients(
-            null, id, identifierTypes, true /* exact identifier match */);
-        return !existing.isEmpty();
+    private void addInitialObservations(SimpleObject json, Patient patient) {
+        List observations = (List)json.get(OBSERVATIONS);
+        if (observations.isEmpty()) {
+            return;
+        }
+        EncounterService encounterService = Context.getEncounterService();
+        ConceptService conceptService = Context.getConceptService();
+        final Location triage = Context.getLocationService().getLocationByUuid(LocationResource.TRIAGE_UUID);
+        if (triage == null) {
+            throw new InvalidObjectDataException("Could not get triage location, DB in bad state");
+        }
+        ObsService obsService = Context.getObsService();
+        final Date now = patient.getDateCreated();
+        Encounter encounter = new Encounter();
+        encounter.setEncounterDatetime(now);
+        encounter.setPatient(patient);
+        encounter.setLocation(triage);
+        EncounterType encounterType = encounterService.getEncounterType("ADULTINITIAL");
+        if (encounterType == null) {
+            throw new InvalidObjectDataException("Could not get ADULTINITIAL encounter type, DB in bad state");
+        }
+        encounter.setEncounterType(encounterType);
+        encounter = encounterService.saveEncounter(encounter);
+        for (Object observation : observations) {
+            Map observationObject = (Map) observation;
+            String questionUuid = (String) observationObject.get(QUESTION_UUID);
+            Concept questionConcept =
+                    conceptService.getConceptByUuid(questionUuid);
+            if (questionConcept == null) {
+                throw new InvalidObjectDataException("Bad concept for question " + observations);
+            }
+            Obs obs = new Obs(patient, questionConcept, now, triage);
+            obs.setEncounter(encounter);
+            // For now assume all answers are coded or date, we can deal with numerical etc later.
+            if (observationObject.containsKey(ANSWER_UUID)) {
+                Concept answerConcept =
+                        conceptService.getConceptByUuid((String) observationObject.get(ANSWER_UUID));
+                if (answerConcept == null) {
+                    throw new InvalidObjectDataException("Bad concept for answer " + observations);
+                }
+                obs.setValueCoded(answerConcept);
+            } else if (observationObject.containsKey(ANSWER_DATE)) {
+                obs.setValueDate(parseDate((String) observationObject.get(ANSWER_DATE),
+                        "answer for " + questionUuid));
+            } else if (observationObject.containsKey(ANSWER_NUMBER)) {
+                obs.setValueNumeric(Double.parseDouble((String) observationObject.get(ANSWER_NUMBER)));
+            } else {
+                throw new InvalidObjectDataException("Unknown answer type " + observationObject);
+            }
+            obsService.saveObs(obs, "Initial triage");
+        }
     }
 
     protected static Patient jsonToPatient(SimpleObject json) {
@@ -278,7 +340,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
-            Object result = retrieveInner(uuid, context);
+            Object result = retrieveInner(uuid);
             logger.reply(context, this, "retrieve", result);
             return result;
         } catch (Exception e) {
@@ -287,7 +349,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private Object retrieveInner(String uuid, RequestContext requestContext) throws ResponseException {
+    private Object retrieveInner(String uuid) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
         if (patient == null) {
             throw new ObjectNotFoundException();
@@ -353,7 +415,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public Object update(String uuid, SimpleObject simpleObject, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + simpleObject);
-            Object result = updateInner(uuid, simpleObject, context);
+            Object result = updateInner(uuid, simpleObject);
             logger.reply(context, this, "update", result);
             return result;
         } catch (Exception e) {
@@ -373,7 +435,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
      *         but for now there may be partial updates
      * </ul>
      */
-    private Object updateInner(String uuid, SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+    private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
         if (patient == null) {
             throw new ObjectNotFoundException();
@@ -506,26 +568,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         workflowService.savePatientProgram(patientProgram);
     }
 
-    /**
-     * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
-     * becomes 1970.0; Jul 1, 1970 becomes approximately 1970.5.
-     */
-    // TODO(kpy): Remove this after client v0.2 is no longer in use.
-    private static double dateToFractionalYear(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        double daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
-        return calendar.get(Calendar.YEAR) +
-            calendar.get(Calendar.DAY_OF_YEAR) / daysInYear;
-    }
-
-    /** Estimate the age of a person in years, given their birthdate. */
-    // TODO(kpy): Remove this after client v0.2 is no longer in use.
-    private static double birthDateToAge(Date birthDate) {
-        return dateToFractionalYear(new Date()) -
-            dateToFractionalYear(birthDate);
-    }
-
     protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -539,20 +581,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             jsonForm.add(GENDER, patient.getGender());
             if (patient.getBirthdate() != null) {
                 jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
-
-                // For backward compatibility.  Later clients ignore the "age"
-                // key and calculate the displayed age from the birthdate.
-                // TODO(kpy): Remove this after client v0.2 is no longer in use.
-                SimpleObject ageObject = new SimpleObject();
-                double age = birthDateToAge(patient.getBirthdate());
-                if (age < 1.0) {
-                    ageObject.add(MONTHS, (int) Math.floor(age * 12));
-                    ageObject.add(AGE_TYPE, MONTHS);
-                } else {
-                    ageObject.add(YEARS, (int) Math.floor(age));
-                    ageObject.add(AGE_TYPE, YEARS);
-                }
-                jsonForm.add(AGE, ageObject);
             }
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
