@@ -1,0 +1,51 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+hostport=$1
+
+if [ "$1" == "-h" -o "$hostport" == "" ]; then
+  echo "Usage: $0 <host>[:<port>]"
+  echo
+  echo "Attempts to contact the specified host and confirm that the Buendia API"
+  echo "is available, retrying for up to 5 minutes to let the server warm up."
+  exit 1
+fi
+
+if [[ $hostport != *:* ]]; then
+  hostport=$hostport:9000
+fi
+
+echo
+echo "Contacting Buendia API at $hostport (can take 5 minutes)..."
+echo
+
+function check_url() {
+  retry_count=0
+  while [[ $retry_count -lt 40 ]]; do
+    echo "Trying $@..."
+    if curl --max-time 10 -i -L $@; then
+      return 0
+    fi
+    let retry_count=retry_count+1
+    sleep 5
+  done
+  false
+}
+
+# Tomcat
+check_url http://$hostport/
+
+# OpenMRS
+check_url http://$hostport/openmrs
+
+# Buendia
+check_url http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+
+# Once more, as sometimes the first /user request gives the error "Username guest or system id 6-7 is already in use."
+sleep 1
+check_url http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+
+echo
+echo "\o/  Success!  Buendia API at $host is up."
+echo
