@@ -44,6 +44,8 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
         HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
         HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_TEXT, "text");
         HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_NUMERIC, "numeric");
+        HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_DATE, "date");
+        HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_DATETIME, "datetime");
         HL7_TO_JSON_TYPE_MAP.put("ZZ", "none");
     }
         
