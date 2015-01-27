@@ -5,25 +5,44 @@ mkdir -p /usr/share/buendia/site
 SETTINGS=/usr/share/buendia/site/openmrs
 PROPERTIES=/usr/share/buendia/openmrs/openmrs-runtime.properties
 
+# The OpenMRS database must contain a row in the users table with this uuid.
+OPENMRS_CLINICIAN_UUID=129a5d04-3bd7-4e9d-8b82-dac5109cd1db
+
 # Generate a random password for openmrs_user if one is not already set.
 if [ ! -f $SETTINGS ]; then
-    password=$(buendia-mkpass)
+    mysql_password=$(buendia-mkpass)
+    clinician_password=$(buendia-mkpass)
     cat <<EOF > $SETTINGS
 OPENMRS_MYSQL_USER=openmrs_user
-OPENMRS_MYSQL_PASSWORD=$password
+OPENMRS_MYSQL_PASSWORD=$mysql_password
+OPENMRS_CLINICIAN_USERNAME=buendia-android
+OPENMRS_CLINICIAN_PASSWORD=$clinician_password
 EOF
 fi
 
 # Read the settings.
 for f in /usr/share/buendia/site/*; do . $f || true; done
 
+# Ensure that usernames and passwords contain no wonky characters.
+for var in OPENMRS_MYSQL_USER OPENMRS_MYSQL_PASSWORD OPENMRS_CLINICIAN_USERNAME OPENMRS_CLINICIAN_PASSWORD; do
+  if ! eval 'echo $'$var | grep -s '^[0-9A-Za-z_-]\+$'; then
+    echo "$var is invalid: only [0-9A-Za-z_-] characters are allowed."
+    exit 1
+  fi
+done
+
 # Check if the password is already correctly set.
 if mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD </dev/null 2>/dev/null &&
-    grep "connection.password=$OPENMRS_MYSQL_PASSWORD" $PROPERTIES >/dev/null; then
-  echo "OpenMRS MySQL password unchanged."
+    grep -s "connection.password=$OPENMRS_MYSQL_PASSWORD" $PROPERTIES &&
+    echo "
+select password = sha2(concat('$OPENMRS_CLINICIAN_PASSWORD', salt), 512)
+from users where uuid='$OPENMRS_CLINICIAN_UUID'
+and username='$OPENMRS_CLINICIAN_USERNAME';
+" | mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD openmrs | grep -s 1; then
+  echo "OpenMRS users and passwords unchanged."
   exit 0
 else
-  echo "Setting OpenMRS MySQL password..."
+  echo "Setting OpenMRS users and passwords..."
 fi
 
 service tomcat7 stop
@@ -45,6 +64,13 @@ connection.username=openmrs_user
 connection.password=$OPENMRS_MYSQL_PASSWORD
 auto_update_database=true
 module.allow_web_admin=true
+EOF
+
+# Set the OpenMRS account used by the Android client.
+salt=$(xxd -p -l 64 /dev/urandom | tr -d '\n')
+mysql -uroot -p$MYSQL_ROOT_PASSWORD <<EOF
+update users set salt='$salt' where uuid='$OPENMRS_CLINICIAN_UUID';
+update users set username='$OPENMRS_CLINICIAN_USERNAME', password=sha2(concat('$OPENMRS_CLINICIAN_PASSWORD', salt), 512) where uuid='$OPENMRS_CLINICIAN_UUID';
 EOF
 
 service tomcat7 start
