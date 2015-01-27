@@ -1,11 +1,10 @@
 export PACKAGE_VERSION := 0.1
-include ../Makefile.vars
+include ../Makefile.inc
 
-OMAD_DIR="../../projectbuendia.openmrs/omod/target"
+OMOD_DIR="../../projectbuendia.openmrs/omod/target"
 
-all: $(PACKAGE)
+$(EXTRA_ROOT): $(EXTRA_ROOT)/usr/share/buendia/openmrs/buendia-server.omod
 
-$(PACKAGE): control/* $(FILES)
-	rm root/usr/share/buendia/openmrs/projectbuendia-*.omad
-	cp $(OMAD_DIR)/projectbuendia-*.omad root/usr/share/buendia/openmrs/
-	$(TOOLS)/mkdeb $@ control root
+$(EXTRA_ROOT)/usr/share/buendia/openmrs/buendia-server.omod:
+	mkdir -p $(dirname $@)
+	cp $(OMOD_DIR)/projectbuendia-*.omod $@
