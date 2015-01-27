@@ -166,7 +166,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         List<PatientIdentifierType> identifierTypes =
                 Arrays.asList(DbUtil.getMsfIdentifierType());
         List<Patient> existing = patientService.getPatients(
-            null, id, identifierTypes, true /* exact identifier match */);
+                null, id, identifierTypes, true /* exact identifier match */);
         if (!existing.isEmpty()) {
             Patient patient = existing.get(0);
             String given = patient.getGivenName();
@@ -229,16 +229,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             Concept questionConcept =
                     conceptService.getConceptByUuid(questionUuid);
             if (questionConcept == null) {
-                throw new InvalidObjectDataException("Bad concept for question " + observations);
+                throw new InvalidObjectDataException("Bad concept for question " + questionUuid);
             }
             Obs obs = new Obs(patient, questionConcept, now, triage);
             obs.setEncounter(encounter);
             // For now assume all answers are coded or date, we can deal with numerical etc later.
             if (observationObject.containsKey(ANSWER_UUID)) {
-                Concept answerConcept =
-                        conceptService.getConceptByUuid((String) observationObject.get(ANSWER_UUID));
+                String answerUuid = (String) observationObject.get(ANSWER_UUID);
+                Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
                 if (answerConcept == null) {
-                    throw new InvalidObjectDataException("Bad concept for answer " + observations);
+                    throw new InvalidObjectDataException("Bad concept for answer " + answerUuid);
                 }
                 obs.setValueCoded(answerConcept);
             } else if (observationObject.containsKey(ANSWER_DATE)) {
