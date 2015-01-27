@@ -1,4 +1,3 @@
-export PACKAGE_VERSION := 0.1
 include ../Makefile.noroot.inc
 
 OMOD_DIR=../../projectbuendia.openmrs/omod/target
