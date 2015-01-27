@@ -41,10 +41,12 @@ fi
 
 # Pack up the Debian package.
 $TAR cvfz $tmp/control.tar.gz -C $tmp/control .
+$TAR cvf $tmp/data.tar -T /dev/null
 while [ -n "$1" ]; do
     $TAR --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .
     shift
 done
 gzip $tmp/data.tar
 echo 2.0 > $tmp/debian-binary
+mkdir -p $(dirname "$output")
 ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz

@@ -1,8 +1,15 @@
 Package build scripts
 =====================
 
-Each directory builds one package.
-In most cases the Makefile is the same; you can copy Makefile.simple.
+Each directory builds one package.  Within each directory:
+
+Files for the package go under `root`.
+There should be a `Makefile` beginning with the line `include ../Makefile.inc`.
+If all the files can be statically checked in under `root`,
+the `Makefile` can just be that one line.
+Otherwise, write targets to generate each of the additional files
+at a path under `$(EXTRA_ROOT)`,
+and add an `$(EXTRA_ROOT)` target that depends on all these targets.
 
 Declare dependencies in `control/control`,
 which should be a valid **binary** package control file with Architecture "all".

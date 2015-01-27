@@ -1,17 +1,19 @@
-export PACKAGE_VERSION := 0.1
-include ../Makefile.vars
+include ../Makefile.inc
 
-export SOURCE_DIR := $(TOP)/pkgserver
-export BUILD_DIR :=$(shell mktemp -d /tmp/buendia-pkgserver.XXXXXXXX)
+SOURCE_DIR := $(TOP)/pkgserver/bin
+TARGET_DIR := $(EXTRA_ROOT)/usr/bin
 
-$(PACKAGE): control/* $(FILES)
-	mkdir -p $(BUILD_DIR)/usr/bin
-	cp $(SOURCE_DIR)/bin/* $(BUILD_DIR)/usr/bin/
-	$(TOOLS)/mkdeb $@ control root $(BUILD_DIR)
-	rm -R $(BUILD_DIR)
+$(TARGET_DIR)/buendia-package-apt-indexer: $(SOURCE_DIR)/buendia-package-apt-indexer
+	mkdir -p $$(dirname $@)
+	cp -p $< $@
 
-clean: $(PACKAGE)
-	rm *.deb
+$(TARGET_DIR)/buendia-package-indexer.py: $(SOURCE_DIR)/buendia-package-indexer.py
+	mkdir -p $$(dirname $@)
+	cp -p $< $@
+
+$(TARGET_DIR)/buendia-package-usb-import: $(SOURCE_DIR)/buendia-package-usb-import
+	mkdir -p $$(dirname $@)
+	cp -p $< $@
 
 docker: $(PACKAGE)
 	docker build .
