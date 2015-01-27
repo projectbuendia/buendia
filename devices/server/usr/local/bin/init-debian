@@ -1,11 +1,11 @@
 #!/bin/ash
 
-# Make devices and other special filesystems available in Debian.
 # This script should only be executed once on system startup.
 
 set -e
 ROOT=/home/root/debian
 
+# Make devices and other special filesystems available in Debian.
 if [ ! -e $ROOT/dev/null ]; then
   mount --bind /dev $ROOT/dev
   mount --bind /dev/pts $ROOT/dev/pts
@@ -16,3 +16,8 @@ fi
 if [ ! -e $ROOT/sys/fs ]; then
   mount --bind /sys $ROOT/sys
 fi
+
+# Copy root's password entry into Debian.
+grep '^root:' /etc/shadow > $ROOT/etc/shadow.new
+grep -v '^root:' $ROOT/etc/shadow >> $ROOT/etc/shadow.new
+cat $ROOT/etc/shadow.new > $ROOT/etc/shadow
