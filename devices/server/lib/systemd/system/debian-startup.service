@@ -1,9 +1,9 @@
 [Unit]
-Description=Debian: mount special filesystems and execute startup scripts
+Description=Debian: initialize and execute startup scripts
 
 [Service]
 Type=forking
-ExecStartPre=/usr/local/bin/init-debian-mounts
+ExecStartPre=/usr/local/bin/init-debian
 ExecStart=/usr/local/bin/enter-debian /etc/init.d/rc 2
 StandardOutput=journal+console
 

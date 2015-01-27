@@ -47,7 +47,7 @@ mkdir -p $ROOT/usr/share/buendia/site
 cp -f /etc/buendia-site-id $ROOT/usr/share/buendia/site/id || true
 
 # Do the rest of the setup steps below within Debian.
-init-debian-mounts
+init-debian
 cat <<'EOF' | enter-debian
 set -e
 
