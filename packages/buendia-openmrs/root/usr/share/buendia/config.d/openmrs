@@ -10,13 +10,10 @@ OPENMRS_CLINICIAN_UUID=129a5d04-3bd7-4e9d-8b82-dac5109cd1db
 
 # Generate a random password for openmrs_user if one is not already set.
 if [ ! -f $SETTINGS ]; then
-    mysql_password=$(buendia-mkpass)
-    clinician_password=$(buendia-mkpass)
-    cat <<EOF > $SETTINGS
+  password=$(buendia-mkpass)
+  cat <<EOF > $SETTINGS
 OPENMRS_MYSQL_USER=openmrs_user
-OPENMRS_MYSQL_PASSWORD=$mysql_password
-OPENMRS_CLINICIAN_USERNAME=buendia-android
-OPENMRS_CLINICIAN_PASSWORD=$clinician_password
+OPENMRS_MYSQL_PASSWORD=$password
 EOF
 fi
 
@@ -25,7 +22,7 @@ fi
 . $SETTINGS
 
 # Ensure that usernames and passwords contain no wonky characters.
-for var in OPENMRS_MYSQL_USER OPENMRS_MYSQL_PASSWORD OPENMRS_CLINICIAN_USERNAME OPENMRS_CLINICIAN_PASSWORD; do
+for var in OPENMRS_MYSQL_USER OPENMRS_MYSQL_PASSWORD; do
   if ! eval 'echo $'$var | grep -s '^[0-9A-Za-z_-]\+$'; then
     echo "$var is invalid: only [0-9A-Za-z_-] characters are allowed."
     exit 1

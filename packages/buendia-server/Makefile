@@ -1,4 +1,4 @@
-include ../Makefile.noroot.inc
+include ../Makefile.inc
 
 OMOD_DIR=../../projectbuendia.openmrs/omod/target
 OPENMRS_MODULES_DIR=/usr/share/buendia/openmrs/modules
