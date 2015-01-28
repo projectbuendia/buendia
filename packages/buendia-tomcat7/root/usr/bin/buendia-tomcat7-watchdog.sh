@@ -19,14 +19,13 @@ if ! service tomcat7 status > /dev/null 2>&1 ; then
 		$cp $CATALINA_PID $DUMPDIR/tomcat7.pid > /dev/null
 	fi
 	# Save a copy of the tomcat logs
-	$tar -czf $DUMPDIR/tomcat7_logs.tar.gz /var/log/tomcat7/* > /dev/null
+	$tar -czf $DUMPDIR/tomcat7_logs.tar.gz /var/log/tomcat7/* > /dev/null 2>&1
 	# Save a copy of the tomcat files
-	$tar -czf $DUMPDIR/tomcat7_files.tar.gz /usr/share/tomcat7/* > /dev/null
+	$tar -czf $DUMPDIR/tomcat7_files.tar.gz /usr/share/tomcat7/* > /dev/null 2>&1
 	# Save a copy of the syslog
-	$tar -czf $DUMPDIR/syslog.tar.gz /var/log/syslog > /dev/null
+	$tar -czf $DUMPDIR/syslog.tar.gz /var/log/syslog > /dev/null 2>&1
 
 	# Try to restart tomcat
-	now=$(date); echo "Restarting tomcat7..."
 	if service tomcat7 restart; then
 		now=$(date); echo "$now >> Tomcat7 has been restarted."
 	else
