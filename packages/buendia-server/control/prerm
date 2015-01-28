@@ -2,3 +2,4 @@
 
 set -e
 service tomcat7 stop
+. /usr/share/buendia/config.d/server
