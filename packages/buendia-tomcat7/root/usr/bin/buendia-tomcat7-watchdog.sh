@@ -20,10 +20,15 @@ if ! service tomcat7 status > /dev/null 2>&1 ; then
 	fi
 	# Save a copy of the tomcat logs
 	$tar -czf $DUMPDIR/tomcat7_logs.tar.gz /var/log/tomcat7/* > /dev/null 2>&1
-	# Save a copy of the tomcat files
-	$tar -czf $DUMPDIR/tomcat7_files.tar.gz /usr/share/tomcat7/* > /dev/null 2>&1
-	# Save a copy of the syslog
-	$tar -czf $DUMPDIR/syslog.tar.gz /var/log/syslog > /dev/null 2>&1
+	# Save any tomcat module logs, if any can be found
+	MODULE_LOGS=$(find -L /usr/share/tomcat7 -name *.log)
+	if [ -n "$MODULE_LOGS" ]; then
+		$tar -czhf $DUMPDIR/tomcat7_module_logs.tar.gz $MODULE_LOGS \
+			> /dev/null 2>&1
+	fi
+	# Save a copy of the system logs
+	$tar -czf $DUMPDIR/system_logs.tar.gz /var/log/syslog /var/log/*.log \
+		/var/log/dmesg /var/log/messages > /dev/null 2>&1
 
 	# Try to restart tomcat
 	if service tomcat7 restart; then
