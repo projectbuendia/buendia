@@ -31,7 +31,7 @@ case $verb in
 				echo $dnsmasq_line > /etc/dnsmasq.d/buendia-auto-$domain
 			else
 				# Use the main configuration file
-				echo $dnsmasq_line > /etc/dnsmasq.conf
+				echo $dnsmasq_line >> /etc/dnsmasq.conf
 			fi
 			service dnsmasq restart
 		else
