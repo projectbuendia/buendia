@@ -28,15 +28,15 @@ case $verb in
 			# Check if buendia-dnsmasq is also installed
 			if dpkg -l buendia-dnsmasq > /dev/null 2>&1; then
 				# Take advantage is the configurations directory
-				echo $dnsmasq_line > /etc/dnsmasq.d/buendia-auto-$domain
+				echo "$dnsmasq_line" > /etc/dnsmasq.d/buendia-auto-$domain
 			else
 				# Use the main configuration file
-				echo $dnsmasq_line >> /etc/dnsmasq.conf
+				echo "$dnsmasq_line" >> /etc/dnsmasq.conf
 			fi
 			service dnsmasq restart
 		else
 			# Use /etc/hosts file to create the mapping
-			echo $hosts_line >> /etc/hosts
+			echo "$hosts_line" >> /etc/hosts
 		fi
         ;;
     remove)
@@ -44,11 +44,11 @@ case $verb in
 		if [ -f /etc/dnsmasq.d/buendia-auto-$domain ]; then
 			rm /etc/dnsmasq.d/buendia-auto-$domain
 			service dnsmasq restart
-		elif cat /etc/dnsmasq.conf | grep $dnsmasq_line	> /dev/null 2>&1; then
-			cat /etc/dnsmasq.conf | grep -v $dnsmasq_line > /etc/dnsmasq.conf
+		elif cat /etc/dnsmasq.conf | grep "$dnsmasq_line" > /dev/null 2>&1; then
+			sed -i /etc/dnsmasq.conf -e "s%^$dnsmasq_line%%"
 			service dnsmasq restart
 		else
-			cat /etc/hosts | grep -v $hosts_line > /etc/hosts
+			sed -i /etc/hosts -e "s%^$hosts_line%%"
 		fi
         ;;
     install|upgrade|deconfigure|\
