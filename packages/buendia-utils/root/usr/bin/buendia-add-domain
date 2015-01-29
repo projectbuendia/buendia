@@ -33,6 +33,7 @@ case $verb in
 				# Use the main configuration file
 				echo $dnsmasq_line > /etc/dnsmasq.conf
 			fi
+			service dnsmasq restart
 		else
 			# Use /etc/hosts file to create the mapping
 			echo $hosts_line >> /etc/hosts
@@ -42,10 +43,13 @@ case $verb in
 		# Check if dnsmasq config directory was used.
 		if [ -f /etc/dnsmasq.d/buendia-auto-$domain ]; then
 			rm /etc/dnsmasq.d/buendia-auto-$domain
+			service dnsmasq restart
 		elif cat /etc/dnsmasq.conf | grep $dnsmasq_line	> /dev/null 2>&1; then
 			cat /etc/dnsmasq.conf | grep -v $dnsmasq_line > /etc/dnsmasq.conf
+			service dnsmasq restart
 		else
 			cat /etc/hosts | grep -v $hosts_line > /etc/hosts
+		fi
         ;;
     install|upgrade|deconfigure|\
     abort-install|abort-upgrade|abort-remove|abort-deconfigure|\
