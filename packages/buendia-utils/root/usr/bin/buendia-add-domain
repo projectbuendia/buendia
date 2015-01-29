@@ -12,7 +12,7 @@ if [ "$domain" == "" ]; then
 	echo "depending on if dnsmasq is installed. This tool is designed to be "
 	echo "called from a postinst or prerm script."
     echo "  - <verb> is the first argument to postinst or prerm."
-    echo "  - <domain> is the domain name that should be mapped;
+    echo "  - <domain> is the domain name that should be mapped;"
     echo "  - <ip> is the ip address the domain should map to;"
     echo "    optional, defaults to 127.0.0.1 (localhost)."
     exit 1
