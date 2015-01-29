@@ -41,6 +41,7 @@ fi
 
 # Pack up the Debian package.
 $TAR cvfz $tmp/control.tar.gz -C $tmp/control .
+$TAR cvf $tmp/data.tar -T /dev/null
 while [ -n "$1" ]; do
     $TAR --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .
     shift

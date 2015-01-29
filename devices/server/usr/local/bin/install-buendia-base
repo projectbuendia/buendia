@@ -8,7 +8,7 @@ echo -ne '\n---- install-buendia-base: '; date
 
 if [ -f /etc/buendia-base-installed ]; then
   echo "Buendia base system is installed."
-  /usr/bin/buendia-pkgclient-update
+  echo "/usr/bin/buendia-pkgclient-update" | enter-debian
   exit 0
 fi
 
@@ -47,7 +47,7 @@ mkdir -p $ROOT/usr/share/buendia/site
 cp -f /etc/buendia-site-id $ROOT/usr/share/buendia/site/id || true
 
 # Do the rest of the setup steps below within Debian.
-init-debian-mounts
+init-debian
 cat <<'EOF' | enter-debian
 set -e
 
@@ -61,10 +61,12 @@ echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
 
 # All the non-Buendia packages that are considered part of the base system.
 # These won't be included in backups of the software installation state.
-BASE_PACKAGES='less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk nginx'
+BASE_PACKAGES='coreutils less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7'
 
 # The first time we run apt-get, ignore failure; install as much as possible.
 apt-get update || true
+# Explicitly state to apt that no interaction is possible.
+export DEBIAN_FRONTEND=noninteractive
 apt-get -y install $BASE_PACKAGES
 
 # Save the state of the base package installation for future comparison.
