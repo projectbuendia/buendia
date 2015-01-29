@@ -1,0 +1,4 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+*/5 *   *   *   *   root    /usr/bin/buendia-tomcat7-watchdog.sh >> /var/log/buendia-tomcat7-watchdog.log 2>&1
