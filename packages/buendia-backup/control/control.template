@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: buendia-utils, ntp
+Depends: buendia-mysql, buendia-utils
 Architecture: all
-Description: A NTP server
+Description: Backup and restore for Buendia.
 Maintainer: projectbuendia.org
