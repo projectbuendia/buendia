@@ -7,10 +7,9 @@ set -e
 cat <<EOF | buendia-enter-yocto
 systemctl disable hostapd
 systemctl stop hostapd
-sed -i /etc/hostapd/hostapd.conf \
-  -e "s/.*# Added by buendia//"
-sed -i /etc/hostapd/udhcpd-for-hostapd.conf \
-  -e "s/.*# Added by buendia//"
+mv /etc/hostapd/hostapd-pre-buendia-network.conf /etc/hostapd/hostapd.conf
+mv /etc/hostapd/udhcpd-for-hostapd-pre-buendia-network.conf \
+	/etc/hostapd/udhcpd-for-hostapd.conf
 EOF
 # Indicate a reboot is required
 touch /var/run/reboot-required

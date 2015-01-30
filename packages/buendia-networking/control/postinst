@@ -7,8 +7,9 @@
 set -e
 cat <<EOF | buendia-enter-yocto
 systemctl enable hostapd
-echo "ssid=buendia-demo # Added by buendia" >> /etc/hostapd/hostapd.conf
-echo "wpa_passphrase=buendia # Added by buendia" >> /etc/hostapd/hostapd.conf
+cp /etc/hostapd/hostapd.conf /etc/hostapd/hostapd-pre-buendia-network.conf
+echo "ssid=buendia-demo" >> /etc/hostapd/hostapd.conf
+echo "wpa_passphrase=buendia" >> /etc/hostapd/hostapd.conf
 systemctl start hostapd
 ipaddr=''
 while [ -z "\$ipaddr" ]; do
@@ -16,7 +17,9 @@ while [ -z "\$ipaddr" ]; do
   sleep 1
 done
 # Assume the dns service will be running on the same machine
-echo "dns=\$ipaddr # Added by buendia" >> /etc/hostapd/udhcpd-for-hostapd.conf
+cp /etc/hostapd/udhcpd-for-hostapd.conf \
+	/etc/hostapd/udhcpd-for-hostapd-pre-buendia-network.conf
+echo "opt dns \$ipaddr" >> /etc/hostapd/udhcpd-for-hostapd.conf
 EOF
 # Indicate a reboot is required
 touch /var/run/reboot-required
