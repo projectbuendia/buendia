@@ -70,7 +70,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get -y install $BASE_PACKAGES
 
 # Save the state of the base package installation for future comparison.
-dpkg-query -W --showformat '${Package}=${Version}\n' > /etc/base.package.list
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.package.list
 
 # Try apt-get update again; this time, fail if apt-get fails.
 apt-get update
