@@ -12,9 +12,14 @@ while [ -z "$ipaddr" ]; do
 done
 
 if [ -d /usr/share/buendia/names.d ]; then
-	domains=$(ls -C /usr/share/buendia/names.d/)
+	domains=$(echo $(ls /usr/share/buendia/names.d/))
 	if [ -n "$domains" ]; then
 		echo -e "127.0.0.1\t$domains # Added by buendia" >> /etc/hosts
 		echo -e "$ipaddr\t$domains # Added by buendia" >> /etc/hosts
 	fi
+fi
+
+# Restart dnsmasq if its present.
+if dpkg -l dnsmasq > /dev/null 2>&1; then
+	service dnsmasq restart
 fi
