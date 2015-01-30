@@ -101,6 +101,7 @@ public class XformInstanceResource implements Creatable {
             String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
             adjustSystemClock(xml);
+            getLog().info(xml);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
             throw new GenericRestException("Error storing xform data", e);
@@ -244,13 +245,16 @@ public class XformInstanceResource implements Creatable {
         Element encounterDatetimeElement =
                 getElementOrThrow(getElementOrThrow(root, "encounter"), "encounter.encounter_datetime");
         String datetime = encounterDatetimeElement.getTextContent();
+        getLog().info("Before date correction: " + datetime);
         if (datetime != null) {
             try {
+                getLog().info("Attempting date correction.");
                 // SimpleDateFormat to handle ISO8601, being lenient on timezone.
                 Date date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").parse(datetime);
                // Reformat with the stricter apache class
                 String corrected = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(date);
-                encounterDatetimeElement.setTextContent(corrected);
+                //encounterDatetimeElement.setTextContent(corrected);
+                getLog().info("After date correction: " + datetime);
             } catch (ParseException e) {
                 getLog().warn("failed to do date correction on " + datetime);
             }
@@ -271,6 +275,7 @@ public class XformInstanceResource implements Creatable {
             }
         }
 
+        getLog().info(XformsUtil.doc2String(doc));
         return XformsUtil.doc2String(doc);
     }
 
