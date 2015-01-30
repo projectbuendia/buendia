@@ -1,63 +1,20 @@
 #!/bin/bash
 
-verb=$1
-domain=$2
-ip=${3-127.0.0.1}
+# Clear listed buendia domains from hosts file
+cat /etc/hosts | grep -v '# Added by buendia' > /etc/hosts.tmp
+mv /etc/hosts.tmp /etc/hosts
 
-if [ "$domain" == "" ]; then
-    echo "Usage: buendia-add-domain <verb> <domain> [<ip>]"
-    echo
-	echo "Adds or removes a mapping from the domain to the ip. The record is "
-	echo "either placed in the /etc/hosts file, or in the dnsmasq config, "
-	echo "depending on if dnsmasq is installed. This tool is designed to be "
-	echo "called from a postinst or prerm script."
-    echo "  - <verb> is the first argument to postinst or prerm."
-    echo "  - <domain> is the domain name that should be mapped;"
-    echo "  - <ip> is the ip address the domain should map to;"
-    echo "    optional, defaults to 127.0.0.1 (localhost)."
-    exit 1
+# Wait until the network is up.
+ipaddr=''
+while [ -z "$ipaddr" ]; do
+	ipaddr=$(expr "`ifconfig wlan0`" : '.*inet addr:\([^ ]*\).*')
+	sleep 1
+done
+
+if [ -d /usr/share/buendia/names.d ]; then
+	domains=$(ls /usr/share/buendia/names.d/)
+	if [ -n "$domains" ]; then
+		echo -e "127.0.0.1\t$domains # Added by buendia" >> /etc/hosts
+		echo -e "$ipaddr\t$domains # Added by buendia" >> /etc/hosts
+	fi
 fi
-
-dnsmasq_line="address=/$domain/$ip # Added by buendia-add-domain."
-hosts_line="$ip $domain # Added by buendia-add-domain."
-
-case $verb in
-    configure)
-		# Check if dnsmasq is running
-		if service dnsmasq status > /dev/null 2>&1; then
-			# Check if buendia-dnsmasq is also installed
-			if dpkg -l buendia-dnsmasq > /dev/null 2>&1; then
-				# Take advantage is the configurations directory
-				echo "$dnsmasq_line" > /etc/dnsmasq.d/buendia-auto-$domain
-			else
-				# Use the main configuration file
-				echo "$dnsmasq_line" >> /etc/dnsmasq.conf
-			fi
-			service dnsmasq restart
-		else
-			# Use /etc/hosts file to create the mapping
-			echo "$hosts_line" >> /etc/hosts
-		fi
-        ;;
-    remove)
-		# Check if dnsmasq config directory was used.
-		if [ -f /etc/dnsmasq.d/buendia-auto-$domain ]; then
-			rm /etc/dnsmasq.d/buendia-auto-$domain
-			service dnsmasq restart
-		elif cat /etc/dnsmasq.conf | grep "$dnsmasq_line" > /dev/null 2>&1; then
-			sed -i /etc/dnsmasq.conf -e "s%^$dnsmasq_line%%"
-			service dnsmasq restart
-		else
-			sed -i /etc/hosts -e "s%^$hosts_line%%"
-		fi
-        ;;
-    install|upgrade|deconfigure|\
-    abort-install|abort-upgrade|abort-remove|abort-deconfigure|\
-    failed-upgrade|disappear|purge)
-        # Nothing to do in these cases.
-        ;;
-    *)
-        echo "Unknown verb '$verb' (expected configure, remove, install, etc.)"
-        exit 1
-        ;;
-esac

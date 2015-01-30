@@ -1,0 +1,4 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+*/30	*	*	*	*	root	/usr/bin/buendia-add-domain >> /var/log/buendia.log 2> &1
