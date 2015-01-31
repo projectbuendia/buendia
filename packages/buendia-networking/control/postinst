@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# This package installation takes place in the yocto environment. It enables
+# and configures hostap and udhcp daemons. It sets the dns server to be located
+# at the provided ip addres of this machine after the access point is up.
+# Finally it signals apt that it requires a boot.
+set -e
+cat <<EOF | buendia-enter-yocto
+systemctl enable hostapd
+cp /etc/hostapd/hostapd.conf /etc/hostapd/hostapd-pre-buendia-network.conf
+echo "ssid=buendia-demo" >> /etc/hostapd/hostapd.conf
+echo "wpa_passphrase=buendia" >> /etc/hostapd/hostapd.conf
+systemctl start hostapd
+ipaddr=''
+while [ -z "\$ipaddr" ]; do
+  ipaddr=\$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+  sleep 1
+done
+# Assume the dns service will be running on the same machine
+cp /etc/hostapd/udhcpd-for-hostapd.conf \
+	/etc/hostapd/udhcpd-for-hostapd-pre-buendia-network.conf
+echo "opt dns \$ipaddr" >> /etc/hostapd/udhcpd-for-hostapd.conf
+EOF
+# Indicate a reboot is required
+touch /var/run/reboot-required
