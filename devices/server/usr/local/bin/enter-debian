@@ -6,7 +6,7 @@ set -e
 ROOT=/home/root/debian
 
 # Copy current configuration information into /etc.
-for i in fstab host.conf hosts localtime nsswitch.conf resolv.conf timezone; do
+for i in fstab host.conf localtime nsswitch.conf resolv.conf timezone; do
   cp -p /etc/$i $ROOT/etc || true
 done
 
