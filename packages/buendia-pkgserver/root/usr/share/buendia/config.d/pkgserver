@@ -1,9 +1,4 @@
 #!/bin/bash
-# The purpose of this configuration script is to ensure the existence
-# of the `pkgserver` settings file, which defines the PKGSERVER_URL.
-# Furthermore, since the pkgserver will be running on this machine,
-# an alias of localhost is added to the /etc/hosts file. This way,
-# local processes, such as the pkgclient, can connect to it directly.
 
 # Check to see if the pkgserver setting is already present.
 # If not, create it with the default content.
@@ -12,15 +7,4 @@ if [ ! -f /usr/share/buendia/site/pkgserver ]; then
 	cat <<EOF > /usr/share/buendia/site/pkgserver
 PKGSERVER_URL="http://packages.local:9001"
 EOF
-fi
-
-# Load the pkgserver settings, whether already existed or just created.
-. /usr/share/buendia/site/pkgserver
-
-# Extract the domain from the `PKGSERVER_URL` variable
-DOMAIN=$(echo $PKGSERVER_URL | sed -r -e "s%^.*://([a-z0-9.-]+):?.*$%\1%I")
-
-# If DOMAIN is not already defined in the hosts file, add it.
-if ! grep -Fq "$DOMAIN" /etc/hosts; then
-	sed -i /etc/hosts -e "s/^127.0.0.1\s.*/& ${DOMAIN}/"
 fi
