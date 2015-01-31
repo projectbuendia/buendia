@@ -25,6 +25,11 @@ if [[ "$original" != /* ]]; then
     exit 1
 fi
 
+if [ ! -e "$replacement" ]; then
+    echo "Replacement $replacement does not exist."
+    exit 1
+fi
+
 if [ "$package" == "" ]; then
     echo "Could not determine the current package name."
     exit 1

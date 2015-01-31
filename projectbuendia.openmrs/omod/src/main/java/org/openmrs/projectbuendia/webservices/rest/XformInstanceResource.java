@@ -145,6 +145,10 @@ public class XformInstanceResource implements Creatable {
         return new Date();
     }
 
+    // TODO(kpy): We're switching to having the server be the authoritative
+    // time source via NTP, so instead of pushing the server's clock forward,
+    // we should just adjust the date to ensure it's in the past.
+
     /**
      * Adjusts the system clock to ensure that the incoming encounter date
      * is not in the future.  <b>This is a temporary hack</b> intended to work
@@ -236,6 +240,12 @@ public class XformInstanceResource implements Creatable {
         Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
         getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
+
+        // NOTE(kpy): We use a form_resource named <form-name>.xFormXslt to alter the translation
+        // from XML to HL7 so that the encounter_datetime is recorded with a date and time.
+        // (The default XSLT transform records only the date, not the time.)  This means that
+        // IF THE FORM IS RENAMED, THE FORM RESOURCE MUST ALSO BE RENAMED, or the encounter
+        // datetime will be recorded with only a date and the time will always be 00:00.
 
         // Modify encounter.encounter_datetime to make sure the timezone format has a minute section
         // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit

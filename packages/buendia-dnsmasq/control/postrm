@@ -1,4 +1,5 @@
 #!/bin/bash
 
 set -e
-service dnsmasq restart
+buendia-divert $1 /etc/dnsmasq.conf
+service dnsmasq restart || true
