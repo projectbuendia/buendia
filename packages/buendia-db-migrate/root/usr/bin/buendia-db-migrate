@@ -16,6 +16,10 @@ if [ -z "$target" ]; then
     exit 1
 fi
 
+if [ $current == $target ]; then
+    exit 0
+fi
+
 # No migrations are implemented yet.
 echo "$0: Don't know how to migrate from version $current to version $target."
 exit 1
