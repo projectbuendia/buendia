@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: buendia-mysql
+Depends: buendia-mysql, buendia-site
 Architecture: all
-Description: Backup and restore for Buendia.
+Description: Initial data for the Buendia database.
 Maintainer: projectbuendia.org
