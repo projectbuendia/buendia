@@ -11,7 +11,7 @@ fi
 
 # Apply the settings to the Tomcat configuration.
 source $SETTINGS
-cat <<EOF >/usr/share/buendia/etc/tomcat7/tomcat-users.xml
+cat <<EOF >/usr/share/buendia/diversions/etc/tomcat7/tomcat-users.xml
 <?xml version='1.0' encoding='utf-8'?>
 <tomcat-users>
     <user username="admin" password="$TOMCAT7_ADMIN_PASSWORD" roles="manager-gui" />
