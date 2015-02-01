@@ -1,6 +1,0 @@
-#!/bin/bash
-
-set -e
-buendia-divert $1 /etc/my.cnf
-service mysql restart
-/usr/share/buendia/config.d/mysql
