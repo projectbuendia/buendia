@@ -1,7 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Description: Buendia settings for development servers.
+Description: Development (Buendia site config).
 Maintainer: projectbuendia.org
 Provides: buendia-site
 Conflicts: buendia-site

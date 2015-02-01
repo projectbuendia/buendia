@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Depends: cron, buendia-utils
-Description: Periodically installs packages from a buendia repository of .deb package files.
+Description: Keeps Buendia packages installed and up to date.
 Maintainer: projectbuendia.org

@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: dnsmasq
 Architecture: all
-Description: Dnsmasq server, configured for buendia.
+Description: dnsmasq configured for Buendia.
 Maintainer: projectbuendia.org

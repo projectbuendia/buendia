@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: buendia-utils, openjdk-7-jdk, tomcat7, tomcat7-admin
 Architecture: all
-Description: Tomcat configuration for Buendia.
+Description: Tomcat configured for Buendia.
 Maintainer: projectbuendia.org
