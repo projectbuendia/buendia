@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+
+# After changing files in /usr/share/buendia/site, re-apply all the settings.
+shopt -s nullglob
+for $config in /usr/share/buendia/config.d/*; do
+    $config
+done
