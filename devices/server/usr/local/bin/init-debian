@@ -22,3 +22,6 @@ fi
 grep '^root:' $ROOT/etc/shadow > /etc/shadow.new
 grep -v '^root:' /etc/shadow >> /etc/shadow.new
 cat /etc/shadow.new > /etc/shadow
+
+# Update packages on each boot.
+echo "/usr/bin/buendia-pkgclient-update" | enter-debian

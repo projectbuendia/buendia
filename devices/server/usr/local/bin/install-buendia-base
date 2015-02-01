@@ -6,12 +6,6 @@ PATH=/usr/local/bin:$PATH
 
 echo -ne '\n---- install-buendia-base: '; date
 
-if [ -f /etc/buendia-base-installed ]; then
-  echo "Buendia base system is installed."
-  echo "/usr/bin/buendia-pkgclient-update" | enter-debian
-  exit 0
-fi
-
 # Turn on wifi, using the last saved configuration.
 echo "Starting wifi."
 if wifi -; ! ping -c 1 -w 1 debian.org; then
@@ -21,6 +15,11 @@ if wifi -; ! ping -c 1 -w 1 debian.org; then
       exit 1
     fi
   fi
+fi
+
+if [ -f /etc/buendia-base-installed ]; then
+  echo "Buendia base system is installed."
+  exit 0
 fi
 
 # Wipe and install Debian under $ROOT using cdebootstrap.  If the installation
