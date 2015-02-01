@@ -21,7 +21,11 @@ endif
 
 # Execute the Makefiles in all the package subdirectories.
 all:
-	for i in buendia-*; do echo === $$i:; PACKAGE_NAME=$$i make -C $$i; done
+	for i in buendia-*; do \
+	    echo; \
+	    echo === $$i:; \
+	    PACKAGE_NAME=$$i make -C $$i || exit 1; \
+	done
 
 # Remove the built packages and intermediate build directories.
 clean:
