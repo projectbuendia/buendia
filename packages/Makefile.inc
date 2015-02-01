@@ -12,7 +12,7 @@ export FILES := $(shell [ -d root ] && find root)
 # Everything under 'root' is automatically included in the package.  To add
 # other files, write a rule to make each file (at a path under $(EXTRA_ROOT)
 # and add a rule for $(EXTRA_ROOT): that depends on all of those files.
-export EXTRA_ROOT := /tmp/$(PACKAGE_NAME)
+export EXTRA_ROOT := /tmp/buendia-packages/$(PACKAGE_NAME)
 $(shell mkdir -p $(EXTRA_ROOT))
 
 export PACKAGE := $(PACKAGE_NAME)_$(PACKAGE_VERSION)_all.deb
@@ -20,11 +20,13 @@ export ROOT := $(shell [ -d root ] && echo root)
 
 all: $(PACKAGE)
 
+# Remove the built package and intermediate build directory.
 clean:
-	rm -rf *.deb
+	rm -rf *.deb $(EXTRA_ROOT)
 
+# Remove everything including the cache of downloaded files.
 pristine: clean
-	rm -rf $(EXTRA_ROOT)
+	rm -rf /tmp/buendia-fetched
 
 $(PACKAGE): control/* $(FILES) $(EXTRA_ROOT)
 	$(TOOLS)/mkdeb $@ control $(ROOT) $(EXTRA_ROOT)
