@@ -3,4 +3,14 @@
 set -e
 buendia-divert $1 /etc/tomcat7/tomcat-users.xml
 buendia-divert $1 /etc/default/tomcat7
-service tomcat7 restart
+
+case $1 in
+    remove)
+        service tomcat7 restart
+        ;;
+
+    upgrade|deconfigure)
+        ;;
+
+    *) exit 1
+esac

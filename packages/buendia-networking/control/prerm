@@ -1,15 +1,23 @@
 #!/bin/bash
 
-# This package installation takes place in the yocto environment. It disables
-# hostap and udhcp daemons and will undo the configuration created in the
-# preinst script. Finally it signals apt that it requires a boot.
 set -e
-cat <<EOF | buendia-enter-yocto
+
+case $1 in
+    remove|upgrade|deconfigure)
+        # This configuration takes place in the yocto environment. It disables
+        # hostap and udhcp daemons and will undo the configuration created in
+        # the postinst script. Finally it signals apt that it requires a boot.
+        cat <<EOF | buendia-enter-yocto
+hostapd_conf=/etc/hostapd/hostapd.conf
+udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
+
 systemctl disable hostapd
 systemctl stop hostapd
-mv /etc/hostapd/hostapd-pre-buendia-network.conf /etc/hostapd/hostapd.conf
-mv /etc/hostapd/udhcpd-for-hostapd-pre-buendia-network.conf \
-	/etc/hostapd/udhcpd-for-hostapd.conf
+mv $hostapd_conf.pre-buendia $hostapd_conf
+mv $udhcpd_conf.pre-buendia $udhcpd_conf
 EOF
-# Indicate a reboot is required
-touch /var/run/reboot-required
+        touch /var/run/reboot-required
+        ;;
+
+    *) exit 1
+esac

@@ -2,4 +2,12 @@
 
 set -e
 buendia-divert $1 /etc/dnsmasq.conf
-service dnsmasq restart
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        service dnsmasq restart
+        ;;
+
+    *) exit 1
+esac
+

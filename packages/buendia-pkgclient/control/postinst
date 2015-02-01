@@ -1,5 +1,10 @@
 #!/bin/bash
 set -e
 
-# Run setting configuration
-. /usr/share/buendia/config.d/pkgclient
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        /usr/share/buendia/config.d/pkgclient
+        ;;
+
+    *) exit 1
+esac

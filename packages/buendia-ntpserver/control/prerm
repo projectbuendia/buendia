@@ -2,4 +2,14 @@
 
 set -e
 buendia-divert $1 /etc/ntp.conf
-service ntp restart
+
+case $1 in
+    remove)
+        service ntp restart
+        ;;
+
+    upgrade|deconfigure)
+        ;;
+
+    *) exit 1
+esac

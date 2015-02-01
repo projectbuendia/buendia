@@ -7,9 +7,11 @@
 # There are two packages that could provide the network location of the
 # package server: the settings package and the package server itself.
 # Both will create a `pkgserver` settings file containing this variable.
+# buendia-pkgserver is responsible for creating the default 'pkgserver'
+# settings file, not this package.
 if [ -f /usr/share/buendia/site/pkgserver ]; then
-	# If the settings file exists, load it.
-	. /usr/share/buendia/site/pkgserver
+    # If the settings file exists, load it.
+    . /usr/share/buendia/site/pkgserver
 fi
 
 # Determine the network location (URL) of the package server.

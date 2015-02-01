@@ -1,5 +1,16 @@
 #!/bin/bash
 
-cd /tmp
-gcc -o buendia-pushclock /usr/src/buendia-pushclock.c
-install -m 4755 -v buendia-pushclock /usr/bin
+set -e
+
+case $1 in
+    configure)
+        cd /tmp
+        gcc -o buendia-pushclock /usr/src/buendia-pushclock.c
+        install -m 4755 -v buendia-pushclock /usr/bin
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *) exit 1
+esac

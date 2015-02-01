@@ -1,4 +1,11 @@
 #!/bin/bash
 
 set -e
-/usr/share/buendia/config.d/backup
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        /usr/share/buendia/config.d/backup
+        ;;
+
+    *) exit 1
+esac

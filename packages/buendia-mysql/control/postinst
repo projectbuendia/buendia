@@ -1,4 +1,15 @@
 #!/bin/bash
 
 set -e
-/usr/share/buendia/config.d/mysql
+
+case $1 in
+    configure)
+        /usr/share/buendia/config.d/mysql
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *) exit 1
+esac
+

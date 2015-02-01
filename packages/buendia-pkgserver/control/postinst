@@ -1,17 +1,22 @@
 #!/bin/bash
+
 set -e
 
-# Setting permissions on package directory
-chmod -R +rX /usr/share/buendia/packages
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Setting permissions on package directory
+        chmod -R +rX /usr/share/buendia/packages
 
-# Disable the default nginx configuration
-if [ -e /etc/nginx/sites-enabled/default ]; then
-	rm /etc/nginx/sites-enabled/default
-fi
+        # Disable the default nginx configuration
+        rm -f /etc/nginx/sites-enabled/default
 
-# Run setting configuration
-. /usr/share/buendia/config.d/pkgserver
+        # Run setting configuration
+        /usr/share/buendia/config.d/pkgserver
 
-# Restarting services
-service nginx restart
-/etc/init.d/udev restart || true
+        # Restart services
+        service nginx restart
+        /etc/init.d/udev restart || true
+        ;;
+
+    *) exit 1
+esac

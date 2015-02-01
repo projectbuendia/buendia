@@ -1,16 +1,23 @@
 #!/bin/bash
 
 set -e
-service mysql start
 . /usr/share/buendia/site/mysql
 
-if ! mysql -uroot -p$MYSQL_ROOT_PASSWORD -e ''; then
-    echo "MySQL configuration problem: cannot connect as root."
-    exit 1
-fi
+case $1 in
+    install|upgrade)
+        service mysql start
 
-if mysql -uroot -p$MYSQL_ROOT_PASSWORD -e '' openmrs; then
-    echo "Installing buendia-db-init would destroy all data in the existing"
-    echo "MySQL database 'openmrs'!  Not installing."
-    exit 1
-fi
+        if ! mysql -uroot -p$MYSQL_ROOT_PASSWORD -e ''; then
+            echo "MySQL configuration problem: cannot connect as root."
+            exit 1
+        fi
+
+        if mysql -uroot -p$MYSQL_ROOT_PASSWORD -e '' openmrs; then
+            echo "Installing buendia-db-init would destroy all data in the"
+            echo "existing MySQL database 'openmrs'!  Not installing."
+            exit 1
+        fi
+        ;;
+
+    *) exit 1
+esac
