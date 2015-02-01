@@ -30,6 +30,14 @@ install-debian || reboot
 # Everything after this point is designed to be idempotent so that this script
 # can run safely without a site ID on every boot until a site ID is selected.
 
+# Copy root's password entry into Debian.
+grep '^root:' /etc/shadow > $ROOT/etc/shadow.new
+grep -v '^root:' $ROOT/etc/shadow >> $ROOT/etc/shadow.new
+cat $ROOT/etc/shadow.new > $ROOT/etc/shadow
+
+# Copy root's SSH authorizations into Debian.
+cp -pr ~root/.ssh $ROOT/root/
+
 # Install a .bashrc file for root in the Debian chroot.
 cat <<'EOF' >$ROOT/root/.bashrc
 PATH=/usr/local/bin:$PATH

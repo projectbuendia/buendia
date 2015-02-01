@@ -17,7 +17,8 @@ if [ ! -e $ROOT/sys/fs ]; then
   mount --bind /sys $ROOT/sys
 fi
 
-# Copy root's password entry into Debian.
-grep '^root:' /etc/shadow > $ROOT/etc/shadow.new
-grep -v '^root:' $ROOT/etc/shadow >> $ROOT/etc/shadow.new
-cat $ROOT/etc/shadow.new > $ROOT/etc/shadow
+# Password settings in Debian should be authoritative; hence, periodically copy
+# root's password entry from Debian into Yocto.  Boot is a fine time to do so.
+grep '^root:' $ROOT/etc/shadow > /etc/shadow.new
+grep -v '^root:' /etc/shadow >> /etc/shadow.new
+cat /etc/shadow.new > /etc/shadow
