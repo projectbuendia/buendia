@@ -4,11 +4,7 @@ set -e
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        # After modifying /usr/share/buendia/site, re-apply all settings.
-        shopt -s nullglob
-        for $config in /usr/share/buendia/config.d/*; do
-            $config
-        done
+        buendia-reconfigure
         ;;
 
     *) exit 1
