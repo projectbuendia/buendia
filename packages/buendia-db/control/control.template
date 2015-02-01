@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Pre-Depends: buendia-db-init (<=${PACKAGE_VERSION}) | buendia-db-init (>${PACKAGE_VERSION}), buendia-db-migrate
-Description: Database state compatible with Buendia ${PACKAGE_VERSION}.
+Pre-Depends: buendia-db-init (<=${PACKAGE_VERSION}) | buendia-db-init (>>${PACKAGE_VERSION}), buendia-db-migrate
+Description: ${PACKAGE_VERSION}-compatible Buendia database state.
 Maintainer: projectbuendia.org

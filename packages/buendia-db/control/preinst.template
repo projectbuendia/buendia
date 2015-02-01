@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+case \$1 in
+    install)
+        ;;
+
+    upgrade)
+        buendia-db-migrate \$2 $PACKAGE_VERSION
+        ;;
+
+    *) exit 1
+esac
