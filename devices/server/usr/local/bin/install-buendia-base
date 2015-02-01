@@ -47,6 +47,11 @@ alias ls='ls $LS_OPTIONS'
 alias ll='ls -l $LS_OPTIONS'
 EOF
 
+# Copy configuration settings into /etc.
+for i in fstab host.conf localtime nsswitch.conf resolv.conf timezone; do
+  cp -p /etc/$i $ROOT/etc || true
+done
+
 # Add custom package repositories (no need to quit if this file is missing).
 cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
 
