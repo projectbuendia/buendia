@@ -40,7 +40,7 @@ fi
 mkdir -p $tmpdir
 cp $dumpfile $tmpzip
 cd $tmpdir
-echo 'Unpacking $dumpfile...'
+echo "Unpacking $dumpfile..."
 unzip -q -j $tmpzip
 
 # Load the data.
