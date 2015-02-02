@@ -2,6 +2,7 @@
 . /usr/share/buendia/config.d/pkgclient
 
 apt-get update
+apt-get -y -f install
 apt-get -y --allow-unauthenticated install $(cat /usr/share/buendia/packages.list.d/*)
 if [ -f /var/run/reboot-required ]; then
 	rm /var/run/reboot-required
