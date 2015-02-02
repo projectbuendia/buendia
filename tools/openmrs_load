@@ -40,7 +40,8 @@ fi
 mkdir -p $tmpdir
 cp $dumpfile $tmpzip
 cd $tmpdir
-unzip -j $tmpzip
+echo 'Unpacking $dumpfile...'
+unzip -q -j $tmpzip
 
 # Load the data.
 $mysql --local-infile --unbuffered -s -e 'source 000_load.sql;' $db
