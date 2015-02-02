@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if ps -efww | grep -v grep | grep apt-get; then
-    echo "$(date) >> apt-get is running; skipping check."
+if ps -efww | grep -v grep | grep -e 'apt-get|dpkg'; then
+    echo "$(date) >> apt-get or dpkg is running; skipping check."
     exit 0
 fi
 
