@@ -1,4 +1,4 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-*/5 *   *   *   *   root    /usr/bin/buendia-mysql-watchdog.sh >> /var/log/buendia-watchdog.log 2>&1
+*/5 * * * * root /usr/bin/buendia-mysql-watchdog >> /var/log/buendia-mysql-watchdog.log 2>&1
