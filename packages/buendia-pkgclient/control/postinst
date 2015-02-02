@@ -4,6 +4,9 @@ set -e
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         /usr/share/buendia/config.d/pkgclient
+
+        # Reboot to ensure that cron is started.
+        touch /var/run/reboot-required
         ;;
 
     *) exit 1
