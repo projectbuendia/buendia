@@ -5,8 +5,8 @@ include ../Makefile.inc
 # compilation as a postinst step.  An empty /usr/bin/buendia-pushclock file is
 # included in data.tar.gz and later overwritten with the compiled binary.
 
-$(EXTRA_ROOT): $(EXTRA_ROOT)/usr/bin/pushclock
+$(EXTRA_DATA): $(EXTRA_DATA)/usr/bin/pushclock
 
-$(EXTRA_ROOT)/usr/bin/pushclock:
+$(EXTRA_DATA)/usr/bin/pushclock:
 	mkdir -p $$(dirname $@)
 	touch $@

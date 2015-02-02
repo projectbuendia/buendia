@@ -8,7 +8,7 @@ set -e
 
 case $1 in
     configure)
-        cat <<EOF | buendia-enter-yocto
+        cat <<'EOF' | buendia-enter-yocto
 hostapd_conf=/etc/hostapd/hostapd.conf
 udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
 
@@ -21,12 +21,12 @@ systemctl start hostapd
 
 # Tell clients to use this machine's IP address for DNS.
 ipaddr=''
-while [ -z "\$ipaddr" ]; do
-  ipaddr=\$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+while [ -z "$ipaddr" ]; do
+  ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
   sleep 1
 done
 cp $udhcpd_conf $udhcpd_conf.pre-buendia
-echo "opt dns \$ipaddr" >> $udhcpd_conf
+echo "opt dns $ipaddr" >> $udhcpd_conf
 EOF
         touch /var/run/reboot-required
         ;;
