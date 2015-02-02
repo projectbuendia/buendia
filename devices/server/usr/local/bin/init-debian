@@ -7,14 +7,14 @@ ROOT=/home/root/debian
 
 # Make devices and other special filesystems available in Debian.
 if [ ! -e $ROOT/dev/null ]; then
-  mount --bind /dev $ROOT/dev
-  mount --bind /dev/pts $ROOT/dev/pts
+    mount --bind /dev $ROOT/dev
+    mount --bind /dev/pts $ROOT/dev/pts
 fi
 if [ ! -e $ROOT/proc/1 ]; then
-  mount --bind /proc $ROOT/proc
+    mount --bind /proc $ROOT/proc
 fi
 if [ ! -e $ROOT/sys/fs ]; then
-  mount --bind /sys $ROOT/sys
+    mount --bind /sys $ROOT/sys
 fi
 
 # Password settings in Debian should be authoritative; hence, periodically copy
@@ -24,4 +24,8 @@ grep -v '^root:' /etc/shadow >> /etc/shadow.new
 cat /etc/shadow.new > /etc/shadow
 
 # Update packages on each boot.
-echo "/usr/bin/buendia-pkgclient-update >> /var/log/buendia.log 2>&1" | enter-debian || true
+cat <<EOF | enter-debian
+if [ -f /usr/bin/buendia-pkgclient-update ]; then
+    /usr/bin/buendia-pkgclient-update >> /var/log/buendia.log 2>&1
+fi
+EOF
