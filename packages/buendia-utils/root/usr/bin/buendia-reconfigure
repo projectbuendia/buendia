@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "$1" == "-h" ]; then
     echo "Usage: $0 [<package-name>...]"
     echo
@@ -8,6 +10,7 @@ if [ "$1" == "-h" ]; then
     echo "all Buendia packages are reconfigured."
 fi
 
+chmod 755 /usr/share/buendia/config.d/* || true
 errors=
 
 function reconfigure_package() {
