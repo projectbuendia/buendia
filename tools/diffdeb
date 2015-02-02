@@ -51,4 +51,4 @@ unpack_and_remove_version
 cd $btmp
 unpack_and_remove_version
 
-diff -q -r $atmp $btmp
+diff -q -r $atmp $btmp >/dev/null
