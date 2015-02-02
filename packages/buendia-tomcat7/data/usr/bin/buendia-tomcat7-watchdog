@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if ps -efww | grep -v grep | grep apt-get; then
+    echo "$(date) >> apt-get is running; skipping check."
+    exit 0
+fi
+
 echo "$(date) >> Checking on Tomcat7..."
 if ! service tomcat7 status 2>&1 ; then
     archive=/var/log/tomcat7-watchdog/$(date +"%Y-%m-%d.%H.%M").tar.gz
