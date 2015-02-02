@@ -1,10 +1,8 @@
 #!/bin/bash
 
+set -e
 db=$1
 dumpfile=$2
-tmpdir=/tmp/openmrs_dump.$$
-tmpzip=/tmp/openmrs_dump.$$.zip
-tmpsql=/tmp/openmrs_sump.$$.sql
 pwd=$(pwd)
 
 mysqldump="mysqldump"
@@ -23,6 +21,14 @@ if [ -z "$dumpfile" ]; then
     exit 1
 fi
 
+tmpdir=/tmp/openmrs_dump.$$
+tmpzip=/tmp/openmrs_dump.$$.zip
+tmpsql=/tmp/openmrs_dump.$$.sql
+function cleanup() {
+    rm -rf $tmpdir $tmpzip $tmpsql
+}
+trap cleanup EXIT
+
 # Make a temporary directory (mode 777 so it is writable by mysqld).
 mkdir -m 777 -p $tmpdir
 
@@ -30,7 +36,7 @@ mkdir -m 777 -p $tmpdir
 date +'%Y-%m-%dT%H:%M:%SZ' > $tmpdir/ID
 
 # Dump to the temporary directory.
-$mysqldump --tab=$tmpdir --single-transaction --default-character-set=utf8 --opt -q -v --skip-dump-date $db || exit 1
+$mysqldump --tab=$tmpdir --single-transaction --default-character-set=utf8 --opt -q -v --skip-dump-date $db
 
 # Construct a SQL file that will load the data quickly.
 cd $tmpdir
@@ -50,6 +56,5 @@ mv $tmpsql 000_load.sql
 # Pack the results into a zip file.
 zip -j $tmpzip * || exit 1
 cd $pwd
-rm -rf $tmpdir
 mv $tmpzip $dumpfile
 ls -l $dumpfile

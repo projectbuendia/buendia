@@ -1,9 +1,8 @@
 #!/bin/bash
 
+set -e
 db=$1
 dumpfile=$2
-tmpdir=/tmp/openmrs_load.$$
-tmpzip=/tmp/openmrs_dump.$$.zip
 pwd=$(pwd)
 
 mysql="mysql"
@@ -22,6 +21,13 @@ if [ -z "$dumpfile" ]; then
     exit 1
 fi
 
+tmpdir=/tmp/openmrs_load.$$
+tmpzip=/tmp/openmrs_dump.$$.zip
+function cleanup() {
+    rm -rf $tmpdir $tmpzip
+}
+trap cleanup EXIT
+
 # Create an empty database.
 if $mysql -s -e "create database $db" 2>/dev/null; then
   echo 'Created a new empty database.'
@@ -37,6 +43,4 @@ cd $tmpdir
 unzip -j $tmpzip
 
 # Load the data.
-$mysql --local-infile --unbuffered -s -e 'source 000_load.sql;' $db || exit 1
-cd $pwd
-rm -rf $tmpdir $tmpzip
+$mysql --local-infile --unbuffered -s -e 'source 000_load.sql;' $db

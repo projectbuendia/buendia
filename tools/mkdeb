@@ -1,7 +1,9 @@
 #!/bin/bash
 
+set -e
 output="$1"; shift
 control="$1"; shift
+pwd="$(pwd)"
 
 if [ "$1" == "" ]; then
     cat <<EOF
@@ -23,9 +25,12 @@ EOF
     exit 1
 fi
 
-set -e
-pwd="$(pwd)"
 tmp=/tmp/make_package.$$
+function cleanup() {
+    rm -rf $tmp
+}
+trap cleanup EXIT
+
 rm -rf $tmp
 TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
 
@@ -52,4 +57,3 @@ gzip $tmp/data.tar
 echo 2.0 > $tmp/debian-binary
 mkdir -p $(dirname "$output")
 ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz
-rm -rf $tmp
