@@ -1,6 +1,9 @@
 package org.openmrs.projectbuendia;
 
+import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
+
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -36,4 +39,16 @@ public class DateTimeUtils {
     public static String toIso8601(Date dateTime) {
         return FORMAT.format(dateTime);
     }
+
+    /** Parses a date in YYYY-MM-DD format, throwing appropriate exceptions */
+    public static Date parseDate(String text, String fieldName) {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        try {
+            return dateFormat.parse(text);
+        } catch (ParseException e) {
+            throw new InvalidObjectDataException(String.format(
+                    "The %s field should be in YYYY-MM-DD format", fieldName));
+        }
+    }
+
 }
