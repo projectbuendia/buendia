@@ -1,23 +1,29 @@
 #!/bin/bash
 
 set -e
+if [ $1 == "-f" ]; then
+    force=yes
+    shift
+fi
 db=$1
 dumpfile=$2
 pwd=$(pwd)
 
-mysql="mysql"
-if [ -n "$MYSQL_USER" ]; then
-    mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
-fi
-
 if [ -z "$dumpfile" ]; then
-    echo "Usage: $0 <database-name> <dump-file.zip>"
-    echo 'Wipes a MySQL database and loads a dump file into it.'
+    echo "Usage: $0 [-f] <database-name> <dump-file.zip>"
+    echo 'Loads a dump file into a MySQL database.  By default, refuses to'
+    echo 'touch a database that already exists; specify -f to wipe and replace'
+    echo 'any existing database with the given name.'
     echo
     echo 'Requires a MySQL user that has been granted database access with'
     echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
     echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
     echo
+    exit 1
+fi
+
+if [ -z "$MYSQL_USER" ]; then
+    echo '$MYSQL_USER is not set; please set $MYSQL_USER and $MYSQL_PASSWORD.'
     exit 1
 fi
 
@@ -28,12 +34,22 @@ function cleanup() {
 }
 trap cleanup EXIT
 
+mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
+
 # Create an empty database.
-if $mysql -s -e "create database $db" 2>/dev/null; then
-  echo 'Created a new empty database.'
+if $mysql -e '' $db; then
+    if [ "$force" == yes ]; then
+        echo "Wiping existing database $db..."
+        $mysql -s -e 'show tables;' $db | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+    else
+        echo "Database $db already exists!  To wipe and replace it, use -f."
+        exit 1
+    fi
+else if $mysql -s -e "create database $db"; then
+    echo 'Created a new empty database.'
 else
-  echo "Wiping existing database $db..."
-  $mysql -s -e 'show tables;' $db | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+    echo 'Failed to create database $db.'
+    exit 1
 fi
 
 # Unpack the zip file in the temporary directory.

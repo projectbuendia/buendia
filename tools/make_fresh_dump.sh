@@ -51,7 +51,7 @@ SRC=
 
 # Load the dump into the scratch area.
 cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
-    <(echo "set -- $WORK_DATABASE dump.zip") \
+    <(echo "set -- -f $WORK_DATABASE dump.zip") \
     openmrs_load \
     | ssh $WORK bash
 
