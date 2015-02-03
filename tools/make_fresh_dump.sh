@@ -32,8 +32,8 @@ EOF
 
 # If necessary, copy the dump file over to the WORK_HOST.
 if [ $SRC != $WORK ]; then
-    scp $SRC:dump.zip /tmp/dump.zip
-    scp /tmp/dump.zip $WORK:dump.zip
+    scp -P $SRC_PORT $SRC:dump.zip /tmp/dump.zip
+    scp -P $WORK_PORT /tmp/dump.zip $WORK:dump.zip
 fi
 
 # No more touching the SRC after this point!
@@ -53,15 +53,19 @@ EOF
 
 # Clear out dev/test data (patients, observations, etc.) to put the database
 # back in a starting state.
-cat clear_server.sql | ssh -p $WORK_PORT $WORK bash -c '. /usr/share/buendia/site/mysql; mysql -uroot -p$MYSQL_ROOT_PASSWORD $WORK_DATABASE'
+scp -P $WORK_PORT clear_server.sql $WORK:
+cat <<EOF | ssh -p $WORK_PORT $WORK bash
+. /usr/share/buendia/site/mysql
+mysql -uroot -p\$MYSQL_ROOT_PASSWORD $WORK_DATABASE < clear_server.sql
+EOF
 
 # Dump the cleaned database.
 cat <<EOF | ssh -p $WORK_PORT $WORK bash
 . /usr/share/buendia/site/mysql
 export MYSQL_USER=root
 export MYSQL_PASSWORD=\$MYSQL_ROOT_PASSWORD
-buendia-mysql-dump $WORK_DATABASE clena-dump.zip
+buendia-mysql-dump $WORK_DATABASE clean-dump.zip
 EOF
 
 # Copy the clean dump to the local machine.
-scp $WORK:clean-dump.zip /tmp/clean-dump.zip
+scp -P $WORK_PORT $WORK:clean-dump.zip /tmp/clean-dump.zip
