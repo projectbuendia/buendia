@@ -5,13 +5,10 @@ set -e
 
 (
     if ! flock -n 9; then
-        echo
-        echo "$(date): buendia-pkgclient-update already running; not starting."
+        echo "buendia-pkgclient-update already running; not starting."
         exit 1
     fi
 
-    echo
-    echo "$(date): Starting update."
     export DEBIAN_FRONTEND=noninteractive
 
     # Update the package list.
@@ -25,12 +22,7 @@ set -e
     packages=$(echo $(cat /usr/share/buendia/packages.list.d/*))
     apt-get -y --allow-unauthenticated install $packages || true
 
-    echo "$(date): Update complete."
-
     if [ -f /var/run/reboot-required ]; then
-        rm /var/run/reboot-required
-        echo "$(date): Rebooting after package installation."
-        echo "reboot" | buendia-enter-yocto
+        echo "One or more packages have indicated that a reboot is required!"
     fi
-
-) 9> /var/run/buendia-pkgclient-update.lock
+) 9>/var/run/buendia-pkgclient-update.lock

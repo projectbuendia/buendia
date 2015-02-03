@@ -4,7 +4,7 @@ set -e
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         /usr/share/buendia/config.d/pkgclient
-        update-rc.d buendia-pkgclient-update defaults
+        update-rc.d buendia-pkgclient-autoupdate defaults
         service cron restart
         ;;
 

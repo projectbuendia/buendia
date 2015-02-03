@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+. /usr/share/buendia/config.d/pkgclient
+
+(
+    case "$PKGCLIENT_AUTOUPDATE" in
+        ''|0|false|off|no)
+            echo "$(date): PKGCLIENT_AUTOUPDATE is disabled."
+            ;;
+
+        *)
+            echo "$(date): Starting autoupdate."
+
+            buendia-pkgclient-update
+
+            if [ -f /var/run/reboot-required ]; then
+                rm /var/run/reboot-required
+                echo "$(date): Rebooting after package installation."
+                echo "reboot" | buendia-enter-yocto
+            else
+                echo "$(date): Update complete."
+            fi
+            ;;
+    esac
+) 2>&1 | tee /var/log/buendia-pkgclient-autoupdate.log

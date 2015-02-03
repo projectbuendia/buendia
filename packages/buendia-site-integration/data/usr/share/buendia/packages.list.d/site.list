@@ -1,5 +1,6 @@
 buendia-pkgclient
+buendia-pkgserver
 buendia-pushclock
 buendia-server
-buendia-site-dev
+buendia-site-integration
 buendia-sshd

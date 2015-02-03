@@ -1,25 +1,27 @@
 #!/bin/bash
-# Purpose of this script is to (re)generate the package sources list,
-# such that it contains a reference to the buendia package server. The
-# buendia package server may be running on this machine or on a different
+
+mkdir -p /usr/share/buendia/site
+SETTINGS=/usr/share/buendia/site/pkgclient
+
+# Generate the default settings file if one does not already exist.
+if [ ! -f $SETTINGS ]; then
+    echo "PKGCLIENT_AUTOUPDATE=1" > $SETTINGS
+fi
+
+# Update the package sources list to point to the Buendia package server.
+# The Buendia package server may be running on this machine or on a different
 # machine that is reachable via a network connection.
 
-# There are two packages that could provide the network location of the
-# package server: the settings package and the package server itself.
-# Both will create a `pkgserver` settings file containing this variable.
-# buendia-pkgserver is responsible for creating the default 'pkgserver'
-# settings file, not this package.
+# Get the server URL from the pkgserver settings file, or use the default.
+# The settings file could be created by the buendia-pkgserver package or
+# could come from the site settings package.
+PKGSERVER_URL='http://packages.local:9001'
 if [ -f /usr/share/buendia/site/pkgserver ]; then
-    # If the settings file exists, load it.
     . /usr/share/buendia/site/pkgserver
 fi
 
-# Determine the network location (URL) of the package server.
-# Either the `PKGSERVER_URL` variable is set by the settings file,
-# or we assume that the package server can be fond at the default location.
-URL=${PKGSERVER_URL-"http://packages.local:9001"}
+# The source list URL must not have any trailing slashes.
+PKGSERVER_URL=$(echo $PKGSERVER_URL | sed -e 's+/*$++')
 
-# Generate the pkgclient apt sources list containing the pkgserver repository.
-cat <<EOF > /etc/apt/sources.list.d/pkgclient.list
-deb [arch=all] $URL stable main
-EOF
+# Generate the pkgclient apt sources list pointing at the pkgserver repository.
+echo "deb [arch=all] $PKGSERVER_URL stable main" > /etc/apt/sources.list.d/buendia-pkgclient.list
