@@ -10,7 +10,8 @@ if [ "$1" == "-h" ]; then
     echo "all Buendia packages are reconfigured."
 fi
 
-chmod 755 /usr/share/buendia/config.d/* || true
+mkdir -p /usr/share/buendia/config.d
+chmod -R 755 /usr/share/buendia/config.d  # make all scripts executable
 errors=
 
 function reconfigure_package() {
