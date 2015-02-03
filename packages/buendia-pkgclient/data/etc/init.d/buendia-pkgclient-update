@@ -1,0 +1,28 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: buendia-pkgclient-update
+# Required-Start: $all
+# Required-Stop:
+# Should-Start:
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Keeps Buendia packages up to date.
+# Description: Checks for and installs updates to all 'buendia-*' packages.
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+PROGRAM=/usr/bin/buendia-pkgclient-update
+LOGFILE=/var/log/buendia-pkgclient-update.log
+
+case "$1" in
+    start|restart|'')
+        $PROGRAM >> $LOGFILE 2>&1
+        ;;
+    stop)
+        # Nothing to do on shutdown.
+        ;;
+    *)
+        echo "Usage: buendia-pkgclient-update [start|restart|stop]" >&2
+        exit 3
+        ;;
+esac

@@ -59,7 +59,7 @@ mkdir -p $ROOT/usr/share/buendia/site
 cp -f /etc/buendia-site-id $ROOT/usr/share/buendia/site/id || true
 
 # Do the rest of the setup steps below within Debian.
-init-debian || true  # ignore missing /usr/bin/buendia-pkgclient-update
+init-debian
 cat <<'EOF' | enter-debian
 set -e
 
@@ -91,7 +91,7 @@ apt-get update
 if [ -n "$SITE_ID" ]; then
   echo "Buendia site ID configured: $SITE_ID"
   apt-get -y --allow-unauthenticated install buendia-site-$SITE_ID  # get the site settings
-  apt-get -y --allow-unauthenticated install buendia-pkgclient  # trigger installation of all else
+  apt-get -y --allow-unauthenticated install buendia-pkgclient  # installs all packages listed in the site settings
 else
   echo "Buendia site ID not selected."
   exit 1
@@ -101,4 +101,4 @@ EOF
 
 echo "Buendia base system successfully installed."
 touch /etc/buendia-base-installed
-reboot  # bring up cron, which will trigger pkgclient and do first install
+reboot  # will run buendia-pkgclient-update on boot and do first install
