@@ -5,11 +5,13 @@ cd $(dirname $0)
 set -e
 
 SRC_HOST=dev.projectbuendia.org
+SRC_PORT=9022
 SRC_USER=jenkins  # a Unix account on SRC_HOST to which we have ssh access
 SRC_DATABASE=openmrs  # the MySQL database on SRC_HOST to take a snapshot of
 SRC=$SRC_USER@$SRC_HOST
 
 WORK_HOST=dev.projectbuendia.org
+WORK_PORT=9022
 WORK_USER=jenkins  # a Unix account on WORK_HOST to which we have ssh access
 WORK_DATABASE=openmrs_clean  # a MySQL database on WORK_HOST as a scratch area
 WORK=$WORK_USER@$WORK_HOST
@@ -35,7 +37,7 @@ fi
 cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
     <(echo "set -- $SRC_DATABASE dump.zip") \
     openmrs_dump \
-    | ssh $SRC bash
+    | ssh -p $SRC_PORT $SRC bash
 
 # If necessary, copy the dump file over to the WORK_HOST.
 if [ $SRC != $WORK ]; then
@@ -53,18 +55,18 @@ SRC=
 cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
     <(echo "set -- -f $WORK_DATABASE dump.zip") \
     openmrs_load \
-    | ssh $WORK bash
+    | ssh -p $WORK_PORT $WORK bash
 
 # Clear out dev/test data (patients, observations, etc.) to put the database
 # back in a starting state.
 cat clear_server.sql \
-    | ssh $WORK "mysql -u'$MYSQL_USER' -p'$MYSQL_PASSWORD' $WORK_DATABASE"
+    | ssh -p $WORK_PORT $WORK "mysql -u'$MYSQL_USER' -p'$MYSQL_PASSWORD' $WORK_DATABASE"
 
 # Dump the cleaned database.
 cat <(echo "export MYSQL_USER='$MYSQL_USER' MYSQL_PASSWORD='$MYSQL_PASSWORD'") \
     <(echo "set -- $WORK_DATABASE clean-dump.zip") \
     openmrs_dump \
-    | ssh $WORK bash
+    | ssh -p $WORK_PORT $WORK bash
 
 # Copy the clean dump to the local machine.
 scp $WORK:clean-dump.zip /tmp/clean-dump.zip
