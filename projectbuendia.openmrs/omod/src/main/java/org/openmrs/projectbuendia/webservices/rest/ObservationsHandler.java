@@ -54,11 +54,11 @@ public class ObservationsHandler {
      * @param patient the patient to add the encounter to
      * @param encounterTime the time of the encounter
      */
-    public void addObservations(SimpleObject json, Patient patient, Date encounterTime, String changeMessage,
+    public Encounter addObservations(SimpleObject json, Patient patient, Date encounterTime, String changeMessage,
                                 String encounterTypeName, String locationUuid) {
         List observations = (List)json.get(OBSERVATIONS);
         if (observations.isEmpty()) {
-            return;
+            return null;
         }
         EncounterService encounterService = Context.getEncounterService();
         ConceptService conceptService = Context.getConceptService();
@@ -106,5 +106,6 @@ public class ObservationsHandler {
             }
             obsService.saveObs(obs, changeMessage);
         }
+        return encounter;
     }
 }
