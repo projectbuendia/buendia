@@ -5,6 +5,7 @@ set -e
 
 echo
 echo "$(date): $0"
+export DEBIAN_FRONTEND=noninteractive
 
 # Update the package list.
 apt-get update || true
