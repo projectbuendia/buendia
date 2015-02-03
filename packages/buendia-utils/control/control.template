@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: coreutils
+Depends: coreutils, curl
 Architecture: all
 Description: Utility functions for Buendia scripts.
 Maintainer: projectbuendia.org

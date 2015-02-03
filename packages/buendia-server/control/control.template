@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: buendia-openmrs, buendia-db (=${PACKAGE_VERSION})
+Depends: buendia-db (=${PACKAGE_VERSION}), buendia-openmrs, buendia-utils
 Architecture: all
 Description: Buendia API server (as an OpenMRS module).
 Maintainer: projectbuendia.org

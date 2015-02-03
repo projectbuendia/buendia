@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+hostport=$1
+
+if [ "$1" == "-h" -o "$hostport" == "" ]; then
+    echo "Usage: $0 <host>[:<port>]"
+    echo
+    echo "Makes requests to confirm that the Buendia API is available at the"
+    echo "given host, retrying for up to 5 minutes to let the server warm up."
+    exit 1
+fi
+
+if [[ $hostport != *:* ]]; then
+    hostport=$hostport:9000
+fi
+
+echo
+echo "Contacting Buendia API at $hostport (can take 5 minutes)..."
+echo
+
+function check_url() {
+    retry_count=0
+    search="$1"
+    shift
+    while [[ $retry_count -lt 40 ]]; do
+        echo
+        echo "Trying $@..."
+        curl --progress-bar --max-time 10 -i -L $@ > /tmp/warmup.$$ || true
+        if grep -o "$search" /tmp/warmup.$$; then
+            return 0
+        else
+            cat /tmp/warmup.$$
+        fi
+        let retry_count=retry_count+1
+        sleep 5
+    done
+    false
+}
+
+# Tomcat
+check_url '^HTTP/.* 200 OK' http://$hostport/
+
+# OpenMRS
+check_url '<title>.*OpenMRS' http://$hostport/openmrs
+
+# Buendia
+check_url '{"results":' http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+
+echo
+echo -e "\x1b[32m    \o/  Success!  Buendia API at $hostport is up.\x1b[0m"
+echo
