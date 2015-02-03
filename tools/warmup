@@ -17,8 +17,8 @@ if [[ $hostport != *:* ]]; then
 fi
 
 echo
+echo "--- $(date): $0"
 echo "Contacting Buendia API at $hostport (can take 5 minutes)..."
-echo
 
 function check_url() {
     retry_count=0
