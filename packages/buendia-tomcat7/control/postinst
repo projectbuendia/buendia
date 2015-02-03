@@ -8,6 +8,7 @@ buendia-divert $1 /etc/tomcat7/tomcat-users.xml
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         service tomcat7 restart
+        service cron restart
         ;;
 
     *) exit 1

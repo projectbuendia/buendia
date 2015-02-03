@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Depends: cron, buendia-utils
+Depends: cron-daemon, buendia-utils
 Description: Keeps Buendia packages installed and up to date.
 Maintainer: projectbuendia.org

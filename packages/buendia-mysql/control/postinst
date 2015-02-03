@@ -5,6 +5,7 @@ set -e
 case $1 in
     configure)
         /usr/share/buendia/config.d/mysql
+        service cron restart
         ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
