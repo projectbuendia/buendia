@@ -3,13 +3,13 @@ Package build scripts
 
 Each directory builds one package.  Within each directory:
 
-Files for the package go under `root`.
+Files for the package go under `data`, e.g. `data/usr/bin/buendia-foo`.
 There should be a `Makefile` beginning with the line `include ../Makefile.inc`.
-If all the files can be statically checked in under `root`,
+If all the files can be statically checked in under `data`,
 the `Makefile` can just be that one line.
 Otherwise, write targets to generate each of the additional files
-at a path under `$(EXTRA_ROOT)`,
-and add an `$(EXTRA_ROOT)` target that depends on all these targets.
+at a path under `$(EXTRA_DATA)`,
+and add an `$(EXTRA_DATA)` target that depends on all these targets.
 
 Declare dependencies in `control/control`,
 which should be a valid **binary** package control file with Architecture "all".

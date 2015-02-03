@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e
-cd $(dirname $0)
 host=$1
 omod=$2
 user=$3
@@ -24,7 +23,7 @@ else
   export sudo="sudo"
 fi
 
-source remote-execution.sh
+pwd=$(pwd); cd $(dirname $0); source remote-execution.sh; cd $pwd
 
 check_url() {
   retry_count=0

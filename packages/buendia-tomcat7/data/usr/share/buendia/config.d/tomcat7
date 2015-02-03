@@ -1,0 +1,19 @@
+#!/bin/bash
+
+SETTINGS=/usr/share/buendia/site/tomcat7
+
+# Create a default settings file if none exists.
+if [ ! -f $SETTINGS ]; then
+    cat <<EOF >$SETTINGS
+TOMCAT7_ADMIN_PASSWORD=unconfigured
+EOF
+fi
+
+# Apply the settings to the Tomcat configuration.
+source $SETTINGS
+cat <<EOF >/usr/share/buendia/diversions/etc/tomcat7/tomcat-users.xml
+<?xml version='1.0' encoding='utf-8'?>
+<tomcat-users>
+    <user username="admin" password="$TOMCAT7_ADMIN_PASSWORD" roles="manager-gui" />
+</tomcat-users>
+EOF

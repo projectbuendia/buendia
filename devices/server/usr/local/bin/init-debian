@@ -7,17 +7,25 @@ ROOT=/home/root/debian
 
 # Make devices and other special filesystems available in Debian.
 if [ ! -e $ROOT/dev/null ]; then
-  mount --bind /dev $ROOT/dev
-  mount --bind /dev/pts $ROOT/dev/pts
+    mount --bind /dev $ROOT/dev
+    mount --bind /dev/pts $ROOT/dev/pts
 fi
 if [ ! -e $ROOT/proc/1 ]; then
-  mount --bind /proc $ROOT/proc
+    mount --bind /proc $ROOT/proc
 fi
 if [ ! -e $ROOT/sys/fs ]; then
-  mount --bind /sys $ROOT/sys
+    mount --bind /sys $ROOT/sys
 fi
 
-# Copy root's password entry into Debian.
-grep '^root:' /etc/shadow > $ROOT/etc/shadow.new
-grep -v '^root:' $ROOT/etc/shadow >> $ROOT/etc/shadow.new
-cat $ROOT/etc/shadow.new > $ROOT/etc/shadow
+# Password settings in Debian should be authoritative; hence, periodically copy
+# root's password entry from Debian into Yocto.  Boot is a fine time to do so.
+grep '^root:' $ROOT/etc/shadow > /etc/shadow.new
+grep -v '^root:' /etc/shadow >> /etc/shadow.new
+cat /etc/shadow.new > /etc/shadow
+
+# Update packages on each boot.
+cat <<EOF | enter-debian
+if [ -f /usr/bin/buendia-pkgclient-update ]; then
+    /usr/bin/buendia-pkgclient-update 2>&1 | tee /var/log/buendia-pkgclient-update.log
+fi
+EOF

@@ -1,20 +1,22 @@
 #!/bin/bash
 
+set -e
 output="$1"; shift
 control="$1"; shift
+pwd="$(pwd)"
 
 if [ "$1" == "" ]; then
     cat <<EOF
-Usage: $0 <output.deb> <control-dir> <root-path> [<root-path> ...]
+Usage: $0 <output.deb> <control-dir> <data-dir> [<data-dir> ...]
 
 Builds a Debian package at the specified output path, given the files to
-install arranged under the given <root-path> and the control files in
-<control-dir>.  If more than one <root-path> is specified, all files under
-all roots are included; you must ensure that their contents do not collide.
+install arranged under the given <data-dir> and the control files in
+<control-dir>.  If more than one <data-dir> is specified, all files under
+them are included; you must ensure that their contents do not collide.
 
-If <control-dir> contains a file named control.template, the actual control
-file is produced by performing bash-style parameter expansion, command
-substitution, and arithmetic expansion on control.template.  These are
+If <control-dir> contains any files named *.template, they are rendered
+(e.g. foo.template renders to produce foo) by performing bash-style parameter
+expansion, command substitution, and arithmetic expansion.  These are
 all the shell expansions triggered by the "\$" character: \$VAR and \${VAR}
 expand to environment variables, \$(command) expands to the output of a
 shell command, and \$((expression)) evaluates an arithmetic expression.
@@ -23,21 +25,26 @@ EOF
     exit 1
 fi
 
-set -e
-pwd="$(pwd)"
 tmp=/tmp/make_package.$$
+function cleanup() {
+    rm -rf $tmp
+}
+trap cleanup EXIT
+
+rm -rf $tmp
 TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
 
-# Copy the control files into a temporary directory
+# Copy the control files into a temporary directory.
 mkdir -p $tmp/control
 cp -pr $control/* $tmp/control
 
-# If there is a control.template file, apply bash expansion to it.
-if [ -f $tmp/control/control.template ]; then
-    cat <(echo 'cat <<EOF') $tmp/control/control.template <(echo 'EOF') \
-        | bash > $tmp/control/control
-    rm $tmp/control/control.template
-fi
+# Apply bash expansion to any *.template files.
+for i in $tmp/control/*.template; do
+    if [ -f $i ]; then
+        cat <(echo 'cat <<EOF') $i <(echo 'EOF') | bash > ${i%.template}
+        rm $i
+    fi
+done
 
 # Pack up the Debian package.
 $TAR cvfz $tmp/control.tar.gz -C $tmp/control .

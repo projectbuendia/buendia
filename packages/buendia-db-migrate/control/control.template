@@ -1,0 +1,5 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Description: Database migration for Buendia.
+Maintainer: projectbuendia.org

@@ -6,9 +6,8 @@ set -e
 ROOT=/home/root/debian
 
 # Copy current configuration information into /etc.
-for i in fstab host.conf hosts localtime nsswitch.conf resolv.conf timezone; do
-  cp -p /etc/$i $ROOT/etc || true
-done
+cp -p /etc/fstab $ROOT/etc || true
+cp -p /etc/resolv.conf $ROOT/etc || true  # remove when wifi managed in Debian
 
 # Make /etc/mtab appear as it should.
 ln -sf /proc/mounts $ROOT/etc/mtab

@@ -1,5 +1,15 @@
 #!/bin/bash
-set -e
 
-# Restart services
-service ntp restart
+set -e
+buendia-divert $1 /etc/ntp.conf
+
+case $1 in
+    remove)
+        service ntp restart
+        ;;
+
+    upgrade|deconfigure)
+        ;;
+
+    *) exit 1
+esac

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if ps -efww | grep -v grep | grep -e 'apt-get|dpkg'; then
+    echo "$(date) >> apt-get or dpkg is running; skipping check."
+    exit 0
+fi
+
+echo "$(date) >> Checking on MySQL..."
+if ! service mysql status 2>&1; then
+    archive=/var/log/mysql-watchdog/$(date +"%Y-%m-%d.%H.%M").tar.gz
+    echo "$(date) >> MySQL is not running, saving logs in $archive"
+    tar cfz $archive /var/run/mysqld /var/log/mysql* \
+        /var/log/dmesg /var/log/messages /var/log/syslog /var/log/*.log \
+        || true
+
+    echo "$(date) >> Restarting MySQL..."
+    if service mysql restart; then
+        echo "$(date) >> MySQL has been restarted."
+    else
+        echo "$(date) >> MySQL could not be restarted."
+    fi
+fi
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Check to see if the pkgserver setting is already present.
+# If not, create it with the default content.
+mkdir -p /usr/share/buendia/site
+if [ ! -f /usr/share/buendia/site/pkgserver ]; then
+    cat <<EOF > /usr/share/buendia/site/pkgserver
+PKGSERVER_URL="http://packages.local:9001"
+EOF
+fi

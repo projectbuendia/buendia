@@ -10,6 +10,14 @@ if [ "$b" == "" ]; then
     exit 1
 fi
 
+atmp=/tmp/diffdeb.$$.1
+btmp=/tmp/diffdeb.$$.2
+function cleanup() {
+    rm -rf $atmp $btmp
+
+}
+trap cleanup EXIT
+
 # Unpacks a .deb file into a directory ready for comparison.  The file named
 # "deb" is destructively unpacked into the current directory.  The final
 # directory contains the original data.tar.gz, uncompressed to data.tar
@@ -34,8 +42,6 @@ function unpack_and_remove_version() {
     tar cf ../control.tar *
 }
 
-atmp=/tmp/diffdeb.$$.1
-btmp=/tmp/diffdeb.$$.2
 mkdir -p $atmp $btmp
 cp $a $atmp/deb
 cp $b $btmp/deb
@@ -45,8 +51,4 @@ unpack_and_remove_version
 cd $btmp
 unpack_and_remove_version
 
-diff -r $atmp $btmp >/dev/null
-result=$?
-
-rm -r $atmp $btmp
-exit $result
+diff -q -r $atmp $btmp >/dev/null

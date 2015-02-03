@@ -1,0 +1,52 @@
+#!/bin/bash
+
+set -e
+
+if [ "$1" == "-h" ]; then
+    echo "Usage: $0 [<package-name>...]"
+    echo
+    echo "Re-applies settings in /usr/share/buendia/site/* to the services"
+    echo "managed by Buendia packages.  If no package names are specified,"
+    echo "all Buendia packages are reconfigured."
+fi
+
+chmod 755 /usr/share/buendia/config.d/* || true
+errors=
+
+function reconfigure_package() {
+    package=$1
+    config=/usr/share/buendia/config.d/$package
+    if [ -f $config ]; then
+        echo "Reconfiguring buendia-$package..."
+        if $config; then
+            echo "buendia-$package: success."
+        else
+            echo "buendia-$package: reconfiguration error."
+            errors="$errors buendia-$package"
+        fi
+    else
+        echo "buendia-$package has no reconfiguration script."
+    fi
+}
+
+if [ -n "$1" ]; then
+    while [ -n "$1" ]; do
+        package=$1
+        shift
+        package=${package#buendia-}
+        reconfigure_package $package
+    done
+else
+    for config in /usr/share/buendia/config.d/*; do
+        if [ -f $config ]; then
+            reconfigure_package $(basename $config)
+        fi
+    done
+fi
+
+if [ -n "$errors" ]; then
+    echo "Some packages had errors: $errors"
+    exit 1
+else
+    echo "All done."
+fi

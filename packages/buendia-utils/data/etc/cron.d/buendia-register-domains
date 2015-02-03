@@ -1,0 +1,4 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+* * * * * root /usr/bin/buendia-register-domains >> /var/log/buendia-register-domains.log 2>&1

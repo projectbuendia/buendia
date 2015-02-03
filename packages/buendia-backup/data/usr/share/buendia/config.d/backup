@@ -1,0 +1,9 @@
+#!/bin/bash
+
+mkdir -p /usr/share/buendia/site
+SETTINGS=/usr/share/buendia/site/backup
+
+# Generate a default settings file.
+if [ ! -f $SETTINGS ]; then
+  echo "BACKUP_DIR=/var/backups" > $SETTINGS
+fi

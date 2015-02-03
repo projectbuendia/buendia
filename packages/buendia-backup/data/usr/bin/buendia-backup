@@ -1,0 +1,48 @@
+#!/bin/bash
+
+. /usr/share/buendia/site/openmrs
+. /usr/share/buendia/site/backup
+
+export MYSQL_USER=$OPENMRS_MYSQL_USER
+export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
+
+BACKUP_DAYS=${BACKUP_DAYS:-30}
+
+# Keep one backup per day.  (To ensure that there is always a backup that is
+# much less than a day old, run buendia-backup multiple times per day.)
+final_dir=$BACKUP_DIR/$(date +'%Y-%m-%d')
+dir=$final_dir.new
+old_dir=$BACKUP_DIR/old
+
+# We'll put everything in $dir, and when done, atomically move it to $final_dir.
+rm -rf $dir
+mkdir -p $dir
+
+# ---- Back up MySQL data
+
+buendia-mysql-dump openmrs $dir/openmrs.zip
+
+# ---- Back up the package list and non-base packages
+
+# Examine what packages are installed.
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > $dir/package.list
+
+for package in $(comm -2 -3 $dir/package.list /etc/base.package.list); do
+  cp $package.deb $dir/
+done
+
+# ---- Move the resulting backup directory to its proper place.
+
+if [ -e $final_dir ]; then
+  # There was an older backup today; move it out of the way.
+  rm -rf $old_dir
+  mv $final_dir $old_dir
+fi
+mv $dir $final_dir
+
+rm -rf $old_dir
+
+# ---- Delete old backups
+
+find $BACKUP_DIR -mtime +$BACKUP_DAYS -exec rm '{}' ';'
+

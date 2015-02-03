@@ -1,6 +1,0 @@
-#!/bin/bash
-set -e
-
-# Restart services
-service nginx restart
-/etc/init.d/udev restart

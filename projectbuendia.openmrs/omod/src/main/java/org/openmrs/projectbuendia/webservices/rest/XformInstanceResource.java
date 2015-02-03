@@ -145,6 +145,10 @@ public class XformInstanceResource implements Creatable {
         return new Date();
     }
 
+    // TODO(kpy): We're switching to having the server be the authoritative
+    // time source via NTP, so instead of pushing the server's clock forward,
+    // we should just adjust the date to ensure it's in the past.
+
     /**
      * Adjusts the system clock to ensure that the incoming encounter date
      * is not in the future.  <b>This is a temporary hack</b> intended to work
@@ -152,18 +156,17 @@ public class XformInstanceResource implements Creatable {
      * while power is off; when it falls behind, a validation constraint in
      * OpenMRS starts rejecting all incoming encounters because they have
      * dates in the future.  To work around this, we attempt to push the
-     * system clock forward whenever we receive an encounter with a date that
-     * is in the future by an offset that is not too extreme (e.g. within a
-     * few days).  The system clock is set by a setuid executable program
-     * "/usr/local/bin/push_clock", which is also responsible for guarding
-     * against extreme clock changes.
+     * system clock forward whenever we receive an encounter that appears to
+     * be in the future.  The system clock is set by a setuid executable
+     * program "/usr/bin/buendia-pushclock".
      * @param xml
      */
     private void adjustSystemClock(String xml) {
-        final String PUSH_CLOCK = "/usr/local/bin/push_clock";
+        final String PUSHCLOCK = "/usr/bin/buendia-pushclock";
 
-        if (!new File(PUSH_CLOCK).exists()) {
-            getLog().warn(PUSH_CLOCK + " is missing; not adjusting the clock");
+        if (!new File(PUSHCLOCK).exists()) {
+            getLog().warn(PUSHCLOCK + " is missing; not adjusting the clock");
+            return;
         }
 
         try {
@@ -175,9 +178,9 @@ public class XformInstanceResource implements Creatable {
             // minutes and up to 60 sec for network and server latency.
             long timeSecs = (date.getTime() / 1000) + 60 + 60;
             Process pushClock = Runtime.getRuntime().exec(
-                    new String[] {PUSH_CLOCK, "" + timeSecs});
+                    new String[] {PUSHCLOCK, "" + timeSecs});
             int code = pushClock.waitFor();
-            getLog().info("push_clock " + timeSecs + " -> exit code " + code);
+            getLog().info("buendia-pushclock " + timeSecs + " -> exit code " + code);
         } catch (SAXException | IOException | InterruptedException e) {
             getLog().error("adjustSystemClock failed:", e);
         }
@@ -237,6 +240,12 @@ public class XformInstanceResource implements Creatable {
         Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
         getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
+
+        // NOTE(kpy): We use a form_resource named <form-name>.xFormXslt to alter the translation
+        // from XML to HL7 so that the encounter_datetime is recorded with a date and time.
+        // (The default XSLT transform records only the date, not the time.)  This means that
+        // IF THE FORM IS RENAMED, THE FORM RESOURCE MUST ALSO BE RENAMED, or the encounter
+        // datetime will be recorded with only a date and the time will always be 00:00.
 
         // Modify encounter.encounter_datetime to make sure the timezone format has a minute section
         // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit

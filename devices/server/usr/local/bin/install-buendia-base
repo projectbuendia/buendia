@@ -6,12 +6,6 @@ PATH=/usr/local/bin:$PATH
 
 echo -ne '\n---- install-buendia-base: '; date
 
-if [ -f /etc/buendia-base-installed ]; then
-  echo "Buendia base system is installed."
-  echo "/usr/bin/buendia-pkgclient-update" | enter-debian
-  exit 0
-fi
-
 # Turn on wifi, using the last saved configuration.
 echo "Starting wifi."
 if wifi -; ! ping -c 1 -w 1 debian.org; then
@@ -23,12 +17,25 @@ if wifi -; ! ping -c 1 -w 1 debian.org; then
   fi
 fi
 
+if [ -f /etc/buendia-base-installed ]; then
+  echo "Buendia base system is installed."
+  exit 0
+fi
+
 # Wipe and install Debian under $ROOT using cdebootstrap.  If the installation
 # fails (most likely due to network unavailability), reboot and try again.
 install-debian || reboot
 
 # Everything after this point is designed to be idempotent so that this script
 # can run safely without a site ID on every boot until a site ID is selected.
+
+# Copy root's password entry into Debian.
+grep '^root:' /etc/shadow > $ROOT/etc/shadow.new
+grep -v '^root:' $ROOT/etc/shadow >> $ROOT/etc/shadow.new
+cat $ROOT/etc/shadow.new > $ROOT/etc/shadow
+
+# Copy root's SSH authorizations into Debian.
+cp -pr ~root/.ssh $ROOT/root/
 
 # Install a .bashrc file for root in the Debian chroot.
 cat <<'EOF' >$ROOT/root/.bashrc
@@ -39,6 +46,11 @@ alias ls='ls $LS_OPTIONS'
 alias ll='ls -l $LS_OPTIONS'
 EOF
 
+# Copy configuration settings into /etc.
+for i in fstab host.conf localtime nsswitch.conf resolv.conf timezone; do
+  cp -p /etc/$i $ROOT/etc || true
+done
+
 # Add custom package repositories (no need to quit if this file is missing).
 cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
 
@@ -47,7 +59,7 @@ mkdir -p $ROOT/usr/share/buendia/site
 cp -f /etc/buendia-site-id $ROOT/usr/share/buendia/site/id || true
 
 # Do the rest of the setup steps below within Debian.
-init-debian
+init-debian || true  # ignore missing /usr/bin/buendia-pkgclient-update
 cat <<'EOF' | enter-debian
 set -e
 
@@ -61,7 +73,7 @@ echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
 
 # All the non-Buendia packages that are considered part of the base system.
 # These won't be included in backups of the software installation state.
-BASE_PACKAGES='coreutils less zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7'
+BASE_PACKAGES='coreutils less curl netcat zip unzip screen ssh git rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7 tomcat7-admin'
 
 # The first time we run apt-get, ignore failure; install as much as possible.
 apt-get update || true
@@ -70,7 +82,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get -y install $BASE_PACKAGES
 
 # Save the state of the base package installation for future comparison.
-dpkg-query -W --showformat '${Package}=${Version}\n' > /etc/base.package.list
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.package.list
 
 # Try apt-get update again; this time, fail if apt-get fails.
 apt-get update

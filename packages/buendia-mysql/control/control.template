@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: mysql-server
 Architecture: all
-Description: MySQL server, configured for buendia.
+Description: MySQL server configured for Buendia.
 Maintainer: projectbuendia.org

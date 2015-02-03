@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -e
+current=$1
+target=$2
+
+if [ -z "$target" ]; then
+    echo "Usage: $0 <current-version> <target-version>"
+    echo
+    echo "Migrates the data in the Buendia OpenMRS database from a state"
+    echo "compatible with buendia-server <current-version> to a state"
+    echo "compatible with buendia-server <target-version>.  Returns exit"
+    echo "status 0 if successful.  Returns exit status 1, leaving the"
+    echo "database in its original state, if migration between the"
+    echo "specified versions is unimplemented or unsuccessful."
+    exit 1
+fi
+
+if [ $current == $target ]; then
+    exit 0
+fi
+
+current_tag=${current%.build*}
+target_tag=${target%.build*}
+
+if [ $current_tag == $target_tag ]; then
+    echo "$0: Migration from $current to $target successful (same release)."
+    exit 0
+fi
+
+echo "$0: Don't know how to migrate from version $current to version $target."
+exit 1

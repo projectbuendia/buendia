@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Ensure that the omod modules are readable
+        chmod a+r /usr/share/buendia/openmrs/modules/*.omod
+        service tomcat7 restart
+        ;;
+
+    *) exit 1
+esac

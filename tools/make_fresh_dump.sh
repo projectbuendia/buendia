@@ -4,12 +4,12 @@
 cd $(dirname $0)
 set -e
 
-SRC_HOST=104.155.15.141
+SRC_HOST=dev.projectbuendia.org
 SRC_USER=jenkins  # a Unix account on SRC_HOST to which we have ssh access
 SRC_DATABASE=openmrs  # the MySQL database on SRC_HOST to take a snapshot of
 SRC=$SRC_USER@$SRC_HOST
 
-WORK_HOST=104.155.15.141  # 104.155.14.26
+WORK_HOST=dev.projectbuendia.org
 WORK_USER=jenkins  # a Unix account on WORK_HOST to which we have ssh access
 WORK_DATABASE=openmrs_clean  # a MySQL database on WORK_HOST as a scratch area
 WORK=$WORK_USER@$WORK_HOST

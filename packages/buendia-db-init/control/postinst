@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e
+. /usr/share/buendia/site/id
+. /usr/share/buendia/site/mysql
+
+case $1 in
+    configure|abort-remove|abort-deconfigure)
+        # Create a fresh new database populated with the initial data.
+        export MYSQL_USER=root
+        export MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD
+        service mysql start
+        buendia-mysql-load openmrs /usr/share/buendia/db/init.zip
+
+        # Add site-specific initial data.
+        site_sql=/usr/share/buendia/db/site-${SITE_ID}.sql
+        if [ -f $site_sql ]; then
+            mysql -uroot -p$MYSQL_ROOT_PASSWORD openmrs < $site_sql
+        fi
+
+        # Reapply the OpenMRS user account setup used by the Buendia server.
+        config_server=/usr/share/buendia/config.d/server
+        if [ -f $config_server ]; then
+            $config_server
+        fi
+        ;;
+
+    *) exit 1
+esac

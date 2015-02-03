@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+case $1 in
+    remove|purge|upgrade|disappear)
+        service nginx restart
+        /etc/init.d/udev restart || true
+        ;;
+
+    *) exit 1
+esac

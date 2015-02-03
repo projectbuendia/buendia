@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        buendia-reconfigure
+        ;;
+
+    *) exit 1
+esac
