@@ -1,0 +1,4 @@
+#!/bin/bash
+
+set -e
+cat /usr/share/buendia/site/* | sed -e 's/#.*//' | grep '\S' | sort

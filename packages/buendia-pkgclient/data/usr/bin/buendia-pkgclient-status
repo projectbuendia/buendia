@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e
+for f in /usr/share/buendia/site/*; do . $f || true; done
+
+dpkg-query -f '${db:Status-Abbrev} ${Package;-20} ${Version;-15} ${Description;-39}\n' -W 'buendia-*'
+
+case "$PKGCLIENT_AUTOUPDATE" in
+    ''|0|false|off|no)
+        echo "PKGCLIENT_AUTOUPDATE is disabled."
+        ;;
+
+      *)
+        echo "PKGCLIENT_AUTOUPDATE is enabled."
+        ;;
+esac
