@@ -6,20 +6,20 @@ set -e
 (
     case "$PKGCLIENT_AUTOUPDATE" in
         ''|0|false|off|no)
-            echo "$(date): PKGCLIENT_AUTOUPDATE is disabled."
+            echo "=== $(date): PKGCLIENT_AUTOUPDATE is disabled."
             ;;
 
         *)
-            echo "$(date): Starting autoupdate."
+            echo "=== $(date): Starting autoupdate."
 
             buendia-pkgclient-update
 
             if [ -f /var/run/reboot-required ]; then
                 rm /var/run/reboot-required
-                echo "$(date): Rebooting after package installation."
+                echo "=== $(date): Rebooting after package installation."
                 echo "reboot" | buendia-enter-yocto
             else
-                echo "$(date): Update complete."
+                echo "=== $(date): Update complete."
             fi
             ;;
     esac

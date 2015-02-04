@@ -16,8 +16,7 @@ if [[ $hostport != *:* ]]; then
     hostport=$hostport:9000
 fi
 
-echo
-echo "--- $(date): $0"
+echo "=== $(date): $0"
 echo "Contacting Buendia API at $hostport (can take 5 minutes)..."
 
 function check_url() {

@@ -12,6 +12,9 @@ case $1 in
             mv /usr/share/tomcat7/.OpenMRS.pre-buendia /usr/share/tomcat7/.OpenMRS
         fi
 
+        # Remove the unpacked openmrs deployment
+        rm -rf /var/lib/tomcat7/webapps/openmrs
+
         service tomcat7 restart
         ;;
 
