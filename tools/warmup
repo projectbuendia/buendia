@@ -1,45 +1,64 @@
 #!/bin/bash
 
 set -e
-cd $(dirname $0)
+if [ "$1" == "-r" ]; then
+    retry=yes
+    shift
+fi
 hostport=$1
 
 if [ "$1" == "-h" -o "$hostport" == "" ]; then
-    echo "Usage: $0 <host>[:<port>]"
+    echo "Usage: $0 [-r] <host>[:<port>]"
     echo
     echo "Makes requests to confirm that the Buendia API is available at the"
-    echo "given host, retrying for up to 5 minutes to let the server warm up."
+    echo "given host.  If -r is specified, keeps retrying until the server"
+    echo "responds properly, for up to 15 minutes."
     exit 1
 fi
+
+tmpout=/tmp/warmup.out.$$
+function cleanup() {
+    rm -rf $tmpout
+}
+trap cleanup EXIT
 
 if [[ $hostport != *:* ]]; then
     hostport=$hostport:9000
 fi
 
 echo "=== $(date): $0"
-echo "Contacting Buendia API at $hostport (can take 5 minutes)..."
+echo "Contacting Buendia API at $hostport (can take about 5 minutes)..."
 
 function check_url() {
     retry_count=0
     search="$1"
     shift
-    while [[ $retry_count -lt 40 ]]; do
+    while [[ $retry_count -lt 30 ]]; do
         echo
         echo "Trying $@..."
-        curl --progress-bar --max-time 10 -i -L $@ > /tmp/warmup.$$ || true
-        if grep -o "$search" /tmp/warmup.$$; then
+        curl --progress-bar --max-time 5 -i -L $@ > $tmpout || true
+        if grep -o "$search" $tmpout; then
             return 0
         else
-            cat /tmp/warmup.$$
+            if [ -s $tmpout ]; then
+                head -1 $tmpout
+                echo "Got a response, but it did not contain /$search/."
+            else
+                echo "No response from server."
+            fi
+            if [ -z "$retry" ]; then
+                false
+            fi
         fi
         let retry_count=retry_count+1
         sleep 5
     done
+    echo "Giving up after $retry_count tries."
     false
 }
 
 # Tomcat
-check_url '^HTTP/.* 200 OK' http://$hostport/
+check_url 'HTTP.*200 OK' http://$hostport/
 
 # OpenMRS
 check_url '<title>.*OpenMRS' http://$hostport/openmrs
