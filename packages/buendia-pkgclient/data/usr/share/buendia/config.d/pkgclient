@@ -16,9 +16,7 @@ fi
 # The settings file could be created by the buendia-pkgserver package or
 # could come from the site settings package.
 PKGSERVER_URL='http://packages.local:9001'
-if [ -f /usr/share/buendia/site/pkgserver ]; then
-    . /usr/share/buendia/site/pkgserver
-fi
+for f in /usr/share/buendia/site/*; do . $f || true; done
 
 # The source list URL must not have any trailing slashes.
 PKGSERVER_URL=$(echo $PKGSERVER_URL | sed -e 's+/*$++')

@@ -12,7 +12,7 @@ if [ ! -f $SETTINGS ]; then
 fi
 
 # Read the settings.
-. $SETTINGS
+for f in /usr/share/buendia/site/*; do . $f || true; done
 
 # Check if the root password is already correctly set.
 if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then

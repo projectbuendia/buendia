@@ -1,7 +1,16 @@
 #!/bin/bash
 
 set -e
-. /usr/share/buendia/site/pkgclient
+[ -f /usr/share/buendia/site/pkgclient ] && . /usr/share/buendia/site/pkgclient
+
+if [ "$1" == "-h" ]; then
+    echo "Usage: $0"
+    echo
+    echo "Updates all the Buendia packages, then reboots if necessary."
+    echo "This script runs only if /usr/share/buendia/site/pkgclient"
+    echo "sets PKGCLIENT_AUTOUPDATE=1."
+    exit 1
+fi
 
 (
     case "$PKGCLIENT_AUTOUPDATE" in

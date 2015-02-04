@@ -15,8 +15,7 @@ EOF
 fi
 
 # Read the settings.
-. /usr/share/buendia/site/mysql
-. $SETTINGS
+for f in /usr/share/buendia/site/*; do . $f || true; done
 
 # Check if the password is already correctly set.
 if mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD </dev/null 2>/dev/null &&

@@ -1,7 +1,15 @@
 #!/bin/bash
 
 set -e
-. /usr/share/buendia/site/pkgclient
+[ -f /usr/share/buendia/site/pkgclient ] && . /usr/share/buendia/site/pkgclient
+
+if [ "$1" == "-h" ]; then
+    echo "Usage: $0 [<package-name>...]"
+    echo
+    echo "Updates the specified packages, or all the Buendia packages"
+    echo "if none are specified.  Does not reboot automatically."
+    exit 1
+fi
 
 (
     if ! flock -n 9; then
@@ -18,8 +26,12 @@ set -e
     dpkg --configure -a || true
     apt-get -y -f install || true
 
-    # Install and upgrade all the Buendia packages.
-    packages=$(echo $(cat /usr/share/buendia/packages.list.d/*))
+    # Install and upgrade the specified packages, or all the Buendia packages.
+    if [ -n "$1" ]; then
+        packages=$*
+    else
+        packages=$(echo $(cat /usr/share/buendia/packages.list.d/*))
+    fi
     apt-get -y --allow-unauthenticated install $packages || true
 
     if [ -f /var/run/reboot-required ]; then

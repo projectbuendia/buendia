@@ -1,8 +1,7 @@
 #!/bin/bash
 
 set -e
-. /usr/share/buendia/site/id
-. /usr/share/buendia/site/mysql
+for f in /usr/share/buendia/site/*; do . $f || true; done
 
 case $1 in
     configure|abort-remove|abort-deconfigure)
