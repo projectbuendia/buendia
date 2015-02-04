@@ -40,14 +40,13 @@ public class DateTimeUtils {
         return FORMAT.format(dateTime);
     }
 
-    /** Parses a date in YYYY-MM-DD format, throwing appropriate exceptions */
+    /** Parses a date in yyyy-MM-dd format, throwing appropriate exceptions */
     public static Date parseDate(String text, String fieldName) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
-            return dateFormat.parse(text);
+            return YYYYMMDD_FORMAT.parse(text);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(String.format(
-                    "The %s field should be in YYYY-MM-DD format", fieldName));
+                    "The %s field should be in yyyy-MM-dd format", fieldName));
         }
     }
 

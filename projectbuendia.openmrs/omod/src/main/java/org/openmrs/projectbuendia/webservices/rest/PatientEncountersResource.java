@@ -194,9 +194,6 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         // server and client side changes needed if I changed the wire format. So instead, there is this comment.
         // TODO(nfortescue): refactor the wire format for getEncounters so it matches the create format.
 
-        if (!post.containsKey(TIMESTAMP)) {
-            throw new InvalidObjectDataException("Creating an encounter must have a timestamp in seconds since epoch");
-        }
         if (!post.containsKey(UUID)) {
             throw new InvalidObjectDataException("No patient UUID specified");
         }
@@ -206,7 +203,12 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         }
         Date encounterTime;
         try {
-            encounterTime = new Date(Long.parseLong(post.get(TIMESTAMP).toString()) * 1000L);
+            if (post.containsKey(TIMESTAMP)) {
+                encounterTime = new Date(Long.parseLong(post.get(TIMESTAMP).toString()) * 1000L);
+            } else {
+                // if no timestamp, use the server current time, to allow the client this as an option
+                encounterTime = new Date();
+            }
         } catch (NumberFormatException ex) {
             throw new InvalidObjectDataException("Bad TIMESTAMP format, should be seconds since epoch: "
                     + ex.getMessage());

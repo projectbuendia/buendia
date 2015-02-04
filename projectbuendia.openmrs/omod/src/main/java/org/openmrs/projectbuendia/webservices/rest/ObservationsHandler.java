@@ -49,10 +49,14 @@ public class ObservationsHandler {
     }
 
     /**
-     * Add a new encounter and a list of observations to a patient at a particular point in time
-     * @param json the JSON encapsulating the observations
+     * Add a new encounter and a list of observations to a patient at a particular point in time.
+     *
+     * @param json the JSON encapsulating the observations, which must have a field "observations"
      * @param patient the patient to add the encounter to
      * @param encounterTime the time of the encounter
+     * @param changeMessage a message to be recorded in the database with the observation
+     * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
+     * @param locationUuid the UUID to record for the location the encounter happened
      */
     public Encounter addObservations(SimpleObject json, Patient patient, Date encounterTime, String changeMessage,
                                 String encounterTypeName, String locationUuid) {
@@ -62,15 +66,15 @@ public class ObservationsHandler {
         }
         EncounterService encounterService = Context.getEncounterService();
         ConceptService conceptService = Context.getConceptService();
-        final Location triage = Context.getLocationService().getLocationByUuid(locationUuid);
-        if (triage == null) {
-            throw new InvalidObjectDataException("Could not get location " + locationUuid + ", DB in bad state");
+        final Location location = Context.getLocationService().getLocationByUuid(locationUuid);
+        if (location == null) {
+            throw new InvalidObjectDataException("Could not get location " + locationUuid);
         }
         ObsService obsService = Context.getObsService();
         Encounter encounter = new Encounter();
         encounter.setEncounterDatetime(encounterTime);
         encounter.setPatient(patient);
-        encounter.setLocation(triage);
+        encounter.setLocation(location);
         EncounterType encounterType = encounterService.getEncounterType(encounterTypeName);
         if (encounterType == null) {
             throw new InvalidObjectDataException("Could not get " + encounterTypeName
@@ -86,7 +90,7 @@ public class ObservationsHandler {
             if (questionConcept == null) {
                 throw new InvalidObjectDataException("Bad concept for question " + questionUuid);
             }
-            Obs obs = new Obs(patient, questionConcept, encounterTime, triage);
+            Obs obs = new Obs(patient, questionConcept, encounterTime, location);
             obs.setEncounter(encounter);
             // For now assume all answers are coded or date, we can deal with numerical etc later.
             if (observationObject.containsKey(ANSWER_UUID)) {
