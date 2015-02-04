@@ -16,8 +16,8 @@ for f in /usr/share/buendia/site/*; do . $f || true; done
 
 # Ensure that usernames and passwords contain no wonky characters.
 for var in MYSQL_ROOT_PASSWORD; do
-  if ! eval 'echo $'$var | grep -q '^[0-9A-Za-z_-]\+$'; then
-    echo "$var is invalid: only [0-9A-Za-z_-] characters are allowed."
+  if ! eval 'echo $'$var | grep -q '^[0-9A-Za-z._-]\+$'; then
+    echo "$var is invalid: only [0-9A-Za-z._-] characters are allowed."
     exit 1
   fi
 done
