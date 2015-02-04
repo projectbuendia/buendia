@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: coreutils, cron-daemon, curl
 Architecture: all
-Description: Utility functions for Buendia scripts.
+Description: Utility functions for Buendia scripts
 Maintainer: projectbuendia.org

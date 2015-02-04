@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: buendia-mysql, cron-daemon
 Architecture: all
-Description: Backup and restore for Buendia.
+Description: Backup and restore for Buendia
 Maintainer: projectbuendia.org

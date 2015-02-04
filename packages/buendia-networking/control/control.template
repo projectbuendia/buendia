@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Pre-Depends: buendia-utils
 Architecture: all
-Description: Access point and DHCP server configured for Buendia (Yocto system).
+Description: Access point and DHCP server configured for Buendia (Yocto system)
 Maintainer: projectbuendia.org

@@ -1,5 +1,5 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Description: Database migration for Buendia.
+Description: Migrates a Buendia database from version to version
 Maintainer: projectbuendia.org

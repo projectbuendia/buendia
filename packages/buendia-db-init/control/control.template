@@ -3,5 +3,5 @@ Version: ${PACKAGE_VERSION}
 Pre-Depends: buendia-mysql
 Depends: buendia-site
 Architecture: all
-Description: Initial data for the Buendia database.
+Description: Initial data for the Buendia database
 Maintainer: projectbuendia.org

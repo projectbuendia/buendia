@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: nginx, unzip, python, udev, apt-utils
 Architecture: all
-Description: Serves up a repository of .deb and .apk package files.
+Description: Serves up Buendia .deb and .apk files
 Maintainer: projectbuendia.org

@@ -2,5 +2,5 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Depends: buendia-db (=${PACKAGE_VERSION}), buendia-openmrs, buendia-utils, cron-daemon
 Architecture: all
-Description: Buendia API server (as an OpenMRS module).
+Description: Buendia API server (an OpenMRS module)
 Maintainer: projectbuendia.org
