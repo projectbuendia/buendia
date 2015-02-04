@@ -4,6 +4,14 @@ set -e
 
 case $1 in
     remove|purge|upgrade|disappear)
+        # Remove our symlink
+        rm /usr/share/tomcat7/.OpenMRS
+
+        # Restore any previous openmrs directory
+        if [ -e /usr/share/tomcat7/.OpenMRS.pre-buendia ]; then
+            mv /usr/share/tomcat7/.OpenMRS.pre-buendia /usr/share/tomcat7/.OpenMRS
+        fi
+
         service tomcat7 restart
         ;;
 

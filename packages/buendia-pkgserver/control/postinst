@@ -4,14 +4,17 @@ set -e
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        # Setting permissions on package directory
+        # Initialize settings
+        /usr/share/buendia/config.d/pkgserver
+
+        # Make all subdirectories executable and readable
         chmod -R +rX /usr/share/buendia/packages
 
         # Disable the default nginx configuration
         rm -f /etc/nginx/sites-enabled/default
 
-        # Run setting configuration
-        /usr/share/buendia/config.d/pkgserver
+        # Enable the pkgserver configuration
+        ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled
 
         # Restart services
         service nginx restart

@@ -4,8 +4,21 @@ set -e
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        chown -R tomcat7:root /usr/share/buendia/openmrs
+        # Initialize settings
         /usr/share/buendia/config.d/openmrs
+
+        # Set up the openmrs directory
+        chown -R tomcat7:root /usr/share/buendia/openmrs
+
+        # Move aside any existing openmrs directory
+        if [ -e /usr/share/tomcat7/.OpenMRS ]; then
+            mv /usr/share/tomcat7/.OpenMRS /usr/share/tomcat7/.OpenMRS.pre-buendia
+        fi
+
+        # Point tomcat7 at our openmrs directory
+        ln -sf /usr/share/buendia/openmrs /usr/share/tomcat7/.OpenMRS
+
+        # Restart services
         service tomcat7 restart
         ;;
 
