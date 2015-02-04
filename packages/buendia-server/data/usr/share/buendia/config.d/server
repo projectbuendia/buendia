@@ -33,6 +33,9 @@ for var in SERVER_OPENMRS_USER SERVER_OPENMRS_PASSWORD; do
   fi
 done
 
+# Ensure MySQL is running.
+service mysql start
+
 # If there is no user account with the expected UUID, add one.
 if ! echo "select count(*) from users where uuid='$USER_UUID'" | $MYSQL | grep -q 1; then
     echo "Creating user $SERVER_OPENMRS_USER..."
