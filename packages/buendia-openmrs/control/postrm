@@ -4,16 +4,16 @@ set -e
 
 case $1 in
     remove|purge|upgrade|disappear)
-        # Remove our symlink
-        rm /usr/share/tomcat7/.OpenMRS
+        # Remove the unpacked openmrs.war deployment
+        rm -rf /var/lib/tomcat7/webapps/openmrs
 
-        # Restore any previous openmrs directory
+        # Remove our symlink
+        rm -f /usr/share/tomcat7/.OpenMRS
+
+        # Restore any previous .OpenMRS directory
         if [ -e /usr/share/tomcat7/.OpenMRS.pre-buendia ]; then
             mv /usr/share/tomcat7/.OpenMRS.pre-buendia /usr/share/tomcat7/.OpenMRS
         fi
-
-        # Remove the unpacked openmrs deployment
-        rm -rf /var/lib/tomcat7/webapps/openmrs
 
         service tomcat7 restart
         ;;

@@ -7,15 +7,16 @@ case $1 in
         # Initialize settings
         /usr/share/buendia/config.d/openmrs
 
-        # Set up the openmrs directory
-        chown -R tomcat7:root /usr/share/buendia/openmrs
+        # Remove any previously unpacked openmrs.war deployment
+        rm -rf /var/lib/tomcat7/webapps/openmrs
 
-        # Move aside any existing openmrs directory
+        # Move aside any existing .OpenMRS directory
         if [ -e /usr/share/tomcat7/.OpenMRS ]; then
             mv /usr/share/tomcat7/.OpenMRS /usr/share/tomcat7/.OpenMRS.pre-buendia
         fi
 
         # Point tomcat7 at our openmrs directory
+        chown -R tomcat7:root /usr/share/buendia/openmrs
         ln -sf /usr/share/buendia/openmrs /usr/share/tomcat7/.OpenMRS
 
         # Restart services

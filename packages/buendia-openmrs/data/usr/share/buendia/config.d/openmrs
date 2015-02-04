@@ -39,6 +39,7 @@ flush privileges;
 EOF
 
 # Configure OpenMRS to use the specified password for openmrs_user.
+mkdir -p $(dirname $PROPERTIES)
 cat <<EOF >$PROPERTIES
 connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
 connection.username=openmrs_user
