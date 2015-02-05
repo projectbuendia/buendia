@@ -5,6 +5,8 @@ import org.openmrs.ConceptDatatype;
 import org.openmrs.Obs;
 import org.openmrs.hl7.HL7Constants;
 
+import java.util.Date;
+
 /**
  * Common place for handling the logic in handling observation data of different types
  */
@@ -34,6 +36,16 @@ public class VisitObsValue {
          * Visit a text value.
          */
         public T visitText(String value);
+
+        /**
+         * Visit a date value.
+         */
+        public T visitDate(Date value);
+
+        /**
+         * Visit a date-time value.
+         */
+        public T visitDateTime(Date value);
     }
 
     /**
@@ -53,6 +65,10 @@ public class VisitObsValue {
                 return visitor.visitNumeric(obs.getValueNumeric());
             case HL7Constants.HL7_TEXT:
                 return visitor.visitText(obs.getValueText());
+            case HL7Constants.HL7_DATE:
+                return visitor.visitDate(obs.getValueDate());
+            case HL7Constants.HL7_DATETIME:
+                return visitor.visitDateTime(obs.getValueDatetime());
             default:
                 throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type + " for concept " + concept);
         }

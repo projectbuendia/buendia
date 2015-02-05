@@ -1,23 +1,24 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
-import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
-import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
+import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.DateTimeUtils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -25,8 +26,9 @@ import java.util.List;
  */
 // TODO(jonskeet): Ideally, this would be under patient/{uuid}/encounters; it's unclear whether
 // that can be supported here...
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters", supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class PatientEncountersResource extends AbstractReadOnlyResource<Patient> {
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters",
+        supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+public class PatientEncountersResource extends AbstractReadOnlyResource<Patient> implements Creatable {
 
     // JSON property names
     private static final String UUID = "uuid";
@@ -37,18 +39,19 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
 
     private final PatientService patientService;
     private final EncounterService encounterService;
+    private final ObservationsHandler observationsHandler = new ObservationsHandler();
 
     public PatientEncountersResource() {
         super("patient", Representation.DEFAULT);
         patientService = Context.getPatientService();
         encounterService = Context.getEncounterService();
     }
-    
+
     @Override
     protected Patient retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return patientService.getPatientByUuid(uuid);
     }
-    
+
     @Override
     public List<Patient> searchImpl(RequestContext context, long snapshotTime) {
         return patientService.getAllPatients();
@@ -151,10 +154,72 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
                 public String visitText(String value) {
                     return value;
                 }
+
+                @Override
+                public String visitDate(Date value) {
+                    return DateTimeUtils.YYYYMMDD_FORMAT.format(value);
+                }
+
+                @Override
+                public String visitDateTime(Date value) {
+                    return DateTimeUtils.toIso8601(value);
+                }
             });
             observations.put(concept.getUuid(), value);
         }
-        encounterJson.put(OBSERVATIONS, observations);        
+        encounterJson.put(OBSERVATIONS, observations);
         return encounterJson;
+    }
+
+    /**
+     * Create a new encounter for a patient. JSON syntax is:
+     * {
+     *     'uuid': 'patient-uuid-xxxx',
+     *     'timestamp': seconds_since_epoch,
+     *     'observations' : [
+     *       {
+     *         'question_uuid': 'xxxx-...',
+     *         'answer_date': '2013-01-30', OR
+     *         'answer_number': 40, OR
+     *         'answer_uuid': 'xxxx-....'
+     *       }, ...
+     *     ]
+     * }
+     */
+    @Override
+    public Object create(SimpleObject post, RequestContext context) throws ResponseException {
+        // Warning! In order to re-use the observation creation code from PatientResource, the
+        // JSON Syntax for this method (create) is different from the JSON syntax for get. This is
+        // terrible REST design. However, we are close to shipping, and I don't want to introduce the
+        // server and client side changes needed if I changed the wire format. So instead, there is this comment.
+        // TODO(nfortescue): refactor the wire format for getEncounters so it matches the create format.
+
+        if (!post.containsKey(UUID)) {
+            throw new InvalidObjectDataException("No patient UUID specified");
+        }
+        Patient patient = patientService.getPatientByUuid(post.get(UUID).toString());
+        if (patient == null) {
+            throw new InvalidObjectDataException("No such patient: " + post.get(UUID));
+        }
+        Date encounterTime;
+        try {
+            if (post.containsKey(TIMESTAMP)) {
+                encounterTime = new Date(Long.parseLong(post.get(TIMESTAMP).toString()) * 1000L);
+            } else {
+                // if no timestamp, use the server current time, to allow the client this as an option
+                encounterTime = new Date();
+            }
+        } catch (NumberFormatException ex) {
+            throw new InvalidObjectDataException("Bad TIMESTAMP format, should be seconds since epoch: "
+                    + ex.getMessage());
+        }
+        if (observationsHandler.hasObservations(post)) {
+            Encounter encounter = observationsHandler.addObservations(post, patient, encounterTime, "new observation",
+                    // TODO(nfortescue): send the correct location in the RPC, rather than using the whole facility
+                    "ADULTRETURN", LocationResource.EMC_UUID);
+            return encounterToJson(encounter);
+        } else {
+            throw new InvalidObjectDataException("No observations specified");
+        }
     }
 }

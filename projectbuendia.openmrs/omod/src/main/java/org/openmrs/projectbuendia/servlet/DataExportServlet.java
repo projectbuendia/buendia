@@ -222,6 +222,32 @@ public class DataExportServlet extends HttpServlet {
                             values[valueColumn + 1] = value;
                             return null;
                         }
+
+                        @Override
+                        public Void visitDate(Date d) {
+                            String value;
+                            if (d == null) {
+                                value = "";
+                            } else {
+                                value = DateTimeUtils.YYYYMMDD_FORMAT.format(d);
+                            }
+                            values[valueColumn] = value;
+                            values[valueColumn + 1] = value;
+                            return null;
+                        }
+
+                        @Override
+                        public Void visitDateTime(Date d) {
+                            String value;
+                            if (d == null) {
+                                value = "";
+                            } else {
+                                value = DateTimeUtils.SPREADSHEET_FORMAT.format(d);
+                            }
+                            values[valueColumn] = value;
+                            values[valueColumn + 1] = value;
+                            return null;
+                        }
                     });
                 }
                 printer.printRecord(values);

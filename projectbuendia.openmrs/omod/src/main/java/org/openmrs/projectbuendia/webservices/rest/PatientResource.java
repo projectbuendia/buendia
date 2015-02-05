@@ -3,11 +3,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.Concept;
-import org.openmrs.Encounter;
-import org.openmrs.EncounterType;
 import org.openmrs.Location;
-import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.PatientIdentifierType;
@@ -16,10 +12,7 @@ import org.openmrs.PatientState;
 import org.openmrs.PersonName;
 import org.openmrs.ProgramWorkflowState;
 import org.openmrs.User;
-import org.openmrs.api.ConceptService;
-import org.openmrs.api.EncounterService;
 import org.openmrs.api.LocationService;
-import org.openmrs.api.ObsService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
@@ -35,14 +28,12 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.DateTimeUtils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -76,19 +67,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String STATUS = "status";
     private static final String ADMISSION_TIMESTAMP = "admission_timestamp";
 
-    /**
-     * Really these should come through as xforms, but as an expedient short term fix we will put an observations
-     * section into the JSON RPC. JSON should be of the form:
-     * observations : [
-     *   {}
-     * ]
-     */
-    private static final String OBSERVATIONS = "observations";
-    private static final String QUESTION_UUID = "question_uuid";
-    private static final String ANSWER_DATE = "answer_date";
-    private static final String ANSWER_NUMBER = "answer_number";
-    private static final String ANSWER_UUID = "answer_uuid";
-
     @Deprecated
     private static final String ZONE = "zone";
     @Deprecated
@@ -104,6 +82,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     private final PatientService patientService;
+    private final ObservationsHandler observationsHandler = new ObservationsHandler();
 
     public PatientResource() {
         patientService = Context.getPatientService();
@@ -131,17 +110,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (value.equals("F") || value.equals("M")) return value;
         throw new InvalidObjectDataException(
                 "Gender should be specified as \"F\" or \"M\"");
-    }
-
-    /** Parses a date in YYYY-MM-DD format. */
-    private static Date parseDate(String text, String fieldName) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        try {
-            return dateFormat.parse(text);
-        } catch (ParseException e) {
-            throw new InvalidObjectDataException(String.format(
-                    "The %s field should be in YYYY-MM-DD format", fieldName));
-        }
     }
 
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
@@ -193,64 +161,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         // Observation for first symptom date
-        if (json.containsKey(OBSERVATIONS)) {
-            addInitialObservations(json, patient);
+        if (observationsHandler.hasObservations(json)) {
+            observationsHandler.addObservations(json, patient, patient.getDateCreated(), "Initial triage",
+                    "ADULTINITIAL", LocationResource.TRIAGE_UUID);
         }
 
         return patientToJson(patient);
-    }
-
-    private void addInitialObservations(SimpleObject json, Patient patient) {
-        List observations = (List)json.get(OBSERVATIONS);
-        if (observations.isEmpty()) {
-            return;
-        }
-        EncounterService encounterService = Context.getEncounterService();
-        ConceptService conceptService = Context.getConceptService();
-        final Location triage = Context.getLocationService().getLocationByUuid(LocationResource.TRIAGE_UUID);
-        if (triage == null) {
-            throw new InvalidObjectDataException("Could not get triage location, DB in bad state");
-        }
-        ObsService obsService = Context.getObsService();
-        final Date now = patient.getDateCreated();
-        Encounter encounter = new Encounter();
-        encounter.setEncounterDatetime(now);
-        encounter.setPatient(patient);
-        encounter.setLocation(triage);
-        EncounterType encounterType = encounterService.getEncounterType("ADULTINITIAL");
-        if (encounterType == null) {
-            throw new InvalidObjectDataException("Could not get ADULTINITIAL encounter type, DB in bad state");
-        }
-        encounter.setEncounterType(encounterType);
-        encounter = encounterService.saveEncounter(encounter);
-        for (Object observation : observations) {
-            Map observationObject = (Map) observation;
-            String questionUuid = (String) observationObject.get(QUESTION_UUID);
-            Concept questionConcept =
-                    conceptService.getConceptByUuid(questionUuid);
-            if (questionConcept == null) {
-                throw new InvalidObjectDataException("Bad concept for question " + questionUuid);
-            }
-            Obs obs = new Obs(patient, questionConcept, now, triage);
-            obs.setEncounter(encounter);
-            // For now assume all answers are coded or date, we can deal with numerical etc later.
-            if (observationObject.containsKey(ANSWER_UUID)) {
-                String answerUuid = (String) observationObject.get(ANSWER_UUID);
-                Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
-                if (answerConcept == null) {
-                    throw new InvalidObjectDataException("Bad concept for answer " + answerUuid);
-                }
-                obs.setValueCoded(answerConcept);
-            } else if (observationObject.containsKey(ANSWER_DATE)) {
-                obs.setValueDate(parseDate((String) observationObject.get(ANSWER_DATE),
-                        "answer for " + questionUuid));
-            } else if (observationObject.containsKey(ANSWER_NUMBER)) {
-                obs.setValueNumeric(Double.parseDouble((String) observationObject.get(ANSWER_NUMBER)));
-            } else {
-                throw new InvalidObjectDataException("Unknown answer type " + observationObject);
-            }
-            obsService.saveObs(obs, "Initial triage");
-        }
     }
 
     protected static Patient jsonToPatient(SimpleObject json) {
@@ -264,7 +180,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         if (json.containsKey(BIRTHDATE)) {
             patient.setBirthdate(
-                parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
+                DateTimeUtils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
@@ -479,7 +395,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
-                    patient.setBirthdate(parseDate((String) entry.getValue(), BIRTHDATE));
+                    patient.setBirthdate(DateTimeUtils.parseDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
                 case GENDER:
