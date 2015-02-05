@@ -7,6 +7,9 @@ case $1 in
         # Apply settings
         /usr/share/buendia/config.d/server
 
+        # Restart Tomcat (necessary even if the settings haven't changed)
+        service tomcat7 restart
+
         # Make the warmup script run once on startup
         update-rc.d buendia-warmup defaults
         ;;

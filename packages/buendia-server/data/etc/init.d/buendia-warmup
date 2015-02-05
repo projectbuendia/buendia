@@ -14,7 +14,7 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 case "$1" in
     start|restart|'')
-        /usr/bin/buendia-warmup -r localhost:9000
+        /usr/bin/buendia-warmup -r localhost:9000 || service tomcat7 restart
         ;;
 
     stop)
