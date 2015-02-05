@@ -3,8 +3,13 @@ set -e
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Apply settings
         /usr/share/buendia/config.d/pkgclient
+
+        # Make the update run once on startup
         update-rc.d buendia-pkgclient-autoupdate defaults
+
+        # Ensure that cron is up so it can run the update periodically
         service cron restart
         ;;
 
