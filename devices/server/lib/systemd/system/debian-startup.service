@@ -5,10 +5,10 @@ Description=Debian: initialize and execute startup scripts
 # package installations and upgrades.
 
 [Service]
-Type=simple
+Type=forking
 TimeoutSec=0
 ExecStartPre=/usr/local/bin/init-debian
-ExecStart=/usr/local/bin/enter-debian /etc/init.d/rc 2
+ExecStart=/usr/local/bin/debian-startup
 StandardOutput=journal+console
 
 [Install]

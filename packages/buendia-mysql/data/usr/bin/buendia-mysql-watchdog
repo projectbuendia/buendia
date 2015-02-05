@@ -9,6 +9,7 @@ echo "$(date) >> Checking on MySQL..."
 if ! service mysql status 2>&1; then
     archive=/var/log/mysql-watchdog/$(date +"%Y-%m-%d.%H.%M").tar.gz
     echo "$(date) >> MySQL is not running, saving logs in $archive"
+    mkdir -p $(dirname $archive)
     tar cfz $archive /var/run/mysqld /var/log/mysql* \
         /var/log/dmesg /var/log/messages /var/log/syslog /var/log/*.log \
         || true

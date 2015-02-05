@@ -1,6 +1,8 @@
 #!/bin/ash
 
-# This script should only be executed once on system startup.
+# This script performs initializations on the Debian chroot area that need
+# to happen once on each Yocto boot rather than just once on initial system
+# installation.  This script should only be executed once on system startup.
 
 set -e
 ROOT=/home/root/debian

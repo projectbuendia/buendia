@@ -9,6 +9,7 @@ echo "$(date) >> Checking on Tomcat7..."
 if ! service tomcat7 status 2>&1 ; then
     archive=/var/log/tomcat7-watchdog/$(date +"%Y-%m-%d.%H.%M").tar.gz
     echo "$(date) >> Tomcat7 is not running, saving logs in $archive"
+    mkdir -p $(dirname $archive)
     tar cfz $archive /var/run/tomcat7* /var/log/tomcat* \
         $(find -L /usr/share/tomcat7 -name '*.log') \
         /var/log/dmesg /var/log/messages /var/log/syslog /var/log/*.log \
