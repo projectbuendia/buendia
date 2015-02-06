@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for script in $(find data -type f); do
+    if (head -1 $script | grep -q '^#!/.*sh *$'); then
+        if [ ! -x $script ]; then
+            echo "$script looks like a shell script but isn't executable."
+            ls -al $script
+            exit 1
+        fi
+        echo -n "Checking syntax of $script... "
+        bash -n $script && echo OK
+    fi
+done

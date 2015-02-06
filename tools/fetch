@@ -18,8 +18,11 @@ cached=/tmp/buendia-fetched/$hash
 mkdir -p $(dirname $cached) $(dirname $dest)
 
 if [ -f $cached ]; then
-    echo "Copying cached file to $dest."
-    cp $cached $dest
+    echo "Copying cached file to $dest (preserving original timestamp)."
+    # We want to preserve the original timestamp here so that when we
+    # make a package twice using the same downloaded file, the resulting
+    # data.tar file is bit-for-bit identical.
+    cp -p $cached $dest
 else
     echo Fetching $url...
     if ! curl -o "$dest" -L "$url"; then
@@ -33,5 +36,6 @@ else
         exit 1
     fi
 
-    cp $dest $cached
+    # Cache the file, preserving its timestamp.
+    cp -p $dest $cached
 fi

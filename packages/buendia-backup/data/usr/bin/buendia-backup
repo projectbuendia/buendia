@@ -28,10 +28,10 @@ buendia-mysql-dump openmrs $dir/openmrs.zip
 
 # Examine what packages are installed.
 dpkg-query -W --showformat '${Package}=${Version}\n' | sort > $dir/all.list
-comm -2 -3 $dir/package.list /etc/base.package.list | sort > $dir/buendia.list
+comm -2 -3 $dir/all.list /etc/base.package.list | sort > $dir/buendia.list
 
 for package in $(cat $dir/buendia.list); do
-  package=$(echo $package | tr = -)
+  package=$(echo $package | tr = _)
   cp -p /var/cache/apt/archives/$package*.deb $deb_dir
 done
 
