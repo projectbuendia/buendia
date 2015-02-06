@@ -7,19 +7,3 @@ SETTINGS=/usr/share/buendia/site/pkgclient
 if [ ! -f $SETTINGS ]; then
     echo "PKGCLIENT_AUTOUPDATE=1" > $SETTINGS
 fi
-
-# Update the package sources list to point to the Buendia package server.
-# The Buendia package server may be running on this machine or on a different
-# machine that is reachable via a network connection.
-
-# Get the server URL from the pkgserver settings file, or use the default.
-# The settings file could be created by the buendia-pkgserver package or
-# could come from the site settings package.
-PKGSERVER_URL='http://packages.local:9001'
-for f in /usr/share/buendia/site/*; do . $f || true; done
-
-# The source list URL must not have any trailing slashes.
-PKGSERVER_URL=$(echo $PKGSERVER_URL | sed -e 's+/*$++')
-
-# Generate the pkgclient apt sources list pointing at the pkgserver repository.
-echo "deb [arch=all] $PKGSERVER_URL stable main" > /etc/apt/sources.list.d/buendia-pkgclient.list

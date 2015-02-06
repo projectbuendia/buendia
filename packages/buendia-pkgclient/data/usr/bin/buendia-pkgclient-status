@@ -2,7 +2,11 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-dpkg-query -f '${db:Status-Abbrev} ${Package;-20} ${Version;-15} ${Description;-39}\n' -W 'buendia-*'
+if [ -n "$1" ]; then
+    dpkg -s "$@"
+else
+    dpkg-query -f '${db:Status-Abbrev} ${Package;-20} ${Version;-15} ${Description;-39}\n' -W 'buendia-*'
+fi
 
 case "$PKGCLIENT_AUTOUPDATE" in
     ''|0|false|off|no)

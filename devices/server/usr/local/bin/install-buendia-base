@@ -52,7 +52,7 @@ for i in fstab host.conf localtime nsswitch.conf resolv.conf timezone; do
 done
 
 # Add custom package repositories (no need to quit if this file is missing).
-cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d || true
+cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d/buendia || true
 
 # Make the site ID available within Debian.
 mkdir -p $ROOT/usr/share/buendia/site
@@ -67,9 +67,14 @@ set -e
 echo UTC > /etc/timezone
 dpkg-reconfigure -f noninteractive tzdata
 
-# Configure apt.
-echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/01norecommend
-echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/01norecommend
+# Configure apt not to install extra packages we don't need.
+echo 'APT::Install-Recommends "0";' > /etc/apt/apt.conf.d/99norecommend
+echo 'APT::Install-Suggests "0";' >> /etc/apt/apt.conf.d/99norecommend
+
+# Configure apt to keep package backups forever, except for a disk space limit.
+echo 'APT::Archives::MaxAge "0";' > /etc/apt/apt.conf.d/99noautoclean
+echo 'APT::Archives::MinAge "0";' > /etc/apt/apt.conf.d/99noautoclean
+echo 'APT::Archives::MaxSize "100";' > /etc/apt/apt.conf.d/99noautoclean
 
 # All the non-Buendia packages that are considered part of the base system.
 # These won't be included in backups of the software installation state.
@@ -84,14 +89,22 @@ apt-get -y install $BASE_PACKAGES
 # Save the state of the base package installation for future comparison.
 dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.package.list
 
+# Delete the cached backups of the base packages, to save space.
+for package in $(cat /etc/base.package.list); do
+    package=$(echo $package | sed -e 's/=/_/g; s/:/%3a/g')
+    rm -f /var/cache/apt/archives/${package}*.deb
+done
+
 # Try apt-get update again; this time, fail if apt-get fails.
 apt-get update
 
+# Install the essential tool that installs all other Buendia packages.
+apt-get -y --allow-unauthenticated install buendia-pkgclient
+
 . /usr/share/buendia/site/id || true
 if [ -n "$SITE_ID" ]; then
+  apt-get -y --allow-unauthenticated install buendia-site-$SITE_ID
   echo "Buendia site ID configured: $SITE_ID"
-  apt-get -y --allow-unauthenticated install buendia-site-$SITE_ID  # get the site settings
-  apt-get -y --allow-unauthenticated install buendia-pkgclient  # installs all packages listed in the site settings
 else
   echo "Buendia site ID not selected."
   exit 1
@@ -101,5 +114,4 @@ EOF
 
 echo "Buendia base system successfully installed."
 touch /etc/buendia-base-installed
-rm -f $ROOT/etc/apt/sources.list.d/buendia-base.sources.list
 reboot  # will run buendia-pkgclient-update on boot and do first install

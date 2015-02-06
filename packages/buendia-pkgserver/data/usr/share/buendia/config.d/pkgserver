@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -e; . /usr/share/buendia/utils.sh
-SETTINGS=/usr/share/buendia/site/pkgserver
-
-# Generate the default settings file if one does not already exist.
-if [ ! -f $SETTINGS ]; then
-    echo 'PKGSERVER_URL="http://packages.local:9001"' > $SETTINGS
-fi

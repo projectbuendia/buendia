@@ -4,9 +4,6 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        # Initialize settings
-        /usr/share/buendia/config.d/pkgserver
-
         # Make all subdirectories executable and readable
         chmod -R +rX /usr/share/buendia/packages
 

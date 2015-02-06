@@ -1,0 +1,2 @@
+# Integration test sites pull the latest packages built from the dev branch.
+deb [arch=all] http://packages-dev.projectbuendia.org:9001 stable main
