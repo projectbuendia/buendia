@@ -1,0 +1,2 @@
+auto lo usb0 wlan0
+iface lo inet loopback

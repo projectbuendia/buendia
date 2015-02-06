@@ -71,16 +71,39 @@ wpa_cli select_network 0 || exit 1
 wpa_cli list_networks | grep CURRENT
 # sleep 5
 
-# Get an IP address using DHCP.
-echo "Getting IP address..."
-ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
-udhcpc -i $ifname -n -T 1 -t 30 || exit 1
+# The DHCP client is normally launched by wpa_supplicant_event, so we decide
+# whether to start it based on whether wpa_supplicant_event is enabled.
+if systemctl is-enabled wpa_supplicant_event; then
+  # Get an IP address using DHCP.
+  echo "Getting IP address..."
+  ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
+  udhcpc -i $ifname -n -T 1 -t 30 || exit 1
 
-# Wait until the network is up.
-ipaddr=''
-while [ -z "$ipaddr" ]; do
-  ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
-  sleep 1
-done
+  # Wait until we acquire an IP address.
+  ipaddr=''
+  for attempt in $(seq 1 60); do
+    ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+    if [ -n "$ipaddr" ]; then
+      echo "Connected to $ssid as $ipaddr."
+      exit 0
+    fi
+    sleep 1
+  done
+else
+  # Wait until the wifi connection comes up.
+  echo -n "Waiting for wifi connection..."
+  for attempt in $(seq 1 60); do
+    echo -n "."
+    if wpa_cli status | grep -q COMPLETED; then
+      echo
+      echo "Connected to $ssid without acquiring an IP address."
+      exit 0
+    fi
+    sleep 1
+  done
+  echo
+fi
 
-echo "Connected to $ssid as $ipaddr."
+echo "Could not connect to wifi network $ssid.  Bad SSID or password?"
+exit 1
+

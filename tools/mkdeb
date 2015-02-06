@@ -41,13 +41,18 @@ cp -pr $control/* $tmp/control
 # Apply bash expansion to any *.template files.
 for i in $tmp/control/*.template; do
     if [ -f $i ]; then
-        cat <(echo 'cat <<EOF') $i <(echo 'EOF') | bash > ${i%.template}
+        result=${i%.template}
+        cat <(echo 'cat <<EOF') $i <(echo 'EOF') | bash > $result
+        # Copy the timestamps from the original file, so that the resulting
+        # data.tar remains exactly identical if none of the input files have
+        # changed.  This lets us use diffdeb to detect meaningful changes.
+        touch -r $i $result
         rm $i
     fi
 done
 
 # Pack up the Debian package.
-$TAR cvfz $tmp/control.tar.gz -C $tmp/control .
+$TAR --owner=0 --group=0 -cvzf $tmp/control.tar.gz -C $tmp/control .
 $TAR cvf $tmp/data.tar -T /dev/null
 while [ -n "$1" ]; do
     $TAR --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .

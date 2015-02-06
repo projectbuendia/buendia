@@ -40,7 +40,11 @@ if [[ $hostport != *:* ]]; then
 fi
 
 echo "=== $(date): $0"
-echo "Contacting Buendia API at $hostport (can take about 5 minutes)..."
+if [ -n "$retry" ]; then
+    echo "Contacting Buendia API at $hostport (can take about 5 minutes)..."
+else
+    echo "Contacting Buendia API at $hostport (trying just once)..."
+fi
 
 function check_url() {
     retry_count=0
@@ -80,5 +84,5 @@ check_url '<title>.*OpenMRS' http://$hostport/openmrs
 check_url '{"results":' http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u $SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD
 
 echo
-echo -e "\x1b[32m    \o/  Success!  Buendia API at $hostport is up.\x1b[0m"
+echo -e "    \x1b[32m\o/\x1b[0m  Success!  Buendia API at $hostport is up."
 echo

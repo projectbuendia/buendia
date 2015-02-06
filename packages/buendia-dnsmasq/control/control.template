@@ -1,7 +1,0 @@
-Package: ${PACKAGE_NAME}
-Version: ${PACKAGE_VERSION}
-Architecture: all
-Pre-Depends: buendia-utils
-Depends: dnsmasq
-Description: dnsmasq configured for Buendia
-Maintainer: projectbuendia.org

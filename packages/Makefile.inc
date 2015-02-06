@@ -21,7 +21,6 @@ export PACKAGE := $(PACKAGE_NAME)_$(PACKAGE_VERSION)_all.deb
 export DATA := $(shell [ -d data ] && echo data)
 
 all: $(PACKAGE)
-	if [ -z "$$PACKAGE_VERSION" ]; then exit 1; fi
 
 # Remove the built package and intermediate build directory.
 clean:

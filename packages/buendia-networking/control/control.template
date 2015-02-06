@@ -2,5 +2,6 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Pre-Depends: buendia-utils
-Description: Access point and DHCP server configured for Buendia (Yocto system)
+Depends: dnsmasq
+Description: Wifi AP and DHCP/DNS service for Buendia (Yocto system)
 Maintainer: projectbuendia.org

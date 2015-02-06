@@ -64,7 +64,8 @@ EOF
 cat <<EOF | do_in_yocto
 tar cf /var/backups/systemd.tar /etc/systemd /lib/systemd/system
 EOF
-tar cf - etc lib usr | $ssh $target 'tar xf - -C /'
+TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
+$TAR --owner=0 --group=0 -cf - etc lib usr | $ssh $target 'tar xf - -C /'
 
 # Ensure that the Edison can connect to the setup network.  The configuration
 # will be saved and reused when wifi is turned on again in the future.

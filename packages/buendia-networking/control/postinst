@@ -7,28 +7,39 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
+buendia-divert $1 /etc/dnsmasq.conf
+
 case $1 in
     configure)
         cat <<'EOF' | buendia-enter-yocto
 hostapd_conf=/etc/hostapd/hostapd.conf
 udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
+udhcpd_service=/lib/systemd/system/udhcpd-for-hostapd.service
+wpa_cli_actions=/etc/wpa_supplicant/wpa_cli-actions.sh
 
-# Turn this machine into an access point.
-systemctl enable hostapd
+# Save a copy of the original configuration files.
 cp $hostapd_conf $hostapd_conf.pre-buendia
-echo "ssid=buendia-demo" >> $hostapd_conf
-echo "wpa_passphrase=buendia" >> $hostapd_conf
-systemctl start hostapd
-
-# Tell clients to use this machine's IP address for DNS.
-ipaddr=''
-while [ -z "$ipaddr" ]; do
-    ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
-    sleep 1
-done
 cp $udhcpd_conf $udhcpd_conf.pre-buendia
-echo "opt dns $ipaddr" >> $udhcpd_conf
+cp $udhcpd_service $udhcpd_service.pre-buendia
+cp $wpa_cli_actions $wpa_cli_actions.pre-buendia
+
+# Don't use udhcpd with hostapd; we are using dnsmasq instead.
+cat $udhcpd_service.pre-buendia | grep -v ExecStartPre | sed -e 's+ExecStart=.*+ExecStart=/bin/echo+' > $udhcpd_service
+systemctl daemon-reload
+
+# Make wpa_cli-actions.sh run only when wpa_supplicant_event is enabled.
+cat <<WPA_CLI_ACTIONS_EOF > $wpa_cli_actions
+#!/bin/sh
+if systemctl -q is-enabled wpa_supplicant_event; then
+    $wpa_cli_actions.pre-buendia "\$@"
+else
+    echo "event $@ ignored because wpa_supplicant_event is disabled"
+fi
 EOF
+
+        # Apply the site settings.
+        /usr/share/buendia/config.d/networking
+
         touch /var/run/reboot-required
         ;;
 
