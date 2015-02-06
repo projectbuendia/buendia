@@ -32,7 +32,7 @@ pristine: clean
 	rm -rf /tmp/buendia-fetched
 
 tests:
-	@echo "--- Checking $(PACKAGE_NAME) for common snafus..."; failures=; for test in ../tests/* tests/*; do if [ -f $$test ]; then $$test || failures="$$failures $$test"; fi; done; if [ -n "$$failures" ]; then echo "Failed: $$failures"; exit 1; fi
+	@failures=; for test in ../tests/* tests/*; do if [ -f $$test ]; then $$test || failures="$$failures $$test"; fi; done; if [ -n "$$failures" ]; then echo "Failed: $$failures"; exit 1; fi
 
 test: tests  # in case you mistype "make tests"
 
