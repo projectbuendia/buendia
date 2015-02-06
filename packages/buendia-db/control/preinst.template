@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e; . /usr/share/buendia/utils.sh
 
 case \$1 in
     install)

@@ -1,6 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: nginx, unzip, python, udev, apt-utils
 Architecture: all
+Pre-Depends: buendia-utils
+Depends: nginx, unzip, python, udev, apt-utils
 Description: Serves up Buendia .deb and .apk files
 Maintainer: projectbuendia.org

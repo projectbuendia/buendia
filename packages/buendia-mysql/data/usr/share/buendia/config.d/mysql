@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p /usr/share/buendia/site
+set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/mysql
 INITSQL=/tmp/buendia-mysql-init.sql
 CONF=/etc/mysql/conf.d/buendia-init.cnf
@@ -9,18 +9,8 @@ CONF=/etc/mysql/conf.d/buendia-init.cnf
 if [ ! -f $SETTINGS ]; then
     password=$(buendia-mkpass)
     echo "MYSQL_ROOT_PASSWORD=$password" > $SETTINGS
+    . $SETTINGS
 fi
-
-# Read the settings.
-for f in /usr/share/buendia/site/*; do . $f || true; done
-
-# Ensure that usernames and passwords contain no wonky characters.
-for var in MYSQL_ROOT_PASSWORD; do
-  if ! eval 'echo $'$var | grep -q '^[0-9A-Za-z._-]\+$'; then
-    echo "$var is invalid: only [0-9A-Za-z._-] characters are allowed."
-    exit 1
-  fi
-done
 
 # Check if the root password is already correctly set.
 if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+set -e; . /usr/share/buendia/utils.sh
+
 buendia-divert $1 /etc/dnsmasq.conf
 
 case $1 in

@@ -1,8 +1,8 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Description: Buendia site config: Development server
-Maintainer: projectbuendia.org
-Depends: buendia-utils
+Pre-Depends: buendia-utils
 Provides: buendia-site
 Conflicts: buendia-site
+Description: Buendia site config: Development server
+Maintainer: projectbuendia.org

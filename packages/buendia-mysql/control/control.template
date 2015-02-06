@@ -1,6 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: cron-daemon, mysql-server, sysvinit-utils
 Architecture: all
+Pre-Depends: buendia-utils
+Depends: cron-daemon, mysql-server, sysvinit-utils
 Description: MySQL server configured for Buendia
 Maintainer: projectbuendia.org

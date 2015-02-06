@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p /usr/share/buendia/site
+set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/pkgserver
 
 # Generate the default settings file if one does not already exist.

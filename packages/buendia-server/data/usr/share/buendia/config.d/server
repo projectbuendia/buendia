@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e
-mkdir -p /usr/share/buendia/site
+set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/server
 
 # This is the UUID for the user account used for all Buendia API requests.
@@ -19,22 +18,12 @@ if [ ! -f $SETTINGS ]; then
 SERVER_OPENMRS_USER=buendia
 SERVER_OPENMRS_PASSWORD=$password
 EOF
+    . $SETTINGS
 fi
-
-# Read the settings.
-for f in /usr/share/buendia/site/*; do . $f || true; done
-MYSQL="mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs"
-
-# Ensure that usernames and passwords contain no wonky characters.
-for var in SERVER_OPENMRS_USER SERVER_OPENMRS_PASSWORD; do
-  if ! eval 'echo $'$var | grep -q '^[0-9A-Za-z._-]\+$'; then
-    echo "$var is invalid: only [0-9A-Za-z._-] characters are allowed."
-    exit 1
-  fi
-done
 
 # Ensure MySQL is running.
 service mysql start
+MYSQL="mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs"
 
 # If there is no user account with the expected UUID, add one.
 if ! echo "select count(*) from users where uuid='$USER_UUID'" | $MYSQL | grep -q 1; then

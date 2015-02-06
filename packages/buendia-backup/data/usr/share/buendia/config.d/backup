@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p /usr/share/buendia/site
+set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/backup
 
 # Generate a default settings file.

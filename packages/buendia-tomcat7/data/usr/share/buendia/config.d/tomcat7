@@ -1,23 +1,14 @@
 #!/bin/bash
 
+set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/tomcat7
 
 # Generate a random Tomcat admin password if one is not already set.
 if [ ! -f $SETTINGS ]; then
     password=$(buendia-mkpass)
     echo "TOMCAT7_ADMIN_PASSWORD=$password" > $SETTINGS
+    . $SETTINGS
 fi
-
-# Read the settings.
-for f in /usr/share/buendia/site/*; do . $f || true; done
-
-# Ensure that usernames and passwords contain no wonky characters.
-for var in TOMCAT7_ADMIN_PASSWORD; do
-  if ! eval 'echo $'$var | grep -q '^[0-9A-Za-z._-]\+$'; then
-    echo "$var is invalid: only [0-9A-Za-z._-] characters are allowed."
-    exit 1
-  fi
-done
 
 # Apply the settings to the Tomcat configuration.
 cat <<EOF >/usr/share/buendia/diversions/etc/tomcat7/tomcat-users.xml

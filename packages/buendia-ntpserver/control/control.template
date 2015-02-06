@@ -1,6 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Depends: buendia-utils, ntp
 Architecture: all
+Pre-Depends: buendia-utils
+Depends: ntp
 Description: NTP server configured for Buendia
 Maintainer: projectbuendia.org

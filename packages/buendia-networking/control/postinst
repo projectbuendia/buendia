@@ -4,7 +4,8 @@
 # and configures hostap and udhcp daemons. It sets the dns server to be located
 # at the provided ip addres of this machine after the access point is up.
 # Finally it signals apt that it requires a boot.
-set -e
+
+set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure)
@@ -22,8 +23,8 @@ systemctl start hostapd
 # Tell clients to use this machine's IP address for DNS.
 ipaddr=''
 while [ -z "$ipaddr" ]; do
-  ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
-  sleep 1
+    ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+    sleep 1
 done
 cp $udhcpd_conf $udhcpd_conf.pre-buendia
 echo "opt dns $ipaddr" >> $udhcpd_conf

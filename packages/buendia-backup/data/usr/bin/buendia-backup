@@ -1,8 +1,6 @@
 #!/bin/bash
 
-set -e
-for f in /usr/share/buendia/site/*; do . $f || true; done
-
+set -e; . /usr/share/buendia/utils.sh
 export MYSQL_USER=$OPENMRS_MYSQL_USER
 export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 

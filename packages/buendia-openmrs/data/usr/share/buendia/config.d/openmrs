@@ -1,29 +1,18 @@
 #!/bin/bash
 
-set -e
-mkdir -p /usr/share/buendia/site
+set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/openmrs
 PROPERTIES=/usr/share/buendia/openmrs/openmrs-runtime.properties
 
 # Generate a random password for openmrs_user if one is not already set.
 if [ ! -f $SETTINGS ]; then
-  password=$(buendia-mkpass)
-  cat <<EOF > $SETTINGS
+    password=$(buendia-mkpass)
+    cat <<EOF > $SETTINGS
 OPENMRS_MYSQL_USER=openmrs_user
 OPENMRS_MYSQL_PASSWORD=$password
 EOF
+    . $SETTINGS
 fi
-
-# Read the settings.
-for f in /usr/share/buendia/site/*; do . $f || true; done
-
-# Ensure that usernames and passwords contain no wonky characters.
-for var in OPENMRS_MYSQL_USER OPENMRS_MYSQL_PASSWORD; do
-  if ! eval 'echo $'$var | grep -q '^[0-9A-Za-z._-]\+$'; then
-    echo "$var is invalid: only [0-9A-Za-z._-] characters are allowed."
-    exit 1
-  fi
-done
 
 # Check if the password is already correctly set.
 if mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD </dev/null 2>/dev/null &&
