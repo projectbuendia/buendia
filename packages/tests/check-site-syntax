@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for file in data/usr/share/buendia/site/*; do
+    if [ -f $file ]; then
+        if [ -x $file ]; then
+            echo "$file should not be executable.  Please chmod a-x all files in site/ before building."
+            ls -al $file
+            exit 1
+        fi
+        echo -n "Checking syntax of $file... "
+        bash $file && echo OK
+    fi
+done

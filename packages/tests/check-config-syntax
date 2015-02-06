@@ -1,0 +1,13 @@
+#!/bin/bash
+
+for config in data/usr/share/buendia/config.d/*; do
+    if [ -f $config ]; then
+        if [ ! -x $config ]; then
+            echo "$config should be executable.  Please chmod 755 all files in config.d/ before building."
+            ls -al $config
+            exit 1
+        fi
+        echo -n "Checking syntax of $config... "
+        bash -n $config && echo OK
+    fi
+done
