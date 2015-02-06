@@ -10,8 +10,14 @@ if [ -f /etc/buendia-base-installed ]; then
   exit 0
 fi
 
+# Make sure the Edison is able to connect to an externally managed wifi network.
+systemctl enable wpa_supplicant_event  # enable DHCP client
+systemctl disable hostapd  # don't be an access point
+systemctl stop hostapd  # don't be an access point
+
 # Turn on wifi, using the last saved configuration.
 echo "Starting wifi."
+
 if wifi -; ! ping -c 1 -w 1 debian.org; then
   if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then
     if sleep 20; wifi -; ! ping -c 1 -w 1 debian.org; then

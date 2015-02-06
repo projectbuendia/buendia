@@ -24,7 +24,9 @@ fi
 
             if [ -f /var/run/reboot-required ]; then
                 rm /var/run/reboot-required
-                echo "=== $(date): Rebooting after package installation."
+                echo "=== $(date): Rebooting after package update."
+                echo 'echo "Package installation requires a reboot.  Rebooting in 10 seconds!" | /debian/usr/bin/wall' | buendia-enter-yocto
+                sleep 10
                 echo "reboot" | buendia-enter-yocto
             else
                 echo "=== $(date): Update complete."

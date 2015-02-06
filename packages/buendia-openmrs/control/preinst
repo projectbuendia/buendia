@@ -1,0 +1,13 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    install|upgrade)
+        if [ -e /etc/init.d/tomcat7 ]; then
+            service tomcat7 stop
+        fi
+        ;;
+
+    *) exit 1
+esac

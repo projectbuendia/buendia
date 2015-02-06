@@ -4,22 +4,44 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        # Initialize settings
+        # Initialize settings.
         /usr/share/buendia/config.d/openmrs
 
-        # Remove any previously unpacked openmrs.war deployment
+        # Remove any previously unpacked openmrs.war deployment.
         rm -rf /var/lib/tomcat7/webapps/openmrs
 
-        # Move aside any existing .OpenMRS directory
+        # Sometimes when tomcat7 is restarted several times in succession by
+        # package installation scripts running one after another, a restart
+        # can interrupt Tomcat while it is unpacking openmrs.war.  Because
+        # Tomcat is stupid enough to do the unpacking in the actual deployment
+        # location instead of a temporary location, this leaves a partially
+        # unpacked, incomplete application in /var/lib/tomcat7/webapps and
+        # Tomcat in a permanently broken state.  To ensure that openmrs.war is
+        # unpacked properly, we unpack it now, while tomcat7 is stopped.
+        service tomcat7 stop
+        tmp=/tmp/openmrs.$$
+
+        function cleanup() {
+            rm -rf $tmp
+        }
+        trap cleanup EXIT
+
+        rm -rf $tmp
+        mkdir -p $tmp
+        cd $tmp
+        unzip -q /var/lib/tomcat7/webapps/openmrs.war
+        mv $tmp /var/lib/tomcat7/webapps/openmrs
+
+        # Move aside any existing .OpenMRS directory.
         if [ -e /usr/share/tomcat7/.OpenMRS ]; then
             mv /usr/share/tomcat7/.OpenMRS /usr/share/tomcat7/.OpenMRS.pre-buendia
         fi
 
-        # Point tomcat7 at our openmrs directory
+        # Point tomcat7 at our openmrs directory.
         chown -R tomcat7:root /usr/share/buendia/openmrs
         ln -sf /usr/share/buendia/openmrs /usr/share/tomcat7/.OpenMRS
 
-        # Restart services
+        # Restart services.
         service tomcat7 restart
         ;;
 
