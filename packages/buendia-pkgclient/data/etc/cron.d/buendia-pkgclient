@@ -1,1 +1,1 @@
-*/5 * * * * root /etc/init.d/buendia-pkgclient-autoupdate start
+*/5 * * * * root /usr/bin/buendia-pkgclient-autoupdate -u 60

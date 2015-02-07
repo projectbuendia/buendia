@@ -57,7 +57,7 @@ for i in fstab host.conf localtime nsswitch.conf resolv.conf timezone; do
 done
 
 # Add custom package repositories (no need to quit if this file is missing).
-cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d/buendia.list || true
+cp -f /etc/buendia-base.sources.list $ROOT/etc/apt/sources.list.d/buendia-base.list || true
 
 # Make the site ID available within Debian.
 mkdir -p $ROOT/usr/share/buendia/site
@@ -92,10 +92,10 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get -y install $BASE_PACKAGES
 
 # Save the state of the base package installation for future comparison.
-dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.package.list
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.packages.list
 
 # Delete the cached backups of the base packages, to save space.
-for package in $(cat /etc/base.package.list); do
+for package in $(cat /etc/base.packages.list); do
     package=$(echo $package | sed -e 's/=/_/g; s/:/%3a/g')
     rm -f /var/cache/apt/archives/${package}*.deb
 done
@@ -117,6 +117,8 @@ fi
 
 EOF
 
-echo "Buendia base system successfully installed."
+echo "Buendia base system successfully installed, rebooting."
+echo
 touch /etc/buendia-base-installed
+sleep 5
 reboot  # will run buendia-pkgclient-update on boot and do first install

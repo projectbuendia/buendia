@@ -93,9 +93,9 @@ echo
 set +e
 source flashall.sh
 
-# The Edison has to reboot, run some first-boot system initialization scripts,
-# and reboot again.  Unfortunately, we don't have a way to know when it has
-# rebooted the second time, so we have to just wait.  It takes about 90 seconds
-# for the Edison to boot, set up disk partitions, boot again, and produce a
-# login prompt.  100 seconds should be pretty safe.
+# The Edison has to reboot, run a script to partition and create the /home
+# filesystem, and reboot again.  Unfortunately, we don't have a way to know
+# when it has rebooted the second time, so we have to just wait.  It takes
+# about 90 seconds for the Edison to boot, set up disk partitions, boot again,
+# and produce a login prompt.  100 seconds should be pretty safe.
 sleep 100
