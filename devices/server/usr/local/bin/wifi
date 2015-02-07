@@ -75,7 +75,7 @@ wpa_cli list_networks | grep CURRENT
 # whether to start it based on whether wpa_supplicant_event is enabled.
 if systemctl is-enabled wpa_supplicant_event; then
   # Get an IP address using DHCP.
-  echo "Getting IP address..."
+  echo "Getting an IP address using DHCP..."
   ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
   udhcpc -i $ifname -n -T 1 -t 30 || exit 1
 
@@ -96,7 +96,7 @@ else
     echo -n "."
     if wpa_cli status | grep -q COMPLETED; then
       echo
-      echo "Connected to $ssid without acquiring an IP address."
+      echo "Connected to $ssid without using DHCP to get an IP address."
       exit 0
     fi
     sleep 1

@@ -26,7 +26,7 @@ iface wlan0 inet manual
     down echo 'ifconfig wlan0 down' | buendia-enter-yocto
 EOF
 
-# dnsmasq runs in Debian, so its configuration files are managed in
+# dnsmasq runs in Debian, so its configuration file is managed in
 # /usr/share/buendia/diversions and all we have to do here is turn it on.
 
 case "$NETWORKING_DHCP_DNS_SERVER" in
@@ -59,7 +59,6 @@ EOF
         killall udhcpc || true  # stop it if it's already running
 
         # Use the IP address configured in /etc/network/interfaces.
-        ifdown wlan0
         ifup wlan0
 
         # Enable dnsmasq for future boots.
@@ -109,3 +108,5 @@ EOF
         ;;
 esac
 
+# Update the /etc/hosts file with mappings for the server's IP addresses.
+buendia-update-hosts

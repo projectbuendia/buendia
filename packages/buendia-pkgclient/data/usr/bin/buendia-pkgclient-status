@@ -5,7 +5,7 @@ set -e; . /usr/share/buendia/utils.sh
 if [ -n "$1" ]; then
     dpkg -s "$@"
 else
-    dpkg-query -f '${db:Status-Abbrev} ${Package;-20} ${Version;-15} ${Description;-39}\n' -W 'buendia-*'
+    dpkg-query -f '${db:Status-Abbrev} ${Package;-20} ${Version;-15} ${Description;-38}\n' -W 'buendia-*'
 fi
 
 case "$PKGCLIENT_AUTOUPDATE" in
