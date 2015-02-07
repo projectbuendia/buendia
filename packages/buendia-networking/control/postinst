@@ -36,9 +36,11 @@ else
     echo "event $@ ignored because wpa_supplicant_event is disabled"
 fi
 EOF
-
         # Apply the site settings.
         /usr/share/buendia/config.d/networking
+
+        # Also do network configuration on startup.
+        update-rc.d buendia-networking defaults
 
         touch /var/run/reboot-required
         ;;

@@ -59,7 +59,7 @@ EOF
         killall udhcpc || true  # stop it if it's already running
 
         # Use the IP address configured in /etc/network/interfaces.
-        ifup wlan0
+        ifconfig wlan0 up $NETWORKING_IP_ADDRESS
 
         # Enable dnsmasq for future boots.
         update-rc.d dnsmasq enable
