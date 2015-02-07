@@ -7,6 +7,12 @@
 set -e
 ROOT=/home/root/debian
 
+# If Debian has not been properly installed yet, abort.
+if [ ! -e $ROOT/etc/debian-installed ]; then
+    echo "Debian is not installed yet."
+    exit 1
+fi
+
 # Make devices and other special filesystems available in Debian.
 if [ ! -e $ROOT/dev/null ]; then
     mount --bind /dev $ROOT/dev

@@ -6,8 +6,8 @@ set -e
 ROOT=/home/root/debian  # must be on the /home filesystem
 
 if [ -f $ROOT/etc/debian-installed ]; then
-  echo "Debian is already installed at $ROOT."
-  exit 0
+    echo "Debian is already installed at $ROOT."
+    exit 0
 fi
 
 MIRROR_URL=http://ftp.debian.org/debian
