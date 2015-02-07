@@ -86,7 +86,10 @@ echo 'APT::Archives::MaxSize "100";' > /etc/apt/apt.conf.d/99noautoclean
 
 # All the non-Buendia packages that are considered part of the base system.
 # These won't be included in backups of the software installation state.
-BASE_PACKAGES='coreutils less curl netcat zip unzip git screen ssh vim strace rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7 tomcat7-admin'
+# This list should contain any essential tools and diagnostic utilities that
+# will aid troubleshooting, and any especially large packages that are needed
+# by the application and safe to omit from backups.
+BASE_PACKAGES='coreutils less curl netcat dig zip unzip git screen ssh vim strace rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7 tomcat7-admin'
 
 # The first time we run apt-get, ignore failure; install as much as possible.
 apt-get update || true
