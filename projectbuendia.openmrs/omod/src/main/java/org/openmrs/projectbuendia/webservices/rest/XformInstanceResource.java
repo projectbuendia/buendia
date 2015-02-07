@@ -129,7 +129,8 @@ public class XformInstanceResource implements Creatable {
         List<String> acceptablePatterns = Arrays.asList(
                 "yyyy-MM-dd'T'HH:mm:ss.SSSX",
                 "yyyy-MM-dd'T'HH:mm:ssX",
-                "yyyy-MM-dd HH:mm:ss"
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd"
         );
 
         String datetimeText = encounterDatetimeElement.getTextContent();
