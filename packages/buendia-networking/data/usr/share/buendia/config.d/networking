@@ -85,6 +85,7 @@ systemctl disable hostapd
 # Connect to an existing wifi network.  This also causes the system
 # to connect again on boot, reusing the same network SSID and password.
 . /home/root/debian/usr/share/buendia/site/networking
+PATH=/usr/local/bin:/usr/bin:$PATH
 wifi $NETWORKING_SSID:$NETWORKING_PASSWORD
 EOF
         ;;
