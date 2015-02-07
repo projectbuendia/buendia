@@ -14,7 +14,9 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 case "$1" in
     start|restart|'')
-        /usr/bin/buendia-pkgclient-autoupdate
+        # This can take a long time and should not block system startup,
+        # so it should run in the background.
+        /usr/bin/buendia-pkgclient-autoupdate &
         ;;
 
     stop)
