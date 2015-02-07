@@ -17,7 +17,6 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
-import org.springframework.format.datetime.joda.JodaDateTimeFormatAnnotationFormatterFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -27,7 +26,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -100,7 +98,6 @@ public class XformInstanceResource implements Creatable {
         try {
             String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
-            adjustSystemClock(xml);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
             throw new GenericRestException("Error storing xform data", e);
@@ -115,10 +112,9 @@ public class XformInstanceResource implements Creatable {
     }
 
     /** Extracts the encounter date from a submitted encounter. */
-    private Date getEncounterDate(Document doc) {
-        Element root = doc.getDocumentElement();
-        Element encounterDatetime = getElementOrThrow(
-                getElementOrThrow(root, "encounter"),
+    private static Date getEncounterDatetime(Document doc) {
+        Element encounterDatetimeElement = getElementOrThrow(
+                getElementOrThrow(doc.getDocumentElement(), "encounter"),
                 "encounter.encounter_datetime");
 
         // The code in completeXform converts the encounter_datetime using
@@ -136,18 +132,34 @@ public class XformInstanceResource implements Creatable {
                 "yyyy-MM-dd HH:mm:ss"
         );
 
-        String datetimeText = encounterDatetime.getTextContent();
+        String datetimeText = encounterDatetimeElement.getTextContent();
         for (String pattern : acceptablePatterns) {
             try {
                 return new SimpleDateFormat(pattern).parse(datetimeText);
             } catch (ParseException e) { }
         }
+        getLog().warn("No encounter_datetime found; using the current time");
         return new Date();
     }
 
-    // TODO(kpy): We're switching to having the server be the authoritative
-    // time source via NTP, so instead of pushing the server's clock forward,
-    // we should just adjust the date to ensure it's in the past.
+    private static void setEncounterDatetime(Document doc, Date datetime) {
+        // Format the encounter_datetime to ensure its timezone has a minute section.
+        // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
+        // for an explanation why. Saxon datetime parsing can't cope with timezones without minutes.
+        String formattedDatetime = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(datetime);
+
+        getElementOrThrow(
+                getElementOrThrow(doc.getDocumentElement(), "encounter"),
+                "encounter.encounter_datetime")
+                .setTextContent(formattedDatetime);
+    }
+
+    // TODO(kpy): The following function is no longer used.  Previously when
+    // the tablets had better clocks than the server, we would adjust the
+    // server's clock.  Now the server is the authoritative time source, so
+    // instead of pushing the server's clock forward, we use NTP to make the
+    // tablets' clocks match the server's clock.
+    // TODO: Remove adjustSystemClock when we feel confident about the new arrangement.
 
     /**
      * Adjusts the system clock to ensure that the incoming encounter date
@@ -171,7 +183,7 @@ public class XformInstanceResource implements Creatable {
 
         try {
             Document doc = XmlUtil.parse(xml);
-            Date date = getEncounterDate(doc);
+            Date date = getEncounterDatetime(doc);
             getLog().info("encounter_datetime parsed as " + date);
 
             // Convert to seconds.  Allow up to 60 sec for truncation to
@@ -186,6 +198,7 @@ public class XformInstanceResource implements Creatable {
         }
     }
 
+    /** Fill in any missing "id" property by converting the UUID to a person_id. */
     private SimpleObject convertIdIfNecessary(SimpleObject post) {
         Object patientId = post.get(PATIENT_ID_PROPERTY);
 
@@ -209,8 +222,9 @@ public class XformInstanceResource implements Creatable {
 
     // VisibleForTesting
     /**
-     * Add appropriate sections to the XForm we receive, to include patient ID
-     * (where present), etc.
+     * Fixes up the received XForm instance with various adjustments and additions
+     * needed to get the observations into OpenMRS, e.g. include Patient ID, adjust
+     * datetime formats, etc.
      */
     static String completeXform(SimpleObject post) throws SAXException, IOException {
         String xml = (String) post.get(XML_PROPERTY);
@@ -244,26 +258,25 @@ public class XformInstanceResource implements Creatable {
         // NOTE(kpy): We use a form_resource named <form-name>.xFormXslt to alter the translation
         // from XML to HL7 so that the encounter_datetime is recorded with a date and time.
         // (The default XSLT transform records only the date, not the time.)  This means that
-        // IF THE FORM IS RENAMED, THE FORM RESOURCE MUST ALSO BE RENAMED, or the encounter
+        // IF THE FORM IS RENAMED, THE FORM_RESOURCE MUST ALSO BE RENAMED, or the encounter
         // datetime will be recorded with only a date and the time will always be 00:00.
 
-        // Modify encounter.encounter_datetime to make sure the timezone format has a minute section
-        // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
-        // for an explanation why. Saxon datetime parsing can't cope with timezones without minutes
-        Element encounterDatetimeElement =
-                getElementOrThrow(getElementOrThrow(root, "encounter"), "encounter.encounter_datetime");
-        String datetime = encounterDatetimeElement.getTextContent();
-        if (datetime != null) {
-            try {
-                // SimpleDateFormat to handle ISO8601, being lenient on timezone.
-                Date date = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX").parse(datetime);
-               // Reformat with the stricter apache class
-                String corrected = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(date);
-                encounterDatetimeElement.setTextContent(corrected);
-            } catch (ParseException e) {
-                getLog().warn("failed to do date correction on " + datetime);
-            }
+        // Extract the datetime and set it back, to reformat it to a format that OpenMRS
+        // will accept, and also to ensure that a datetime is filled in if missing.
+        Date datetime = getEncounterDatetime(doc);
+
+        // The OpenMRS core is not designed for a client-server setup -- it will reject the
+        // encounter if the encounter_datetime is in the future, even if the client's clock
+        // is off by only one millisecond.  Adjust the date to avoid this.
+        Date now = new Date();
+        if (datetime.after(now)) {
+            datetime = now;
         }
+
+        // OpenMRS has trouble handling the encounter_datetime in the format we receive.
+        // We must set the encounter_datetime to ensure it is properly formatted.
+        setEncounterDatetime(doc, datetime);
+
         //TODO(nfortescue); we should also have some code here to ensure that the correct XLST exists for every form
         // otherwise we lose it on form rename.
 
