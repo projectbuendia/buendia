@@ -32,6 +32,7 @@ case $1 in
         cd $tmp
         unzip -q /var/lib/tomcat7/webapps/openmrs.war
         mv $tmp /var/lib/tomcat7/webapps/openmrs
+        chown -R tomcat7.tomcat7 /var/lib/tomcat7/webapps/openmrs
         echo 'Done:'
         du -d 1 /var/lib/tomcat7/webapps
 
