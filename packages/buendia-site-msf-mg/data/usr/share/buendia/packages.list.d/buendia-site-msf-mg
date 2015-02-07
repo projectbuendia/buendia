@@ -1,5 +1,6 @@
 buendia-db-migrate
 buendia-networking
+buendia-ntpserver
 buendia-pkgclient
 buendia-pkgserver
 buendia-pushclock
