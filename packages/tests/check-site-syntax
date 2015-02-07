@@ -20,4 +20,3 @@ for file in data/usr/share/buendia/site/*; do
         ) && echo OK
     fi
 done
-

@@ -22,6 +22,8 @@ export DATA := $(shell [ -d data ] && echo data)
 
 all: $(PACKAGE)
 
+.FORCE:
+
 # Remove the built package and intermediate build directory.
 clean:
 	rm -rf *.deb $(EXTRA_DATA)
@@ -31,11 +33,14 @@ pristine: clean
 	rm -rf /tmp/buendia-fetched
 
 tests:
-	@failures=; for test in ../tests/* tests/*; do if [ -f $$test ]; then $$test || failures="$$failures $$test"; fi; done; if [ -n "$$failures" ]; then echo "Failed: $$failures"; exit 1; fi
+	@failures=; for test in $(find ../tests tests -type f); do $$test || failures="$$failures $$test"; done; if [ -n "$$failures" ]; then echo "Failed: $$failures"; exit 1; fi
 
 test: tests  # in case you mistype "make tests"
 
 $(PACKAGE): tests control/* $(DATA_FILES) $(EXTRA_DATA)
 	$(TOOLS)/mkdeb $@ control $(DATA) $(EXTRA_DATA)
 
-.FORCE:
+# Site packages can just declare a need for this file and it will be made.
+$(EXTRA_DATA)/usr/share/buendia/site/id:
+	mkdir -p $$(dirname $@)
+	name=$(PACKAGE_NAME); echo "SITE_ID=$${name#buendia-site-}" > $@
