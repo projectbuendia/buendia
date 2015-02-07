@@ -6,7 +6,7 @@
 # Should-Start:
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: Warms up the Buendia server once on boot.
+# Short-Description: Starts warming up the Buendia server once on boot.
 # Description: Makes HTTP requests to the Buendia server until it comes up.
 ### END INIT INFO
 
@@ -14,7 +14,9 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 
 case "$1" in
     start|restart|'')
-        /usr/bin/buendia-warmup -r localhost:9000 || service tomcat7 restart
+        # This can take a long time and should not block system startup or
+        # package installation, so it must run in the background.
+        (/usr/bin/buendia-warmup -r localhost:9000 || service tomcat7 restart) >> /var/log/buendia-warmup.log 2>&1 &
         ;;
 
     stop)

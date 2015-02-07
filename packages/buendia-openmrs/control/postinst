@@ -26,11 +26,14 @@ case $1 in
         }
         trap cleanup EXIT
 
+        echo "Unpacking openmrs.war..."
         rm -rf $tmp
         mkdir -p $tmp
         cd $tmp
         unzip -q /var/lib/tomcat7/webapps/openmrs.war
         mv $tmp /var/lib/tomcat7/webapps/openmrs
+        echo 'Done:'
+        du -d 1 /var/lib/tomcat7/webapps
 
         # Move aside any existing .OpenMRS directory.
         if [ -e /usr/share/tomcat7/.OpenMRS ]; then
