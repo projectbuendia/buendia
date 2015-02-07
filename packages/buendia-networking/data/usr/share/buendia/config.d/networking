@@ -74,7 +74,7 @@ esac
 
 case "$NETWORKING_AP" in
     ''|0|false|off|no)
-        echo "Joining an existing wifi network."
+        echo "Joining the existing wifi network '$NETWORKING_SSID'."
         cat <<'EOF' | buendia-enter-yocto
 # Stop being an access point now.
 systemctl stop hostapd
@@ -90,7 +90,7 @@ EOF
         ;;
 
     *)
-        echo "Creating a new wifi network by being an access point."
+        echo "Becoming an AP for a new wifi network '$NETWORKING_SSID'."
         cat <<'EOF' | buendia-enter-yocto
 hostapd_conf=/etc/hostapd/hostapd.conf
 . /home/root/debian/usr/share/buendia/site/networking
