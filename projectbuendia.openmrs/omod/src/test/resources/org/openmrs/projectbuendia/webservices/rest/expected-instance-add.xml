@@ -28,7 +28,7 @@
 
 	<encounter>
 		<encounter.encounter_datetime
-			openmrs_table="encounter" openmrs_attribute="encounter_datetime">2014-11-13</encounter.encounter_datetime>
+			openmrs_table="encounter" openmrs_attribute="encounter_datetime">2014-11-13T00:00:00+00:00</encounter.encounter_datetime>
 		<encounter.location_id openmrs_table="encounter"
 			openmrs_attribute="location_id">1</encounter.location_id>
 		<encounter.provider_id openmrs_table="encounter"
