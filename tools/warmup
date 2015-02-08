@@ -17,10 +17,7 @@ if [ "$1" == "-h" -o "$hostport" == "" ]; then
 fi
 
 tmpout=/tmp/warmup.out.$$
-function cleanup() {
-    rm -rf $tmpout
-}
-trap cleanup EXIT
+trap 'rm -rf $tmpout' EXIT
 
 # These are just defaults.
 if [ -z "$SERVER_OPENMRS_USER" ]; then

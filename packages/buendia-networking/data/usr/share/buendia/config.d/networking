@@ -30,10 +30,7 @@ fi
 # to indicate that the settings have been applied successfully.
 tmp_last=/tmp/buendia-networking.last.$$
 run_last=/run/buendia-networking.last
-function cleanup() {
-    rm -f $tmp_last
-}
-trap cleanup EXIT
+trap 'rm -f $tmp_last' EXIT
 
 cat <<EOF > $tmp_last
 NETWORKING_AP=$NETWORKING_AP

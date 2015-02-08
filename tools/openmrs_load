@@ -34,10 +34,7 @@ fi
 
 tmpdir=/tmp/openmrs_load.$$
 tmpzip=/tmp/openmrs_dump.$$.zip
-function cleanup() {
-    rm -rf $tmpdir $tmpzip
-}
-trap cleanup EXIT
+trap 'rm -rf $tmpdir $tmpzip' EXIT
 
 mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
 

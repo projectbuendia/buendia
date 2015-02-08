@@ -25,10 +25,7 @@ EOF
 fi
 
 tmp=/tmp/make_package.$$
-function cleanup() {
-    rm -rf $tmp
-}
-trap cleanup EXIT
+trap 'rm -rf $tmp' EXIT
 
 rm -rf $tmp
 TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag

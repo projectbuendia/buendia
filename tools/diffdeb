@@ -13,11 +13,7 @@ fi
 TAR=$(which gtar || which tar)  # we need GNU tar for a proper comparison
 atmp=/tmp/diffdeb.$$.1
 btmp=/tmp/diffdeb.$$.2
-function cleanup() {
-    rm -rf $atmp $btmp
-
-}
-trap cleanup EXIT
+trap 'rm -rf $atmp $btmp' EXIT
 
 # Unpacks a .deb file into a directory ready for comparison.  The file named
 # "deb" is destructively unpacked into the current directory.  The final

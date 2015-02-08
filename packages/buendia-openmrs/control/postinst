@@ -20,11 +20,7 @@ case $1 in
         # unpacked properly, we unpack it now, while tomcat7 is stopped.
         service tomcat7 stop
         tmp=/tmp/openmrs.$$
-
-        function cleanup() {
-            rm -rf $tmp
-        }
-        trap cleanup EXIT
+        trap 'rm -rf $tmp' EXIT
 
         echo "Unpacking openmrs.war..."
         rm -rf $tmp

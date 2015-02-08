@@ -24,10 +24,7 @@ fi
 tmpdir=/tmp/openmrs_dump.$$
 tmpzip=/tmp/openmrs_dump.$$.zip
 tmpsql=/tmp/openmrs_dump.$$.sql
-function cleanup() {
-    rm -rf $tmpdir $tmpzip $tmpsql
-}
-trap cleanup EXIT
+trap 'rm -rf $tmpdir $tmpzip $tmpsql' EXIT
 
 # Make a temporary directory (mode 777 so it is writable by mysqld).
 mkdir -m 777 -p $tmpdir

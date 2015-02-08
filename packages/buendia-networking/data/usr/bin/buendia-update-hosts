@@ -1,11 +1,7 @@
 #!/bin/bash
 
 tmp=/tmp/hosts.$$
-
-function cleanup() {
-    rm -f $tmp
-}
-trap cleanup EXIT
+trap 'rm -f $tmp' EXIT
 
 # Remove previously added hostnames.
 grep -v 'buendia-update-hosts' /etc/hosts > $tmp
