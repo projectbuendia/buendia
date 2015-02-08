@@ -67,6 +67,9 @@ $TAR --owner=0 --group=0 -cf - -C debian . -C /tmp/debian | write_to_edison /etc
 # will be saved and reused when wifi is turned on again in the future.
 echo "/usr/local/bin/wifi '$setup_ssid_psk'" | do_on_edison
 
+# Enable all the services we need.
+echo "systemctl enable save-clock wpa_supplicant install-buendia-base debian-startup" | do_on_edison
+
 # Reboot to continue installation.
 echo '(sync; reboot) &' | do_on_edison
 reboot=$(date)
