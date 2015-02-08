@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for script in $(find data -type f); do
+for script in $(find data -type f 2>/dev/null); do
     if (head -1 $script | grep -q '^#!/.*sh *$'); then
         if [ ! -x $script ]; then
             echo "$script looks like a shell script but isn't executable."
