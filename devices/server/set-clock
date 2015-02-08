@@ -1,0 +1,24 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+date="$*"
+
+if [ "$1" == "-h" ]; then
+    echo "Usage: $0 [YYYY-MM-DD HH:MM:SS]"
+    echo
+    echo "Sets the clock on the Edison server to match this host's clock,"
+    echo "or to a specified date and time."
+    exit 1
+fi
+
+if [ -z "$date" ]; then
+    date=$(date '+%Y-%m-%d %H:%M:%S')
+fi
+
+cat <<EOF | do_on_edison
+echo 'Setting system clock to $date.'
+date -s '$date'
+touch -t '$date' /var/lib/systemd/clock
+EOF

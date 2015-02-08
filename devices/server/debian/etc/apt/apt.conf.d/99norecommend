@@ -1,0 +1,3 @@
+# Configure apt not to install extra packages we don't need.
+APT::Install-Recommends "0";
+APT::Install-Suggests "0";

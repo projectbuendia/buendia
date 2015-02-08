@@ -44,37 +44,31 @@ echo $flashed
 ./configure-root-access "$password"
 
 # Set the clock to something approximately correct.
-date=$(date '+%Y-%m-%d %H:%M:%S')
-cat <<EOF | do_in_yocto
-date -s '$date'
-touch /var/lib/systemd/clock
-EOF
+./set-clock
 
-# Leave the site ID where usr/local/bin/install-buendia-base will find it.
-[ -n "$site_id" ] && cat <<EOF | do_in_yocto
-echo "SITE_ID=$site_id" > /etc/buendia-site-id
-EOF
-
-# Leave the repo URL where usr/local/bin/install-buendia-base will find it.
-[ -n "$repo_url" ] && cat <<EOF | do_in_yocto
-echo deb [arch=all] '$repo_url' stable main > /etc/buendia-base.sources.list
-EOF
+# Prepare a few extra files to copy into the Debian system.
+mkdir /tmp/debian
+if [ -n "$site_id" ]; then
+    mkdir -p /tmp/debian/usr/share/buendia/site
+    echo "SITE_ID=$site_id" > /tmp/debian/usr/share/buendia/site/id
+fi
+if [ -n "$repo_url" ]; then
+    mkdir -p /tmp/debian/etc/apt/sources.list.d
+    echo "deb [arch=all] $repo_url stable main" > /tmp/debian/etc/apt/sources.list.d/buendia-base.list
+fi
 
 # Copy all the setup files and scripts onto the Edison.
-cat <<EOF | do_in_yocto
-tar cf /var/backups/systemd.tar /etc/systemd /lib/systemd/system
-EOF
+echo 'tar cf /var/backups/systemd.tar /etc/systemd /lib/systemd/system' | do_on_edison
 TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
-$TAR --owner=0 --group=0 -cf - etc lib usr | $ssh $target 'tar xf - -C /'
+$TAR --owner=0 --group=0 -cf - -C yocto . | $ssh $target 'tar xf - -C /'
+$TAR --owner=0 --group=0 -cf - -C debian . -C /tmp/debian | write_to_edison /etc/debian.tar
 
 # Ensure that the Edison can connect to the setup network.  The configuration
 # will be saved and reused when wifi is turned on again in the future.
-cat <<EOF | do_in_yocto
-/usr/local/bin/wifi '$setup_ssid_psk'
-EOF
+echo "/usr/local/bin/wifi '$setup_ssid_psk'" | do_on_edison
 
 # Reboot to continue installation.
-echo '(sync; reboot) &' | do_in_yocto
+echo '(sync; reboot) &' | do_on_edison
 reboot=$(date)
 
 echo

@@ -10,17 +10,25 @@ key_file=$HOME/.ssh/edison
 ssh_opts="-i $key_file -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 ssh="ssh $ssh_opts"
 scp="scp $ssh_opts"
-ssh_port=22
 
 # Executes the (ash, not bash) shell commands passed into stdin on the Edison.
-# Note that whereas cat <<EOF | do_in_yocto will expand shell variables on
-# this host before execution, cat <<'EOF' | do_in_yocto will not.
-function do_in_yocto() {
+# Note that whereas cat <<EOF | do_on_edison will expand shell variables on
+# this host before execution, cat <<'EOF' | do_on_edison will not.
+function do_on_edison() {
   connect_ethernet
   echo ">> $target" 1>&2
-  $ssh -p $ssh_port $target ash
+  $ssh $target ash
 }
 
+# Writes the contents of stdin to a file on the Edison.
+function write_to_edison() {
+  file=$1
+  connect_ethernet
+  echo "=> $target:$file" 1>&2
+  $ssh $target "cat > '$file'" 2>&1 | grep -v 'Warning: Permanently added'
+}
+
+# Connect a host Linux system to the Edison on its USB Ethernet interface.
 function connect_linux_ethernet() {
   if [[ "$OSTYPE" == linux* ]]; then
     if [ $(id -u) != 0 ]; then
@@ -32,6 +40,7 @@ function connect_linux_ethernet() {
   fi
 }
 
+# Connect a host Mac system to the Edison on its USB Ethernet interface.
 function connect_mac_ethernet() {
   if [[ "$OSTYPE" == darwin* ]]; then
     usbif=$(ifconfig | grep -v '^en[01]:' | grep -vw UP | grep -o '^en[0-9]\+')
@@ -46,6 +55,7 @@ function connect_mac_ethernet() {
   fi
 }
 
+# Connect a host system to the Edison on its USB Ethernet interface.
 function connect_ethernet() {
   retry_count=0
   while true; do
