@@ -41,10 +41,13 @@ NETWORKING_IP_ADDRESS=$NETWORKING_IP_ADDRESS
 EOF
 
 # Check the record of the last settings that were applied, so we can avoid
-# bringing the network down if nothing has changed.
-if [ -e $run_last ] && diff -q $tmp_last $run_last; then
-    echo "Networking configuration unchanged."
-    exit 0
+# bringing the network down if nothing has changed.  Specifying the -f switch
+# forces reconfiguration even when nothing appears to have changed.
+if [ "$1" != "-f" ]; then
+    if [ -e $run_last ] && diff -q $tmp_last $run_last; then
+        echo "Networking configuration unchanged."
+        exit 0
+    fi
 fi
 
 # Apply the settings to the Debian network interface configuration.
@@ -107,11 +110,6 @@ echo "wpa_passphrase=$NETWORKING_PASSWORD" >> $hostapd_conf
 systemctl restart hostapd
 systemctl enable hostapd
 EOF
-    if $(bool $NETWORKING_DHCP_DNS_SERVER); then
-        # Restarting hostapd clears the wlan0 IP address, so set it again.
-        echo "ifconfig wlan0 up $NETWORKING_IP_ADDRESS" | buendia-enter-yocto
-    fi
-else
     echo "Joining existing wifi network '$NETWORKING_SSID'."
     cat <<'EOF' | buendia-enter-yocto
 # Stop being an access point now, and don't become one on future boots.
@@ -124,6 +122,11 @@ systemctl disable hostapd
 PATH=/usr/local/bin:/usr/bin:$PATH
 wifi $NETWORKING_SSID:$NETWORKING_PASSWORD
 EOF
+fi
+
+if $(bool $NETWORKING_DHCP_DNS_SERVER); then
+    # Restarting hostapd or wifi clears the wlan0 IP address, so set it again.
+    echo "ifconfig wlan0 up $NETWORKING_IP_ADDRESS" | buendia-enter-yocto
 fi
 
 # Record the settings that were successfully configured.
