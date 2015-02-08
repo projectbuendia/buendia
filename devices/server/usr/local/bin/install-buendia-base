@@ -127,4 +127,4 @@ echo "Buendia base system successfully installed, rebooting."
 echo
 touch /etc/buendia-base-installed
 sleep 5
-reboot  # will run buendia-pkgclient-update on boot and do first install
+reboot  # will run buendia-update on boot and do first install

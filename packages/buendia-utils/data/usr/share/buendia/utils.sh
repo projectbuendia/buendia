@@ -12,3 +12,8 @@ mkdir -p /usr/share/buendia/diversions
 mkdir -p /usr/share/buendia/names.d
 mkdir -p /usr/share/buendia/packages.list.d
 mkdir -p /usr/share/buendia/site
+
+# Treats a "0" or "" as false and anything else as true.
+function bool() {
+    [ -n "$1" -a "$1" != "0" ]
+}

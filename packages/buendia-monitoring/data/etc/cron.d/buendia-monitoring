@@ -1,0 +1,10 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+0 * * * * root logrotate /etc/logrotate.conf
+
+0 * * * * root buendia-log -y df
+0 */6 * * * root buendia-log -y 'du / | egrep -v "\s/sys|\s/proc"'
+*/10 * * * * root buendia-log free
+*/10 * * * * root buendia-log ps -efww
+*/10 * * * * root buendia-log ifconfig

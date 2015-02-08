@@ -17,18 +17,6 @@ EOF
     . $SETTINGS
 fi
 
-# Normalize the boolean flags.
-if [[ "$NETWORKING_AP" =~ ^0*$ ]]; then
-    NETWORKING_AP=
-else
-    NETWORKING_AP=1
-fi
-if [[ "$NETWORKING_DHCP_DNS_SERVER" =~ ^0*$ ]]; then
-    NETWORKING_DHCP_DNS_SERVER=
-else
-    NETWORKING_DHCP_DNS_SERVER=1
-fi
-
 # Update the /etc/hosts file with mappings for the server's IP addresses.
 buendia-update-hosts
 
@@ -73,7 +61,7 @@ iface wlan0 inet manual
 EOF
 
 # Activate or deactivate the DHCP server and client according to the settings.
-if [ -n "$NETWORKING_DHCP_DNS_SERVER" ]; then
+if $(bool $NETWORKING_DHCP_DNS_SERVER); then
     echo "Turning on DHCP/DNS server; disabling DHCP client."
 
     # Turn off the local DHCP client.
@@ -106,8 +94,8 @@ EOF
 fi
 
 # Activate or deactivate access point mode according to the settings.
-if [ -n "$NETWORKING_AP" ]; then
-    echo "Becoming an AP for a new wifi network '$NETWORKING_SSID'."
+if $(bool $NETWORKING_AP); then
+    echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
 
     # hostapd runs in Yocto, so this script writes to hostapd.conf directly.
     cat <<'EOF' | buendia-enter-yocto
@@ -122,12 +110,12 @@ echo "wpa_passphrase=$NETWORKING_PASSWORD" >> $hostapd_conf
 systemctl restart hostapd
 systemctl enable hostapd
 EOF
-    if [ -n "$NETWORKING_DHCP_DNS_SERVER" ]; then
+    if $(bool $NETWORKING_DHCP_DNS_SERVER); then
         # Restarting hostapd clears the wlan0 IP address, so set it again.
         echo "ifconfig wlan0 up $NETWORKING_IP_ADDRESS" | buendia-enter-yocto
     fi
 else
-    echo "Joining the existing wifi network '$NETWORKING_SSID'."
+    echo "Joining existing wifi network '$NETWORKING_SSID'."
     cat <<'EOF' | buendia-enter-yocto
 # Stop being an access point now, and don't become one on future boots.
 systemctl stop hostapd

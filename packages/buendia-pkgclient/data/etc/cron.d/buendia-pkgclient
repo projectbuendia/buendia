@@ -1,1 +1,1 @@
-*/5 * * * * root /usr/bin/buendia-pkgclient-autoupdate -u 60
+*/5 * * * * root /usr/bin/buendia-autoupdate -u 60

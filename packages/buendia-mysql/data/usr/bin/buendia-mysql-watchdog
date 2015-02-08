@@ -1,24 +1,16 @@
 #!/bin/bash
 
-if [ -n "$(pidof -x buendia-pkgclient-update apt-get dpkg)" ]; then
-    echo "$(date) >> Package update scripts are running; skipping check."
+if [ -n "$(pidof -x buendia-update apt-get dpkg)" ]; then
+    echo "Package update scripts are running; skipping check."
     exit 0
 fi
 
-echo "$(date) >> Checking on MySQL..."
 if ! service mysql status 2>&1; then
-    archive=/var/log/mysql-watchdog/$(date +"%Y-%m-%d.%H.%M").tar.gz
-    echo "$(date) >> MySQL is not running, saving logs in $archive"
-    mkdir -p $(dirname $archive)
-    tar cfz $archive /var/run/mysqld /var/log/mysql* \
-        /var/log/dmesg /var/log/messages /var/log/syslog /var/log/*.log \
-        || true
-
-    echo "$(date) >> Restarting MySQL..."
+    echo "mysql is not running, restarting..."
     if service mysql restart; then
-        echo "$(date) >> MySQL has been restarted."
+        echo "mysql has been restarted."
     else
-        echo "$(date) >> MySQL could not be restarted."
+        echo "mysql could not be restarted."
     fi
 fi
 

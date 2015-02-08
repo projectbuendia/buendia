@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+if [ "$1" == "-h" ]; then
+    echo "Usage: $0 [-u <seconds>]"
+    echo
+    echo "Updates all the Buendia packages, then reboots if necessary."
+    echo "Performs the update only if /usr/share/buendia/site/pkgclient"
+    echo "sets PKGCLIENT_AUTOUPDATE=1."
+    echo
+    echo "Specify -u <n> to perform the update only after the machine has"
+    echo "been up for at least <n> seconds."
+    exit 1
+fi
+
+if [ "$1" == "-u" ]; then
+    min_upsecs="$2"
+    upsecs=$(grep -o '[0-9]\+' /proc/uptime | head -1)
+    if [ "$upsecs" -lt "$min_upsecs" ]; then
+        echo "Not autoupdating: uptime ($upsecs) has not reached $min_upsecs seconds yet."
+        exit 1
+    fi
+fi
+
+if ! bool $PKGCLIENT_AUTOUPDATE; then
+    echo "Not autoupdating: PKGCLIENT_AUTOUPDATE is disabled."
+    exit 0
+fi
+
+echo "Starting autoupdate."
+
+buendia-update
+
+if [ -f /var/run/reboot-required ]; then
+    rm /var/run/reboot-required
+    echo "Rebooting after package update."
+    echo 'Finished updating packages:' > /tmp/announcement.$$
+    buendia-status >> /tmp/announcement.$$
+    cat <<EOF >> /tmp/announcement.$$
+Package installation requires a reboot.  Rebooting in 10 seconds!
+
+EOF
+    echo "/debian/usr/bin/wall /debian/tmp/announcement.$$" | buendia-enter-yocto
+    sleep 10
+    echo reboot | buendia-enter-yocto
+else
+    echo "Update complete."
+fi

@@ -8,7 +8,7 @@ case $1 in
         /usr/share/buendia/config.d/pkgclient
 
         # Make the update run once on startup
-        update-rc.d buendia-pkgclient-autoupdate defaults
+        update-rc.d buendia-autoupdate defaults
 
         # Ensure that cron is up so it can run the update periodically
         service cron restart

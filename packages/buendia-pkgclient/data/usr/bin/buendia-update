@@ -12,7 +12,7 @@ fi
 
 (
     if ! flock -n 9; then
-        echo "buendia-pkgclient-update already running; not starting."
+        echo "buendia-update already running; not starting."
         exit 1
     fi
 
@@ -36,4 +36,4 @@ fi
     if [ -f /var/run/reboot-required ]; then
         echo "One or more packages have indicated that a reboot is required!"
     fi
-) 9>/var/run/buendia-pkgclient-update.lock
+) 9>/var/run/buendia-update.lock

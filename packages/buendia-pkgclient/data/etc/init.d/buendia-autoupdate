@@ -1,6 +1,6 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides: buendia-pkgclient-autoupdate
+# Provides: buendia-autoupdate
 # Required-Start: $all
 # Required-Stop:
 # Should-Start:
@@ -16,7 +16,7 @@ case "$1" in
     start|restart|'')
         # This can take a long time and should not block system startup,
         # so it should run in the background.
-        /usr/bin/buendia-pkgclient-autoupdate &
+        /usr/bin/buendia-autoupdate &
         ;;
 
     stop)
@@ -24,7 +24,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: buendia-pkgclient-autoupdate [start|restart|stop]" >&2
+        echo "Usage: buendia-autoupdate [start|restart|stop]" >&2
         exit 3
         ;;
 esac
