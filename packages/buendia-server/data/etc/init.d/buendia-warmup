@@ -16,7 +16,7 @@ case "$1" in
     start|restart|'')
         # This can take a long time and should not block system startup or
         # package installation, so it must run in the background.
-        buendia-log 'buendia-warmup -r localhost:9000 || service tomcat7 restart'
+        buendia-log 'buendia-warmup -r localhost:9000 || service tomcat7 restart' &
         ;;
 
     stop)

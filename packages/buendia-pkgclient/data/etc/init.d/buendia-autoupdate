@@ -16,7 +16,7 @@ case "$1" in
     start|restart|'')
         # This can take a long time and should not block system startup,
         # so it should run in the background.
-        /usr/bin/buendia-autoupdate &
+        buendia-log buendia-autoupdate &
         ;;
 
     stop)

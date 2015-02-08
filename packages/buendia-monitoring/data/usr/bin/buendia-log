@@ -42,8 +42,9 @@ trap 'rm -f $RESULT_FILE' EXIT
 ) 2>&1 | perl -n -e '
     $| = 1;  # unbuffer output
     my ($s, $m, $h, $d, $l, $y) = gmtime();
-    printf "%04d-%02d-%02d %02d:%02d:%02d [%-5d]: ",
+    printf "%04d-%02d-%02d %02d:%02d:%02d [%5d]: ",
         $y + 1900, $l + 1, $d, $h, $m, $s, $ENV{"LOGGER_PID"};
+    s/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d //;
     print $_;
 ' | tee -a $logfile
 

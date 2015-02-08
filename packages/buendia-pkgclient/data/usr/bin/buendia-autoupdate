@@ -33,7 +33,6 @@ echo "Starting autoupdate."
 buendia-update
 
 if [ -f /var/run/reboot-required ]; then
-    rm /var/run/reboot-required
     echo "Rebooting after package update."
     echo 'Finished updating packages:' > /tmp/announcement.$$
     buendia-status >> /tmp/announcement.$$
