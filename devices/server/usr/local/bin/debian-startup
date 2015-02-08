@@ -3,7 +3,11 @@
 # Executes the Debian system startup scripts.
 echo "=== $(date): $0" >> /var/log/debian-startup.log
 (
-    /usr/local/bin/enter-debian /etc/init.d/rc 2 && \
-        echo 2 > /debian/etc/runlevel
+    # Move aside scripts that conflict with startup already done by Yocto.
+    cd /debian/etc/rcS.d
+    mkdir -p unused
+    mv *udev *hwclock.sh *checkroot.sh *mtab.sh *checkfs.sh *mountall.sh unused
+    /usr/local/bin/enter-debian /etc/init.d/rc S && \
+        /usr/local/bin/enter-debian /etc/init.d/rc 2
 ) 2>&1 | tee -a /var/log/debian-startup.log
 

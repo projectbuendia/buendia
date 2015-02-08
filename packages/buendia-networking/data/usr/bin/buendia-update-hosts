@@ -1,18 +1,30 @@
 #!/bin/bash
 
+tmp=/tmp/hosts.$$
+
+function cleanup() {
+    rm -f $tmp
+}
+trap cleanup EXIT
+
 # Remove previously added hostnames.
-grep -v '# added by buendia' /etc/hosts > /tmp/hosts.$$
+grep -v 'buendia-update-hosts' /etc/hosts > $tmp
+
+# Ensure localhost is in the file.
+if ! grep -q localhost /etc/hosts; then
+    echo '127.0.0.1 localhost' >> $tmp
+fi
 
 # Get the list of names by which this machine wants to be known.
 names=$(echo $(hostname) $(ls /usr/share/buendia/names.d/))
 
 # Add a line for each of the machine's IP addresses.
 for ip in $(ifconfig | grep -o 'inet addr:[0-9.]\+' | sed -e 's/.*://'); do
-    echo "$ip $names # added by buendia" >> /tmp/hosts.$$
+    echo "$ip $names  # added by buendia-update-hosts" >> $tmp
 done
 
 # Install the new hosts file.
-mv /tmp/hosts.$$ /etc/hosts
+mv $tmp /etc/hosts
 
 # Tell dnsmasq to reload the hosts file, if it's running.
 if [ -e /var/run/dnsmasq/dnsmasq.pid ]; then
