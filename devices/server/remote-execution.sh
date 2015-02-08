@@ -35,6 +35,7 @@ function write_to_edison() {
   file=$1
   connect_ethernet
   echo "=> $target:$file" 1>&2
+  result_file=/tmp/result.$$
   # Saving the exit status lets us use grep to suppress the annoying "Warning:
   # Permanently added..." message, while returning the exit status of cat.
   (

@@ -72,6 +72,7 @@ echo "/usr/local/bin/wifi '$setup_ssid_psk'" | do_on_edison
 echo "systemctl enable save-clock wpa_supplicant install-buendia-base debian-startup" | do_on_edison
 
 # Reboot to continue installation.
+echo 'Rebooting Edison...'
 echo '(sync; reboot) &' | do_on_edison
 reboot=$(date)
 
