@@ -3,6 +3,6 @@
 set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
-    install|upgrade) service_if_exists tomcat7 stop ;;
+    install|upgrade) service_if_exists ntp stop ;;
     *) exit 1
 esac

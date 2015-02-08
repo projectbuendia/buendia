@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    remove|upgrade|deconfigure)
+        service nginx stop
+        service_if_exists udev stop
+        ;;
+
+    *) exit 1
+esac

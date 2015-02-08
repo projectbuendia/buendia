@@ -7,15 +7,15 @@ case $1 in
         # Make all subdirectories executable and readable
         chmod -R +rX /usr/share/buendia/packages
 
-        # Disable the default nginx configuration
+        # Disable the default nginx website
         rm -f /etc/nginx/sites-enabled/default
 
-        # Enable the pkgserver configuration
+        # Enable the pkgserver website
         ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled
 
-        # Restart services
-        service nginx restart
-        /etc/init.d/udev restart || true
+        # Bring services back up
+        service nginx start
+        service_if_exists udev start
         ;;
 
     *) exit 1

@@ -4,8 +4,8 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     remove|purge|upgrade|disappear)
-        service nginx restart
-        /etc/init.d/udev restart || true
+        service_if_exists nginx start
+        service_if_exists udev start
         ;;
 
     *) exit 1

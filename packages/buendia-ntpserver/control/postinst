@@ -6,7 +6,7 @@ buendia-divert $1 /etc/ntp.conf
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        service ntp restart
+        service ntp start
         ;;
 
     *) exit 1

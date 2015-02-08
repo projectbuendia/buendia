@@ -11,7 +11,7 @@ case $1 in
         update-rc.d buendia-autoupdate defaults
 
         # Ensure that cron is up so it can run the update periodically
-        service cron restart
+        service cron start
         ;;
 
     *) exit 1

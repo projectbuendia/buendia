@@ -2,10 +2,6 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-buendia-divert $1 /etc/default/tomcat7
-buendia-divert $1 /etc/tomcat7/server.xml
-buendia-divert $1 /etc/tomcat7/tomcat-users.xml
-
 case $1 in
     remove|upgrade|deconfigure) service tomcat7 stop ;;
     *) exit 1

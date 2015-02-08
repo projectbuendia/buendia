@@ -17,3 +17,10 @@ mkdir -p /usr/share/buendia/site
 function bool() {
     [ -n "$1" -a "$1" != "0" ]
 }
+
+# Starts, stops, or restarts a service, without failing if it doesn't exist.
+function service_if_exists() {
+    if [ -e /etc/init.d/$1 ]; then
+        service $1 $2
+    fi
+}
