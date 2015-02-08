@@ -10,6 +10,7 @@ if [ "$b" == "" ]; then
     exit 1
 fi
 
+TAR=$(which gtar || which tar)  # we need GNU tar for a proper comparison
 atmp=/tmp/diffdeb.$$.1
 btmp=/tmp/diffdeb.$$.2
 function cleanup() {
@@ -35,11 +36,11 @@ function unpack_and_remove_version() {
     # Unpack control.tar.gz and delete the "Version:" line
     mkdir control
     cd control
-    tar xfz ../control.tar.gz
+    $TAR xfz ../control.tar.gz
     grep -v '^Version: ' control > control.unversioned
-    touch --date='1970-01-01 00:00:00 -0000' control.unversioned
+    touch -t 197001010000 control.unversioned
     rm control ../control.tar.gz
-    tar cf ../control.tar *
+    $TAR cf ../control.tar *
 }
 
 mkdir -p $atmp $btmp

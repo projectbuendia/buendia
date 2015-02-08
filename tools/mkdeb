@@ -3,7 +3,6 @@
 set -e
 output="$1"; shift
 control="$1"; shift
-pwd="$(pwd)"
 
 if [ "$1" == "" ]; then
     cat <<EOF
@@ -50,6 +49,20 @@ for i in $tmp/control/*.template; do
         rm $i
     fi
 done
+
+# Set each directory's timestamp to the timestamp of the newest file within,
+# giving deterministic timetsamps so that the resulting data.tar remains
+# exactly identical if none of the input files have changed.
+(
+    unset CLICOLOR
+    unset CLICOLOR_FORCE
+    unset LSCOLORS
+    unset LS_COLORS
+    for dir in $(find $tmp -type d | sort -r); do
+        cd $dir
+        touch -r "$(command ls -1t | head -1)" .
+    done
+)
 
 # Pack up the Debian package.
 $TAR --owner=0 --group=0 -cvzf $tmp/control.tar.gz -C $tmp/control .
