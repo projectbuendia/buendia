@@ -12,7 +12,11 @@ if ! grep -q localhost /etc/hosts; then
 fi
 
 # Get the list of names by which this machine wants to be known.
-names=$(echo $(hostname) $(ls /usr/share/buendia/names.d/))
+unset CLICOLOR
+unset CLICOLOR_FORCE
+unset LSCOLORS
+unset LS_COLORS
+names=$(echo $(hostname) $(command ls /usr/share/buendia/names.d/))
 
 # Add a line for each of the machine's IP addresses.
 for ip in $(ifconfig | grep -o 'inet addr:[0-9.]\+' | sed -e 's/.*://'); do
