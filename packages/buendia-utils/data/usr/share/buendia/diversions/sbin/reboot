@@ -1,0 +1,15 @@
+#!/bin/bash
+
+announce=/tmp/announcement.$$
+cat <<EOF > $announce
+
+Rebooting in 5 seconds!
+
+EOF
+
+while true; do
+    echo "/debian/usr/bin/wall /debian$announce" | buendia-enter-yocto
+    sleep 5
+    echo reboot | buendia-enter-yocto
+    sleep 5
+done

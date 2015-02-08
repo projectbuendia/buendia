@@ -33,7 +33,12 @@ fi
     fi
     apt-get -y --allow-unauthenticated install $packages || true
 
+    echo
+    echo "Finished update:"
+    buendia-status
+
     if [ -f /var/run/reboot-required ]; then
+        echo
         echo "One or more packages have indicated that a reboot is required!"
     fi
 ) 9>/var/run/buendia-update.lock
