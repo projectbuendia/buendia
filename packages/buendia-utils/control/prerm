@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+buendia-divert $1 /sbin/reboot
