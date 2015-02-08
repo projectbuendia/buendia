@@ -17,7 +17,17 @@ scp="scp $ssh_opts"
 function do_on_edison() {
   connect_ethernet
   echo ">> $target" 1>&2
-  $ssh $target ash
+  result_file=/tmp/result.$$
+  # Saving the exit status lets us use grep to suppress the annoying "Warning:
+  # Permanently added..." message, while returning the exit status of ash.
+  (
+      $ssh $target ash
+      echo $? > $result_file
+  ) 2>&1 | grep -v 'Warning: Permanently added' || true
+  result=$(cat $result_file)
+  rm -f $result_file
+  echo "<< $result" 1>&2
+  return $result
 }
 
 # Writes the contents of stdin to a file on the Edison.
@@ -25,7 +35,16 @@ function write_to_edison() {
   file=$1
   connect_ethernet
   echo "=> $target:$file" 1>&2
-  $ssh $target "cat > '$file'" 2>&1 | grep -v 'Warning: Permanently added'
+  # Saving the exit status lets us use grep to suppress the annoying "Warning:
+  # Permanently added..." message, while returning the exit status of cat.
+  (
+      $ssh $target "cat > '$file'"
+      echo $? > $result_file
+  ) 2>&1 | grep -v 'Warning: Permanently added' || true
+  result=$(cat $result_file)
+  rm -f $result_file
+  echo "<= $result" 1>&2
+  return $result
 }
 
 # Connect a host Linux system to the Edison on its USB Ethernet interface.
