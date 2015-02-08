@@ -62,7 +62,7 @@ fi
 echo 'tar cf /var/backups/systemd.tar /etc/systemd /lib/systemd/system' | do_on_edison
 TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
 $TAR --owner=0 --group=0 -cf - -C yocto . | $ssh $target 'tar xf - -C /'
-$TAR --owner=0 --group=0 -cf - -C debian . -C /tmp/debian | write_to_edison /etc/debian.tar
+$TAR --owner=0 --group=0 -cf - -C debian . -C /tmp/debian . | write_to_edison /etc/debian.tar
 
 # Ensure that the Edison can connect to the setup network.  The configuration
 # will be saved and reused when wifi is turned on again in the future.
