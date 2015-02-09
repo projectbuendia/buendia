@@ -1,7 +1,6 @@
 #!/bin/ash
 
 set -e
-ROOT=/home/root/debian  # must be on the /home filesystem
 PATH=/usr/local/bin:$PATH
 
 # All the non-Buendia packages that are considered part of the base system.
@@ -18,6 +17,7 @@ if [ -f /etc/buendia-base-installed ]; then
 fi
 
 # Make sure the Edison is able to connect to an externally managed wifi network.
+systemctl start wpa_supplicant  # enable WPA client
 systemctl enable wpa_supplicant_event  # enable DHCP client
 systemctl disable hostapd  # don't be an access point
 systemctl stop hostapd  # don't be an access point
@@ -34,7 +34,7 @@ if wifi -; ! ping -c 1 -w 1 debian.org; then
     fi
 fi
 
-# Wipe and install Debian under $ROOT using cdebootstrap.  If the installation
+# Wipe and install Debian at /debian using cdebootstrap.  If the installation
 # fails (most likely due to network unavailability), reboot and try again.
 install-debian || reboot
 
@@ -45,20 +45,25 @@ install-debian || reboot
 tar xf /etc/debian.tar -C /debian
 
 # Copy root's password entry and SSH authorizations into Debian.
-grep '^root:' /etc/shadow > $ROOT/etc/shadow.new
-grep -v '^root:' $ROOT/etc/shadow >> $ROOT/etc/shadow.new
-cat $ROOT/etc/shadow.new > $ROOT/etc/shadow
-cp -pr ~root/.ssh $ROOT/root/
+grep '^root:' /etc/shadow > /debian/etc/shadow.new
+grep -v '^root:' debian/etc/shadow >> debian/etc/shadow.new
+cat debian/etc/shadow.new > debian/etc/shadow
+cp -pr ~root/.ssh debian/root/
 
 # Copy configuration settings into /etc.
 for i in fstab host.conf localtime nsswitch.conf resolv.conf; do
-    cp -p /etc/$i $ROOT/etc || true
+    cp -p /etc/$i /debian/etc || true
 done
+
+# Enable services for future boots.
+systemctl enable debian-startup save-clock.timer wpa_supplicant
 
 # Turn off the default Edison web server on port 80.
 systemctl disable edison_config
 
-# Do the rest of the setup steps below within Debian.
+# ---- The rest of the setup steps below all take place within Debian.
+
+echo $BASE_PACKAGES > /debian/etc/buendia-base.install.list
 init-debian
 cat <<'EOF' | enter-debian
 set -e
@@ -69,15 +74,15 @@ dpkg-reconfigure -f noninteractive tzdata
 # Proceed without prompting for user input during package installation.
 export DEBIAN_FRONTEND=noninteractive
 
+# The first time we run apt-get, ignore failure; install as much as possible.
+apt-get update || true
+
 # Tidy up in case there was a previous interrupted installation attempt.
 dpkg --configure -a || true
 apt-get -y -f install || true
 
-# The first time we run apt-get, ignore failure; install as much as possible.
-apt-get update || true
-
 # Install all the base packages.
-apt-get -y install $BASE_PACKAGES
+apt-get -y install $(cat /etc/buendia-base.install.list)
 
 # Save the state of the base package installation for future reference.
 dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.packages.list
