@@ -50,19 +50,20 @@ function check_url() {
     while [[ $retry_count -lt 30 ]]; do
         echo
         echo "Trying $@..."
-        curl --progress-bar --max-time 5 -i -L $@ > $tmpout || true
-        if grep -o "$search" $tmpout; then
-            return 0
+        curl --progress-bar --max-time 5 -i -L $@ > $tmpout 2>&1 | grep .
+        if [ -s $tmpout ]; then
+            echo -n "> "
+            if grep -o "$search" $tmpout; then
+                echo "Got a valid response matching /$search/."
+                return 0
+            fi
+            head -1 $tmpout
+            echo "Got a response, but it did not contain /$search/."
         else
-            if [ -s $tmpout ]; then
-                head -1 $tmpout
-                echo "Got a response, but it did not contain /$search/."
-            else
-                echo "No response from server."
-            fi
-            if [ -z "$retry" ]; then
-                false
-            fi
+            echo "No response from server."
+        fi
+        if [ -z "$retry" ]; then
+            false
         fi
         let retry_count=retry_count+1
         sleep 5
