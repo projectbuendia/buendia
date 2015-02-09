@@ -10,7 +10,7 @@ PATH=/usr/local/bin:$PATH
 # by the application and safe to omit from backups.
 BASE_PACKAGES='coreutils less curl netcat dnsutils zip unzip git screen ssh vim strace rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7 tomcat7-admin'
 
-echo -ne '\n---- install-buendia-base: '; date
+echo "---- install-buendia-base: $(date)"
 if [ -f /etc/buendia-base-installed ]; then
     echo "Buendia base system is installed."
     exit 0
@@ -45,10 +45,11 @@ install-debian || reboot
 tar xf /etc/debian.tar -C /debian
 
 # Copy root's password entry and SSH authorizations into Debian.
+cp -p /debian/etc/shadow /debian/etc/shadow.new  # preserve permissions
 grep '^root:' /etc/shadow > /debian/etc/shadow.new
-grep -v '^root:' debian/etc/shadow >> debian/etc/shadow.new
-cat debian/etc/shadow.new > debian/etc/shadow
-cp -pr ~root/.ssh debian/root/
+grep -v '^root:' /debian/etc/shadow >> /debian/etc/shadow.new
+mv /debian/etc/shadow.new /debian/etc/shadow
+cp -pr ~root/.ssh /debian/root/
 
 # Copy configuration settings into /etc.
 for i in fstab host.conf localtime nsswitch.conf resolv.conf; do
@@ -66,6 +67,7 @@ systemctl disable edison_config
 echo $BASE_PACKAGES > /debian/etc/buendia-base.install.list
 init-debian
 cat <<'EOF' | enter-debian
+
 set -e
 
 # Set up the time zone.

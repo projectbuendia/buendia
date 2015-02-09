@@ -5,28 +5,21 @@
 # installation.  This script should only be executed once on system startup.
 
 set -e
-ROOT=/home/root/debian
 
 # If Debian has not been properly installed yet, abort.
-if [ ! -e $ROOT/etc/debian-installed ]; then
+if [ ! -e /debian/etc/debian-installed ]; then
     echo "Debian is not installed yet."
     exit 1
 fi
 
 # Make devices and other special filesystems available in Debian.
-if [ ! -e $ROOT/dev/null ]; then
-    mount --bind /dev $ROOT/dev
-    mount --bind /dev/pts $ROOT/dev/pts
+if [ ! -e /debian/dev/null ]; then
+    mount --bind /dev /debian/dev
+    mount --bind /dev/pts /debian/dev/pts
 fi
-if [ ! -e $ROOT/proc/1 ]; then
-    mount --bind /proc $ROOT/proc
+if [ ! -e /debian/proc/1 ]; then
+    mount --bind /proc /debian/proc
 fi
-if [ ! -e $ROOT/sys/fs ]; then
-    mount --bind /sys $ROOT/sys
+if [ ! -e /debian/sys/fs ]; then
+    mount --bind /sys /debian/sys
 fi
-
-# Password settings in Debian should be authoritative; hence, periodically copy
-# root's password entry from Debian into Yocto.  Boot is a fine time to do so.
-grep '^root:' $ROOT/etc/shadow > /etc/shadow.new
-grep -v '^root:' /etc/shadow >> /etc/shadow.new
-cat /etc/shadow.new > /etc/shadow

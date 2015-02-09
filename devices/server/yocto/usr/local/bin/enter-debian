@@ -3,14 +3,12 @@
 # Enters the /debian chroot environment and executes the specified command.
 
 set -e
-ROOT=/home/root/debian
 
 # Copy current configuration information into /etc.
-cp -p /etc/fstab $ROOT/etc || true
-cp -p /etc/resolv.conf $ROOT/etc || true  # remove when wifi managed in Debian
+cp -p /etc/fstab /debian/etc || true
 
 # Make /etc/mtab appear as it should.
-ln -sf /proc/mounts $ROOT/etc/mtab
+ln -sf /proc/mounts /debian/etc/mtab
 
 # In Yocto root's home directory is /home/root, but in Debian root's
 # home directory is /root, so we have to update $HOME.
@@ -21,10 +19,10 @@ export HOME=/root
 # this won't work if any of the arguments contain a literal single-quote.)
 cmd=''
 while [ -n "$1" ]; do
-  cmd="$cmd '$1'"
-  shift
+    cmd="$cmd '$1'"
+    shift
 done
 if [ -z "$cmd" ]; then
-  cmd=/bin/bash
+    cmd=/bin/bash
 fi
-chroot $ROOT /bin/bash -c "cd $HOME; $cmd"
+chroot /debian /bin/bash -c "cd $HOME; $cmd"

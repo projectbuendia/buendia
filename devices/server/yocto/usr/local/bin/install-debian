@@ -44,7 +44,8 @@ done
 rm -rf $ROOT
 
 # Run cdebootstrap, which downloads and installs Debian.
-PATH=$TMPDIR:$PATH ./cdebootstrap --allow-unauthenticated $DEBIAN_DIST $ROOT $MIRROR_URL
+export PATH=$TMPDIR:$PATH
+./cdebootstrap --allow-unauthenticated $DEBIAN_DIST $ROOT $MIRROR_URL
 
 # Clean up.
 rm -rf $TMPDIR
