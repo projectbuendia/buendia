@@ -38,6 +38,7 @@ cp -pr $control/* $tmp/control
 for i in $tmp/control/*.template; do
     if [ -f $i ]; then
         result=${i%.template}
+        cp $i $result  # copy permissions
         cat <(echo 'cat <<EOF') $i <(echo 'EOF') | bash > $result
         # Copy the timestamps from the original file, so that the resulting
         # data.tar remains exactly identical if none of the input files have

@@ -18,14 +18,24 @@ else
     export PACKAGE_VERSION := $(LAST_TAG)
 endif
 
-
 # Execute the Makefiles in all the package subdirectories.
 all:
-	for i in buendia-*; do \
+	@for i in buendia-*; do \
 	    echo; \
 	    echo === $$i:; \
 	    PACKAGE_NAME=$$i make -C $$i || exit 1; \
 	done
+
+tests: .FORCE
+	@for i in buendia-*; do \
+	    echo; \
+	    echo === $$i:; \
+	    PACKAGE_NAME=$$i make -C $$i tests || exit 1; \
+	done
+	@echo
+	@echo "=== All tests passed!"
+
+test: tests  # in case you mistype "make tests"
 
 # Remove the built packages and intermediate build directories.
 clean:
@@ -34,3 +44,6 @@ clean:
 # Remove everything including the cache of downloaded files.
 pristine: clean
 	rm -rf /tmp/buendia-fetched
+
+.FORCE:
+

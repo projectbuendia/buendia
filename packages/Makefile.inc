@@ -33,7 +33,7 @@ pristine: clean
 	rm -rf /tmp/buendia-fetched
 
 tests:
-	@failures=; for test in $$(find ../tests tests -type f 2>/dev/null); do $$test || failures="$$failures $$test"; done; if [ -n "$$failures" ]; then echo "Failed: $$failures"; exit 1; fi
+	@failures=; for test in $$(find ../tests tests -type f 2>/dev/null); do $$test || failures="$$failures $$test"; done; if [ -n "$$failures" ]; then echo "Failed: $$failures"; exit 1; fi; echo "Tests passed!"
 
 test: tests  # in case you mistype "make tests"
 
