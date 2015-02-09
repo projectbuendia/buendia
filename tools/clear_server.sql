@@ -66,20 +66,30 @@ DELETE FROM patient WHERE 1;
 -- For information about the daemon user see https://wiki.openmrs.org/display/docs/Daemon+User
 CREATE TEMPORARY TABLE keep_users SELECT * FROM users WHERE (system_id IN ("admin", "daemon"));
 
+-- Delete records related to persons and users.
 DELETE FROM person_address WHERE person_id NOT IN (SELECT person_id FROM keep_users);
 DELETE FROM person_attribute WHERE person_id NOT IN (SELECT person_id FROM keep_users);
 DELETE FROM notification_alert_recipient WHERE user_id NOT IN (SELECT user_id FROM keep_users);
 DELETE FROM user_property WHERE user_id NOT IN (SELECT user_id FROM keep_users);
 DELETE FROM user_role WHERE user_id NOT IN (SELECT user_id FROM keep_users);
 
--- Remove the foreign keys for creator etc. before deleting. Pretend all users modified by admin.
+-- Delete users.
+-- To avoid being blocked from removing users by foreign key constraints,
+-- remove references to user_id; pretend all modifications were done by admin.
 SELECT @admin_id := user_id FROM users WHERE system_id = 'admin';
 UPDATE person_name SET creator = @admin_id WHERE creator IS NOT NULL;
-UPDATE person SET creator = @admin_id WHERE creator IS NOT NULL; 
-UPDATE person SET voided_by = @admin_id WHERE voided_by IS NOT NULL; 
-
-DELETE FROM person_name WHERE person_id NOT IN (SELECT person_id FROM keep_users);
+UPDATE person_name SET voided_by = @admin_id WHERE voided_by IS NOT NULL;
+UPDATE person SET creator = @admin_id WHERE creator IS NOT NULL;
+UPDATE person SET voided_by = @admin_id WHERE voided_by IS NOT NULL;
+UPDATE users SET creator = @admin_id WHERE creator IS NOT NULL;
+UPDATE users SET changed_by = @admin_id WHERE changed_by IS NOT NULL;
+UPDATE users SET retired_by = @admin_id WHERE retired_by IS NOT NULL;
+UPDATE users SET creator = @admin_id WHERE creator IS NOT NULL;
 DELETE FROM users WHERE user_id NOT IN (SELECT user_id FROM keep_users);
+
+-- Delete persons.
+-- person_name references person.person_id, so do person_name deletions first.
+DELETE FROM person_name WHERE person_id NOT IN (SELECT person_id FROM keep_users);
 DELETE FROM person WHERE person_id NOT IN (SELECT person_id FROM keep_users);
 
 -- Keep the MSF type and the OpenMRS identifier type, delete all others.
@@ -96,6 +106,7 @@ CREATE TEMPORARY TABLE keep_locations SELECT * FROM location WHERE uuid IN (
     "d7ca63c3-6ea0-4357-82fd-0910cc17a2cb" -- Discharged
 );
 
--- Clear out the parent to allow deleting locations without violating foreign key constraints.
+-- Delete locations.
+-- To avoid being blocked by foreign key constraints, clear parent_location.
 UPDATE location SET parent_location = NULL WHERE location_id NOT IN (SELECT location_id FROM keep_locations);
 DELETE FROM location WHERE location_id NOT IN (SELECT location_id FROM keep_locations);
