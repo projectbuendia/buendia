@@ -17,28 +17,36 @@ fi
     fi
 
     export DEBIAN_FRONTEND=noninteractive
+    echo "--- Starting: $0 $@"
+    buendia-status
 
     # Update the package list.
+    echo
+    echo "--- Updating package list"
     apt-get update || true
 
     # Fix up any broken things.
+    echo
+    echo "--- Fixing up partially installed packages"
     dpkg --configure -a || true
-    apt-get -y -f install || true
+    apt-get -V -y -f install || true
 
     # Install and upgrade the specified packages, or all the Buendia packages.
+    echo
+    echo "--- Installing updated packages"
     if [ -n "$1" ]; then
         packages=$*
     else
         packages=$(echo $(cat /usr/share/buendia/packages.list.d/*))
     fi
-    apt-get -y --allow-unauthenticated install $packages || true
+    apt-get -V -y --allow-unauthenticated install $packages || true
 
     echo
-    echo "Finished update:"
+    echo "--- Finished update:"
     buendia-status
 
     if [ -f /var/run/reboot-required ]; then
         echo
         echo "One or more packages have indicated that a reboot is required!"
     fi
-) 9>/var/run/buendia-update.lock
+) 9> /var/run/buendia-update.lock
