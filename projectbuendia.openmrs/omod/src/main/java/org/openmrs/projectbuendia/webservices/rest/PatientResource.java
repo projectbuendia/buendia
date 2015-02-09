@@ -7,14 +7,10 @@ import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.PatientIdentifierType;
-import org.openmrs.PatientProgram;
-import org.openmrs.PatientState;
 import org.openmrs.PersonName;
-import org.openmrs.ProgramWorkflowState;
 import org.openmrs.User;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.PatientService;
-import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -35,10 +31,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Resource for xform templates (i.e. forms without data).
@@ -64,7 +58,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
-    private static final String STATUS = "status";
     private static final String ADMISSION_TIMESTAMP = "admission_timestamp";
 
     @Deprecated
@@ -149,16 +142,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         Patient patient = jsonToPatient(json);
         patientService.savePatient(patient);
-
-        // Status
-        if (json.containsKey(STATUS)) {
-            ProgramWorkflowState workflowState =
-                    DbUtil.getStateByKey((String) json.get(STATUS));
-            if (workflowState != null) {
-                statusChange(patient, workflowState);
-                patientService.savePatient(patient);
-            }
-        }
 
         // Observation for first symptom date
         if (observationsHandler.hasObservations(json)) {
@@ -402,6 +385,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     patient.setGender(validateGender((String) entry.getValue()));
                     changedPatient = true;
                     break;
+
+                // ==== JSON keys that change data OTHER than patient attributes.
                 case ADMISSION_TIMESTAMP:
                     // This is really evil and maybe shouldn't even be done. Instead we should have an admission event.
                     // TODO(nfortescue): switch to an admission event
@@ -409,16 +394,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     if (seconds != null) {
                         patient.setDateCreated(new Date(seconds * 1000L));
                         changedPatient = true;
-                    }
-                    break;
-
-                // ==== JSON keys that change data OTHER than patient attributes.
-
-                case STATUS:
-                    ProgramWorkflowState workflowState =
-                        DbUtil.getStateByKey((String) entry.getValue());
-                    if (workflowState != null) {
-                        statusChange(patient, workflowState);
                     }
                     break;
 
@@ -442,46 +417,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     DbUtil.getAssignedLocationAttributeType(),
                     Integer.toString(location.getId()));
         }
-    }
-
-    private void statusChange(Patient patient, ProgramWorkflowState newWorkflowState) {
-        // OpenMRS has validators (see PatientProgramValidator) that check among other things that you can't
-        // have a patient twice on the same state on the same day.
-
-        // In general, it would be good enough to make all changes within 10 minutes count as edits (rather than
-        // changes). However, for demos, you will probably change the same status many times on the same day.
-        // So we will just go through and delete all changes with the same start date and status as the change
-        // we are trying to add. I will leave as an open question the merge duplicates question.
-        // TODO(nfortescue): decide on whether to merge changes similar in time.
-
-        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
-        PatientProgram patientProgram = DbUtil.getEbolaStatusPatientProgram(patient);
-        // If this method of set manipulation seems strange it is because hibernate is fussy about how you modify
-        // collections in hibernate created objects.
-        Set<PatientState> allStates = patientProgram.getStates();
-        HashSet<PatientState> toRemove = new HashSet<>();
-        Date ourDate = new Date();
-        // Compare day, month, year. This is dangerous without joda time, and when you think about timezones.
-        // TODO(nfortescue): make this safe.
-        Date ourJustDay = new Date(ourDate.getYear(), ourDate.getMonth(), ourDate.getDate());
-
-        for (PatientState oldState : allStates) {
-            if (newWorkflowState.equals(oldState.getState()) && ourJustDay.equals(oldState.getStartDate())) {
-                toRemove.add(oldState);
-                // we could break; here, but for extra safety make sure we check them all.
-            }
-        }
-
-        if (!toRemove.isEmpty()) {
-            for (PatientState bad : toRemove) {
-                allStates.remove(bad);
-            }
-        }
-        // If we don't save here we get optimistic locking failures from hibernate.
-        workflowService.savePatientProgram(patientProgram);
-        // Important to reuse date here over midnight.
-        patientProgram.transitionToState(newWorkflowState, ourDate);
-        workflowService.savePatientProgram(patientProgram);
     }
 
     protected static SimpleObject patientToJson(Patient patient) {
