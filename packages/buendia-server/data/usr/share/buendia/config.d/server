@@ -57,17 +57,18 @@ if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1
     "
 fi
 
-# Check if the password is already correctly set.
+# Check if the username and password are already correctly set.
 if $MYSQL <<< "
-    select password = sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512)
-    from users where uuid='$USER_UUID' and username='$SERVER_OPENMRS_USER';
+    select count(*) from users
+        where uuid='$USER_UUID' and username='$SERVER_OPENMRS_USER' and
+        password = sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512);
 " | grep -q 1; then
-    echo "Server user and password unchanged."
+    echo "Server username and password unchanged."
     exit 0
-else
-    echo "Setting server user and password..."
 fi
-# Set the OpenMRS account used by the Android client.
+
+# Set the username and password for the Android client, using fresh salt.
+echo "Setting server username and password..."
 salt=$(xxd -p -l 64 /dev/urandom | tr -d '\n')
 $MYSQL <<< "
     update users set
