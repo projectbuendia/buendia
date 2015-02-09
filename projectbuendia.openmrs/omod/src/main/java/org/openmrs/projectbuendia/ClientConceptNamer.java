@@ -1,5 +1,7 @@
 package org.openmrs.projectbuendia;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.springframework.util.ObjectUtils;
@@ -12,6 +14,8 @@ import java.util.Locale;
  * https://docs.google.com/document/d/1ILDgcEDp_Bdm3q7IJa0gys4I-WfpJdATwuyI1pofuHE/edit?usp=sharing
  */
 public class ClientConceptNamer {
+
+    private static Log log = LogFactory.getLog(ClientConceptNamer.class);
 
     public static final String VARIANT = "client";
     public static final String CLIENT_REGION = "GB";
@@ -98,7 +102,13 @@ public class ClientConceptNamer {
             return name;
         }
         // fail over to anything we can get
-        return concept.getName().getName();
+        ConceptName defaultName = concept.getName();
+        if (defaultName == null) {
+            log.error("tried to get a name for concept, uuid=" + concept.getUuid() + ", id=" + concept.getId()
+                    + ", but none found");
+            return "UNKNOWN Concept " + concept.getId();
+        }
+        return defaultName.getName();
     }
 
     private String getPreferredStringInLocaleOrNull(Concept concept, Locale locale) {
