@@ -109,10 +109,10 @@ UPDATE users SET user_id = @buendia_admin_id,
                  uuid = "09f979d7-b091-11e4-bc78-040ccecfdba4" WHERE
     user_id = @buendia_admin_id;
 
--- Add "buendia_admin" to the list of users we want to keep.
+-- Add "buendia_admin" to the list of users to keep.
 INSERT INTO keep_users (SELECT * FROM users WHERE user_id = @buendia_admin_id);
 
--- Delete all other users, first clearing out foreign keys that refer to them.
+-- Delete records that refer to users that will be deleted.
 DELETE FROM notification_alert_recipient WHERE
     user_id IS NOT NULL AND user_id != @admin_id;
 DELETE FROM user_property WHERE
@@ -120,6 +120,7 @@ DELETE FROM user_property WHERE
 DELETE FROM user_role WHERE
     user_id IS NOT NULL AND user_id != @admin_id;
 
+-- Replace all foreign keys that refer to users that will be deleted.
 UPDATE active_list SET creator = @buendia_admin_id WHERE
     creator IS NOT NULL AND creator != @admin_id;
 UPDATE active_list SET voided_by = @buendia_admin_id WHERE
@@ -552,6 +553,7 @@ UPDATE xforms_xform SET creator = @buendia_admin_id WHERE
 UPDATE xforms_xform SET changed_by = @buendia_admin_id WHERE
     changed_by IS NOT NULL AND changed_by != @admin_id;
 
+-- Finally, it is safe to delete the users.
 DELETE FROM users WHERE user_id NOT IN (SELECT user_id FROM keep_users);
 
 -- Delete all other persons, first clearing out foreign keys that refer to them.
