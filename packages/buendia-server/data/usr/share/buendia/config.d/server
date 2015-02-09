@@ -13,11 +13,10 @@ PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
 
 # Generate a random password for the buendia user if one is not already set.
 if [ ! -f $SETTINGS ]; then
-    password=$(buendia-mkpass)
-    cat <<EOF > $SETTINGS
-SERVER_OPENMRS_USER=buendia
-SERVER_OPENMRS_PASSWORD=$password
-EOF
+    unindent "
+        SERVER_OPENMRS_USER=buendia
+        SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)
+    " | create $SETTINGS
     . $SETTINGS
 fi
 
@@ -26,41 +25,43 @@ service mysql start
 MYSQL="mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs"
 
 # If there is no user account with the expected UUID, add one.
-if ! echo "select count(*) from users where uuid='$USER_UUID'" | $MYSQL | grep -q 1; then
+if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1; then
     echo "Creating user $SERVER_OPENMRS_USER..."
     salt=$(xxd -l 64 -p /dev/urandom | tr -d '\n')
-    cat <<EOF | $MYSQL
-insert ignore into person (date_created, creator, uuid)
-values (now(), 1, '$PERSON_UUID');
+    $MYSQL <<< "
+        insert ignore into person (date_created, creator, uuid)
+            values (now(), 1, '$PERSON_UUID');
 
-set @person_id := (select person_id from person where uuid = '$PERSON_UUID');
+        set @person_id :=
+            (select person_id from person where uuid = '$PERSON_UUID');
 
-insert ignore into person_name (preferred, given_name, family_name,
-                                date_created, creator, person_id, uuid)
-values (1, 'Buendia', 'Client',
-        now(), 1, @person_id, '$PERSON_NAME_UUID');
+        insert ignore into person_name (preferred, given_name, family_name,
+                                        date_created, creator, person_id, uuid)
+            values (1, 'Buendia', 'Client',
+                    now(), 1, @person_id, '$PERSON_NAME_UUID');
 
-insert into users (username, password,
-                   salt, date_created, creator, person_id, uuid)
-values ('$SERVER_OPENMRS_USER', sha2('$SERVER_OPENMRS_USER$salt', 512),
-        '$salt', now(), 1, @person_id, '$USER_UUID');
+        insert into users (username, password,
+                           salt, date_created, creator, person_id, uuid)
+            values ('$SERVER_OPENMRS_USER',
+                    sha2('$SERVER_OPENMRS_USER$salt', 512),
+                    '$salt', now(), 1, @person_id, '$USER_UUID');
 
-set @user_id := last_insert_id();
+        set @user_id := last_insert_id();
 
-insert into user_role (user_id, role)
-values (@user_id, 'Authenticated'),
-       (@user_id, 'Clinician'),
-       (@user_id, 'Data Assistant'),
-       (@user_id, 'Data Manager'),
-       (@user_id, 'Provider');
-EOF
+        insert into user_role (user_id, role)
+        values (@user_id, 'Authenticated'),
+               (@user_id, 'Clinician'),
+               (@user_id, 'Data Assistant'),
+               (@user_id, 'Data Manager'),
+               (@user_id, 'Provider');
+    "
 fi
 
 # Check if the password is already correctly set.
-if echo "
-select password = sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512)
-from users where uuid='$USER_UUID' and username='$SERVER_OPENMRS_USER';
-" | $MYSQL | grep -q 1; then
+if $MYSQL <<< "
+    select password = sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512)
+    from users where uuid='$USER_UUID' and username='$SERVER_OPENMRS_USER';
+" | grep -q 1; then
     echo "Server user and password unchanged."
     exit 0
 else
@@ -68,11 +69,11 @@ else
 fi
 # Set the OpenMRS account used by the Android client.
 salt=$(xxd -p -l 64 /dev/urandom | tr -d '\n')
-cat <<EOF | $MYSQL
-update users set
-    salt='$salt', username='$SERVER_OPENMRS_USER',
-    password=sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512)
-    where uuid='$USER_UUID';
-EOF
+$MYSQL <<< "
+    update users set
+        salt='$salt', username='$SERVER_OPENMRS_USER',
+        password=sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512)
+        where uuid='$USER_UUID';
+"
 
 echo "Successfully set up Buendia API user account in OpenMRS."

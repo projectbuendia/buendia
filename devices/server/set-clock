@@ -17,8 +17,8 @@ if [ -z "$date" ]; then
     date=$(date '+%Y-%m-%d %H:%M:%S')
 fi
 
-cat <<EOF | do_on_edison
-echo 'Setting system clock to $date.'
-date -s '$date'
-touch -t '$date' /var/lib/systemd/clock
-EOF
+do_on_edison <<< "
+    echo 'Setting system clock to $date.'
+    date -s '$date'
+    touch -t '$date' /var/lib/systemd/clock
+"

@@ -5,54 +5,54 @@ confdir=/etc/wpa_supplicant
 conf=$confdir/wpa_supplicant.conf
 
 if [ ! -n "$ssid_psk" ]; then
-  echo "Usage: $0 <ssid>[:<psk-password>]"
-  echo "    Connects the Edison to an open or WPA/WPA2-PSK wireless network,"
-  echo "    updating $conf with the given settings."
-  echo "Usage: $0 -"
-  echo "    Reconnect to the network in $conf."
-  echo
-  echo "Current status:"
-  wpa_cli status
-  exit 1
+    echo "Usage: $0 <ssid>[:<psk-password>]"
+    echo "    Connects the Edison to an open or WPA/WPA2-PSK wireless network,"
+    echo "    updating $conf with the given settings."
+    echo "Usage: $0 -"
+    echo "    Reconnect to the network in $conf."
+    echo
+    echo "Current status:"
+    wpa_cli status
+    exit 1
 fi
 
 if [ "$ssid_psk" != "-" ]; then
-  # Split ssid_psk into ssid and optional psk.
-  ssid="${ssid_psk%:*}"
-  psk="${ssid_psk#*:}"
-  if [ "$psk" == "$ssid_psk" ]; then psk=; fi
+    # Split ssid_psk into ssid and optional psk.
+    ssid="${ssid_psk%:*}"
+    psk="${ssid_psk#*:}"
+    if [ "$psk" == "$ssid_psk" ]; then psk=; fi
 
-  # Back up the existing configuration file.
-  if [ ! -e $confdir/backup.conf ]; then
-    cp $conf $confdir/backup.conf
-  fi
+    # Back up the existing configuration file.
+    if [ ! -e $confdir/backup.conf ]; then
+        cp $conf $confdir/backup.conf
+    fi
 
-  # Remove all the existing network configurations from the configuration file.
-  sed -n '/network/,$!p' $conf > $confdir/empty.conf
+    # Remove all the existing network configurations from the configuration file.
+    sed -n '/network/,$!p' $conf > $confdir/empty.conf
 
-  # Add the new network configuration as the only one in the configuration file.
-  cp $confdir/empty.conf $conf
-  if [ -n "$psk" ]; then
-    cat >> $conf << EOF
+    # Add the new network configuration as the only one in the configuration file.
+    cp $confdir/empty.conf $conf
+    if [ -n "$psk" ]; then
+        cat >> $conf << EOF
 network={
-  ssid="$ssid"
-  scan_ssid=1
-  key_mgmt=WPA-PSK
-  pairwise=CCMP TKIP
-  group=CCMP TKIP WEP104 WEP40
-  eap=TTLS PEAP TLS
-  psk="$psk"
+    ssid="$ssid"
+    scan_ssid=1
+    key_mgmt=WPA-PSK
+    pairwise=CCMP TKIP
+    group=CCMP TKIP WEP104 WEP40
+    eap=TTLS PEAP TLS
+    psk="$psk"
 }
 EOF
-  else
-    cat >> $conf << EOF
+    else
+        cat >> $conf << EOF
 network={
-  ssid="$ssid"
-  scan_ssid=1
-  key_mgmt=NONE
+    ssid="$ssid"
+    scan_ssid=1
+    key_mgmt=NONE
 }
 EOF
-  fi
+    fi
 fi
 
 # Bring up wpa_supplicant with the updated configuration.
@@ -61,8 +61,8 @@ systemctl restart wpa_supplicant
 
 # Wait for wpa_supplicant to be ready.
 while true; do
-  if wpa_cli status 2>/dev/null | grep -q address=; then break; fi
-  sleep 1
+    if wpa_cli status 2>/dev/null | grep -q address=; then break; fi
+    sleep 1
 done
 
 # Select the network.
@@ -74,34 +74,34 @@ wpa_cli list_networks | grep CURRENT
 # The DHCP client is normally launched by wpa_supplicant_event, so we decide
 # whether to start it based on whether wpa_supplicant_event is enabled.
 if systemctl is-enabled wpa_supplicant_event; then
-  # Get an IP address using DHCP.
-  echo "Getting an IP address using DHCP..."
-  ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
-  udhcpc -i $ifname -n -T 1 -t 30 || exit 1
+    # Get an IP address using DHCP.
+    echo "Getting an IP address using DHCP..."
+    ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
+    udhcpc -i $ifname -n -T 1 -t 30 || exit 1
 
-  # Wait until we acquire an IP address.
-  ipaddr=''
-  for attempt in $(seq 1 60); do
-    ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
-    if [ -n "$ipaddr" ]; then
-      echo "Connected to $ssid as $ipaddr."
-      exit 0
-    fi
-    sleep 1
-  done
+    # Wait until we acquire an IP address.
+    ipaddr=''
+    for attempt in $(seq 1 60); do
+        ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
+        if [ -n "$ipaddr" ]; then
+            echo "Connected to $ssid as $ipaddr."
+            exit 0
+        fi
+        sleep 1
+    done
 else
-  # Wait until the wifi connection comes up.
-  echo -n "Waiting for wifi connection..."
-  for attempt in $(seq 1 60); do
-    echo -n "."
-    if wpa_cli status | grep -q COMPLETED; then
-      echo
-      echo "Connected to $ssid without using DHCP to get an IP address."
-      exit 0
-    fi
-    sleep 1
-  done
-  echo
+    # Wait until the wifi connection comes up.
+    echo -n "Waiting for wifi connection..."
+    for attempt in $(seq 1 60); do
+        echo -n "."
+        if wpa_cli status | grep -q COMPLETED; then
+            echo
+            echo "Connected to $ssid without using DHCP to get an IP address."
+            exit 0
+        fi
+        sleep 1
+    done
+    echo
 fi
 
 echo "Could not connect to wifi network $ssid.  Bad SSID or password?"

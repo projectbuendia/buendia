@@ -1,3 +1,4 @@
+buendia-backup
 buendia-db-migrate
 buendia-networking
 buendia-ntpserver
@@ -7,3 +8,4 @@ buendia-pushclock
 buendia-server
 buendia-site-msf-mg
 buendia-sshd
+buendia-utils

@@ -1,15 +1,15 @@
 #!/bin/bash
 
 announce=/tmp/announcement.$$
-cat <<EOF > $announce
+echo "
 
-Rebooting in 5 seconds!
+    Rebooting in 5 seconds!
 
-EOF
+" > $announce
 
 while true; do
-    echo "/debian/usr/bin/wall /debian$announce" | buendia-enter-yocto
+    buendia-enter-yocto <<< "/debian/usr/bin/wall /debian$announce"
     sleep 5
-    echo reboot | buendia-enter-yocto
+    buendia-enter-yocto <<< reboot
     sleep 5
 done

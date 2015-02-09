@@ -6,23 +6,22 @@ buendia-divert $1 /etc/dnsmasq.conf
 
 case $1 in
     remove|upgrade|deconfigure)
-        cat <<'EOF' | buendia-enter-yocto
-hostapd_conf=/etc/hostapd/hostapd.conf
-udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
-udhcpd_service=/lib/systemd/system/udhcpd-for-hostapd.service
+        buendia-enter-yocto <<< '
+            hostapd_conf=/etc/hostapd/hostapd.conf
+            udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
+            udhcpd_service=/lib/systemd/system/udhcpd-for-hostapd.service
 
-# Restore the original setup (DHCP client enabled, not an access point).
-systemctl disable hostapd
-systemctl stop hostapd
-systemctl enable wpa_supplicant_event
-systemctl start wpa_supplicant_event
+            # Restore the original setup (DHCP client enabled, not an AP)
+            systemctl disable hostapd
+            systemctl stop hostapd
+            systemctl enable wpa_supplicant_event
+            systemctl start wpa_supplicant_event
 
-# Restore the original configuration files in Yocto.
-mv $hostapd_conf.pre-buendia $hostapd_conf
-mv $udhcpd_conf.pre-buendia $udhcpd_conf
-mv $udhcpd_service.pre-buendia $udhcpd_service
-EOF
-
+            # Restore the original configuration files in Yocto.
+            mv $hostapd_conf.pre-buendia $hostapd_conf
+            mv $udhcpd_conf.pre-buendia $udhcpd_conf
+            mv $udhcpd_service.pre-buendia $udhcpd_service
+        '
         touch /var/run/reboot-required
         ;;
 

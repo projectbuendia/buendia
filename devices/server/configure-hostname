@@ -6,14 +6,14 @@ source remote-execution.sh
 hostname=${1-buendia-server}
 
 if [ "$1" == "-h" ]; then
-  echo "Usage: $0"
-  echo
-  echo "Sets the hostname of the Edison server."
-  exit 1
+    echo "Usage: $0"
+    echo
+    echo "Sets the hostname of the Edison server."
+    exit 1
 fi
 
-cat <<EOF | do_in_yocto
-echo "$hostname" > /etc/hostname
-echo "127.0.0.1 $hostname ${hostname}.local" >> /etc/hosts
-hostname "$hostname"
-EOF
+do_in_yocto <<< "
+    echo $hostname > /etc/hostname
+    echo 127.0.0.1 $hostname $hostname.local >> /etc/hosts
+    hostname $hostname
+"

@@ -33,8 +33,9 @@ cat <<WPA_CLI_ACTIONS_EOF > $wpa_cli_actions
 if systemctl -q is-enabled wpa_supplicant_event; then
     $wpa_cli_actions.pre-buendia "\$@"
 else
-    echo "event $@ ignored because wpa_supplicant_event is disabled"
+    echo "event \$@ ignored because wpa_supplicant_event is disabled"
 fi
+WPA_CLI_ACTIONS_EOF
 EOF
         # Apply the site settings.
         /usr/share/buendia/config.d/networking

@@ -22,18 +22,19 @@ function init_ssh_access() {
         ssh-keygen -t dsa -f $key_file -P ''
     fi
     pubkey=$(cat $key_file.pub)
-    cat <<EOF | do_on_edison
-mkdir -p .ssh
-echo "$pubkey" >> .ssh/authorized_keys && echo "Added ssh access to $target successfully."
-EOF
+    do_on_edison <<< "
+        mkdir -p .ssh
+        echo '$pubkey' >> .ssh/authorized_keys &&
+            echo 'Added ssh access to $target successfully.'
+    "
 }
 
 # Sets the root password on the Edison.
 function set_root_password() {
     password=$1
-    cat <<EOF | do_on_edison
-echo "root:$password" | chpasswd && echo "Password set successfully."
-EOF
+    do_on_edison <<< "
+        echo 'root:$password' | chpasswd && echo 'Password set successfully.'
+    "
 }
 
 echo

@@ -14,26 +14,27 @@ fi
 
 # Check if the root password is already correctly set.
 if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
-  echo "MySQL root password unchanged."
-  exit 0
+    echo "MySQL root password unchanged."
+    exit 0
 else
-  echo "Setting MySQL root password..."
+    echo "Setting MySQL root password..."
 fi
 
 # Create a MySQL init-file that sets the root password.
 umask 066
-cat <<EOF >$INITSQL
-update mysql.user set password=password('$MYSQL_ROOT_PASSWORD') where user='root';
-flush privileges;
-EOF
+unindent "
+    update mysql.user set password=password('$MYSQL_ROOT_PASSWORD')
+        where user='root';
+    flush privileges;
+" > $INITSQL
 chgrp mysql $INITSQL
 chmod g+r $INITSQL
 
 # Configure MySQL to run the init-file on startup.
-cat <<EOF >$CONF
-[mysqld]
-init_file=$INITSQL
-EOF
+unindent "
+    [mysqld]
+    init_file=$INITSQL
+" > $CONF
 
 # Make MySQL restart and execute the init-file.
 service mysql restart
@@ -46,9 +47,9 @@ sleep 1
 
 # Confirm that the root password was correctly set.
 if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
-  echo "Successfully set MySQL root password."
-  exit 0
+    echo "Successfully set MySQL root password."
+    exit 0
 else
-  echo "Could not set MySQL root password!"
-  exit 1
+    echo "Could not set MySQL root password!"
+    exit 1
 fi

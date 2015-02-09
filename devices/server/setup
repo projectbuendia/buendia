@@ -9,23 +9,25 @@ site_id=$3
 repo_url=http://packages-dev.projectbuendia.org:9001
 
 if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
-  echo "Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<site-id>]"
-  echo
-  echo "Completely erases an Edison and brings it to a basic state enabling"
-  echo "all further installation and configuration to be done by .deb packages:"
-  echo
-  echo "  - Flashed with Edison firmware image (Yocto Linux)"
-  echo "  - Root password set"
-  echo "  - Debian GNU/Linux 7 (within a /home/root/debian chroot inside Yocto)"
-  echo "  - Yocto configured to execute Debian startup scripts on startup"
-  echo
-  echo "<setup-ssid> should be a network with Internet access that the Edison"
-  echo "will use during this setup process to download and install software."
-  echo "It can be a wifi network with no password or with a PSK password."
-  echo
-  echo "If <site-id> is specified, there should be an available package named"
-  echo "buendia-site-<site-id>."
-  exit 1
+    echo "
+Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<site-id>]
+
+Completely erases an Edison and brings it to a basic state enabling
+all further installation and configuration to be done by .deb packages:
+
+  - Flashed with Edison firmware image (Yocto Linux)
+  - Root password set
+  - Debian GNU/Linux 7 (within a /home/root/debian chroot inside Yocto)
+  - Yocto configured to execute Debian startup scripts on startup
+
+<setup-ssid> should be a network with Internet access that the Edison
+will use during this setup process to download and install software.
+It can be a wifi network with no password or with a PSK password.
+
+If <site-id> is specified, there should be an available package named
+buendia-site-<site-id>.
+"
+    exit 1
 fi
 
 TOOLS=../../tools
