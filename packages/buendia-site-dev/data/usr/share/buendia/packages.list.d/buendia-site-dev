@@ -1,7 +1,9 @@
 buendia-backup
 buendia-db-migrate
 buendia-pkgclient
+buendia-pkgserver
 buendia-pushclock
 buendia-server
 buendia-site-dev
 buendia-sshd
+buendia-utils
