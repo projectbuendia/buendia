@@ -5,4 +5,4 @@ set -e; . /usr/share/buendia/utils.sh
 buendia-divert $1 /etc/logrotate.conf
 
 # logrotate will not create "olddir" directories automatically.
-mkdir -p /var/log/old /var/log/buendia/old
+mkdir -p /var/log/old /var/log/buendia/old /var/log/large/old

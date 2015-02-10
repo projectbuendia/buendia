@@ -1,7 +1,7 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-* * * * * root chmod -R a+r /var/log
+* * * * * root chmod -R a+rX /var/log
 0 * * * * root buendia-log logrotate /etc/logrotate.conf
 0 * * * * root buendia-log buendia-limit 200000 /var/log
 
