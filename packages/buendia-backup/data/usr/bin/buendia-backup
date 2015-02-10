@@ -75,7 +75,7 @@ buendia-limit $limit $root
 # ---- Remove any backup directories that were partially removed
 
 for dir in $root/*; do
-    if [ -d $dir -a ! -d $dir/start ]; then
+    if [ -d $dir -a ! -e $dir/start ]; then
         rm -rf $dir
     fi
 done
