@@ -35,7 +35,7 @@ apt-get -V -y -f install || true
 if [ -n "$1" ]; then
     packages=$*
 else
-    packages=$(echo $(cat /usr/share/buendia/packages.list.d/*))
+    packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
 fi
 echo
 echo "--- Updating packages: $packages"
