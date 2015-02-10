@@ -1,1 +1,0 @@
-# Save time by not trying to look up ftp.debian.org on every update.
