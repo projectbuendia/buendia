@@ -28,9 +28,9 @@ echo "Backing up to $final_dir..."
 rm -rf $dir
 mkdir -p $dir
 
-# Record the time that the backup started.  Since buendia-limit-space removes
+# Record the time that the backup started.  Since buendia-limit removes
 # the oldest files first, the presence of this file means that none of the
-# contents have been removed by buendia-limit-space.
+# contents have been removed by buendia-limit.
 touch $dir/start
 sleep 1
 
@@ -70,7 +70,7 @@ rm -rf $old_dir
 
 # ---- Limit the total size of backups
 
-buendia-limit-space $limit $root
+buendia-limit $limit $root
 
 # ---- Remove any backup directories that were partially removed
 

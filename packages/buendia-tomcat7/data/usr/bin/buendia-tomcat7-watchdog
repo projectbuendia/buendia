@@ -1,15 +1,21 @@
 #!/bin/bash
 
-if [ -n "$(pidof -x buendia-update apt-get dpkg)" ]; then
-    echo "Package update scripts are running; skipping check."
-    exit 0
-fi
+service=tomcat7
+tmpfile=/tmp/$(basename $0).$$
+trap 'rm -rf $tmpfile' EXIT
 
-if ! service tomcat7 status 2>&1; then
-    echo "tomcat7 is not running, restarting..."
-    if service tomcat7 restart; then
-        echo "tomcat7 has been restarted."
+if service $service status 2>&1 > $tmpfile; then
+    cat $tmpfile
+else
+    if [ -n "$(pidof -x buendia-update apt-get dpkg)" ]; then
+        echo "$service is not running, but package update is running; skipping restart."
     else
-        echo "tomcat7 could not be restarted."
+        echo "$service is not running, restarting..."
+        if service $service restart; then
+            echo "$service has been restarted."
+        else
+            echo "$service could not be restarted."
+        fi
     fi
 fi
+
