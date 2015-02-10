@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils
+Depends: nginx
+Description: Serves a system status page for Buendia.
+Maintainer: projectbuendia.org
