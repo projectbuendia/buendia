@@ -22,11 +22,11 @@ else
     echo "Setting OpenMRS MySQL password..."
 fi
 
+# Bring down OpenMRS while we manipulate passwords.
 service tomcat7 stop
 
 # Set openmrs_user's password in MySQL.
-service mysql restart
-sleep 1
+service mysql start
 mysql -uroot -p$MYSQL_ROOT_PASSWORD <<<"
     grant all on openmrs.* to openmrs_user@localhost
         identified by '$OPENMRS_MYSQL_PASSWORD';
@@ -43,6 +43,7 @@ unindent "
     module.allow_web_admin=true
 " | create $PROPERTIES
 
+# Bring OpenMRS back up.
 service tomcat7 start
 
 if mysql -uopenmrs_user -p$OPENMRS_MYSQL_PASSWORD </dev/null 2>/dev/null; then

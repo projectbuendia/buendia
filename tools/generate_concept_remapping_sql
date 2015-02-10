@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Given a directory full of *.sql table schemas, produces the SQL commands to
+# renumber concept_ids according to a concept_renumbering table.
+
+for i in *.sql; do
+    grep -i 'references.*`concept`.*`concept_id`' $i | sed -e 's/.*FOREIGN KEY [^(]*(`\([^`]*\)`.*/UPDATE '${i%.sql}' SET \1 = IFNULL((select new_concept_id from concept_renumbering where old_concept_id = \1), \1) WHERE \1 IS NOT NULL;/'
+done
