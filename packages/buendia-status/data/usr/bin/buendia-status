@@ -38,8 +38,8 @@ if [ -n "$all" ]; then
     echo -e '\n---- free'
     free 2>&1
 
-    echo -e '\n---- df / /home'
-    buendia-enter-yocto <<< 'df / /home' 2>&1
+    echo -e '\n---- df /'
+    df / 2>&1
 
     echo -e '\n---- ifconfig wlan0'
     ifconfig wlan0 2>&1
