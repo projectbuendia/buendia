@@ -241,6 +241,11 @@ public class BuendiaXformBuilderEx {
                         case HL7Constants.HL7_NUMERIC:
                             ConceptNumeric conceptNumeric =
                                     Context.getConceptService().getConceptNumeric(concept.getConceptId());
+                            if (conceptNumeric == null) {
+                                log.error("Numeric concept could not be fetched for concept " + concept);
+                                throw new IllegalStateException(
+                                        "Numeric concept could not be fetched for concept " + concept);
+                            }
                             fieldUiNode = addUiNode(name, conceptNumeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, required,
                                     parentUiNode);
                             break;
