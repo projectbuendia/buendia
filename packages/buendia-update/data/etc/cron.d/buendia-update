@@ -1,1 +1,1 @@
-*/5 * * * * root /usr/bin/buendia-autoupdate -u 60
+*/5 * * * * root buendia-log buendia-autoupdate -u 60

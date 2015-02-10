@@ -29,8 +29,10 @@ if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1
     echo "Creating user $SERVER_OPENMRS_USER..."
     salt=$(xxd -l 64 -p /dev/urandom | tr -d '\n')
     $MYSQL <<< "
+        set @admin_id = (select user_id from users where system_id = 'admin');
+
         insert ignore into person (date_created, creator, uuid)
-            values (now(), 1, '$PERSON_UUID');
+            values (now(), @admin_id, '$PERSON_UUID');
 
         set @person_id :=
             (select person_id from person where uuid = '$PERSON_UUID');
@@ -38,13 +40,13 @@ if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1
         insert ignore into person_name (preferred, given_name, family_name,
                                         date_created, creator, person_id, uuid)
             values (1, 'Buendia', 'Client',
-                    now(), 1, @person_id, '$PERSON_NAME_UUID');
+                    now(), @admin_id, @person_id, '$PERSON_NAME_UUID');
 
         insert into users (username, password,
                            salt, date_created, creator, person_id, uuid)
             values ('$SERVER_OPENMRS_USER',
                     sha2('$SERVER_OPENMRS_USER$salt', 512),
-                    '$salt', now(), 1, @person_id, '$USER_UUID');
+                    '$salt', now(), @admin_id, @person_id, '$USER_UUID');
 
         set @user_id := last_insert_id();
 
