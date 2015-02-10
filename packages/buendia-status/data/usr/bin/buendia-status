@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Print as much status information as possible, rather than quitting on error.
+. /usr/share/buendia/utils.sh; set +e
+
+if [ "$1" == "-a" ]; then
+    all=1
+    shift
+fi
+
+if [ -n "$all" ]; then
+    echo -e '\n---- software packages'
+fi
+
+if [ -n "$1" ]; then
+    dpkg -s "$@"
+else
+    dpkg-query -f '${db:Status-Abbrev} ${Package;-20} ${Version;-15} ${Description;-38}\n' -W 'buendia-*'
+fi
+
+case "$PKGCLIENT_AUTOUPDATE" in
+    ''|0|false|off|no)
+        echo "PKGCLIENT_AUTOUPDATE is currently disabled."
+        ;;
+
+      *)
+        echo "PKGCLIENT_AUTOUPDATE is currently enabled."
+        ;;
+esac
+
+if [ -n "$all" ]; then
+    echo -e '\n---- buendia-warmup'
+    buendia-last buendia-warmup 2>&1
+
+    echo -e '\n---- uptime'
+    uptime 2>&1
+
+    echo -e '\n---- free'
+    free 2>&1
+
+    echo -e '\n---- df / /home'
+    buendia-enter-yocto <<< 'df / /home' 2>&1
+
+    echo -e '\n---- ifconfig wlan0'
+    ifconfig wlan0 2>&1
+
+    echo -e '\n---- buendia-mysql-watchdog'
+    buendia-last buendia-mysql-watchdog 2>&1
+
+    echo -e '\n---- buendia-tomcat7-watchdog'
+    buendia-last buendia-tomcat7-watchdog 2>&1
+
+    echo -e '\n---- buendia-backup'
+    buendia-last buendia-backup 2>&1
+
+    echo -e '\n---- buendia-limit'
+    buendia-last buendia-limit 2>&1
+
+    echo -e '\n---- du /var/log'
+    du /var/log 2>&1
+
+    echo -e '\n---- netstat -ln'
+    netstat -ln 2>&1
+
+    procs='buendia java tomcat mysql nginx ntpd sshd dnsmasq wpa_cli wpa_supplicant udhcpc hostapd'
+    echo -e "\n---- ps ($(echo $procs | sed -e 's/ /, /g'))"
+    ps -e -w -w -o pid,ppid,time,start,pcpu,pmem,command --sort -pmem | grep -F "$(echo $procs | tr ' ' '\n')" 2>&1
+
+    echo -e '\n---- rc (last boot messages)'
+    buendia-last rc 2>&1
+
+    echo -e "\n---- ps (everything)"
+    ps -e -w -w -o pid,ppid,time,start,pcpu,pmem,command --sort -pmem 2>&1
+fi
+
