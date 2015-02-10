@@ -63,10 +63,10 @@ if [ -n "$all" ]; then
     buendia-last rc 2>&1
 
     echo -e "\n---- ps (everything)"
-    ps -e -w -w -o pid,ppid,time,start,pcpu,pmem,command --sort -pmem 2>&1
+    ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem 2>&1
 
     procs='buendia java tomcat mysql nginx ntpd sshd dnsmasq wpa_cli wpa_supplicant udhcpc hostapd'
     echo -e "\n---- ps ($(echo $procs | sed -e 's/ /, /g'))"
-    ps -e -w -w -o pid,ppid,time,start,pcpu,pmem,command --sort -pmem | grep -F "$(echo $procs | tr ' ' '\n')" 2>&1
+    ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem | grep -F "$(echo $procs | tr ' ' '\n')" 2>&1
 fi
 
