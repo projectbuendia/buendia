@@ -50,7 +50,7 @@ function check_url() {
     while [[ $retry_count -lt 30 ]]; do
         echo
         echo "Trying $@..."
-        curl --progress-bar -m 5 -i -L $@ 3>&1 1>$tmpout 2>&3 | grep . || true
+        curl -s -S -m 5 -i -L $@ 3>&1 1>$tmpout 2>&3 | grep . || true
         if [ -s $tmpout ]; then
             echo -n "> "
             if grep -o "$search" $tmpout; then

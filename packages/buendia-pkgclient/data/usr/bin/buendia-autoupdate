@@ -6,11 +6,15 @@ if [ "$1" == "-h" ]; then
     echo "Usage: $0 [-u <seconds>]"
     echo
     echo "Updates all the Buendia packages, then reboots if necessary."
+    echo "Skips the update if none of the remote repositories are reachable"
+    echo "and nothing has changed in the local repository since the last run."
+    echo
     echo "Performs the update only if /usr/share/buendia/site/pkgclient"
     echo "sets PKGCLIENT_AUTOUPDATE=1."
     echo
-    echo "Specify -u <n> to perform the update only after the machine has"
-    echo "been up for at least <n> seconds."
+    echo "Specify -u <n> to perform the update only if the machine has been"
+    echo "up for at least <n> seconds.  Use this option to avoid running"
+    echo "updates while the machine is still doing other startup work."
     exit 1
 fi
 
@@ -18,7 +22,7 @@ if [ "$1" == "-u" ]; then
     min_upsecs="$2"
     upsecs=$(grep -o '[0-9]\+' /proc/uptime | head -1)
     if [ "$upsecs" -lt "$min_upsecs" ]; then
-        echo "Not autoupdating: uptime ($upsecs) has not reached $min_upsecs seconds yet."
+        echo "Not autoupdating: uptime ($upsecs s) has not reached $min_upsecs s yet."
         exit 1
     fi
 fi
@@ -28,9 +32,44 @@ if ! bool $PKGCLIENT_AUTOUPDATE; then
     exit 0
 fi
 
+# Tracks the last successfully completed update triggered by this script.
+success=/usr/share/buendia/autoupdate.success
+packages=/usr/share/buendia/packages
+
+# To keep from locking the package cache too often, skip out if we can
+# determine that there are no reachable servers with updates available.
+urls=$(cat /etc/apt/sources.list /etc/apt/sources.list.d/* |
+       grep -o 'http:[^ ]*' | sort | uniq)
+for url in $urls; do
+    hostname=$(echo "$url" | sed -e 's+^[^:]*[:/]*\([^:/]*\).*+\1+')
+    if [ "$hostname" == "localhost" ]; then
+        if [ ! -f $success ]; then
+            available=1
+            break
+        fi
+        if [ -e $packages ] && find $packages -newer $success | grep -q .; then
+            available=1
+            break
+        else
+            echo "Nothing new in the local package repository."
+        fi
+    else
+        if curl -m 10 -s $url >/dev/null; then
+            available=1
+            break
+        fi
+    fi
+done
+
+if [ -z "$available" ]; then
+    echo "Not autoupdating: no reachable repositories with new packages."
+    exit 1
+fi
+
 echo "Starting autoupdate."
 
-buendia-update
+# Record successful completion of this update.
+buendia-update && touch $success
 
 if [ -f /var/run/reboot-required ]; then
     echo "Rebooting after package update."
