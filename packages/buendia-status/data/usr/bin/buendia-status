@@ -8,6 +8,8 @@ if [ "$1" == "-a" ]; then
     shift
 fi
 
+uptime 2>&1
+
 if [ -n "$all" ]; then
     echo -e '\n---- software packages'
 fi
@@ -31,9 +33,6 @@ esac
 if [ -n "$all" ]; then
     echo -e '\n---- buendia-warmup'
     buendia-last buendia-warmup 2>&1
-
-    echo -e '\n---- uptime'
-    uptime 2>&1
 
     echo -e '\n---- free'
     free 2>&1
