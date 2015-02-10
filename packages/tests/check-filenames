@@ -1,0 +1,31 @@
+#!/bin/bash
+
+PACKAGE_NAME=$(basename $(pwd))
+
+# Check that Buendia files in *.d directories are named after the Buendia
+# package that owns them.  Within /usr/share/buendia the "buendia-" prefix
+# is redundant and therefore omitted.
+
+for dir in $(find data -name '*.d'); do
+    case $dir:$PACKAGE_NAME in
+        data/etc/apt/sources.list.d:*) name=buendia.list ;;
+        data/etc/udev/rules.d:*) continue ;;
+        data/usr/share/buendia/*:buendia-site-*) name=site ;;
+        data/usr/share/buendia/*:*) name=${PACKAGE_NAME#buendia-} ;;
+        *) name=$PACKAGE_NAME
+    esac
+
+    for file in $dir/*; do
+        if [ -e "$file" ]; then
+            if [ "$(basename "$file")" != $name ]; then
+                echo "$file should be named $name."
+                exit 1
+            fi
+        fi
+    done
+
+    if [ ! -f "$dir/$name" ]; then
+        echo "$dir exists but $dir/$name does not exist."
+        exit 1
+    fi
+done

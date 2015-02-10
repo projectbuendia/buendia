@@ -9,8 +9,8 @@ if [ "$1" == "-h" ]; then
     echo "Skips the update if none of the remote repositories are reachable"
     echo "and nothing has changed in the local repository since the last run."
     echo
-    echo "Performs the update only if /usr/share/buendia/site/pkgclient"
-    echo "sets PKGCLIENT_AUTOUPDATE=1."
+    echo "Performs the update only if /usr/share/buendia/site/update sets"
+    echo "UPDATE_AUTOUPDATE=1."
     echo
     echo "Specify -u <n> to perform the update only if the machine has been"
     echo "up for at least <n> seconds.  Use this option to avoid running"
@@ -27,8 +27,8 @@ if [ "$1" == "-u" ]; then
     fi
 fi
 
-if ! bool $PKGCLIENT_AUTOUPDATE; then
-    echo "Not autoupdating: PKGCLIENT_AUTOUPDATE is disabled."
+if ! bool $UPDATE_AUTOUPDATE; then
+    echo "Not autoupdating: UPDATE_AUTOUPDATE is disabled."
     exit 0
 fi
 

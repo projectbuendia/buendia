@@ -3,7 +3,7 @@
 set -e; . /usr/share/buendia/utils.sh
 SETTINGS=/usr/share/buendia/site/mysql
 INITSQL=/tmp/buendia-mysql-init.sql
-CONF=/etc/mysql/conf.d/buendia-init.cnf
+CONF=/etc/mysql/conf.d/buendia-mysql-init
 
 # Generate a random MySQL root password if one is not already set.
 if [ ! -f $SETTINGS ]; then

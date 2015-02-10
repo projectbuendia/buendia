@@ -1,9 +1,9 @@
 #!/bin/bash
 
 set -e; . /usr/share/buendia/utils.sh
-SETTINGS=/usr/share/buendia/site/pkgclient
+SETTINGS=/usr/share/buendia/site/update
 
 # Generate the default settings file if one does not already exist.
 if [ ! -f $SETTINGS ]; then
-    echo "PKGCLIENT_AUTOUPDATE=1" > $SETTINGS
+    echo "UPDATE_AUTOUPDATE=1" | create $SETTINGS
 fi

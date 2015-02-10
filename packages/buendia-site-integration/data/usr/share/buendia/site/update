@@ -1,3 +1,3 @@
 # We don't want integration.projectbuendia.org to update itself spontaneously;
 # let Jenkins trigger an update explicitly when running an integration test.
-PKGCLIENT_AUTOUPDATE=0
+UPDATE_AUTOUPDATE=0

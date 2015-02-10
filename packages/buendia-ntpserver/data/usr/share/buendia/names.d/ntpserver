@@ -1,0 +1,6 @@
+# Hostname on the local network
+ntp
+ntp.local
+
+# Default NTP server hostname used by Sony Xperia Z2 tablets
+ntp.nict.jp

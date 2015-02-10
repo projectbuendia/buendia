@@ -16,7 +16,7 @@ unset CLICOLOR
 unset CLICOLOR_FORCE
 unset LSCOLORS
 unset LS_COLORS
-names=$(echo $(hostname) $(command ls /usr/share/buendia/names.d/))
+names=$(echo $(hostname) $(cat /usr/share/buendia/names.d/* | sed -e 's/#.*//'))
 
 # Add a line for each of the machine's IP addresses.
 for ip in $(ifconfig | grep -o 'inet addr:[0-9.]\+' | sed -e 's/.*://'); do

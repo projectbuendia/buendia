@@ -1,6 +1,6 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides: buendia-warmup
+# Provides: buendia-server
 # Required-Start: $all
 # Required-Stop:
 # Should-Start:
@@ -24,7 +24,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: buendia-warmup [start|restart|stop]" >&2
+        echo "Usage: buendia-server [start|restart|stop]" >&2
         exit 3
         ;;
 esac

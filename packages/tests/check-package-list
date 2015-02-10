@@ -4,10 +4,6 @@ PACKAGE_NAME=$(basename $(pwd))
 
 for file in data/usr/share/buendia/packages.list.d/*; do
     if [ -e $file ]; then
-        if [ $(basename $file) != $PACKAGE_NAME ]; then
-            echo "$file should be named $PACKAGE_NAME to match this package."
-            exit 1
-        fi
         if [ -x $file ]; then
             echo "$file should not be executable.  Please chmod a-x all files in packages.list.d/ before building."
             ls -al $file
@@ -25,7 +21,7 @@ for file in data/usr/share/buendia/packages.list.d/*; do
 done
 
 if [[ $PACKAGE_NAME = buendia-site-* ]]; then
-    file=data/usr/share/buendia/packages.list.d/$PACKAGE_NAME
+    file=data/usr/share/buendia/packages.list.d/site
     if [ ! -e $file ]; then
         echo "Missing package list: $file."
         exit 1

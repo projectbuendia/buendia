@@ -5,7 +5,7 @@ set -e; . /usr/share/buendia/utils.sh
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         # Apply settings
-        /usr/share/buendia/config.d/pkgclient
+        /usr/share/buendia/config.d/update
 
         # Make the update run once on startup
         update-rc.d buendia-autoupdate defaults
