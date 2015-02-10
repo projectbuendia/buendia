@@ -76,7 +76,7 @@ public class DataExportServlet extends HttpServlet {
             "Encounter time ISO8601 UTC",
             "Encounter time yyyy-MM-dd HH:mm:ss UTC",
     };
-    private static final int COLUMNS_PER_OBS = 2;
+    private static final int COLUMNS_PER_OBS = 3;
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
 
@@ -180,9 +180,11 @@ public class DataExportServlet extends HttpServlet {
                             if (value == null || value.getUuid() == null || value.getUuid().isEmpty()) {
                                 values[valueColumn] = "";
                                 values[valueColumn + 1] = "";
+                                values[valueColumn + 2] = "";
                             } else {
                                 values[valueColumn] = NAMER.getClientName(value);
-                                values[valueColumn + 1] = value.getUuid();
+                                values[valueColumn + 1] = value.getId();
+                                values[valueColumn + 2] = value.getUuid();
                             }
                             return null;
                         }
@@ -197,6 +199,7 @@ public class DataExportServlet extends HttpServlet {
                             }
                             values[valueColumn] = s;
                             values[valueColumn + 1] = s;
+                            values[valueColumn + 2] = s;
                             return null;
                         }
 
@@ -210,6 +213,7 @@ public class DataExportServlet extends HttpServlet {
                             }
                             values[valueColumn] = s;
                             values[valueColumn + 1] = s;
+                            values[valueColumn + 2] = s;
                             return null;
                         }
 
@@ -220,6 +224,7 @@ public class DataExportServlet extends HttpServlet {
                             }
                             values[valueColumn] = value;
                             values[valueColumn + 1] = value;
+                            values[valueColumn + 2] = value;
                             return null;
                         }
 
@@ -233,6 +238,7 @@ public class DataExportServlet extends HttpServlet {
                             }
                             values[valueColumn] = value;
                             values[valueColumn + 1] = value;
+                            values[valueColumn + 2] = value;
                             return null;
                         }
 
@@ -246,6 +252,7 @@ public class DataExportServlet extends HttpServlet {
                             }
                             values[valueColumn] = value;
                             values[valueColumn + 1] = value;
+                            values[valueColumn + 2] = value;
                             return null;
                         }
                     });
@@ -262,9 +269,10 @@ public class DataExportServlet extends HttpServlet {
         for (int i=0; i<indexer.size(); i++) {
             // For each observation have two columns, first as a friendly English string,
             // secondly as a UUID.
-            assert COLUMNS_PER_OBS == 2;
+            assert COLUMNS_PER_OBS == 3;
             Concept concept = indexer.getConcept(i);
             printer.print(NAMER.getClientName(concept));
+            printer.print(concept.getId());
             printer.print(concept.getUuid());
         }
         printer.println();
