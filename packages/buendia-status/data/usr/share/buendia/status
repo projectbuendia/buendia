@@ -1,5 +1,6 @@
 #!/bin/bash
 
-echo 'Content-Type: text/plain'
+echo 'Content-Type: text/html'
 echo
+echo -n '<xmp style="display: inline-block">'
 buendia-status -a
