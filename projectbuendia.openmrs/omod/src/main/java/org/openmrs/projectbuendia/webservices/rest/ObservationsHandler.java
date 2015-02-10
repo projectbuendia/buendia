@@ -108,8 +108,10 @@ public class ObservationsHandler {
             } else {
                 throw new InvalidObjectDataException("Unknown answer type " + observationObject);
             }
+            encounter.addObs(obs);
             obsService.saveObs(obs, changeMessage);
         }
+        encounter = encounterService.saveEncounter(encounter);
         return encounter;
     }
 }
