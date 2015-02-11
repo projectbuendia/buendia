@@ -17,7 +17,8 @@ if [ "$1" == "-h" -o "$hostport" == "" ]; then
 fi
 
 tmpout=/tmp/warmup.out.$$
-trap 'rm -rf $tmpout' EXIT
+tmpgrep=/tmp/warmup.grep.$$
+#trap 'rm -rf $tmpout $tmpgrep' EXIT
 
 # These are just defaults.
 if [ -z "$SERVER_OPENMRS_USER" ]; then
@@ -49,16 +50,17 @@ function check_url() {
     shift
     while [[ $retry_count -lt 30 ]]; do
         echo
-        echo "Trying $@..."
+        echo "Trying $1..."
         curl -s -S -m 5 -i -L $@ 3>&1 1>$tmpout 2>&3 | grep . || true
         if [ -s $tmpout ]; then
-            echo -n "> "
-            if grep -o "$search" $tmpout; then
-                echo "Got a valid response matching /$search/."
+            if grep -o "$search" $tmpout > $tmpgrep; then
+                echo -n "Got a valid response containing: "
+                head -1 $tmpgrep
                 return 0
             fi
-            head -1 $tmpout
             echo "Got a response, but it did not contain /$search/."
+            # Truncate the output to a maximum of 70 columns and 5 rows.
+            sed -n -e '1,5 s/\(......................................................................\).*/\1.../' -e '1,5 s/^/> / p' -e '6 s/.*/[...]/ p' < $tmpout
         else
             echo "No response from server."
         fi
