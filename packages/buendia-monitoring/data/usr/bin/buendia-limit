@@ -3,7 +3,9 @@
 set -e
 limit=$1
 
-if [ "$2" == "" -o "$1" == "-h" ]; then
+# For some reason, the == operator will not work when this script is
+# invoked by logrotate.
+if [ "$2" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <kilobytes> [<path> ...]"
     echo
     echo "Examines all the specified files and files under the specified"

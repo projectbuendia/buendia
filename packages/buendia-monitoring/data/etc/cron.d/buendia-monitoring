@@ -3,7 +3,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 * * * * * root chmod -R a+rX /var/log
 0 * * * * root buendia-log logrotate /etc/logrotate.conf
-0 * * * * root buendia-log buendia-limit 200000 /var/log
+0 * * * * root buendia-log buendia-limit 100000 /var/log
 
 0 * * * * root buendia-log -y df
 0 */6 * * * root buendia-log -y 'du / | egrep -v "\s/sys|\s/proc"'
