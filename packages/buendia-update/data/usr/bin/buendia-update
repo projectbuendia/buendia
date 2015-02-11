@@ -16,6 +16,12 @@ if ! flock -n 9; then
     exit 1
 fi
 
+if [ -e /dev/ttyMFD1 ]; then
+    # Turn on red LED during updates.
+    (stty 115200; echo JFFLR1) </dev/ttyMFD1 >/dev/ttyMFD1
+    trap '(stty 115200; echo JFFLR0) </dev/ttyMFD1 >/dev/ttyMFD1' EXIT
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 echo "--- Starting: $0 $@"
 buendia-status
