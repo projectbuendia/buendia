@@ -15,7 +15,6 @@ case $1 in
 
         # Bring services back up
         service nginx start
-        service_if_exists udev start
         ;;
 
     *) exit 1

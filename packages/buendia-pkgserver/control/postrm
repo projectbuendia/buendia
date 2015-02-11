@@ -5,7 +5,6 @@ set -e; . /usr/share/buendia/utils.sh
 case $1 in
     remove|purge|upgrade|disappear)
         service_if_exists nginx start
-        service_if_exists udev start
         ;;
 
     *) exit 1
