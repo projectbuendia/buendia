@@ -55,7 +55,8 @@ if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1
                (@user_id, 'Clinician'),
                (@user_id, 'Data Assistant'),
                (@user_id, 'Data Manager'),
-               (@user_id, 'Provider');
+               (@user_id, 'Provider'),
+               (@user_id, 'System Developer');
     "
 fi
 
