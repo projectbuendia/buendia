@@ -187,7 +187,19 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
      * }
      */
     @Override
-    public Object create(SimpleObject post, RequestContext context) throws ResponseException {
+    public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "create", obj);
+            Object result = createInner(obj, context);
+            logger.reply(context, this, "create", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "create", e);
+            throw e;
+        }
+    }
+
+    public Object createInner(SimpleObject post, RequestContext context) throws ResponseException {
         // Warning! In order to re-use the observation creation code from PatientResource, the
         // JSON Syntax for this method (create) is different from the JSON syntax for get. This is
         // terrible REST design. However, we are close to shipping, and I don't want to introduce the

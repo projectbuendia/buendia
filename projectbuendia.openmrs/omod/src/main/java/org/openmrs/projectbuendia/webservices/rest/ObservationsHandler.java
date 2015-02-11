@@ -12,6 +12,7 @@ import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.Utils;
 
 import java.util.Date;
 import java.util.List;
@@ -60,10 +61,12 @@ public class ObservationsHandler {
      */
     public Encounter addObservations(SimpleObject json, Patient patient, Date encounterTime, String changeMessage,
                                 String encounterTypeName, String locationUuid) {
-        List observations = (List)json.get(OBSERVATIONS);
+        List observations = (List) json.get(OBSERVATIONS);
         if (observations.isEmpty()) {
             return null;
         }
+        encounterTime = Utils.fixEncounterDateTime(encounterTime);
+
         EncounterService encounterService = Context.getEncounterService();
         ConceptService conceptService = Context.getConceptService();
         final Location location = Context.getLocationService().getLocationByUuid(locationUuid);
