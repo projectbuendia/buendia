@@ -45,7 +45,7 @@ else
   echo
   rm -rf $tmpdir
   mkdir -p $tmpdir
-  if [[ $firmware == *.zip ]]; then
+  if [[ $firmware = *.zip ]]; then
     cp $firmware $tmpdir/firmware.zip
     cd $tmpdir
     unzip firmware.zip

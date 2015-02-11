@@ -3,7 +3,7 @@
 set -e; . /usr/share/buendia/utils.sh
 source="$1"
 
-if [ "$1" == "-h" -o "$source" == "" ]; then
+if [ "$1" = "-h" -o "$source" = "" ]; then
     echo "Usage: $0 [<device>|<directory>]"
     echo
     echo "Imports Buendia package bundles into the local package server."

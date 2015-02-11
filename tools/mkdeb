@@ -4,7 +4,7 @@ set -e
 output="$1"; shift
 control="$1"; shift
 
-if [ "$1" == "" ]; then
+if [ "$1" = "" ]; then
     cat <<EOF
 Usage: $0 <output.deb> <control-dir> <data-dir> [<data-dir> ...]
 

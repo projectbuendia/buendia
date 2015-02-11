@@ -20,7 +20,7 @@ if [ "$ssid_psk" != "-" ]; then
     # Split ssid_psk into ssid and optional psk.
     ssid="${ssid_psk%:*}"
     psk="${ssid_psk#*:}"
-    if [ "$psk" == "$ssid_psk" ]; then psk=; fi
+    if [ "$psk" = "$ssid_psk" ]; then psk=; fi
 
     # Back up the existing configuration file.
     if [ ! -e $confdir/backup.conf ]; then

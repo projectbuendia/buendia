@@ -3,8 +3,6 @@
 set -e
 limit=$1
 
-# For some reason, the == operator will not work when this script is
-# invoked by logrotate.
 if [ "$2" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <kilobytes> [<path> ...]"
     echo

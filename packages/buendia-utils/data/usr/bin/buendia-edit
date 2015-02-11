@@ -1,7 +1,7 @@
 #!/bin/bash
 
 name=$1
-if [ "$1" == "-h" -o -z "$1" ]; then
+if [ "$1" = "-h" -o -z "$1" ]; then
     echo "Usage: $0 <name>"
     echo
     echo "Edit a settings file in /usr/share/buendia/site."

@@ -12,7 +12,7 @@ ssh="ssh $ssh_opts"
 scp="scp $ssh_opts"
 
 function connect_linux_ethernet() {
-  if [[ "$OSTYPE" == linux* ]]; then
+  if [[ "$OSTYPE" = linux* ]]; then
     if [ $(id -u) != 0 ]; then
       echo "Username: $USER (on $(hostname))" 1>&2
       sudo ifconfig usb0 up 192.168.2.1 2>/dev/null
@@ -23,7 +23,7 @@ function connect_linux_ethernet() {
 }
 
 function connect_mac_ethernet() {
-  if [[ "$OSTYPE" == darwin* ]]; then
+  if [[ "$OSTYPE" = darwin* ]]; then
     usbif=$(ifconfig | grep -v '^en[01]:' | grep -vw UP | grep -o '^en[0-9]\+')
     if [ -n "$usbif" ]; then
       if [ $(id -u) != 0 ]; then
@@ -42,7 +42,7 @@ function connect_ethernet() {
     connect_linux_ethernet || true
     connect_mac_ethernet || true
     if ping -c 1 -t 1 $TARGET_IPADDR >/dev/null 2>/dev/null; then break; fi
-    if [[ $retry_count == 0 ]]; then
+    if [[ $retry_count = 0 ]]; then
       echo "Waiting for Edison to come up at $TARGET_IPADDR.  Connect"
       echo "a USB cable from this computer to the Edison's USB OTG port."
     fi
@@ -50,7 +50,7 @@ function connect_ethernet() {
 
     echo -n '.' 1>&2
     let retry_count=retry_count+1
-    if [[ "$OSTYPE" == darwin* && $retry_count == 3 ]]; then
+    if [[ "$OSTYPE" = darwin* && $retry_count = 3 ]]; then
       cat <<EOF 1>&2
 
 If the Edison does not appear within 30 seconds of power-on, open

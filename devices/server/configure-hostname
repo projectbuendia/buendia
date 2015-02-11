@@ -5,7 +5,7 @@ cd $(dirname $0)
 source remote-execution.sh
 hostname=${1-buendia-server}
 
-if [ "$1" == "-h" ]; then
+if [ "$1" = "-h" ]; then
     echo "Usage: $0"
     echo
     echo "Sets the hostname of the Edison server."

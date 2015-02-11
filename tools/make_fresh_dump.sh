@@ -16,7 +16,7 @@ WORK_USER=jenkins  # a Unix account on WORK_HOST to which we have ssh access
 WORK_DATABASE=openmrs_clean  # a MySQL database on WORK_HOST as a scratch area
 WORK=$WORK_USER@$WORK_HOST
 
-if [ $SRC_HOST:$SRC_DATABASE == $WORK_HOST:$WORK_DATABASE ]; then
+if [ $SRC_HOST:$SRC_DATABASE = $WORK_HOST:$WORK_DATABASE ]; then
     echo "Source database and working database should not be the same;"
     echo "the cleaning operation would mess up the source database."
     exit 2

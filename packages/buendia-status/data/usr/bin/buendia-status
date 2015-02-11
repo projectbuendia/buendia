@@ -3,7 +3,7 @@
 # Print as much status information as possible, rather than quitting on error.
 . /usr/share/buendia/utils.sh; set +e
 
-if [ "$1" == "-a" ]; then
+if [ "$1" = "-a" ]; then
     all=1
     shift
 fi

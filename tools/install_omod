@@ -5,7 +5,7 @@ host=$1
 omod=$2
 user=$3
 
-if [ "$1" == "-h" -o -z "$omod" ]; then
+if [ "$1" = "-h" -o -z "$omod" ]; then
   echo "Usage: $0 <host-ip-address> <filename.omod> [username]"
   echo
   echo "Installs a Buendia OMOD file on an OpenMRS server, replacing any"
@@ -17,7 +17,7 @@ if [ -z "$user" ]; then
   user='root'
 fi
 export TARGET=$user@$host
-if [ "$user" == "root" ]; then
+if [ "$user" = "root" ]; then
   export sudo=""
 else
   export sudo="sudo"

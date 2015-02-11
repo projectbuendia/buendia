@@ -8,7 +8,7 @@ setup_ssid_psk=$2
 site_id=$3
 repo_url=http://packages-dev.projectbuendia.org:9001
 
-if [ "$1" == "-h" -o ! -n "$setup_ssid_psk" ]; then
+if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
     echo "
 Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<site-id>]
 

@@ -2,7 +2,7 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-if [ "$1" == "" -o "$1" == "-h" ]; then
+if [ "$1" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 [-y] <command>"
     echo
     echo "Runs a command and logs its output under /var/log/buendia, exiting"
@@ -11,7 +11,7 @@ if [ "$1" == "" -o "$1" == "-h" ]; then
     exit 1
 fi
 
-if [ "$1" == "-y" ]; then
+if [ "$1" = "-y" ]; then
     yocto=yes
     shift
 fi

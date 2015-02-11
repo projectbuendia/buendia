@@ -1,13 +1,13 @@
 #!/bin/bash
 
 set -e
-if [ "$1" == "-r" ]; then
+if [ "$1" = "-r" ]; then
     retry=yes
     shift
 fi
 hostport=$1
 
-if [ "$1" == "-h" -o "$hostport" == "" ]; then
+if [ "$1" = "-h" -o "$hostport" = "" ]; then
     echo "Usage: $0 [-r] <host>[:<port>]"
     echo
     echo "Makes requests to confirm that the Buendia API is available at the"

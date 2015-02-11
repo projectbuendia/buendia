@@ -2,7 +2,7 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-if [ "$1" == "-h" ]; then
+if [ "$1" = "-h" ]; then
     echo "Usage: $0 [-u <seconds>]"
     echo
     echo "Updates all the Buendia packages, then reboots if necessary."
@@ -18,7 +18,7 @@ if [ "$1" == "-h" ]; then
     exit 1
 fi
 
-if [ "$1" == "-u" ]; then
+if [ "$1" = "-u" ]; then
     min_upsecs="$2"
     upsecs=$(grep -o '[0-9]\+' /proc/uptime | head -1)
     if [ "$upsecs" -lt "$min_upsecs" ]; then
@@ -42,7 +42,7 @@ urls=$(cat /etc/apt/sources.list /etc/apt/sources.list.d/* |
        grep -o 'http:[^ ]*' | sort | uniq)
 for url in $urls; do
     hostname=$(echo "$url" | sed -e 's+^[^:]*[:/]*\([^:/]*\).*+\1+')
-    if [ "$hostname" == "localhost" ]; then
+    if [ "$hostname" = "localhost" ]; then
         if [ ! -f $success ]; then
             available=1
             break

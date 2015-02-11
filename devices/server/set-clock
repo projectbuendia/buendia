@@ -5,7 +5,7 @@ cd $(dirname $0)
 source remote-execution.sh
 date="$*"
 
-if [ "$1" == "-h" ]; then
+if [ "$1" = "-h" ]; then
     echo "Usage: $0 [YYYY-MM-DD HH:MM:SS]"
     echo
     echo "Sets the clock on the Edison server to match this host's clock,"

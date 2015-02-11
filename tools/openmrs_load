@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-if [ "$1" == "-f" ]; then
+if [ "$1" = "-f" ]; then
     force=yes
     shift
 fi
@@ -40,7 +40,7 @@ mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
 
 # Create an empty database.
 if $mysql -e '' $db 2>/dev/null; then
-    if [ "$force" == yes ]; then
+    if [ "$force" = yes ]; then
         echo "Wiping existing database $db..."
         $mysql -s -e 'show tables;' $db 2>/dev/null | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
     else

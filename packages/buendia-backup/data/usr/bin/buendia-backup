@@ -6,7 +6,7 @@ export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 root=$1
 limit=$2
 
-if [ "$limit" == "" -o "$1" == "-h" ]; then
+if [ "$limit" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <backup-root-path> <kilobytes>"
     echo
     echo "Backs up the current OpenMRS database and set of Buendia packages"

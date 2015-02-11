@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$1" == "-h" ]; then
+if [ "$1" = "-h" ]; then
     echo "Usage: $0"
     echo
     echo "Creates or updates the Release and Package indexes for the pool"

@@ -22,7 +22,7 @@ server_rc_number=$2
 clean_dump_zip=$3
 site=$4
 
-if [ "$1" == "-h" -o -z "$site" ]; then
+if [ "$1" = "-h" -o -z "$site" ]; then
   echo "Usage: $0 <client-rc-number> <server-rc-number> <clean-dump.zip> <site>"
   echo
   echo "Constructs a zip file containing the specified RC builds of the client"
@@ -78,7 +78,7 @@ password=$1
 setup_ssid_psk=$2
 production_ssid_psk=$3
 
-if [ "$1" == "-h" -o -z "$setup_ssid_psk" ]; then
+if [ "$1" = "-h" -o -z "$setup_ssid_psk" ]; then
   echo "Usage: $0 <new-admin-password> <setup-ssid>[:<psk-password>] <production-ssid>[:<psk-password>]"
   echo
   echo "Completely erases and sets up an Edison from scratch, first performing"

@@ -3,7 +3,7 @@
 set -e
 name=$1
 
-if [ "$1" == "-h" -o -z "$1" ]; then
+if [ "$1" = "-h" -o -z "$1" ]; then
     echo "Usage: $0 <log-name>"
     echo
     echo "Takes the name of a log file in the /var/log/buendia directory"

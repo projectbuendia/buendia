@@ -16,14 +16,14 @@ if [ -z "$target" ]; then
     exit 1
 fi
 
-if [ $current == $target ]; then
+if [ $current = $target ]; then
     exit 0
 fi
 
 current_tag=${current%.build*}
 target_tag=${target%.build*}
 
-if [ $current_tag == $target_tag ]; then
+if [ $current_tag = $target_tag ]; then
     echo "$0: Migration from $current to $target successful (same release)."
     exit 0
 fi

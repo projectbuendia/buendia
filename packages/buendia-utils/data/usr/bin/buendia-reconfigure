@@ -2,7 +2,7 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-if [ "$1" == "-h" ]; then
+if [ "$1" = "-h" ]; then
     echo "Usage: $0 [<package-name>...]"
     echo
     echo "Re-applies settings in /usr/share/buendia/site/* to the services"

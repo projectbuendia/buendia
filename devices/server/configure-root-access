@@ -5,7 +5,7 @@ cd $(dirname $0)
 source remote-execution.sh
 password=$1
 
-if [ "$1" == "-h" -o ! -n "$password" ]; then
+if [ "$1" = "-h" -o ! -n "$password" ]; then
     echo "Usage: $0 <new-root-password>"
     echo
     echo "Given an Edison with no root password at the specified IP address,"

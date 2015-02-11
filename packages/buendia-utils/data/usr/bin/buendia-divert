@@ -5,7 +5,7 @@ original=$2
 replacement=${3-/usr/share/buendia/diversions$original}
 package=${4-$DPKG_MAINTSCRIPT_PACKAGE}
 
-if [ "$original" == "" ]; then
+if [ "$original" = "" ]; then
     echo "Usage: buendia-divert <verb> <original> [<replacement>] [<package>]"
     echo
     echo "Adds or removes a diversion of a file owned by another package."
@@ -30,7 +30,7 @@ if [ ! -e "$replacement" ]; then
     exit 1
 fi
 
-if [ "$package" == "" ]; then
+if [ "$package" = "" ]; then
     echo "Could not determine the current package name."
     exit 1
 fi
