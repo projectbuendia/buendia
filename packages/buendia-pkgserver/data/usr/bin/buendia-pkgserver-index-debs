@@ -1,0 +1,34 @@
+#!/bin/bash
+
+if [ "$1" == "-h" ]; then
+    echo "Usage: $0"
+    echo
+    echo "Creates or updates the Release and Package indexes for the pool"
+    echo "of .deb files located in /usr/share/buendia/packages."
+    exit 1
+fi
+
+packages=dists/stable/main/binary-all/Packages
+release=dists/stable/Release
+packages_tmp=$packages.$$
+release_tmp=$release.$$
+trap 'rm -f $packages_tmp $release_tmp' EXIT
+
+cd /usr/share/buendia/packages
+mkdir -p dists/stable/main/binary-all
+
+# This is a slow operation, so write to a temporary file first.
+apt-ftparchive --arch all packages . > $packages_tmp
+cat <<EOF >$release_tmp
+Origin: Buendia
+Label: Buendia Debian Packages
+Suite: stable
+Codename: stable
+Architectures: all
+Components: main
+Description: Buendia Debian Packages
+EOF
+apt-ftparchive release dists/stable >> $release_tmp
+
+mv $packages_tmp $packages
+mv $release_tmp $release

@@ -1,0 +1,43 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+source="$1"
+
+if [ "$1" == "-h" -o "$source" == "" ]; then
+    echo "Usage: $0 [<device>|<directory>]"
+    echo
+    echo "Imports Buendia package bundles into the local package server."
+    echo "Searches for files named projectbuendia-<site>.zip in the given"
+    echo "directory or in the root directory of the given mountable device."
+    exit 1
+fi
+
+# Create temporary directories for mounting and extraction
+mntdir=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
+exdir=$(mktemp -d /tmp/tmp.XXXXXXXXXX)
+trap 'rm -r $exdir; umount $mntdir && rm -r $mntdir || rmdir $mntdir' EXIT
+
+# Mount the given device to a temporary directory.
+if [ -b "$source" ]; then
+    mount $source $mntdir
+    source="$mntdir"
+fi
+
+# Look for all-site updates.
+for file in $source/projectbuendia-all*.zip; do
+    unzip $file -d $exdir
+    mv $exdir/* /usr/share/buendia/packages/
+done
+
+if [ -n "$SITE_ID" ]; then
+    for file in $source/projectbuendia-$SITE_ID*.zip; do
+        unzip $f -d $exdir
+        mv $exdir/* /usr/share/buendia/packages/
+        mv $file $source/installed-$(basename $file)
+    done
+fi
+
+# Regenerate indexes.
+buendia-pkgserver-index-debs || true
+buendia-pkgserver-index-apks || true
+chmod -R a+rX /usr/share/buendia/packages
