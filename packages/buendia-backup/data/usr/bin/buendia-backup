@@ -25,7 +25,7 @@ trap 'rm -rf $tmp' EXIT
 # Keep one backup per day.  (If you need to maintain a backup that is
 # much less than a day old, run buendia-backup multiple times per day.)
 final_dir=$root/$(date +'%Y-%m-%d')
-dir=$final_dir.new
+dir=$final_dir.new.$$
 old_dir=$root/old
 
 # We'll write files to $dir, and when done, atomically move $dir to $final_dir.

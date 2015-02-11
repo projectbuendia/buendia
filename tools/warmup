@@ -18,7 +18,7 @@ fi
 
 tmpout=/tmp/warmup.out.$$
 tmpgrep=/tmp/warmup.grep.$$
-#trap 'rm -rf $tmpout $tmpgrep' EXIT
+trap 'rm -rf $tmpout $tmpgrep' EXIT
 
 # These are just defaults.
 if [ -z "$SERVER_OPENMRS_USER" ]; then
