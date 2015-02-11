@@ -8,7 +8,7 @@ case $1 in
         /usr/share/buendia/config.d/update
 
         # Make the update run once on startup
-        update-rc.d buendia-autoupdate defaults
+        update-rc.d buendia-update defaults
 
         # Ensure that cron is up so it can run the update periodically
         service cron start

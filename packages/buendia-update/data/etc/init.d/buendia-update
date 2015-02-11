@@ -1,6 +1,6 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides: buendia-autoupdate
+# Provides: buendia-update
 # Required-Start: $all
 # Required-Stop:
 # Should-Start:
@@ -24,7 +24,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: buendia-autoupdate [start|restart|stop]" >&2
+        echo "Usage: buendia-update [start|restart|stop]" >&2
         exit 3
         ;;
 esac

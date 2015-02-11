@@ -1,1 +1,4 @@
-*/5 * * * * root buendia-log buendia-autoupdate -u 60
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+* * * * * root buendia-log buendia-autoupdate -u 60
