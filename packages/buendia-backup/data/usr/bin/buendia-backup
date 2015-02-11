@@ -9,15 +9,20 @@ limit=$2
 if [ "$limit" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <backup-root-path> <kilobytes>"
     echo
-    echo "Backs up the current OpenMRS database and set of Buendia packages"
-    echo "to a directory under the specified path, capturing at most one backup"
-    echo "per day and replacing any backup made earlier this same day."
-    echo "Cleans up the backup directory to keep its total space usage less"
-    echo "than the specified number of kilobytes."
+    echo "Backs up the current OpenMRS database, Buendia configuration,"
+    echo "and installed Buendia packages under the specified path, capturing"
+    echo "at most one backup per day and replacing any backup made earlier"
+    echo "that same day.  Cleans up the backup directory to keep its total"
+    echo "space usage less than the specified number of kilobytes."
     exit 1
 fi
 
-# Keep one backup per day.  (To ensure that there is always a backup that is
+tmp=/tmp/buendia-backup.$$
+rm -rf $tmp
+mkdir -p $tmp
+trap 'rm -rf $tmp' EXIT
+
+# Keep one backup per day.  (If you need to maintain a backup that is
 # much less than a day old, run buendia-backup multiple times per day.)
 final_dir=$root/$(date +'%Y-%m-%d')
 dir=$final_dir.new
@@ -38,13 +43,23 @@ sleep 1
 deb_dir=$root/packages
 mkdir -p $deb_dir
 
+# ---- Back up Buendia configuration
+
+echo "Saving Buendia configuration..."
+tar cfz $dir/buendia.tar.gz \
+    /usr/share/buendia \
+    --exclude /usr/share/buendia/config.d \
+    --exclude /usr/share/buendia/db \
+    --exclude /usr/share/buendia/diversions \
+    --exclude /usr/share/buendia/openmrs/modules \
+    --exclude /usr/share/buendia/packages
+ls -l $dir/buendia.tar.gz
+
 # ---- Back up MySQL data
 
 echo "Dumping MySQL database..."
-tmp=/tmp/buendia-mysql-dump.$$
-trap 'rm -f $tmp' EXIT
-if ! buendia-mysql-dump openmrs $dir/openmrs.zip >$tmp 2>&1; then
-    cat $tmp
+if ! buendia-mysql-dump openmrs $dir/openmrs.zip >$tmp/out 2>&1; then
+    cat $tmp/out
     echo "buendia-mysql-dump failed!"
     exit 1
 fi
