@@ -1,5 +1,5 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-0 */4 * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_INTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_INTERNAL_DIR $BACKUP_INTERNAL_LIMIT_KB
-0 */2 * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_EXTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_EXTERNAL_DIR $BACKUP_EXTERNAL_LIMIT_KB
+0 * * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_INTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_INTERNAL_DIR $BACKUP_INTERNAL_LIMIT_KB
+0 * * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_EXTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_EXTERNAL_DIR $BACKUP_EXTERNAL_LIMIT_KB
