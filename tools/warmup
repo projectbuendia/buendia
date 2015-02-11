@@ -65,7 +65,7 @@ function check_url() {
 
         if [ -e /dev/ttyMFD1 ]; then
             # Turn off green LED on failure.
-            (stty 115200; echo -e "JFFLG0\r\n") >/dev/ttyMFD1
+            (stty 115200; echo -e "JFFLG0\r\n") </dev/ttyMFD1 >/dev/ttyMFD1
         fi
 
         if [ -z "$retry" ]; then
@@ -93,5 +93,5 @@ echo
 
 if [ -e /dev/ttyMFD1 ]; then
     # Turn on green LED on success.
-    (stty 115200; echo -e "JFFLG1\r\n") >/dev/ttyMFD1
+    (stty 115200; echo -e "JFFLG1\r\n") </dev/ttyMFD1 >/dev/ttyMFD1
 fi
