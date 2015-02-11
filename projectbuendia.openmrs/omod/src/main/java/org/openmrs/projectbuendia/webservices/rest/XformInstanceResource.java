@@ -16,6 +16,7 @@ import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -263,16 +264,9 @@ public class XformInstanceResource implements Creatable {
         // datetime will be recorded with only a date and the time will always be 00:00.
 
         // Extract the datetime and set it back, to reformat it to a format that OpenMRS
-        // will accept, and also to ensure that a datetime is filled in if missing.
-        Date datetime = getEncounterDatetime(doc);
-
-        // The OpenMRS core is not designed for a client-server setup -- it will reject the
-        // encounter if the encounter_datetime is in the future, even if the client's clock
-        // is off by only one millisecond.  Adjust the date to avoid this.
-        Date now = new Date();
-        if (datetime.after(now)) {
-            datetime = now;
-        }
+        // will accept, ensure it has a value that OpenMRS will accept, and also to
+        // ensure that a datetime is filled in if missing.
+        Date datetime = Utils.fixEncounterDateTime(getEncounterDatetime(doc));
 
         // OpenMRS has trouble handling the encounter_datetime in the format we receive.
         // We must set the encounter_datetime to ensure it is properly formatted.

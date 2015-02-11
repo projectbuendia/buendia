@@ -5,6 +5,7 @@ import org.openmrs.Concept;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -98,4 +99,20 @@ public class Utils {
             return nullIntStrListComparator.compare(aParts, bParts);
         }
     };
+
+    /**
+     * Adjusts an encounter datetime to ensure it will be accepted by the OpenMRS core.
+     * The OpenMRS core is not designed for a client-server setup -- it will summarily
+     * reject the encounter if the encounter_datetime is in the future, even if the
+     * client's clock is off by only one millisecond.
+     * @param datetime The date and time of an encounter.
+     * @return
+     */
+    public static Date fixEncounterDateTime(Date datetime) {
+        Date now = new Date();
+        if (datetime.after(now)) {
+            datetime = now;
+        }
+        return datetime;
+    }
 }

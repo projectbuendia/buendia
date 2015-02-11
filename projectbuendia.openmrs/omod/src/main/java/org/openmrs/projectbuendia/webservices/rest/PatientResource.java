@@ -483,11 +483,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
 
-            // TODO(kpy): Store the admission date/time in a patient attribute.
-            // Assuming that admission time is equal to database creation time
-            // prevents retroactive entry of existing patients or editing of
-            // incorrect admission times.
-            // NOTE(kpy): Client expects an integer value, not double.
+            // TODO(kpy): This value was a stopgap before we had a better way to store
+            // the admission date.  This JSON property is no longer used in the client;
+            // instead, the admission date is stored as an observation and returned by
+            // PatientEncountersResource.
             jsonForm.add(ADMISSION_TIMESTAMP,
                 patient.getDateCreated().getTime() / 1000);
         }
