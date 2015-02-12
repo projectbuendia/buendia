@@ -90,7 +90,7 @@ check_url '<title>.*OpenMRS' http://$hostport/openmrs
 check_url '{"results":' http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u $SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD
 
 echo
-echo -e "    \x1b[32m\o/\x1b[0m  Success!  Buendia API at $hostport is up."
+echo "    \o/  Success!  Buendia API at $hostport is up."
 echo
 
 if [ -e /dev/ttyMFD1 ]; then

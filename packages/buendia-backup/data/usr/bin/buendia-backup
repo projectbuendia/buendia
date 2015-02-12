@@ -6,16 +6,16 @@ export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 root=$1
 limit=$2
 
-if [ "$limit" = "" -o "$1" = "-h" ]; then
-    echo "Usage: $0 <backup-root-path> <kilobytes>"
+if [ "$root" = "" -o "$1" = "-h" ]; then
+    echo "Usage: $0 <backup-root-path> [<kilobytes>]"
     echo
     echo "Backs up the current OpenMRS database, Buendia configuration,"
     echo "and installed Buendia packages under the specified path, capturing"
     echo "at most one backup per day and replacing any backup made earlier"
-    echo "that same day.  Cleans up the backup directory to keep its total"
-    echo "space usage less than the specified number of kilobytes, with"
-    echo "half the space reserved for database dumps and half reserved for"
-    echo "software packages."
+    echo "that same day.  If the second argument is given, removes older"
+    echo "backups in the backup directory as necessary to keep its total"
+    echo "space usage less than the specified number of kilobytes; half the"
+    echo "space is reserved for database dumps and half for software packages."
     exit 1
 fi
 
@@ -103,9 +103,11 @@ rm -rf $old_dir
 # ---- Limit the total size of backups.
 
 half_limit=$(($limit / 2))
-buendia-limit $half_limit $root/packages
-buendia-limit $half_limit $root/2*
-buendia-limit $limit $root/packages
+if [[ $half_limit > 0 ]]; then
+    buendia-limit $half_limit $root/packages
+    buendia-limit $half_limit $root/2*
+    buendia-limit $limit $root/packages
+fi
 
 # ---- Remove any daily dumps that were partially removed by buendia-limit.
 
