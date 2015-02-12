@@ -28,7 +28,7 @@ deb_dir=$root/packages.new.$$
 tmp=/tmp/buendia-backup.$$
 rm -rf $tmp $new_dir $old_dir $deb_dir
 mkdir -p $tmp $new_dir $old_dir $deb_dir
-trap 'rm -rf $tmp $new_dir $old_dir' EXIT
+trap 'rm -rf $tmp $new_dir $old_dir $deb_dir' EXIT
 
 # First we'll write files to $new_dir, then atomically move it to $final_dir.
 echo "Backing up to $final_dir..."
@@ -78,7 +78,7 @@ echo Backing up $(cat $new_dir/buendia.list | wc -l) packages...
 # Copying may take a moment, so first copy to a temporary directory.
 for package in $(cat $new_dir/buendia.list); do
     package=$(echo $package | tr = _ | sed -e 's/:/%3a/g')
-    cp -p /var/cache/apt/archives/$package*.deb $deb_dir
+    cp -p /var/cache/apt/archives/$package*.deb $deb_dir || true
 done
 
 # Now quickly move all the new packages into the backup directory
