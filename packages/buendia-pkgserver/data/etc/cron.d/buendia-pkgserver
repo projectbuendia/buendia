@@ -1,4 +1,4 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-* * * * * root [ -e /dev/sda1 ] && buendia-log buendia-pkgserver-import
+* * * * * root [ -e /dev/sda1 ] && buendia-log buendia-pkgserver-import /dev/sda1
