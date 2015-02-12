@@ -13,92 +13,104 @@ if [ "$limit" = "" -o "$1" = "-h" ]; then
     echo "and installed Buendia packages under the specified path, capturing"
     echo "at most one backup per day and replacing any backup made earlier"
     echo "that same day.  Cleans up the backup directory to keep its total"
-    echo "space usage less than the specified number of kilobytes."
+    echo "space usage less than the specified number of kilobytes, with"
+    echo "half the space reserved for database dumps and half reserved for"
+    echo "software packages."
     exit 1
 fi
-
-tmp=/tmp/buendia-backup.$$
-rm -rf $tmp
-mkdir -p $tmp
-trap 'rm -rf $tmp' EXIT
 
 # Keep one backup per day.  (If you need to maintain a backup that is
 # much less than a day old, run buendia-backup multiple times per day.)
 final_dir=$root/$(date +'%Y-%m-%d')
-dir=$final_dir.new.$$
-old_dir=$root/old
+new_dir=$final_dir.new.$$
+old_dir=$final_dir.old.$$
+deb_dir=$root/packages.new.$$
+tmp=/tmp/buendia-backup.$$
+rm -rf $tmp $new_dir $old_dir $deb_dir
+mkdir -p $tmp $new_dir $old_dir $deb_dir
+trap 'rm -rf $tmp $new_dir $old_dir' EXIT
 
-# We'll write files to $dir, and when done, atomically move $dir to $final_dir.
+# First we'll write files to $new_dir, then atomically move it to $final_dir.
 echo "Backing up to $final_dir..."
-rm -rf $dir
-mkdir -p $dir
 
-# Record the time that the backup started.  Since buendia-limit removes
-# the oldest files first, the presence of this file means that none of the
-# contents have been removed by buendia-limit.
-touch $dir/start
+# Mark the new daily dump directory as a directory to keep.  Since
+# buendia-limit removes the oldest files first, the presence of this file
+# means that none of the contents have been removed by buendia-limit.
+touch $new_dir/keep
 sleep 1
 
-# Keep all the .deb files in one common directory for all the backups.
-deb_dir=$root/packages
-mkdir -p $deb_dir
-
-# ---- Back up Buendia configuration
+# ---- Back up the Buendia configuration.
 
 echo "Saving Buendia configuration..."
-tar cfz $dir/buendia.tar.gz \
+tar cfz $new_dir/buendia.tar.gz \
     /usr/share/buendia \
     --exclude /usr/share/buendia/config.d \
     --exclude /usr/share/buendia/db \
     --exclude /usr/share/buendia/diversions \
     --exclude /usr/share/buendia/openmrs/modules \
     --exclude /usr/share/buendia/packages
-ls -l $dir/buendia.tar.gz
+ls -l $new_dir/buendia.tar.gz
 
-# ---- Back up MySQL data
+# ---- Back up the MySQL database.
 
 echo "Dumping MySQL database..."
-if ! buendia-mysql-dump openmrs $dir/openmrs.zip >$tmp/out 2>&1; then
+if ! buendia-mysql-dump openmrs $new_dir/openmrs.zip >$tmp/out 2>&1; then
     cat $tmp/out
     echo "buendia-mysql-dump failed!"
     exit 1
 fi
-ls -l $dir/openmrs.zip
+ls -l $new_dir/openmrs.zip
 
-# ---- Back up the package list and non-base packages
+# ---- Back up the package list and non-base packages.
 
 # Examine what packages are installed.
-dpkg-query -W --showformat '${Package}=${Version}\n' | sort > $dir/all.list
-comm -2 -3 $dir/all.list /etc/base.packages.list | sort > $dir/buendia.list
-echo Backing up $(cat $dir/buendia.list | wc -l) packages...
+base_list=/etc/base.packages.list
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > $new_dir/all.list
+if [ -f $base_list ]; then
+    # Note the new packages that have been added beyond the base package list.
+    comm -2 -3 $new_dir/all.list $base_list | sort > $new_dir/buendia.list
+else
+    # Base package list missing?  Just keep all the buendia packages.
+    grep '^buendia' $new_dir/all.list > $new_dir/buendia.list
+fi
+echo Backing up $(cat $new_dir/buendia.list | wc -l) packages...
 
-for package in $(cat $dir/buendia.list); do
+# Copying may take a moment, so first copy to a temporary directory.
+for package in $(cat $new_dir/buendia.list); do
     package=$(echo $package | tr = _ | sed -e 's/:/%3a/g')
     cp -p /var/cache/apt/archives/$package*.deb $deb_dir
 done
 
+# Now quickly move all the new packages into the backup directory
+# (one common directory for packages, shared among all the daily backups).
+mkdir -p $root/packages
+touch $root/packages/keep
+mv $deb_dir/* $root/packages
+
 # ---- Move the resulting backup directory to its proper place.
 
-touch $dir/finish
 if [ -e $final_dir ]; then
     # There was an older backup today; move it out of the way.
     rm -rf $old_dir
     mv $final_dir $old_dir
 fi
-mv $dir $final_dir
+mv $new_dir $final_dir
 echo Done.
 du $final_dir
 
 rm -rf $old_dir
 
-# ---- Limit the total size of backups
+# ---- Limit the total size of backups.
 
-buendia-limit $limit $root
+half_limit=$(($limit / 2))
+buendia-limit $half_limit $root/packages
+buendia-limit $half_limit $root/2*
+buendia-limit $limit $root/packages
 
-# ---- Remove any backup directories that were partially removed
+# ---- Remove any daily dumps that were partially removed by buendia-limit.
 
 for dir in $root/*; do
-    if [ -d $dir -a ! -e $dir/start ]; then
+    if [ -d $dir -a ! -e $dir/keep ]; then
         rm -rf $dir
     fi
 done
