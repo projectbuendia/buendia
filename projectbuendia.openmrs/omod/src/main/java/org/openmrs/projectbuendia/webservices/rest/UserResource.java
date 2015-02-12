@@ -3,20 +3,31 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.*;
-import org.openmrs.api.*;
+import org.openmrs.Patient;
+import org.openmrs.Person;
+import org.openmrs.PersonName;
+import org.openmrs.Provider;
+import org.openmrs.User;
+import org.openmrs.api.PersonService;
+import org.openmrs.api.ProviderService;
+import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.*;
+import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.resource.api.Listable;
+import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
+import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Resource for users (note that users are stored as Providers, Persons, and Users, but only
@@ -54,6 +65,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private static final String GUEST_PASSWORD = "Password123";
 
     private static final String[] REQUIRED_FIELDS = {USER_NAME, GIVEN_NAME, PASSWORD};
+    private static final Object guestAddLock = new Object();
 
     private static Log log = LogFactory.getLog(UserResource.class);
     static final RequestLogger logger = RequestLogger.LOGGER;
@@ -72,7 +84,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner(context);
+            SimpleObject result = getAllInner();
             logger.reply(context, this, "getAll", result);
             return result;
         } catch (Exception e) {
@@ -81,7 +93,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
-    private SimpleObject getAllInner(RequestContext requestContext) throws ResponseException {
+    private SimpleObject getAllInner() throws ResponseException {
         List<Provider> providers;
         // Returning providers is not a thread-safe operation as it may add the guest user
         // to the database, which is not idempotent.
@@ -102,12 +114,19 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
 
         if (!guestFound) {
-            SimpleObject guestDetails = new SimpleObject();
-            guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
-            guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
-            guestDetails.put(USER_NAME, GUEST_USER_NAME);
-            guestDetails.put(PASSWORD, GUEST_PASSWORD);
-            providers.add(createFromSimpleObject(guestDetails));
+                SimpleObject guestDetails = new SimpleObject();
+                guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
+                guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
+                guestDetails.put(USER_NAME, GUEST_USER_NAME);
+                guestDetails.put(PASSWORD, GUEST_PASSWORD);
+            synchronized (guestAddLock) {
+                // Fetch again to avoid problems if added in the meantime, but use "Users" for check, to avoid
+                // hibernate cache issues
+                User guestUser = userService.getUserByUsername(GUEST_USER_NAME);
+                if (guestUser != null) {
+                    providers.add(createFromSimpleObject(guestDetails));
+                }
+            }
         }
     }
 
@@ -116,7 +135,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", obj);
-            Object result = createInner(obj, context);
+            Object result = createInner(obj);
             logger.reply(context, this, "create", result);
             return result;
         } catch (Exception e) {
@@ -125,7 +144,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
-    private Object createInner(SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+    private Object createInner(SimpleObject simpleObject) throws ResponseException {
         return providerToJson(createFromSimpleObject(simpleObject));
     }
 
@@ -133,7 +152,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         checkRequiredFields(simpleObject, REQUIRED_FIELDS);
 
         // TODO(akalachman): Localize full name construction?
-        String fullName = (String)simpleObject.get(GIVEN_NAME) + " " + (String)simpleObject.get(FAMILY_NAME);
+        String fullName = simpleObject.get(GIVEN_NAME) + " " + simpleObject.get(FAMILY_NAME);
 
         Person person = new Person();
         PersonName personName = new PersonName();
@@ -170,7 +189,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
-            Object result = retrieveInner(uuid, context);
+            Object result = retrieveInner(uuid);
             logger.reply(context, this, "retrieve", result);
             return result;
         } catch (Exception e) {
@@ -179,7 +198,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
-    private Object retrieveInner(String uuid, RequestContext requestContext) throws ResponseException {
+    private Object retrieveInner(String uuid) throws ResponseException {
         Provider provider = providerService.getProviderByUuid(uuid);
         if (provider == null) {
             throw new ObjectNotFoundException();
@@ -225,7 +244,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
     // Throws an exception if the given SimpleObject is missing any required fields.
     private void checkRequiredFields(SimpleObject simpleObject, String[] requiredFields) {
-        List<String> missingFields = new ArrayList<String>();
+        List<String> missingFields = new ArrayList<>();
         for (String requiredField : requiredFields) {
             if (!simpleObject.containsKey(requiredField)) {
                 missingFields.add(requiredField);
