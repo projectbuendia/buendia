@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 if [ "$1" = "-h" ]; then
     echo "Usage: $0"
     echo
@@ -8,18 +10,39 @@ if [ "$1" = "-h" ]; then
     exit 1
 fi
 
+repo=/usr/share/buendia/packages
 packages=dists/stable/main/binary-all/Packages
 release=dists/stable/Release
-packages_tmp=$packages.$$
-release_tmp=$release.$$
-trap 'rm -f $packages_tmp $release_tmp' EXIT
 
-cd /usr/share/buendia/packages
-mkdir -p dists/stable/main/binary-all
+tmp=$repo.new.$$
+rm -rf $tmp
+mkdir -p $tmp
+trap 'rm -rf $tmp $repo/dists.old' EXIT
 
-# This is a slow operation, so write to a temporary file first.
-apt-ftparchive --arch all packages . > $packages_tmp
-cat <<EOF >$release_tmp
+# Build the index in a mirror of the package tree, because the dist/
+# directory needs to be empty for the indexes to be built properly,
+# and we don't want to interrupt the serving of the existing repository.
+echo -n "Scanning repository..."
+cd $repo
+count=0
+for file in *; do
+    if [ -f "$file" ]; then
+        ln "$file" "$tmp/$file"  # hard link
+        let count=count+1
+    fi
+done
+echo " $count packages found."
+
+# This is a slow operation; each index takes a couple of minutes to build.
+cd $tmp
+for arch in i386 all; do
+    echo "Indexing packages for architecture '$arch'..."
+    mkdir -p $(dirname $packages)
+    apt-ftparchive --arch $arch packages . > $packages
+done
+
+# Create the overall index of indexes.
+cat <<EOF >$release
 Origin: Buendia
 Label: Buendia Debian Packages
 Suite: stable
@@ -28,7 +51,15 @@ Architectures: all
 Components: main
 Description: Buendia Debian Packages
 EOF
-apt-ftparchive release dists/stable >> $release_tmp
+apt-ftparchive release dists/stable >>$release
 
-mv $packages_tmp $packages
-mv $release_tmp $release
+# Now drop the new dist/ directory into place.
+if [ -e dists ]; then
+    rm -rf dists.old
+    mv dists dists.old
+fi
+mv $tmp/dists dists
+
+ls -l $(find dists -type f)
+du -d 0 $repo
+echo "Done."
