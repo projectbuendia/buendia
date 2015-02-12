@@ -44,6 +44,7 @@ for file in $source/projectbuendia-all{,-*}.zip; do
     if [ -f "$file" ]; then
         echo "Unpacking: $file"
         if unzip -j -d $exdir "$file"; then
+            installed="$installed $file"
             unpacked=1
         fi
     fi
@@ -74,7 +75,7 @@ if [ -n "$unpacked" ]; then
     buendia-pkgserver-index-apks || true
     chmod -R a+rX /usr/share/buendia/packages
 
-    # Mark site-specific packages done.
+    # Mark installed packages done.
     for file in $installed; do
         mv $file "$(dirname "$file")/installed-$(basename "$file")"
     done
