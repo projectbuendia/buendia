@@ -1,1 +1,2 @@
 deb [arch=all] http://localhost:9001 stable main
+deb [arch=i386] http://localhost:9001 stable main
