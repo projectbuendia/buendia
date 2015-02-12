@@ -123,7 +123,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
                 // Fetch again to avoid problems if added in the meantime, but use "Users" for check, to avoid
                 // hibernate cache issues
                 User guestUser = userService.getUserByUsername(GUEST_USER_NAME);
-                if (guestUser != null) {
+                if (guestUser == null) {
                     providers.add(createFromSimpleObject(guestDetails));
                 }
             }
