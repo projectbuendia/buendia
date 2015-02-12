@@ -9,52 +9,52 @@ timeout=$3
 if [ "$1" = "-h" -o "$verb" = "" ]; then
     echo "Usage: $0 <led> <verb> [<timeout>]"
     echo
-    echo "<led> is one of: red yellow green blue"
+    echo "<led> is one of: red yellow green blue white"
     echo "<verb> is one of: on off"
     echo "<timeout> is a timeout in seconds after which to revert to off."
     exit 1
 fi
 
-mkdir -p /tmp/$name.{R,A,G,B}
+mkdir -p /tmp/$name.{R,A,G,B,W}
 
 # LEDs are entirely optional.  Always exit with success.
 (
-    if [ -e $dev ]; then
+    if [ -c $dev -a -r $dev -a -w $dev ]; then
         if [ ! -f /var/run/$name.stty ]; then
             stty 115200 <$dev >$dev
             touch /var/run/$name.stty
         fi
-    fi
 
-    case $led in
-        r*) addr=R ;;
-        a*|y*) addr=A ;;
-        g*) addr=G ;;
-        b*) addr=B ;;
-        *) addr=R ;;
-    esac
+        case $led in
+            r*) addr=R ;;
+            a*|y*) addr=A ;;
+            g*) addr=G ;;
+            b*) addr=B ;;
+            w*) addr=W ;;
+            *) addr=R ;;
+        esac
 
-    case $verb in
-        off|0)
-            echo -ne "JFFL${addr}0\r\n" >$dev
-            ;;
-        on|1|*)
-            echo -ne "JFFL${addr}1\r\n" >$dev
-            ;;
-    esac
-
-    rm -f /tmp/$name.$addr/*
-
-    if [ -n "$timeout" ]; then
-        flag=/tmp/$name.$addr/timeout.$(date +%s).$$
-        touch $flag
-        (
-            sleep $timeout
-            if [ -e $flag ]; then
+        case $verb in
+            off|0)
                 echo -ne "JFFL${addr}0\r\n" >$dev
-            fi
-            rm -f $flag
-        ) </dev/null >/dev/null 2>/dev/null &
-    fi
+                ;;
+            on|1|*)
+                echo -ne "JFFL${addr}1\r\n" >$dev
+                ;;
+        esac
 
+        rm -f /tmp/$name.$addr/*
+
+        if [ -n "$timeout" ]; then
+            flag=/tmp/$name.$addr/timeout.$(date +%s).$$
+            touch $flag
+            (
+                sleep $timeout
+                if [ -e $flag ]; then
+                    echo -ne "JFFL${addr}0\r\n" >$dev
+                fi
+                rm -f $flag
+            ) </dev/null >/dev/null 2>/dev/null &
+        fi
+    fi
 ) || true
