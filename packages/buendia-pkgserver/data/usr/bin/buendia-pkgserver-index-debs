@@ -11,8 +11,6 @@ if [ "$1" = "-h" ]; then
 fi
 
 repo=/usr/share/buendia/packages
-packages=dists/stable/main/binary-all/Packages
-release=dists/stable/Release
 
 tmp=$repo.new.$$
 rm -rf $tmp
@@ -37,11 +35,13 @@ echo " $count packages found."
 cd $tmp
 for arch in i386 all; do
     echo "Indexing packages for architecture '$arch'..."
+    packages=dists/stable/main/binary-$arch/Packages
     mkdir -p $(dirname $packages)
     apt-ftparchive --arch $arch packages . > $packages
 done
 
 # Create the overall index of indexes.
+release=dists/stable/Release
 cat <<EOF >$release
 Origin: Buendia
 Label: Buendia Debian Packages
@@ -54,11 +54,12 @@ EOF
 apt-ftparchive release dists/stable >>$release
 
 # Now drop the new dist/ directory into place.
+cd $repo
 if [ -e dists ]; then
     rm -rf dists.old
     mv dists dists.old
 fi
-mv $tmp/dists dists
+mv $tmp/dists $repo/dists
 
 ls -l $(find dists -type f)
 du -d 0 $repo

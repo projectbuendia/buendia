@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e; . /usr/share/buendia/utils.sh
+name=$(basename $0)
 source="$1"
 
 if [ "$1" = "-h" -o "$source" = "" ]; then
@@ -9,6 +10,12 @@ if [ "$1" = "-h" -o "$source" = "" ]; then
     echo "Imports Buendia package bundles into the local package server."
     echo "Searches for files named projectbuendia-<site>.zip in the given"
     echo "directory or in the root directory of the given mountable device."
+    exit 1
+fi
+
+exec 9> /var/run/$name.lock
+if ! flock -n 9; then
+    echo "$name already running; not starting."
     exit 1
 fi
 

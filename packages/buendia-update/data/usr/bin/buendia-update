@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e; . /usr/share/buendia/utils.sh
+name=$(basename $0)
 
 if [ "$1" = "-h" ]; then
     echo "Usage: $0 [<package-name>...]"
@@ -10,17 +11,15 @@ if [ "$1" = "-h" ]; then
     exit 1
 fi
 
-exec 9> /var/run/buendia-update.lock
+exec 9> /var/run/$name.lock
 if ! flock -n 9; then
-    echo "buendia-update already running; not starting."
+    echo "$name already running; not starting."
     exit 1
 fi
 
-if [ -e /dev/ttyMFD1 ]; then
-    # Turn on red LED during updates.
-    (stty 115200; echo -e "JFFLR1\r\n") </dev/ttyMFD1 >/dev/ttyMFD1
-    trap '(stty 115200; echo -e "JFFLR0\r\n") </dev/ttyMFD1 >/dev/ttyMFD1' EXIT
-fi
+# Turn on red LED during updates.
+buendia-led red on || true
+trap 'buendia-led red off || true' EXIT
 
 export DEBIAN_FRONTEND=noninteractive
 echo "--- Starting: $0 $@"
