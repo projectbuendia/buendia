@@ -1,0 +1,12 @@
+MONITORING_LIMITS='
+100000 /var/log/large/requests
+200000 /var/log
+
+300000 /var/cache
+
+50000 /var/backups/buendia/packages
+50000 /var/backups/buendia/2*
+100000 /var/backups/buendia
+
+100000 /usr/share/buendia/packages
+'

@@ -1,0 +1,22 @@
+#/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+if [ "$1" = "-h" ]; then
+    echo "Usage: $0"
+    echo
+    echo "Applies the disk space limits listed in the MONITORING_LIMITS"
+    echo "setting, which should be a string of one or more lines where the"
+    echo "where the first word on each line is a number of kilobytes and"
+    echo "the remaining words are paths or globs."
+    exit 1
+fi
+
+echo "$MONITORING_LIMITS" | (
+    while read line; do
+        if [ -n "$line" ]; then
+            echo "Applying limit: $line"
+            eval "buendia-limit $line" || true
+        fi
+    done
+)

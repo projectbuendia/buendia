@@ -29,7 +29,7 @@ export RESULT_FILE=/tmp/result.$$
 trap 'rm -f $RESULT_FILE' EXIT
 
 (
-    echo "(start $*)"
+    echo "(start) $*"
     set +e
     if [ -n "$yocto" ]; then
         echo "$*" | buendia-enter-yocto
