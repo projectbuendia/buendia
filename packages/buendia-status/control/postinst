@@ -7,8 +7,8 @@ case $1 in
         # Enable the status website
         ln -sf ../sites-available/buendia-status /etc/nginx/sites-enabled
 
-        # Bring services back up
-        service nginx start
+        # Bring services back up (need to restart here, not merely start)
+        service nginx restart
         ;;
 
     *) exit 1
