@@ -27,7 +27,7 @@ service tomcat7 stop
 
 # Set openmrs_user's password in MySQL.
 service mysql start
-mysql -uroot -p$MYSQL_ROOT_PASSWORD <<<"
+mysql -uroot -p$MYSQL_ROOT_PASSWORD <<< "
     grant all on openmrs.* to openmrs_user@localhost
         identified by '$OPENMRS_MYSQL_PASSWORD';
     grant file on *.* to openmrs_user@localhost;
