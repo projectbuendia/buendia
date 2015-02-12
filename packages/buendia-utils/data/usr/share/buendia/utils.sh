@@ -19,7 +19,7 @@ function create() {
 # Skips the first line and removes leading whitespace from each subsequent line
 # of a block of text; handy for indenting a literal text blocks in a script.
 function unindent() {
-    echo -n "$1" | sed -ne '2,$ s/^ *// p'
+    sed -ne '2,$ s/^ *// p'
 }
 
 # Treats a "0" or "" as false and anything else as true.

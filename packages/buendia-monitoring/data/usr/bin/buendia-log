@@ -39,7 +39,8 @@ trap 'rm -f $RESULT_FILE' EXIT
     result=$?
     echo $result > $RESULT_FILE
     echo "(end, status $result)"
-) 2>&1 | perl -n -e '
+) 2>&1 | perl -n $tmp/add_timestamps
+-e '
     $| = 1;  # unbuffer output
     my ($s, $m, $h, $d, $l, $y) = gmtime();
     printf "%04d-%02d-%02d %02d:%02d:%02d %5d> ",

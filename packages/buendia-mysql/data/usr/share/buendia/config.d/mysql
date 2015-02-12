@@ -21,14 +21,14 @@ else
 fi
 
 # Create a MySQL init-file that sets the root password.
-# WARNING WARNING: EACH STATEMENT MUST BE ON ITS OWN LINE WITHOUT LINE BREAKS.
 #
 # MySQL parses this file differently from all other SQL files!  In this file,
 # newline terminates a statement, so something as innocuous as a line break
 # before the WHERE clause will cause ALL passwords to be replaced.
 # https://dev.mysql.com/doc/refman/5.0/en/server-system-variables.html#sysvar_init_file
 umask 066
-unindent "
+unindent <<< "
+    -- WARNING: EACH STATEMENT MUST BE ON ONE LINE WITHOUT LINE BREAKS --
     update mysql.user set password=password('$MYSQL_ROOT_PASSWORD') where user='root';
     flush privileges;
 " > $INITSQL
@@ -36,7 +36,7 @@ chgrp mysql $INITSQL
 chmod g+r $INITSQL
 
 # Configure MySQL to run the init-file on startup.
-unindent "
+unindent <<< "
     [mysqld]
     init_file=$INITSQL
 " > $CONF

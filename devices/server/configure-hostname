@@ -12,7 +12,7 @@ if [ "$1" = "-h" ]; then
     exit 1
 fi
 
-do_in_yocto <<< "
+do_on_edison <<< "
     echo $hostname > /etc/hostname
     echo 127.0.0.1 $hostname $hostname.local >> /etc/hosts
     hostname $hostname

@@ -4,7 +4,6 @@
 # replace all the foreign key references to users.user_id with @buendia_admin.
 
 for i in *.sql; do
-    grep -i 'references.*`users`.*`user_id`' $i | sed -e 's/.*FOREIGN KEY [^(]*(`\([^`]*\)`.*/UPDATE '${i%.sql}' SET \1 = @buendia_admin_id WHERE\
-    \1 IS NOT NULL AND \1 != @admin_id;/'
+    grep -i 'references.*`users`.*`user_id`' $i | sed -e 's/.*FOREIGN KEY [^(]*(`\([^`]*\)`.*/UPDATE '${i%.sql}' SET \1 = @buendia_admin_id WHERE \1 IS NOT NULL AND \1 != @admin_id;/'
     echo
 done

@@ -5,8 +5,8 @@ SETTINGS=/usr/share/buendia/site/backup
 
 # Generate a default settings file.
 if [ ! -e $SETTINGS ]; then
-    unindent '
+    unindent <<< '
         BACKUP_INTERNAL_DIR=/var/backups/buendia
         BACKUP_INTERNAL_LIMIT_KB=200000
-    ' > $SETTINGS
+    ' | create $SETTINGS
 fi

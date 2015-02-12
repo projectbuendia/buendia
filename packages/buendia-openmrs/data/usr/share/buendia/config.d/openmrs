@@ -6,7 +6,7 @@ PROPERTIES=/usr/share/buendia/openmrs/openmrs-runtime.properties
 
 # Generate a random password for openmrs_user if one is not already set.
 if [ ! -f $SETTINGS ]; then
-    unindent "
+    unindent <<< "
         OPENMRS_MYSQL_USER=openmrs_user
         OPENMRS_MYSQL_PASSWORD=$(buendia-mkpass)
     " > $SETTINGS
@@ -35,7 +35,7 @@ mysql -uroot -p$MYSQL_ROOT_PASSWORD <<< "
 "
 
 # Configure OpenMRS to use the specified password for openmrs_user.
-unindent "
+unindent <<< "
     connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
     connection.username=openmrs_user
     connection.password=$OPENMRS_MYSQL_PASSWORD

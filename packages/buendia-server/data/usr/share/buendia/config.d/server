@@ -13,7 +13,7 @@ PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
 
 # Generate a random password for the buendia user if one is not already set.
 if [ ! -f $SETTINGS ]; then
-    unindent "
+    unindent <<< "
         SERVER_OPENMRS_USER=buendia
         SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)
     " | create $SETTINGS

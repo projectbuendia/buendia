@@ -10,7 +10,7 @@ if [ ! -f $SETTINGS ]; then
 fi
 
 # Apply the settings to the Tomcat configuration.
-unindent "
+unindent <<< "
     <?xml version='1.0' encoding='utf-8'?>
     <tomcat-users>
         <user username='admin' password='$TOMCAT7_ADMIN_PASSWORD'
