@@ -99,7 +99,7 @@ done
 apt-get update
 
 # Install the essential tool that installs all other Buendia packages.
-apt-get -y --allow-unauthenticated install buendia-pkgclient
+apt-get -y --allow-unauthenticated install buendia-update
 
 # If a site has been selected, install the site settings package.
 . /usr/share/buendia/site/id || true
