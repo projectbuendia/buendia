@@ -13,7 +13,7 @@ if [ "$1" = "-h" -o "$source" = "" ]; then
     exit 1
 fi
 
-exec 9> /var/run/$name.lock
+exec 9> /var/run/lock/$name
 if ! flock -n 9; then
     echo "$name already running; not starting."
     exit 1
