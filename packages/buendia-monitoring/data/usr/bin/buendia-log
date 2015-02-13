@@ -20,13 +20,29 @@ fi
 logfile=/var/log/buendia/$(basename $(echo "$*" | sed -e 's/ .*//')).log
 mkdir -p /var/log/buendia
 
+tmp=/tmp/buendia-log.$$
+rm -rf $tmp
+mkdir -p $tmp
+trap 'rm -rf $tmp' EXIT
+
 # This is the pid of this logging script rather than the pid of the command,
 # but it still helps to distinguish this run from other concurrent runs.
 export LOGGER_PID=$$
 
+unindent <<< '
+    #!/usr/bin/perl -n
+
+    $| = 1;  # unbuffer output
+    my ($s, $m, $h, $d, $l, $y) = gmtime();
+    printf "%04d-%02d-%02d %02d:%02d:%02d %5d> ",
+        $y + 1900, $l + 1, $d, $h, $m, $s, $ENV{"LOGGER_PID"};
+    s/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d //;
+    print $_;
+' | create $tmp/add_timestamps
+chmod 755 $tmp/add_timestamps
+
 # Save the exit status of the command so we can exit with the same status.
-export RESULT_FILE=/tmp/result.$$
-trap 'rm -f $RESULT_FILE' EXIT
+export RESULT_FILE=$tmp/result
 
 (
     echo "(start) $*"
@@ -39,14 +55,6 @@ trap 'rm -f $RESULT_FILE' EXIT
     result=$?
     echo $result > $RESULT_FILE
     echo "(end, status $result)"
-) 2>&1 | perl -n $tmp/add_timestamps
--e '
-    $| = 1;  # unbuffer output
-    my ($s, $m, $h, $d, $l, $y) = gmtime();
-    printf "%04d-%02d-%02d %02d:%02d:%02d %5d> ",
-        $y + 1900, $l + 1, $d, $h, $m, $s, $ENV{"LOGGER_PID"};
-    s/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d //;
-    print $_;
-' | tee -a $logfile
+) 2>&1 | $tmp/add_timestamps | tee -a $logfile
 
 exit $(cat $RESULT_FILE)
