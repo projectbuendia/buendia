@@ -1,5 +1,6 @@
 #!/bin/ash
 
+set -e
 ssid_psk=$1
 confdir=/etc/wpa_supplicant
 conf=$confdir/wpa_supplicant.conf
@@ -57,11 +58,20 @@ fi
 
 # Bring up wpa_supplicant with the updated configuration.
 systemctl stop hostapd
-systemctl restart wpa_supplicant
+if ! systemctl restart wpa_supplicant; then
+    echo "Could not start wpa_supplicant."
+    systemctl status wpa_supplicant -l
+    exit 1
+fi
 
 # Wait for wpa_supplicant to be ready.
-while true; do
+for attempt in $(seq 1 30); do
+    echo "Waiting for wpa_supplicant to be ready..."
     if wpa_cli status 2>/dev/null | grep -q address=; then break; fi
+    if [ $attempt = 30 ]; then
+        echo "wpa_supplicant did not respond after 30 seconds."
+        exit 1
+    fi
     sleep 1
 done
 
@@ -75,13 +85,13 @@ wpa_cli list_networks | grep CURRENT
 # whether to start it based on whether wpa_supplicant_event is enabled.
 if systemctl is-enabled wpa_supplicant_event; then
     # Get an IP address using DHCP.
-    echo "Getting an IP address using DHCP..."
     ifname=$(wpa_cli ifname | grep -o '[A-Za-z0-9]*' | tail -1)
     udhcpc -i $ifname -n -T 1 -t 30 || exit 1
 
     # Wait until we acquire an IP address.
     ipaddr=''
     for attempt in $(seq 1 60); do
+        echo "Waiting to acquire an IP address using DHCP..."
         ipaddr=$(ifconfig | grep -A1 wlan0 | grep -o 'inet addr:[0-9][0-9.]*' | sed -e 's/.*://')
         if [ -n "$ipaddr" ]; then
             echo "Connected to $ssid as $ipaddr."
@@ -91,9 +101,8 @@ if systemctl is-enabled wpa_supplicant_event; then
     done
 else
     # Wait until the wifi connection comes up.
-    echo -n "Waiting for wifi connection..."
     for attempt in $(seq 1 60); do
-        echo -n "."
+        echo "Waiting for wifi connection to come up..."
         if wpa_cli status | grep -q COMPLETED; then
             echo
             echo "Connected to $ssid without using DHCP to get an IP address."

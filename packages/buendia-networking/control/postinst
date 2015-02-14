@@ -40,11 +40,12 @@ else
 fi
 WPA_CLI_ACTIONS_EOF
 EOF
-        # Apply the site settings.
-        buendia-reconfigure networking
-
-        # Also do network configuration on startup.
+        # Do network configuration on startup.
         update-rc.d buendia-networking defaults
+
+        # Apply the configuration now, but don't treat a failure to connect
+        # to the wifi network as a failure of the whole package installation.
+        buendia-reconfigure networking || true
 
         touch /var/run/reboot-required
         ;;
