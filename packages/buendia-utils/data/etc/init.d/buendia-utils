@@ -1,6 +1,6 @@
 #! /bin/sh
 ### BEGIN INIT INFO
-# Provides:          buendia-led
+# Provides:          buendia-utils
 # Required-Start:
 # Required-Stop:
 # Should-Start:      glibc
@@ -31,7 +31,7 @@ case "$1" in
         ;;
 
     *)
-        echo "Usage: buendia-led start" >&2
+        echo "Usage: buendia-utils start" >&2
         exit 3
         ;;
 esac
