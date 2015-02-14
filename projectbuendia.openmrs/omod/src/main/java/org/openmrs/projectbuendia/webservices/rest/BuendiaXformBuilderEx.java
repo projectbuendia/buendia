@@ -323,17 +323,15 @@ public class BuendiaXformBuilderEx {
         
         if(concept instanceof ConceptNumeric) {
             ConceptNumeric numericConcept = (ConceptNumeric)concept;
-            if(numericConcept.isPrecise()){
-                Double minInclusive = numericConcept.getLowAbsolute();
-                Double maxInclusive = numericConcept.getHiAbsolute();
+            Double minInclusive = numericConcept.getLowAbsolute();
+            Double maxInclusive = numericConcept.getHiAbsolute();
                 
-                if(!(minInclusive == null && maxInclusive == null)){
-                    String lower = (minInclusive == null ? "" : FormSchemaFragment.numericToString(minInclusive, numericConcept.isPrecise()));
-                    String upper = (maxInclusive == null ? "" : FormSchemaFragment.numericToString(maxInclusive, numericConcept.isPrecise()));
-                    bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower + " and . <= " + upper);
-                    bindNode.setAttribute(null, (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE),
+            if(!(minInclusive == null && maxInclusive == null)){
+                String lower = (minInclusive == null ? "" : FormSchemaFragment.numericToString(minInclusive, numericConcept.isPrecise()));
+                String upper = (maxInclusive == null ? "" : FormSchemaFragment.numericToString(maxInclusive, numericConcept.isPrecise()));
+                bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower + " and . <= " + upper);
+                bindNode.setAttribute(null, (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE),
                         "value should be between " + lower + " and " + upper + " inclusive");
-                }
             }
         }
         
