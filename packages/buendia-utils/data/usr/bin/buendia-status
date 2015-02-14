@@ -25,6 +25,9 @@ case "$UPDATE_AUTOUPDATE" in
     *) echo "UPDATE_AUTOUPDATE is currently enabled." ;;
 esac
 
+packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
+echo "Keeping updated: $packages"
+
 if [ -n "$all" ]; then
     echo -e '\n---- buendia-warmup'
     buendia-last buendia-warmup 2>&1
