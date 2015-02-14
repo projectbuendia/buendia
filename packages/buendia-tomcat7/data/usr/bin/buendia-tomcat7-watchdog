@@ -4,6 +4,19 @@ service=tomcat7
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
 
+# This directory must exist in order for Tomcat to function.  We've seen it
+# disappear once, causing XForm submissions to fail.  Ensure it exists.
+tmp=/tmp/tomcat7-tomcat7-tmp
+if [ ! -d $tmp ]; then
+    echo "$tmp is missing!  Creating a new temporary directory."
+    (
+        rm -rf $tmp
+        mkdir -p $tmp
+        chown tomcat7.tomcat7 $tmp
+        chmod 755 $tmp
+    ) || true
+fi
+
 if service $service status 2>&1 > $tmpfile; then
     cat $tmpfile
 else
