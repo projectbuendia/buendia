@@ -4,7 +4,7 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure)
-        /usr/share/buendia/config.d/mysql
+        buendia-reconfigure mysql
         service cron start
         ;;
 

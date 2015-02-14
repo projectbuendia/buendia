@@ -24,7 +24,7 @@ function reconfigure_package() {
             errors="$errors buendia-$package"
         fi
     else
-        echo "buendia-$package has no reconfiguration script."
+        echo "buendia-$package doesn't require reconfiguration."
     fi
 }
 

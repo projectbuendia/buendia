@@ -5,7 +5,7 @@ set -e; . /usr/share/buendia/utils.sh
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         # Initialize settings.
-        /usr/share/buendia/config.d/openmrs
+        buendia-reconfigure openmrs
 
         # Sometimes when tomcat7 is stopped and started several times by
         # package installation scripts running one after another, Tomcat can

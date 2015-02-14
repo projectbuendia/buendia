@@ -41,7 +41,7 @@ fi
 WPA_CLI_ACTIONS_EOF
 EOF
         # Apply the site settings.
-        /usr/share/buendia/config.d/networking
+        buendia-reconfigure networking
 
         # Also do network configuration on startup.
         update-rc.d buendia-networking defaults
