@@ -3,4 +3,4 @@
 echo 'Content-Type: text/html'
 echo
 echo -n '<xmp style="display: inline-block">'
-buendia-status -a 2>&1
+buendia-status-server -a 2>&1
