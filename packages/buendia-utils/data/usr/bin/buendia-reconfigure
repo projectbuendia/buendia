@@ -37,7 +37,7 @@ if [ -n "$1" ]; then
     done
 else
     for config in /usr/share/buendia/config.d/*; do
-        if [ -f $config ]; then
+        if [ -f $config -a -x $config ]; then
             reconfigure_package $(basename $config)
         fi
     done
