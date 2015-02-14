@@ -19,13 +19,14 @@ if ! flock -n 9; then
     exit 1
 fi
 
-# Create temporary directories for mounting and extraction
+# Create temporary directories for mounting and extraction.
 name=$(basename $0)
 mntdir=/tmp/$name.mnt.$$
 exdir=/tmp/$name.ex.$$
-rm -rf $mntdir $exdir
-mkdir $mntdir $exdir
-trap 'rm -rf $exdir; umount $mntdir && rm -rf $mntdir || rmdir $mntdir' EXIT
+pkgdir=/usr/share/buendia/packages.import.$$
+rm -rf $mntdir $exdir $pkgdir
+mkdir $mntdir $exdir $pkgdir
+trap 'rm -rf $exdir $pkgdir; umount $mntdir && rm -rf $mntdir || rmdir $mntdir' EXIT
 
 # Mount the given device to a temporary directory.
 if [ -b "$source" ]; then
@@ -63,22 +64,54 @@ if [ -n "$SITE_ID" ]; then
     done
 fi
 
-# Move the packages into the repo.
 if [ -n "$unpacked" ]; then
-    count=$(command ls $exdir | wc -l)
+
+    # Move the packages into the repo.
+    cp $exdir/*.deb $pkgdir || true
+    cp $exdir/*.apk $pkgdir || true
+    count=$(command ls $pkgdir | wc -l)
     s=s; [ "$count" == 1 ] && s=
-    mv $exdir/* /usr/share/buendia/packages/
+    mv $pkgdir/* /usr/share/buendia/packages/
     echo "Imported $count package$s."
 
-    # Regenerate indexes.
-    buendia-pkgserver-index-debs || true
-    buendia-pkgserver-index-apks || true
-    chmod -R a+rX /usr/share/buendia/packages
+    if [ "$count" -gt 0 ]; then
+        # Regenerate indexes.
+        buendia-pkgserver-index-debs || true
+        buendia-pkgserver-index-apks || true
+        chmod -R a+rX /usr/share/buendia/packages
+    fi
+
+    # Look for site settings files.
+    for file in $exdir/[0-9][0-9]-*; do
+        if [ -f "$file" ]; then
+            echo "Installing settings file: $file..."
+            base="$(basename "$file")"
+            target=/usr/share/buendia/site/${base#projectbuendia-}
+            cp "$file" "$target"
+            chmod 644 $target
+            echo "Installed as $target."
+            settings_changed=1
+        fi
+    done
+
+    if [ -n "$settings_changed" ]; then
+        echo "Settings changed; reconfiguring."
+        buendia-reconfigure
+    fi
+
+    # Look for shell commands.
+    if [ -f $exdir/commands.sh ]; then
+        echo "Executing shell script..."
+        touch $exdir/commands.in
+        cd $source
+        bash -x $exdir/commands.sh <$exdir/commands.in >>commands.log 2>&1 || true
+    fi
 
     # Mark installed packages done.
     for file in $installed; do
         mv $file "$(dirname "$file")/installed-$(basename "$file")"
     done
 else
-    echo "No new packages imported."
+    echo "No files imported."
 fi
+
