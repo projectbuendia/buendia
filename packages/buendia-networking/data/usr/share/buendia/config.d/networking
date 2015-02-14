@@ -1,23 +1,8 @@
 #!/bin/bash
 
 set -e; . /usr/share/buendia/utils.sh
-SETTINGS=/usr/share/buendia/site/networking
 
-# If the settings file is missing, generate a default one.
-if [ ! -f $SETTINGS ]; then
-    unindent <<< '
-        NETWORKING_AP=0
-        NETWORKING_SSID=
-        NETWORKING_PASSWORD=
-        NETWORKING_DHCP_DNS_SERVER=0
-
-        # This setting only takes effect if NETWORKING_DHCP_DNS_SERVER is 1
-        NETWORKING_IP_ADDRESS=
-    ' > $SETTINGS
-    . $SETTINGS
-fi
-
-# Update the /etc/hosts file with mappings for the server's IP addresses.
+# Update the /etc/hosts file with mappings for this machine's IP addresses.
 buendia-update-hosts
 
 if [ -z "$NETWORKING_SSID" ]; then
@@ -31,13 +16,7 @@ fi
 tmp_last=/tmp/buendia-networking.last.$$
 run_last=/run/buendia-networking.last
 trap 'rm -f $tmp_last' EXIT
-unindent <<< "
-    NETWORKING_AP=$NETWORKING_AP
-    NETWORKING_SSID=$NETWORKING_SSID
-    NETWORKING_PASSWORD=$NETWORKING_PASSWORD
-    NETWORKING_DHCP_DNS_SERVER=$NETWORKING_DHCP_DNS_SERVER
-    NETWORKING_IP_ADDRESS=$NETWORKING_IP_ADDRESS
-" > $tmp_last
+buendia-settings | grep '^NETWORKING_' > $tmp_last
 
 # Check the record of the last settings that were applied, so we can avoid
 # bringing the network down if nothing has changed.  Specifying the -f switch
@@ -129,5 +108,5 @@ if $(bool $NETWORKING_DHCP_DNS_SERVER); then
     buendia-enter-yocto <<< "ifconfig wlan0 up $NETWORKING_IP_ADDRESS"
 fi
 
-# Record the settings that were successfully configured.
+# Record the fact that the settings that were successfully configured.
 mv $tmp_last $run_last

@@ -16,16 +16,36 @@ for dir in $(find data -name '*.d'); do
     esac
 
     for file in $dir/*; do
-        if [ -e "$file" ]; then
-            if [ "$(basename "$file")" != $name ]; then
+        base=$(basename $file)
+        if [ -e "$file" -a "$base" != README ]; then
+            if [ "$base" != $name ]; then
                 echo "$file should be named $name."
                 exit 1
             fi
         fi
     done
-
-    if [ ! -f "$dir/$name" ]; then
-        echo "$dir exists but $dir/$name does not exist."
-        exit 1
-    fi
 done
+
+# Check that settings files in the site/ directory are named after the package.
+
+if [ -e data/usr/share/buendia/site ]; then
+    case $PACKAGE_NAME in
+        buendia-site-*) name=site ;;
+        *) name=${PACKAGE_NAME#buendia-} ;;
+    esac
+
+    for file in data/usr/share/buendia/site/*; do
+        base=$(basename $file)
+        if [ -e "$file" -a "$base" != README ]; then
+            case $base in
+                [0-9][0-9]-$name)
+                    echo "$file: OK"
+                    ;;
+                *)
+                    echo "$file is badly named; should have the form NN-$name."
+                    exit 1
+                    ;;
+            esac
+        fi
+    done
+fi

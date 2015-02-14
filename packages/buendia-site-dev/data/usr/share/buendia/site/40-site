@@ -1,0 +1,17 @@
+MONITORING_LIMITS='
+500000 /var/log/large/requests
+1000000 /var/log
+
+500000 /var/cache
+
+500000 /var/backups/buendia/packages
+500000 /var/backups/buendia/2*
+1000000 /var/backups/buendia
+'
+
+SERVER_OPENMRS_USER=android
+SERVER_OPENMRS_PASSWORD=Android123
+
+# We don't want dev.projectbuendia.org to update itself spontaneously;
+# let Jenkins trigger an update explicitly after a build.
+UPDATE_AUTOUPDATE=0

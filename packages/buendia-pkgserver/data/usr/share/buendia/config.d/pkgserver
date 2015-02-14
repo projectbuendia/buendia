@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -e; . /usr/share/buendia/utils.sh
-
-SETTINGS=/usr/share/buendia/site/pkgserver
-if [ ! -f $SETTINGS ]; then
-    echo 'PKGSERVER_URL="http://packages:9001/"' | create $SETTINGS
-fi

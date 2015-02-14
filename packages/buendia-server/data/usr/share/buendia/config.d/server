@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -e; . /usr/share/buendia/utils.sh
-SETTINGS=/usr/share/buendia/site/server
 
 # This is the UUID for the user account used for all Buendia API requests.
 # If there is no row with this uuid in the users table, one will be added.
@@ -11,13 +10,11 @@ USER_UUID=129a5d04-3bd7-4e9d-8b82-dac5109cd1db
 PERSON_UUID=a0e512fd-a6e0-11e4-b418-040ccecfdba4
 PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
 
-# Generate a random password for the buendia user if one is not already set.
-if [ ! -f $SETTINGS ]; then
-    unindent <<< "
-        SERVER_OPENMRS_USER=buendia
-        SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)
-    " | create $SETTINGS
-    . $SETTINGS
+# Provide a randomly generated password for the buendia user.
+if [ ! -f /usr/share/buendia/site/20-server ]; then
+    password=$(buendia-mkpass)
+    echo "SERVER_OPENMRS_PASSWORD=$password" > /usr/share/buendia/site/20-server
+    . /usr/share/buendia/utils.sh
 fi
 
 # Ensure MySQL is running.

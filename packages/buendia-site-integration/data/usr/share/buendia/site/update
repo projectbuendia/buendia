@@ -1,3 +1,0 @@
-# We don't want integration.projectbuendia.org to update itself spontaneously;
-# let Jenkins trigger an update explicitly when running an integration test.
-UPDATE_AUTOUPDATE=0

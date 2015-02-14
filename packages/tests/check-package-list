@@ -10,7 +10,7 @@ for file in data/usr/share/buendia/packages.list.d/*; do
             exit 1
         fi
         echo -n "Checking package list in $file... "
-        for package in $(cat $file); do
+        for package in $(sed -e 's/#.*//' $file); do
             if [ ! -d ../$package ]; then
                 echo "$file refers to non-existent package: $package"
                 exit 1
@@ -23,10 +23,12 @@ done
 if [[ $PACKAGE_NAME = buendia-site-* ]]; then
     file=data/usr/share/buendia/packages.list.d/site
     if [ ! -e $file ]; then
+        # Site packages should contain a package list.
         echo "Missing package list: $file."
         exit 1
     fi
     if ! grep -q $PACKAGE_NAME $file; then
+        # Site packages should keep themselves up to date.
         echo "$PACKAGE_NAME does not appear in $file."
         exit 1
     fi

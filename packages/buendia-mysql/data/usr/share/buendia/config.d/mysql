@@ -1,18 +1,15 @@
 #!/bin/bash
 
 set -e; . /usr/share/buendia/utils.sh
-SETTINGS=/usr/share/buendia/site/mysql
-INITSQL=/tmp/buendia-mysql-init.sql
-CONF=/etc/mysql/conf.d/buendia-mysql-init
 
-# Generate a random MySQL root password if one is not already set.
-if [ ! -f $SETTINGS ]; then
+# Provide a randomly generated MySQL root password.
+if [ ! -e /usr/share/buendia/site/20-mysql ]; then
     password=$(buendia-mkpass)
-    echo "MYSQL_ROOT_PASSWORD=$password" > $SETTINGS
-    . $SETTINGS
+    echo "MYSQL_ROOT_PASSWORD=$password" > /usr/share/buendia/site/20-mysql
+    . /usr/share/buendia/utils.sh  # reload settings
 fi
 
-# Check if the root password is already correctly set.
+# Check if MySQL is already configured with the desired root password.
 if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
     echo "MySQL root password unchanged."
     exit 0

@@ -1,14 +1,7 @@
 # Buendia shell scripts should all do ". /usr/share/buendia/utils.sh"
 
 # Read all the settings.
-for f in /usr/share/buendia/site/*; do [ -f $f ] && . $f || true; done
-
-# Ensure that essential directories exist.
-mkdir -p /usr/share/buendia/config.d
-mkdir -p /usr/share/buendia/diversions
-mkdir -p /usr/share/buendia/names.d
-mkdir -p /usr/share/buendia/packages.list.d
-mkdir -p /usr/share/buendia/site
+for file in /usr/share/buendia/site/*; do [ -f $file ] && . $file || true; done
 
 # Writes stdin to a file, creating any parent directories as needed.
 function create() {
@@ -33,3 +26,6 @@ function service_if_exists() {
         service $1 $2
     fi
 }
+
+# A handy shortcut, just for typing convenience.
+usb=usr/share/buendia

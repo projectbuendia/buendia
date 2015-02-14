@@ -1,0 +1,13 @@
+# 0 to join an existing wifi network; 1 to become an AP and create a network.
+NETWORKING_AP=0
+
+# SSID and WPA password for the network to join or create.
+NETWORKING_SSID=buendia
+NETWORKING_PASSWORD=buendia
+
+# 0 to rely on externally provided DHCP and DNS services; 1 to authoritatively
+# provide DHCP and DNS service for the network.
+NETWORKING_DHCP_DNS_SERVER=0
+
+# This host's IP address.  Only used if NETWORKING_DHCP_DNS_SERVER is 1.
+NETWORKING_IP_ADDRESS=10.0.0.50
