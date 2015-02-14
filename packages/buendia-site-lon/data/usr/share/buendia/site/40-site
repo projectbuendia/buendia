@@ -8,7 +8,7 @@ MONITORING_LIMITS='
 10000 /var/log/large/requests
 20000 /var/log
 
-30000 /var/cache
+120000 /var/cache
 
 50000 /var/backups/buendia/packages
 50000 /var/backups/buendia/2*
