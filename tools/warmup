@@ -48,6 +48,9 @@ function check_url() {
     retry_count=0
     search="$1"
     shift
+    if [ -z "$retry" ]; then
+        buendia-led green on 4 4 360  # should come up within 6 minutes
+    fi
     while [[ $retry_count -lt 30 ]]; do
         echo
         echo "Trying $1..."
