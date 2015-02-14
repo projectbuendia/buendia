@@ -3,9 +3,9 @@
 set -e; . /usr/share/buendia/utils.sh
 
 # Provide a randomly generated MySQL root password.
-if [ ! -e /usr/share/buendia/site/20-mysql ]; then
-    password=$(buendia-mkpass)
-    echo "MYSQL_ROOT_PASSWORD=$password" > /usr/share/buendia/site/20-mysql
+generated=/usr/share/buendia/site/20-mysql
+if [ ! -e $generated ]; then
+    echo "MYSQL_ROOT_PASSWORD=$(buendia-mkpass)" > $generated
     . /usr/share/buendia/utils.sh  # reload settings
 fi
 

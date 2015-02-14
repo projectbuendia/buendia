@@ -11,10 +11,10 @@ PERSON_UUID=a0e512fd-a6e0-11e4-b418-040ccecfdba4
 PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
 
 # Provide a randomly generated password for the buendia user.
-if [ ! -f /usr/share/buendia/site/20-server ]; then
-    password=$(buendia-mkpass)
-    echo "SERVER_OPENMRS_PASSWORD=$password" > /usr/share/buendia/site/20-server
-    . /usr/share/buendia/utils.sh
+generated=/usr/share/buendia/site/20-server
+if [ ! -e $generated ]; then
+    echo "SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)" > $generated
+    . /usr/share/buendia/utils.sh  # reload settings
 fi
 
 # Ensure MySQL is running.

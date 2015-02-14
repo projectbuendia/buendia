@@ -2,12 +2,12 @@
 
 import os, subprocess, json
 
-def get_setting(setting, default=None, namespace='pkgserver'):
-    """Get the value for a setting from the pkgserver settings file."""
+def get_setting(name, default=None):
+    """Get the value for a Buendia setting from /usr/share/buendia/site."""
     try:
         value = subprocess.check_output(
-            ('/bin/bash -c "source /usr/share/buendia/site/%s; '
-             'echo -n \"$%s\""') % (namespace, setting,), shell=True)
+            ('/bin/bash -c "source /usr/share/buendia/site/utils.sh; '
+             'echo -n \"$%s\""') % (name,), shell=True)
     except subprocess.CalledProcessError:
         return default
     else:
@@ -51,22 +51,17 @@ def create_index(package_directory, base_url):
 
     packages = {}
     for filename in files:
-        if not filename.endswith(".apk"):
-            # Skip anything other than an apk packages
+        name, ext = os.path.splitext(filename)
+        if ext != '.apk':
+            # Skip anything other than apk packages
             continue
-        # Chop off the segment after the last period and split on '-'
-        package_parts = '.'.join(filename.split(".")[:-1]).split("-")
-        # Extract version string
-        version = package_parts.pop()
-        # Extract module string
-        module = '-'.join(package_parts)
+        # Version comes after the last '-'
+        module, version = name.rsplit('-', 1)
 
-        # If both strings are non-empty
         if module and version:
             # Create package index
-            packages[module] = packages.get(module, [])
-            packages[module].append(
-                {"version": str(version), "url": "%s/%s" % (base_url, filename)})
+            packages.setdefault(module, []).append(
+                {"version": version, "url": "%s/%s" % (base_url, filename)})
 
     # Write each package index to their respective files
     for module in packages:

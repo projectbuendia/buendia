@@ -9,8 +9,8 @@ if [ "$1" = "-h" ]; then
     echo "Skips the update if none of the remote repositories are reachable"
     echo "and nothing has changed in the local repository since the last run."
     echo
-    echo "Performs the update only if /usr/share/buendia/site/update sets"
-    echo "UPDATE_AUTOUPDATE=1."
+    echo "Performs the update only if UPDATE_AUTOUPDATE is set to 1 in"
+    echo "/usr/share/buendia/site."
     echo
     echo "Specify -u <n> to perform the update only if the machine has been"
     echo "up for at least <n> seconds.  Use this option to avoid running"

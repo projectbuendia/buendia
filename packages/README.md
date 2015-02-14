@@ -30,18 +30,14 @@ See [`buendia-sshd/control`](buendia-sshd/control) for an example.
 If your package uses site-specific settings, they should be defined
 as shell variables in a file in `/usr/share/buendia/site`
 and your package must provide a config script in `/usr/share/buendia/config.d`
-that does two things:
+that reads the settings and applies them to the actual service or application
+(e.g. by editing its configuration files and restarting the service).
+Default values should be placed in `/usr/share/buendia/site/10-[name]`;
+these can be overriden by higher-numbered files (for more about settings
+files, see buendia-utils/data/usr/share/buendia/site/README).
 
-1. Creates the settings file with default values, if the file does not exist.
-   (Do **not** include the settings file in your package;
-   only have it created by this script.)
-
-2. Reads the settings file and applies the settings to the actual service
-   or application (e.g. by editing its configuration files).
-
-The settings file and config script should also be named after the package,
-and the shell variables should be prefixed with this name to prevent collision
-(e.g. a package named `buendia-foo` should place its settings file
-at `/usr/share/buendia/site/foo` and its config script at
-`/usr/share/buendia/config.d/foo`, and its settings should have
-names like `FOO_USER` and `FOO_PASSWORD`).
+The shell variables and config script should be named after the package;
+for example, a package named `buendia-foo` should have variables with
+names like `FOO_USER` and `FOO_PASSWORD`, default settings in
+/usr/share/buendia/site/10-foo, and a config script at
+`/usr/share/buendia/config.d/foo`.

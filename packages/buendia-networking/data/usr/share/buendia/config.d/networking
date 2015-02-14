@@ -75,9 +75,10 @@ if $(bool $NETWORKING_AP); then
     echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
 
     # hostapd runs in Yocto, so this script writes to hostapd.conf directly.
+    buendia-settings > /etc/buendia-settings
     buendia-enter-yocto <<< '
         hostapd_conf=/etc/hostapd/hostapd.conf
-        . /home/root/debian/usr/share/buendia/site/networking
+        . /debian/etc/buendia-settings
 
         cp $hostapd_conf.pre-buendia $hostapd_conf
         echo "ssid=$NETWORKING_SSID" >> $hostapd_conf
@@ -90,6 +91,7 @@ if $(bool $NETWORKING_AP); then
 
 else
     echo "Joining existing wifi network '$NETWORKING_SSID'."
+    buendia-settings > /etc/buendia-settings
     buendia-enter-yocto <<< '
         # Stop being an access point now, and do not become one on future boots.
         systemctl stop hostapd
@@ -97,7 +99,7 @@ else
 
         # Connect to an existing wifi network.  This also causes the system
         # to connect again on boot, reusing the same network SSID and password.
-        . /home/root/debian/usr/share/buendia/site/networking
+        . /debian/etc/buendia-settings
         PATH=/usr/local/bin:/usr/bin:$PATH
         wifi $NETWORKING_SSID:$NETWORKING_PASSWORD
     '

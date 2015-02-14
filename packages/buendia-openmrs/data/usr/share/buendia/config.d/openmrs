@@ -4,10 +4,10 @@ set -e; . /usr/share/buendia/utils.sh
 properties=/usr/share/buendia/openmrs/openmrs-runtime.properties
 
 # Provide a randomly generated password for openmrs_user.
-if [ ! -e /usr/share/buendia/site/20-openmrs ]; then
-    password=$(buendia-mkpass)
-    echo "OPENMRS_MYSQL_PASSWORD=$password" > /usr/share/buendia/site/20-openmrs
-    . /usr/share/buendia/utils.sh
+generated=/usr/share/buendia/site/20-openmrs
+if [ ! -e $generated ]; then
+    echo "OPENMRS_MYSQL_PASSWORD=$(buendia-mkpass)" > $generated
+    . /usr/share/buendia/utils.sh  # reload settings
 fi
 
 # Check if the MySQL server is already configured with this user and password.
