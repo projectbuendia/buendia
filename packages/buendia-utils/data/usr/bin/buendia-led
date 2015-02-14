@@ -4,18 +4,33 @@ dev=/dev/ttyMFD1
 name=$(basename $0)
 led=$1
 verb=$2
-timeout=$3
+ontime=$3
+offtime=$4
+timeout=$5
 
 if [ "$1" = "-h" -o "$verb" = "" ]; then
-    echo "Usage: $0 <led> <verb> [<timeout>]"
+    echo "Usage: $0 <led> <verb> [[<on-ticks> <off-ticks>] <timeout-ticks>]"
     echo
-    echo "<led> is one of: red yellow green blue white"
-    echo "<verb> is one of: on off"
-    echo "<timeout> is a timeout in seconds after which to revert to off."
+    echo "<led>: one of: red, yellow, green, blue, white"
+    echo "<verb>: one of: on, off"
+    echo "<on-ticks>: flash cycle on time, in ticks of 0.1 seconds"
+    echo "<off-ticks>: flash cycle off time, in ticks of 0.1 seconds"
+    echo "<timeout>: timeout for reverting to off, in ticks of 0.1 seconds."
     exit 1
 fi
 
-mkdir -p /tmp/$name.{R,A,G,B,W}
+if [ $ontime -gt 255 ]; then
+    echo '<on-ticks> exceeds maximum value of 255.'
+    exit 1
+fi
+if [ $offtime -gt 255 ]; then
+    echo '<off-ticks> exceeds maximum value of 255.'
+    exit 1
+fi
+if [ $timeout -gt 65535 ]; then
+    echo '<timeout> exceeds maximum value of 65535'
+    exit 1
+fi
 
 # LEDs are entirely optional.  Always exit with success.
 (
@@ -36,25 +51,22 @@ mkdir -p /tmp/$name.{R,A,G,B,W}
 
         case $verb in
             off|0)
-                echo -ne "JFFL${addr}0\r\n" >$dev
+                onoff=0;
                 ;;
             on|1|*)
-                echo -ne "JFFL${addr}1\r\n" >$dev
+                onoff=1;
                 ;;
         esac
 
-        rm -f /tmp/$name.$addr/*
+        if [ -n "$ontime" ]; then
+            on=$(printf '%02x' "$ontime")
+            off=$(printf '%02x' "$offtime")
+        fi
 
         if [ -n "$timeout" ]; then
-            flag=/tmp/$name.$addr/timeout.$(date +%s).$$
-            touch $flag
-            (
-                sleep $timeout
-                if [ -e $flag ]; then
-                    echo -ne "JFFL${addr}0\r\n" >$dev
-                fi
-                rm -f $flag
-            ) </dev/null >/dev/null 2>/dev/null &
+            timeout=$(printf '%02x' "%timeout")
         fi
+
+        echo -ne "JFFL${addr}${onoff}${on}${off}${timeout}1\r\n" >$dev
     fi
 ) || true
