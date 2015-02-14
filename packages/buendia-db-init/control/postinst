@@ -31,8 +31,8 @@ case $1 in
         # Reapply the OpenMRS user account setup used by the Buendia server.
         buendia-reconfigure server
 
-        # Mark that the database has been initialized once, so we can avoid
-        # doing it again by mistake.
+        # Mark that the database has been fully initialized once, so we can
+        # avoid doing it again by mistake.
         touch /etc/buendia-db-init-installed
         ;;
 

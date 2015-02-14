@@ -3,7 +3,7 @@
 set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
-    install)
+    install|upgrade)
         if [ -e /etc/buendia-db-init-installed ]; then
             echo "buendia-db-init has been previously installed!"
             echo "Not installing, as there is a risk of destroying user data!"
@@ -11,14 +11,6 @@ case $1 in
             echo "rm /etc/buendia-db-init-installed and reinstall."
             exit 1
         fi
-        ;;
-
-    upgrade)
-        echo "buendia-db-init can only be installed once, never upgraded,"
-        echo "as there is a risk of destroying user data!  If you are sure"
-        echo "you want to wipe the database, apt-get remove buendia-db-init,"
-        echo "rm /etc/buendia-db-init-installed, and reinstall."
-        exit 1
         ;;
 
     *) exit 1
