@@ -4,8 +4,8 @@ dev=/dev/ttyMFD1
 name=$(basename $0)
 led=$1
 verb=$2
-ontime=$3
-offtime=$4
+on=$3
+off=$4
 timeout=$5
 
 if [ "$1" = "-h" -o "$verb" = "" ]; then
@@ -16,19 +16,6 @@ if [ "$1" = "-h" -o "$verb" = "" ]; then
     echo "<on-ticks>: flash cycle on time, in ticks of 0.1 seconds"
     echo "<off-ticks>: flash cycle off time, in ticks of 0.1 seconds"
     echo "<timeout>: timeout for reverting to off, in ticks of 0.1 seconds."
-    exit 1
-fi
-
-if [ $ontime -gt 255 ]; then
-    echo '<on-ticks> exceeds maximum value of 255.'
-    exit 1
-fi
-if [ $offtime -gt 255 ]; then
-    echo '<off-ticks> exceeds maximum value of 255.'
-    exit 1
-fi
-if [ $timeout -gt 65535 ]; then
-    echo '<timeout> exceeds maximum value of 65535'
     exit 1
 fi
 
@@ -58,15 +45,24 @@ fi
                 ;;
         esac
 
-        if [ -n "$ontime" ]; then
-            on=$(printf '%02x' "$ontime")
-            off=$(printf '%02x' "$offtime")
+        if [ -n "$on" ]; then
+            let adj_on=$((on < 0 ? 0 : on > 255 ? 255 : on))
+            let adj_off=$((off < 0 ? 0 : off > 255 ? 255 : off))
+            if [ "$adj_on/$adj_off" != "$on/$off" ]; then
+                echo "buendia-led: using on/off times $adj_on/$adj_off"
+            fi
+            hex_onoff=$(printf '%02x%02x' $adj_on $adj_off)
         fi
 
         if [ -n "$timeout" ]; then
-            timeout=$(printf '%02x' "%timeout")
+            let adj_timeout=$((
+                    timeout < 0 ? 0 : timeout > 65535 ? 65535 : timeout))
+            if [ "$adj_timeout" != "$timeout" ]; then
+                echo "buendia-led: using timeout $adj_timeout"
+            fi
+            hex_timeout=$(printf '%04x' $adj_timeout)
         fi
 
-        echo -ne "JFFL${addr}${onoff}${on}${off}${timeout}1\r\n" >$dev
+        echo -ne "JFFL${addr}${onoff}${hex_onoff}${hex_timeout}\r\n" >$dev
     fi
 ) || true
