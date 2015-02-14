@@ -70,11 +70,12 @@ if [ -n "$unpacked" ]; then
     cp $exdir/*.deb $pkgdir || true
     cp $exdir/*.apk $pkgdir || true
     count=$(command ls $pkgdir | wc -l)
-    s=s; [ "$count" == 1 ] && s=
-    mv $pkgdir/* /usr/share/buendia/packages/
-    echo "Imported $count package$s."
 
     if [ "$count" -gt 0 ]; then
+        s=s; [ "$count" == 1 ] && s=
+        mv $pkgdir/* /usr/share/buendia/packages/
+        echo "Imported $count package$s."
+
         # Regenerate indexes.
         buendia-pkgserver-index-debs || true
         buendia-pkgserver-index-apks || true
