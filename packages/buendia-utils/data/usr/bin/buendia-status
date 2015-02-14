@@ -53,11 +53,14 @@ if [ -n "$all" ]; then
     echo -e '\n---- buendia-tomcat7-watchdog'
     buendia-last buendia-tomcat7-watchdog 2>&1
 
-    echo -e '\n---- buendia-limit'
-    buendia-last buendia-limit 2>&1
+    echo -e '\n---- buendia-apply-limits'
+    buendia-last buendia-apply-limits 2>&1
 
     echo -e '\n---- buendia-backup'
     buendia-last buendia-backup 2>&1
+
+    echo -e '\n---- buendia-pkgserver-import'
+    buendia-last buendia-pkgserver-import 2>&1
 
     echo -e '\n---- buendia-autoupdate'
     buendia-last buendia-autoupdate 2>&1
