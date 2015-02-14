@@ -3,21 +3,22 @@
 set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
-    install|upgrade)
-        service mysql start
-
-        if ! mysql -uroot -p$MYSQL_ROOT_PASSWORD -e ''; then
-            echo "MySQL configuration problem: cannot connect as root."
+    install)
+        if [ -e /etc/buendia-db-init-installed ]; then
+            echo "buendia-db-init has been previously installed!"
+            echo "Not installing, as there is a risk of destroying user data!"
+            echo "If you are sure you want to wipe the database,"
+            echo "rm /etc/buendia-db-init-installed and reinstall."
             exit 1
         fi
+        ;;
 
-        if mysql -uroot -p$MYSQL_ROOT_PASSWORD -e '' openmrs 2>/dev/null; then
-            echo
-            echo "Installing buendia-db-init would destroy all data in the"
-            echo "existing MySQL database 'openmrs'!  Not installing."
-            echo
-            exit 1
-        fi
+    upgrade)
+        echo "buendia-db-init can only be installed once, never upgraded,"
+        echo "as there is a risk of destroying user data!  If you are sure"
+        echo "you want to wipe the database, apt-get remove buendia-db-init,"
+        echo "rm /etc/buendia-db-init-installed, and reinstall."
+        exit 1
         ;;
 
     *) exit 1
