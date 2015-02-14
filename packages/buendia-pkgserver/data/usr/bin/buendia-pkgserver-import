@@ -26,7 +26,7 @@ exdir=/tmp/$name.ex.$$
 pkgdir=/usr/share/buendia/packages.import.$$
 rm -rf $mntdir $exdir $pkgdir
 mkdir $mntdir $exdir $pkgdir
-trap 'rm -rf $exdir $pkgdir; umount $mntdir && rm -rf $mntdir || rmdir $mntdir' EXIT
+trap 'rm -rf $exdir $pkgdir; umount $mntdir && rm -rf $mntdir || rmdir $mntdir; buendia-led red off || true' EXIT
 
 # Mount the given device to a temporary directory.
 if [ -b "$source" ]; then
@@ -43,6 +43,7 @@ fi
 # Look for all-site updates.
 for file in $source/projectbuendia-all{,-*}.zip; do
     if [ -f "$file" ]; then
+        buendia-led red on 4 12 30 || true
         echo "Unpacking: $file"
         if unzip -j -d $exdir "$file"; then
             installed="$installed $file"
@@ -55,6 +56,7 @@ done
 if [ -n "$SITE_ID" ]; then
     for file in $source/projectbuendia-$SITE_ID{,-*}.zip; do
         if [ -f "$file" ]; then
+            buendia-led red on 4 12 30 || true
             echo "Unpacking: $file"
             if unzip -j -d $exdir "$file"; then
                 installed="$installed $file"
@@ -72,11 +74,13 @@ if [ -n "$unpacked" ]; then
     count=$(command ls $pkgdir | wc -l)
 
     if [ "$count" -gt 0 ]; then
+        buendia-led red on 4 8 10 || true
         s=s; [ "$count" == 1 ] && s=
         mv $pkgdir/* /usr/share/buendia/packages/
         echo "Imported $count package$s."
 
         # Regenerate indexes.
+        buendia-led red on 4 4 60 || true
         buendia-pkgserver-index-debs || true
         buendia-pkgserver-index-apks || true
         chmod -R a+rX /usr/share/buendia/packages
@@ -86,6 +90,7 @@ if [ -n "$unpacked" ]; then
     for file in $exdir/[0-9][0-9]-*; do
         if [ -f "$file" ]; then
             echo "Installing settings file: $file..."
+            buendia-led red on 4 8 10 || true
             base="$(basename "$file")"
             target=/usr/share/buendia/site/${base#projectbuendia-}
             cp "$file" "$target"
@@ -97,12 +102,14 @@ if [ -n "$unpacked" ]; then
 
     if [ -n "$settings_changed" ]; then
         echo "Settings changed; reconfiguring."
+        buendia-led red on 4 4 10 || true
         buendia-reconfigure
     fi
 
     # Look for shell commands.
     if [ -f $exdir/commands.sh ]; then
         echo "Executing shell script..."
+        buendia-led red on 4 4 10 || true
         touch $exdir/commands.in
         cd $source
         bash -x $exdir/commands.sh <$exdir/commands.in >>commands.log 2>&1 || true

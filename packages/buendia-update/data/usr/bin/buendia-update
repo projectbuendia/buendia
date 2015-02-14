@@ -17,8 +17,8 @@ if ! flock -n 9; then
     exit 1
 fi
 
-# Turn on red LED during updates.
-buendia-led red on || true
+# Flash red LED during updates.
+buendia-led red on 4 8 600 || true
 trap 'buendia-led red off || true' EXIT
 
 export DEBIAN_FRONTEND=noninteractive
@@ -44,6 +44,7 @@ else
 fi
 echo
 echo "--- Updating packages: $packages"
+buendia-led red on 4 4 600 || true
 apt-get -V -y --allow-unauthenticated install $packages || true
 
 echo

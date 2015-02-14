@@ -14,7 +14,11 @@ PATH=/sbin:/bin:/usr/bin
 
 case "$1" in
     start|"")
+        buendia-led red off
         buendia-led green on 4 8 90
+        buendia-led yellow off
+        buendia-led blue off
+        buendia-led white off
         ;;
 
     restart|reload|force-reload)
