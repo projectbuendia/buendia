@@ -62,6 +62,9 @@ systemctl enable debian-startup save-clock.timer wpa_supplicant
 # Turn off the default Edison web server on port 80.
 systemctl disable edison_config
 
+# Turn off mDNS; we don't use it and it writes a huge volume of log messages.
+systemctl disable mdns
+
 # ---- The rest of the setup steps below all take place within Debian.
 
 echo $BASE_PACKAGES > /debian/etc/buendia-base.install.list
