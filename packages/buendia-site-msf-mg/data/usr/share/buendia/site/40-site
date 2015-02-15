@@ -1,5 +1,8 @@
 # msf-mg site configuration
 
+SERVER_OPENMRS_USER=buendia
+SERVER_OPENMRS_PASSWORD=buendia
+
 MONITORING_LIMITS='
 100000 /var/log/large/requests
 200000 /var/log

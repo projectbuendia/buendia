@@ -1,5 +1,8 @@
 # lon site configuration
 
+SERVER_OPENMRS_USER=buendia
+SERVER_OPENMRS_PASSWORD=buendia
+
 # Small limits for testing.
 MONITORING_LIMITS='
 10000 /var/log/large/requests

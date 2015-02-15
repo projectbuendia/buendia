@@ -1,3 +1,6 @@
+SERVER_OPENMRS_USER=buendia
+SERVER_OPENMRS_PASSWORD=buendia
+
 MONITORING_LIMITS='
 500000 /var/log/large/requests
 1000000 /var/log
