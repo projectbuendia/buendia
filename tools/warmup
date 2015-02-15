@@ -36,6 +36,10 @@ if [[ $hostport != *:* ]]; then
     hostport=$hostport:9000
 fi
 
+# After 7 failed attempts to log in within a short period of time, OpenMRS
+# will lock out a user by setting the lockoutTimestamp property in the
+# user_property table -- after which all API requests fail as unauthorized.
+# We clear these lockouts when warming up the server.
 function clear_lockouts() {
     MYSQL_USER=${MYSQL_USER:-$OPENMRS_MYSQL_USER}
     MYSQL_PASSWORD=${MYSQL_PASSWORD:-$OPENMRS_MYSQL_PASSWORD}
