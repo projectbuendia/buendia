@@ -3,21 +3,36 @@
 set -e; . /usr/share/buendia/utils.sh
 
 if [ "$1" = "-h" ]; then
-    echo "Usage: $0 [<package-name>...]"
+    echo "Usage: $0 [-f] [<package-name>...]"
     echo
     echo "Re-applies settings in /usr/share/buendia/site/* to the services"
     echo "managed by Buendia packages.  If no package names are specified,"
     echo "all Buendia packages are reconfigured."
+    echo
+    echo "Specifying -f tells each package to reconfigure itself more"
+    echo "aggressively.  Some packages skip reconfiguration if they believe"
+    echo "that no settings have changed; using -f requests that they force"
+    echo "reconfiguration from scratch without this optimization."
 fi
 
 errors=
+if [ "$1" == "-f" ]; then
+    force=yes
+    shift
+fi
 
 function reconfigure_package() {
     package=$1
     config=/usr/share/buendia/config.d/$package
     if [ -f $config ]; then
-        echo "Reconfiguring buendia-$package..."
-        if $config; then
+        if [ -n "$force" ]; then
+            echo "Force-reconfiguring buendia-$package..."
+            flags="-f"
+        else
+            echo "Reconfiguring buendia-$package..."
+            flags=""
+        fi
+        if $config $flags; then
             echo "buendia-$package: success."
         else
             echo "buendia-$package: reconfiguration error."
