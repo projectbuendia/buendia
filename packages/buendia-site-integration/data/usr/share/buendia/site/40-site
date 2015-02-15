@@ -11,9 +11,6 @@ MONITORING_LIMITS='
 100000 /usr/share/buendia/packages
 '
 
-SERVER_OPENMRS_USER=android
-SERVER_OPENMRS_PASSWORD=Android123
-
 # We don't want integration.projectbuendia.org to update itself spontaneously;
 # let Jenkins trigger an update explicitly when running an integration test.
 UPDATE_AUTOUPDATE=0
