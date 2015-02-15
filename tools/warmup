@@ -1,6 +1,9 @@
 #!/bin/bash
 
 set -e
+if [ -e /usr/share/buendia/utils.sh ]; then
+    . /usr/share/buendia/utils.sh
+fi
 if [ "$1" = "-r" ]; then
     retry=yes
     shift
@@ -11,8 +14,9 @@ if [ "$1" = "-h" -o "$hostport" = "" ]; then
     echo "Usage: $0 [-r] <host>[:<port>]"
     echo
     echo "Makes requests to confirm that the Buendia API is available at the"
-    echo "given host.  If -r is specified, keeps retrying until the server"
-    echo "responds properly, for up to 15 minutes."
+    echo "given host.  Also clears account lockouts (lockoutTimestamp property"
+    echo "in the user_property table).  If -r is specified, keeps retrying"
+    echo "until the server responds properly, for up to 15 minutes."
     exit 1
 fi
 
@@ -20,36 +24,43 @@ tmpout=/tmp/warmup.out.$$
 tmpgrep=/tmp/warmup.grep.$$
 trap 'rm -rf $tmpout $tmpgrep' EXIT
 
-# These are just defaults.
-if [ -z "$SERVER_OPENMRS_USER" ]; then
-    SERVER_OPENMRS_USER=android
-fi
-if [ -z "$SERVER_OPENMRS_PASSWORD" ]; then
-    SERVER_OPENMRS_PASSWORD=Android123
-fi
+OPENMRS_USER=${OPENMRS_USER:-$SERVER_OPENMRS_USER}
+OPENMRS_PASSWORD=${OPENMRS_PASSWORD:-$SERVER_OPENMRS_PASSWORD}
 
-# If we are warming up the local server, use its username and password.
-if [[ $hostport = localhost || $hostport = localhost:* ]]; then
-    for f in /usr/share/buendia/site/*; do . $f || true; done
+if [ -z "$OPENMRS_USER" -o -z "$OPENMRS_PASSWORD" ]; then
+    echo "Please set OPENMRS_USER and OPENMRS_PASSWORD."
+    exit 1
 fi
 
 if [[ $hostport != *:* ]]; then
     hostport=$hostport:9000
 fi
 
-echo "=== $(date): $0"
-if [ -n "$retry" ]; then
-    echo "Contacting Buendia API at $hostport (can take about 5 minutes)..."
-else
-    echo "Contacting Buendia API at $hostport (trying just once)..."
-fi
+function clear_lockouts() {
+    MYSQL_USER=${MYSQL_USER:-$OPENMRS_MYSQL_USER}
+    MYSQL_PASSWORD=${MYSQL_PASSWORD:-$OPENMRS_MYSQL_PASSWORD}
+    if [ -n "$MYSQL_USER" -a -n "$MYSQL_PASSWORD" ]; then
+        MYSQL="mysql -u$MYSQL_USER -p$MYSQL_PASSWORD openmrs"  # don't use quotes inside!
+        count_lockouts="select count(*) from user_property where property = 'lockoutTimestamp';"
+        lockouts=$($MYSQL <<< $count_lockouts)
+        if ! $MYSQL <<< $count_lockouts | grep -q -w 0; then
+            echo "Found lockouts in the user_property table.";
+            $MYSQL <<< "delete from user_property where property = 'lockoutTimestamp';"
+            if $MYSQL <<< $count_lockouts | grep -q -w 0; then
+                echo "Cleared lockouts."
+            else
+                echo "Unable to clear all lockouts."
+            fi
+        fi
+    fi
+}
 
 function check_url() {
     retry_count=0
     search="$1"
     shift
     if [ -z "$retry" ]; then
-        buendia-led green on 4 4 360  # should come up within 6 minutes
+        buendia-led green on 4 4 360 || true  # should come up within 6 minutes
     fi
     while [[ $retry_count -lt 30 ]]; do
         echo
@@ -80,6 +91,15 @@ function check_url() {
     false
 }
 
+echo "=== $(date): $0"
+clear_lockouts
+
+if [ -n "$retry" ]; then
+    echo "Contacting Buendia API at $hostport (can take about 5 minutes)..."
+else
+    echo "Contacting Buendia API at $hostport (trying just once)..."
+fi
+
 # Tomcat
 check_url 'HTTP.*200 OK' http://$hostport/
 
@@ -87,7 +107,7 @@ check_url 'HTTP.*200 OK' http://$hostport/
 check_url '<title>.*OpenMRS' http://$hostport/openmrs
 
 # Buendia
-check_url '{"results":' http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u $SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD
+check_url '{"results":' http://$hostport/openmrs/ws/rest/v1/projectbuendia/user -u $OPENMRS_USER:$OPENMRS_PASSWORD
 
 echo
 echo "    \o/  Success!  Buendia API at $hostport is up."

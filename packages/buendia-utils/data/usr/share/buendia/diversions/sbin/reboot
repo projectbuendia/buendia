@@ -8,7 +8,7 @@ cat <<< "
 " > $announce
 
 # TODO: If Yocto is not present, just reboot Debian.
-buendia-led green on 4 12 120  # 120 is an upper bound; reboot should take ~60 s
+buendia-led green on 4 12 120 || true  # 120 is an upper bound; reboot should take ~60 s
 while true; do
     buendia-enter-yocto <<< "/debian/usr/bin/wall /debian$announce"
     sleep 5
