@@ -42,8 +42,8 @@ unindent <<< "
     iface lo inet loopback
 
     iface wlan0 inet manual
-    up buendia-enter-yocto <<< 'ifconfig wlan0 $NETWORKING_IP_ADDRESS up'
-    down buendia-enter-yocto <<< 'ifconfig wlan0 down'
+    up echo 'ifconfig wlan0 $NETWORKING_IP_ADDRESS up' | buendia-enter-yocto
+    down echo 'ifconfig wlan0 down' | buendia-enter-yocto
 " > /etc/network/interfaces
 
 # Activate or deactivate the DHCP server and client according to the settings.
