@@ -1,6 +1,10 @@
 #!/bin/bash
 
 TOOLS=$(cd $(dirname $0) && pwd)
+if [ -n "$1" ]; then
+    cd "$1"
+fi
+
 names=$(ls | grep '\.deb' | sed -e 's/_.*//' | sort | uniq)
 
 for name in $names; do
