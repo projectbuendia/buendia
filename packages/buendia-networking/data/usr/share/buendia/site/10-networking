@@ -3,7 +3,8 @@ NETWORKING_AP=0
 
 # SSID and WPA password for the network to join or create.
 NETWORKING_SSID=buendia
-NETWORKING_PASSWORD=buendia
+# Default password must be at least 8 characters for the client
+NETWORKING_PASSWORD=password
 
 # 0 to rely on externally provided DHCP and DNS services; 1 to authoritatively
 # provide DHCP and DNS service for the network.
