@@ -7,9 +7,25 @@ source="$1"
 if [ "$1" = "-h" -o "$source" = "" ]; then
     echo "Usage: $0 [<device>|<directory>]"
     echo
-    echo "Imports Buendia package bundles into the local package server."
-    echo "Searches for files named projectbuendia-<site>.zip in the given"
-    echo "directory or in the root directory of the given mountable device."
+    echo "Imports Buendia bundle files into the local package server."
+    echo "Searches for files named projectbuendia-all-<anything>.zip or"
+    echo "projectbuendia-<site-id>-<anything>.zip in the given directory"
+    echo "or in the root directory of the given mountable device, and"
+    echo "applies them to the system."
+    echo
+    echo "A bundle file is a zip file containing:"
+    echo "  - .deb or .apk files, which will be placed at"
+    echo "    /usr/share/buendia/packages and served by the package server"
+    echo "  - settings files with names of the form NN-anything (where NN is"
+    echo "    a number), which will be copied into /usr/share/buendia/site"
+    echo "  - a file named commands.sh, which will be executed as a bash"
+    echo "    script by root with the unpacked bundle as the current directory"
+    echo
+    echo "After each bundle is detected and unpacked, it is renamed by"
+    echo "prepending 'installed-' so that it will not be automatically"
+    echo "installed again.  However, bundles whose names contain '-reuse-'"
+    echo "are special and get renamed by incrementing a number in the"
+    echo "filename, and nothing is prepended, so they can be used again."
     exit 1
 fi
 
@@ -19,7 +35,26 @@ if ! flock -n 9; then
     exit 1
 fi
 
-# Create temporary directories for mounting and extraction.
+# Constructs the new name to which a bundle file is renamed after processing.
+function adjust_filename() {
+    filename="$1"
+    (
+        shopt -s nocasematch
+        if [[ $filename =~ ^(.*-reuse)-?([0-9]*)([-.].*)$ ]]; then
+            name=${BASH_REMATCH[1]}
+            count=${BASH_REMATCH[2]}
+            rest=${BASH_REMATCH[3]}
+            let count=count+1
+            echo $name-$count$rest
+        else
+            echo installed-$filename
+        fi
+    )  # restore shopt nocasematch
+}
+
+# Create temporary directories for mounting and extraction. $pkgdir should be
+# located on the same filesystem as /usr/share/buendia/packages so that any
+# packages dropped there can be moved into the repo instantaneously.
 name=$(basename $0)
 mntdir=/tmp/$name.mnt.$$
 exdir=/tmp/$name.ex.$$
@@ -40,86 +75,98 @@ else
     exit 1
 fi
 
-# Look for all-site updates.
-for file in $source/projectbuendia-all{,-*}.zip; do
+# Search the directory for bundles.
+cd "$source"
+
+bundles=(projectbuendia-all{,-*}.zip)  # bundles addressed to all sites
+if [ -n "$SITE_ID" ]; then
+    bundles+=(projectbuendia-$SITE_ID{,-*}.zip)  # bundles specific to this site
+fi
+
+for file in "${bundles[@]}"; do
     if [ -f "$file" ]; then
         buendia-led red on 4 12 30 || true
-        echo "Unpacking: $file"
-        if unzip -j -d $exdir "$file"; then
-            installed="$installed $file"
-            unpacked=1
+        echo "Unpacking bundle: $file"
+        if unzip -j -d "$exdir" "$file"; then
+            unpacked+=("$file")
         fi
     fi
 done
 
-# Look for site-specific updates.
-if [ -n "$SITE_ID" ]; then
-    for file in $source/projectbuendia-$SITE_ID{,-*}.zip; do
-        if [ -f "$file" ]; then
-            buendia-led red on 4 12 30 || true
-            echo "Unpacking: $file"
-            if unzip -j -d $exdir "$file"; then
-                installed="$installed $file"
-                unpacked=1
-            fi
-        fi
-    done
-fi
-
+# Process the unpacked bundles.
 if [ -n "$unpacked" ]; then
+    (
+        cd "$exdir"
 
-    # Move the packages into the repo.
-    cp $exdir/*.deb $pkgdir || true
-    cp $exdir/*.apk $pkgdir || true
-    count=$(command ls $pkgdir | wc -l)
+        echo
+        echo "$(date) - Unpacked for importing:"
+        command ls -l
+        echo
 
-    if [ "$count" -gt 0 ]; then
-        buendia-led red on 4 8 10 || true
-        s=s; [ "$count" == 1 ] && s=
-        mv $pkgdir/* /usr/share/buendia/packages/
-        echo "Imported $count package$s."
-
-        # Regenerate indexes.
-        buendia-led red on 4 4 60 || true
-        buendia-pkgserver-index-debs || true
-        buendia-pkgserver-index-apks || true
-        chmod -R a+rX /usr/share/buendia/packages
-    fi
-
-    # Look for site settings files.
-    for file in $exdir/[0-9][0-9]-*; do
-        if [ -f "$file" ]; then
-            echo "Installing settings file: $file..."
-            buendia-led red on 4 8 10 || true
-            base="$(basename "$file")"
-            target=/usr/share/buendia/site/${base#projectbuendia-}
-            cp "$file" "$target"
-            chmod 644 $target
-            echo "Installed as $target."
-            settings_changed=1
+        # Move packages into the repo.
+        debs=(*.deb)
+        if [ -f "${debs[0]}" ]; then
+            cp *.deb $pkgdir || true
         fi
-    done
+        apks=(*.apk)
+        if [ -f "${apks[0]}" ]; then
+            cp *.apk $pkgdir || true
+        fi
+        let count=${#debs}+${#apks}
 
-    if [ -n "$settings_changed" ]; then
-        echo "Settings changed; reconfiguring."
-        buendia-led red on 4 4 10 || true
-        buendia-reconfigure
-    fi
+        if [ "$count" -gt 0 ]; then
+            buendia-led red on 4 8 10 || true
+            s=s; [ "$count" == 1 ] && s=
+            mv $pkgdir/* /usr/share/buendia/packages/
+            echo "Imported $count package$s."
 
-    # Look for shell commands.
-    if [ -f $exdir/commands.sh ]; then
-        echo "Executing shell script..."
-        buendia-led red on 4 4 10 || true
-        touch $exdir/commands.in
-        cd $source
-        bash -x $exdir/commands.sh <$exdir/commands.in >>commands.log 2>&1 || true
-    fi
+            # Regenerate indexes.
+            buendia-led red on 4 4 60 || true
+            buendia-pkgserver-index-debs || true
+            buendia-pkgserver-index-apks || true
+            chmod -R a+rX /usr/share/buendia/packages
+        fi
 
-    # Mark installed packages done.
-    for file in $installed; do
-        mv $file "$(dirname "$file")/installed-$(basename "$file")"
-    done
+        # Copy over site settings files.
+        for file in [0-9][0-9]-*; do
+            if [ -f "$file" ]; then
+                buendia-led red on 4 8 10 || true
+                target=/usr/share/buendia/site/"$file"
+                cp "$file" "$target"
+                echo "Installed $target."
+                settings_changed=1
+            fi
+        done
+
+        # Mark installed bundles done now.  If reconfiguration scripts or
+        # shell commands fail below, we still want to mark the bundles done,
+        # to avoid repeatedly executing a broken script.
+        for file in "${installed[@]}"; do
+i           mv "$file" "$(adjust_filename "$file")"
+        done
+
+        cd "$source"
+
+        # Now apply new settings.
+        if [ -n "$settings_changed" ]; then
+            echo "Settings changed.  Files:"
+            ls -l /usr/share/buendia/site
+            echo "Applying new settings:"
+            buendia-settings
+            buendia-led red on 4 4 10 || true
+            buendia-reconfigure
+        fi
+
+        cd "$exdir"
+
+        # Look for shell commands.
+        if [ -f commands.sh ]; then
+            echo "Executing shell script:"
+            buendia-led red on 4 4 10 || true
+            bash -x commands.sh || true
+        fi
+    ) 2>&1 | tee -a buendia-import.log
 else
-    echo "No files imported."
+    echo "No bundles found."
 fi
 
