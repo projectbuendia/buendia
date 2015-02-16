@@ -10,7 +10,7 @@ MONITORING_LIMITS='
 300000 /var/cache
 
 50000 /var/backups/buendia/packages
-50000 /var/backups/buendia/2*
+50000 /var/backups/buendia/backup*
 100000 /var/backups/buendia
 
 100000 /usr/share/buendia/packages
