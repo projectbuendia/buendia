@@ -25,54 +25,61 @@ case "$UPDATE_AUTOUPDATE" in
     *) echo "UPDATE_AUTOUPDATE is currently enabled." ;;
 esac
 
-packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
-echo "Keeping updated: $packages"
+packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/* | sort))
+echo -e "Keeping updated:\n    $packages" | fmt -w 79 -c -t
 
 if [ -n "$all" ]; then
-    echo -e '\n---- buendia-warmup'
-    buendia-last buendia-warmup 2>&1
+    (
+        echo -e '\n---- buendia-warmup'
+        buendia-last buendia-warmup
 
-    echo -e '\n---- free'
-    free 2>&1
+        echo -e '\n---- free'
+        free
 
-    echo -e '\n---- df /'
-    df / 2>&1
+        # TODO: execute wpa_cli status in Yocto
 
-    echo -e '\n---- du /var/log'
-    du /var/log 2>&1
+        echo -e '\n---- df /'  # TODO: execute in Yocto
+        df /
 
-    echo -e '\n---- ifconfig wlan0'
-    ifconfig wlan0 2>&1
+        echo -e '\n---- du /var/log'
+        du /var/log
 
-    echo -e '\n---- netstat -ln'
-    netstat -ln 2>&1
+        echo -e '\n---- ifconfig wlan0'
+        ifconfig wlan0
 
-    echo -e '\n---- buendia-mysql-watchdog'
-    buendia-last buendia-mysql-watchdog 2>&1
+        echo -e '\n---- ls -l /usr/share/buendia/site'
+        ls -l /usr/share/buendia/site
 
-    echo -e '\n---- buendia-tomcat7-watchdog'
-    buendia-last buendia-tomcat7-watchdog 2>&1
+        echo -e '\n---- netstat -ln'
+        netstat -ln
 
-    echo -e '\n---- buendia-apply-limits'
-    buendia-last buendia-apply-limits 2>&1
+        echo -e '\n---- buendia-mysql-watchdog'
+        buendia-last buendia-mysql-watchdog
 
-    echo -e '\n---- buendia-backup'
-    buendia-last buendia-backup 2>&1
+        echo -e '\n---- buendia-tomcat7-watchdog'
+        buendia-last buendia-tomcat7-watchdog
 
-    echo -e '\n---- buendia-pkgserver-import'
-    buendia-last buendia-pkgserver-import 2>&1
+        echo -e '\n---- buendia-apply-limits'
+        buendia-last buendia-apply-limits
 
-    echo -e '\n---- buendia-autoupdate'
-    buendia-last buendia-autoupdate 2>&1
+        echo -e '\n---- buendia-backup'
+        buendia-last buendia-backup
 
-    echo -e '\n---- rc (last boot messages)'
-    buendia-last rc 2>&1
+        echo -e '\n---- buendia-pkgserver-import'
+        buendia-last buendia-pkgserver-import
 
-    echo -e "\n---- ps (everything)"
-    ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem 2>&1
+        echo -e '\n---- buendia-autoupdate'
+        buendia-last buendia-autoupdate
 
-    procs='buendia java tomcat mysql nginx ntpd sshd dnsmasq wpa_cli wpa_supplicant udhcpc hostapd'
-    echo -e "\n---- ps ($(echo $procs | sed -e 's/ /, /g'))"
-    ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem | grep -F "$(echo $procs | tr ' ' '\n')" 2>&1
+        echo -e '\n---- rc (last boot messages)'
+        buendia-last rc
+
+        echo -e "\n---- ps (everything)"
+        ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem
+
+        procs='buendia java tomcat mysql nginx ntpd sshd dnsmasq wpa_cli wpa_supplicant udhcpc hostapd'
+        echo -e "\n---- ps ($(echo $procs | sed -e 's/ /, /g'))"
+        ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem | grep -F "$(echo $procs | tr ' ' '\n')"
+    ) 2>&1
 fi
 
