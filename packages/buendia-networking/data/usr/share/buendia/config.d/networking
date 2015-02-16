@@ -34,7 +34,7 @@ if [ "$1" != "-f" ]; then
 fi
 
 # In case anything goes wrong, don't leave behind an indicator of success.
-rm $run_settings
+rm -f $run_settings
 
 # Apply the settings to the Debian network interface configuration.
 unindent <<< "
@@ -119,4 +119,4 @@ if $(bool $NETWORKING_DHCP_DNS_SERVER); then
 fi
 
 # Record the fact that the settings that were successfully configured.
-mv $tmp_settings $run_settings
+mv $tmp_settings $run_settings || true
