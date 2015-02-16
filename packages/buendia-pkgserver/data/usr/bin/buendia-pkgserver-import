@@ -111,24 +111,31 @@ if [ -n "$unpacked" ]; then
         debs=(*.deb)
         if [ -f "${debs[0]}" ]; then
             cp *.deb $pkgdir || true
+        else
+            debs=()
         fi
         apks=(*.apk)
         if [ -f "${apks[0]}" ]; then
             cp *.apk $pkgdir || true
+        else
+            apks=()
         fi
         let count=${#debs}+${#apks}
 
         if [ "$count" -gt 0 ]; then
             buendia-led red on 4 8 10 || true
             s=s; [ "$count" == 1 ] && s=
-            mv $pkgdir/* /usr/share/buendia/packages/
-            echo "Imported $count package$s."
+            if mv $pkgdir/* /usr/share/buendia/packages; then
+                echo "Imported $count package$s."
+            else
+                echo "Error trying to import $count package$s; continuing."
+            fi
 
             # Regenerate indexes.
             buendia-led red on 4 4 60 || true
             buendia-pkgserver-index-debs || true
             buendia-pkgserver-index-apks || true
-            chmod -R a+rX /usr/share/buendia/packages
+            chmod -R a+rX /usr/share/buendia/packages || true
         fi
 
         # Copy over site settings files.
@@ -136,8 +143,11 @@ if [ -n "$unpacked" ]; then
             if [ -f "$file" ]; then
                 buendia-led red on 4 8 10 || true
                 target=/usr/share/buendia/site/"$file"
-                cp "$file" "$target"
-                echo "Installed $target."
+                if cp "$file" "$target"; then
+                    echo "Installed $target."
+                else
+                    echo "Error trying to copy file to $target; continuing."
+                fi
                 settings_changed=1
             fi
         done
@@ -146,7 +156,7 @@ if [ -n "$unpacked" ]; then
         # shell commands fail below, we still want to mark the bundles done,
         # to avoid repeatedly executing a broken script.
         for file in "${installed[@]}"; do
-i           mv "$file" "$(adjust_filename "$file")"
+            mv "$file" "$(adjust_filename "$file")" || true
         done
 
         cd "$source"
@@ -156,9 +166,9 @@ i           mv "$file" "$(adjust_filename "$file")"
             echo "Settings changed.  Files:"
             ls -l /usr/share/buendia/site
             echo "Applying new settings:"
-            buendia-settings
+            buendia-settings || true
             buendia-led red on 4 4 10 || true
-            buendia-reconfigure
+            buendia-reconfigure || true
         fi
 
         cd "$exdir"
