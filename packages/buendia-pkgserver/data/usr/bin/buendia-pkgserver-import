@@ -67,7 +67,8 @@ if [ -b "$source" ]; then
     mntdir=/mnt/$name.$$
     mkdir -p $mntdir
     mount $source $mntdir
-    trap 'rm -rf $exdir $pkgdir; umount $mntdir && rm -rf $mntdir; buendia-led red off || true' EXIT
+    echo "Mounted $source at $mntdir."
+    trap 'rm -rf $exdir $pkgdir; cd /; fuser -m $mntdir; umount $mntdir && rm -rf $mntdir; buendia-led red off || true' EXIT
     source="$mntdir"
 
 elif [ -d "$source" ]; then
