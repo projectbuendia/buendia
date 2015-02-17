@@ -13,6 +13,7 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
+import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
         HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
         HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_TEXT, "text");
         HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_NUMERIC, "numeric");
+        HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_DATE, "date");
+        HL7_TO_JSON_TYPE_MAP.put(HL7Constants.HL7_DATETIME, "datetime");
         HL7_TO_JSON_TYPE_MAP.put("ZZ", "none");
     }
         
@@ -58,12 +61,12 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     }
     
     @Override
-    protected Concept retrieveImpl(String uuid, RequestContext context) {
+    protected Concept retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return conceptService.getConceptByUuid(uuid);
     }
     
     @Override
-    protected Iterable<Concept> searchImpl(RequestContext context) {
+    protected Iterable<Concept> searchImpl(RequestContext context, long snapshotTime) {
         // No querying as yet.
         // Retrieves all the concepts required for the client. Initially, this is
         // just the concepts within all the charts served by ChartResource.
@@ -85,7 +88,8 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     }
     
     @Override
-    protected void populateJsonProperties(Concept concept, RequestContext context, SimpleObject json) {
+    protected void populateJsonProperties(Concept concept, RequestContext context, SimpleObject json,
+                                          long snapshotTime) {
        // TODO: Cache this in the request context?
        List<Locale> locales = getLocalesForRequest(context); 
        String jsonType = HL7_TO_JSON_TYPE_MAP.get(concept.getDatatype().getHl7Abbreviation());

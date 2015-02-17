@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Apply settings
+        buendia-reconfigure server
+
+        # Make the warmup script run once on startup
+        update-rc.d buendia-server defaults
+
+        # Restart Tomcat (necessary even if no changes!) and warm it up now
+        service tomcat7 stop
+        service tomcat7 start
+        service buendia-server start
+        ;;
+
+    *) exit 1
+esac

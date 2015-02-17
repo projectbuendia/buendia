@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Depends: buendia-monitoring, cron-daemon, openjdk-7-jdk, sysvinit-utils, tomcat7, tomcat7-admin
+Description: Tomcat 7 configured for Buendia
+Maintainer: projectbuendia.org

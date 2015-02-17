@@ -1,0 +1,1 @@
+KERNEL=="sd?1", SUBSYSTEMS=="usb", DRIVERS=="usb-storage", ACTION=="add", SYMLINK+="buendia_pkgserver_usb", RUN+="/usr/bin/buendia-pkgserver-import /dev/buendia_pkgserver_usb"

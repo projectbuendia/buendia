@@ -37,12 +37,12 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
     }
 
     @Override
-    public Form retrieveImpl(String uuid, RequestContext context) throws ResponseException {
+    public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) throws ResponseException {
         return formService.getFormByUuid(uuid);
     }
     
     @Override
-    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json) {
+    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.put(VERSION, form.getVersion());
         if (context.getRepresentation() != Representation.FULL) {
             return;
@@ -73,11 +73,11 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
     }
     
     @Override
-    protected Iterable<Form> searchImpl(RequestContext context) {
+    protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
         return getCharts(formService);
     }
     
-    static List<Form> getCharts(FormService formService) {
+    public static List<Form> getCharts(FormService formService) {
         List<Form> charts = new ArrayList<>();
         String[] uuids = Context.getAdministrationService()
                 .getGlobalProperty(GlobalProperties.CHART_UUIDS)

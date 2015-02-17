@@ -1,0 +1,178 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+export MYSQL_USER=$OPENMRS_MYSQL_USER
+export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
+root=$1
+limit=$2
+
+if [ "$root" = "" -o "$1" = "-h" ]; then
+    echo "Usage: $0 <backup-root-path> [<kilobytes>]"
+    echo "       $0 <block-device> [<percentage>]"
+    echo
+    echo "Backs up the current OpenMRS database, Buendia configuration,"
+    echo "and installed Buendia packages under the specified path, capturing"
+    echo "at most one backup per day and replacing any backup made earlier"
+    echo "that same day.  If a block device is given, mounts the block device"
+    echo "and backs up to the 'buendia' directory on the device."
+    echo
+    echo "If the second argument is given, removes older backups in the"
+    echo "specified backup directory as necessary to keep its total space"
+    echo "usage less than the specified amount; half the space is reserved"
+    echo "for database dumps and half for software packages.  For devices,"
+    echo "this size is specified as a percentage of the filesystem size."
+    exit 1
+fi
+
+# Keep one backup per day.  (If you need to maintain a backup that is
+# much less than a day old, run buendia-backup multiple times per day.)
+backup_id=$(date +'%Y-%m-%d')
+tmp="/tmp/buendia-backup.$$"
+
+
+# Mount the given device, if necessary.
+if [ -b "$root" ]; then
+    echo "$root is a block device; mounting..."
+    mnt_dir="/mnt/$name.$$.$(basename $root)"
+    mkdir -p "$mnt_dir"
+    mount "$root" "$mnt_dir"
+
+    root=$mnt_dir
+    final_dir="$root/backup.$backup_id"
+    new_dir="$root/new-$$.$backup_id"
+    old_dir="$root/old-$$.$backup_id"
+    final_deb="$root/packages"
+    new_deb="$new_dir/packages"
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; cd /; fuser -m $mnt_dir; umount $mnt_dir && rm -rf $mnt_dir' EXIT
+
+    if [ -n "$limit" ]; then
+        percent=limit
+        size=$(df -P -k "$root" | grep -v ^File | grep -o ' [0-9]\+' | head -1)
+        limit=$(($size*limit/100))
+        echo "Limiting usage to $limit kb (${percent}% of $size-kb filesystem)."
+    fi
+
+elif [ -d "$root" ]; then
+    final_dir="$root/backup.$backup_id"
+    new_dir="$root/new-$$.$backup_id"
+    old_dir="$root/old-$$.$backup_id"
+    final_deb="$root/packages"
+    new_deb="$new_dir/packages"
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"' EXIT
+
+else
+    echo "$root is neither a block device nor a directory."
+    exit 1
+fi
+
+# Prepare some empty temporary directories.
+rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"
+mkdir -p "$tmp" "$new_dir" "$old_dir" "$new_deb"
+
+# First we'll write everything to $new_dir, then move it to $final_dir.  The
+# move is atomic because $new_dir is in the same filesystem as $root.
+echo "Backing up to $final_dir..."
+
+# Mark the new backup subdirectory as a directory to keep.  Since
+# buendia-limit removes the oldest files first, the presence of this file
+# means that none of the contents have been removed by buendia-limit.
+touch "$new_dir/keep"
+sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
+
+# ---- Back up the Buendia configuration.
+
+echo "Saving Buendia configuration..."
+tar cfz "$new_dir/buendia.tar.gz" \
+    /usr/share/buendia \
+    --exclude /usr/share/buendia/config.d \
+    --exclude /usr/share/buendia/db \
+    --exclude /usr/share/buendia/diversions \
+    --exclude /usr/share/buendia/openmrs/modules \
+    --exclude /usr/share/buendia/packages
+ls -l "$new_dir/buendia.tar.gz"
+
+# ---- Back up the MySQL database.
+
+echo "Dumping MySQL database..."
+if ! buendia-mysql-dump openmrs "$new_dir/openmrs.zip" >"$tmp/out" 2>&1; then
+    cat "$tmp/out"
+    echo "buendia-mysql-dump failed!"
+    exit 1
+fi
+ls -l "$new_dir/openmrs.zip"
+
+# ---- Back up the package list and non-base packages.
+
+# Examine what packages are installed.
+base_list=/etc/base.packages.list
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > "$new_dir/all.list"
+if [ -f "$base_list" ]; then
+    # Note the new packages that have been added beyond the base package list.
+    comm -2 -3 "$new_dir/all.list" "$base_list" | sort > "$new_dir/buendia.list"
+else
+    # Base package list missing?  Just keep all the "buendia-*" packages.
+    grep '^buendia-' "$new_dir/all.list" > "$new_dir/buendia.list"
+fi
+packages=($(cat "$new_dir/buendia.list"))  # safe, as each line has no spaces
+s=s; [ $packages = 1 ] && s=
+echo Backing up ${#packages} package$s...
+
+# Copying may take some time, so first copy to $new_deb, a temporary directory
+# that's under $new_dir, in the same filesystem as $root.
+for package in "${packages[@]}"; do
+    prefix=$(echo "$package" | tr = _ | sed -e 's/:/%3a/g')
+    file=($(echo /var/cache/apt/archives/$prefix*.deb))
+    if [ -f "$file" ]; then
+        final_file="$final_deb/$(basename "$file")"
+        if [ -f "$file" -a -f "$final_file" ]; then
+            if [ $(stat -c %s "$file") = $(stat -c %s "$final_file") ]; then
+                continue  # same name, same size, assume identical
+            fi
+        fi
+        cp -p "$file" "$new_deb" || true
+    fi
+done
+
+# ---- Commit the backup by moving the directory atomically to its final place.
+
+# First make sure there is nothing in the way.
+if [ -e "$final_dir" ]; then
+    rm -rf "$old_dir"
+    mv "$final_dir" "$old_dir"
+fi
+
+# Then make sure everything is written to the target filesystem.
+sync
+
+# Now atomically commit the backup.
+mv "$new_dir" "$final_dir"
+echo Done.
+
+# ---- Sweep all the packages in completed backups into a common directory.
+
+# All the backups at the same backup root share one directory for packages,
+# since packages can be large and new ones are infrequently added.
+# This sweeping process is safely interruptible because the moving of each
+# individual file move is atomic, and if packages are left behind because
+# the sweep is interrupted, they will get picked up on the next sweep.
+mv "$root"/backup.*/packages/* "$final_deb" 2>/dev/null
+
+# Remove all the empty package directories.
+rmdir "$root"/backup.*/packages 2>/dev/null
+
+# ---- Limit the total size of backups.
+
+half_limit=$(($limit / 2))
+if [[ $half_limit > 0 ]]; then
+    buendia-limit $half_limit "$root"/packages
+    buendia-limit $half_limit "$root"/backup.*
+    buendia-limit $limit "$root"/packages
+fi
+
+# ---- Fully remove any backups that were partially removed by buendia-limit.
+
+for dir in "$root"/backup.*; do
+    if [ -d "$dir" -a ! -e "$dir"/keep ]; then
+        rm -rf "$dir"
+    fi
+done

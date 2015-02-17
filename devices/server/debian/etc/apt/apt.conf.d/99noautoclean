@@ -1,0 +1,9 @@
+# Configure apt to keep cached .deb files indefinitely instead of deleting
+# them when they get old, so that we can include all the necessary .deb files
+# when making backups of the system.  We still want to avoid running out of
+# disk space, though, so we set a size limit on the cache.  The limit can be
+# modest because we'll delete the .deb files for the base installation and
+#  and only keep .deb files for packages added after the base installation.
+APT::Archives::MaxAge "0";
+APT::Archives::MinAge "0";
+APT::Archives::MaxSize "100";

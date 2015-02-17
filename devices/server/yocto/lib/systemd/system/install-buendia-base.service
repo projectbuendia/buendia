@@ -1,0 +1,13 @@
+[Unit]
+Description=Buendia base install service
+Requires=dev-disk-by\x2dpartlabel-home.device dev-disk-by\x2dpartlabel-update.device
+After=dev-disk-by\x2dpartlabel-home.device dev-disk-by\x2dpartlabel-update.device
+
+[Service]
+Type=forking
+ExecStart=/bin/sh -c '/bin/sh -c "/usr/local/bin/install-buendia-base || (echo install-buendia-base did not finish: rebooting in 5 minutes.; sleep 300; reboot)" 2>&1 | /usr/bin/tee -a /var/log/install-buendia-base.log'
+TimeoutStartSec=1800
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

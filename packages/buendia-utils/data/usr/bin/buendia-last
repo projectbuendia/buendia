@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+name=$1
+
+if [ "$1" = "-h" -o -z "$1" ]; then
+    echo "Usage: $0 <log-name>"
+    echo
+    echo "Takes the name of a log file in the /var/log/buendia directory"
+    echo '(which is usually a command name like "buendia-warmup" or "ps")'
+    echo "and prints the part of the log for the last run of the command"
+    echo '(from the last line that contains the string " (start" onwards).'
+    exit 1
+fi
+
+candidate1="/var/log/buendia/${name%.log}.log"
+candidate2="/var/log/buendia/buendia-${name%.log}.log"
+if [ -f "$candidate1" ]; then
+    file="$candidate1"
+else
+    if [ -f "$candidate2" ]; then
+        file="$candidate2"
+    else
+        if [ -f "$name" ]; then
+            file="$name"
+        else
+            echo "$candidate1 not found."
+            exit 1
+        fi
+    fi
+fi
+
+echo $file:
+tac "$file" | sed -ne '1,/> (start/p' | tac

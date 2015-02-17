@@ -1,0 +1,12 @@
+{
+    "patient_id": "KH.@patient_id@",
+    "given_name": "@firstname@",
+    "family_name": "LastName",
+    "assigned_location": "Confirmed 1",
+    "age": "26Y",
+    "gender": "F",
+    "admitted_days_ago": 8,
+    "encounters": [
+        @encounter_template@
+    ]
+}

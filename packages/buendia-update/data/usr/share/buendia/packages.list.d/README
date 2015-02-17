@@ -1,0 +1,4 @@
+# Files in this directory list the names of packages that are to be kept
+# updated to the latest version.  Set UPDATE_AUTOUPDATE=1 to perform these
+# updates automatically or run buendia-update to perform an update.
+# Blank lines and comments (everything after "#" on a line) are ignored.

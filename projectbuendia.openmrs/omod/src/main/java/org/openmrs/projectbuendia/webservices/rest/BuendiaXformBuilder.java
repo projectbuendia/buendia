@@ -71,11 +71,11 @@ import org.xmlpull.v1.XmlPullParserException;
  * and the constants are imported from XformBuilder.
  */
 public final class BuendiaXformBuilder {
-    private static String ATTRIBUTE_PRELOAD = "jr:preload";
+    private static final String ATTRIBUTE_PRELOAD = "jr:preload";
     
-    private static String ATTRIBUTE_PRELOAD_PARAMS = "jr:preloadParams";
+    private static final String ATTRIBUTE_PRELOAD_PARAMS = "jr:preloadParams";
     
-    private static String PRELOAD_PATIENT = "patient";
+    private static final String PRELOAD_PATIENT = "patient";
     
     /**
      * Sets the value of a child node in a parent node.
@@ -87,9 +87,9 @@ public final class BuendiaXformBuilder {
      */
     private static boolean setNodeValue(Element parentNode, String name, String value) {
         Element node = getElement(parentNode, name);
-        if (node == null)
+        if (node == null) {
             return false;
-        
+        }
         setNodeValue(node, value);
         return true;
     }
@@ -273,7 +273,7 @@ public final class BuendiaXformBuilder {
         bindNode.setName(NODE_BIND);
         String parentName = ((Element) node.getParent()).getName();
         String binding = node.getName();
-        
+
         if (bindings.containsKey(binding)) {
             binding = parentName + "_" + binding;            
             problemListItems.put(binding, parentName);

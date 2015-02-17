@@ -1,0 +1,61 @@
+#!/usr/bin/python
+
+import sys, os, subprocess, json
+
+def get_setting(name, default=None):
+    """Get the value for a Buendia setting from /usr/share/buendia/site."""
+    try:
+        value = subprocess.check_output("""
+            /bin/bash -c 'source /usr/share/buendia/utils.sh; echo -n "$%s"'
+        """ % name, shell=True)
+    except subprocess.CalledProcessError:
+        return default
+    else:
+        return value
+
+def create_index(package_directory, base_url):
+    """Creates the indexes of the .apk files in the given package directory.
+
+    Valid .apk files must be named <name>-<version>.apk, where <version>
+    is a sequence of one or more integers joined with periods.  Other files
+    are ignored.  The result is one .json file for each <name>, containing
+    an array of dictionaries, one per <version>, each with a 'version' key
+    giving the version and a 'url' key giving the URL where the file can be
+    fetched.  The items in the array are guaranteed to be arranged in order
+    of increasing version number.
+    """
+    packages = {}
+    for filename in os.listdir(package_directory):
+        name, ext = os.path.splitext(filename)
+        if ext == '.apk':
+            # Version comes after the last '-'
+            module, version = name.rsplit('-', 1)
+            if module and version:
+                try:
+                    parts = map(int, version.split('.'))
+                except ValueError:
+                    continue
+                packages.setdefault(module, []).append(
+                    {"version": version, "url": "%s/%s" % (base_url, filename)})
+
+    # Write each package index to their respective files
+    for module in packages:
+        # Order the packages on their version label
+        package_list = sorted(
+            packages[module], key=lambda x: map(int, x['version'].split('.')))
+        # Write the index file
+        with open('%s/%s.json' % (package_directory, module), 'w') as f:
+            f.write(json.dumps(package_list))
+        count = len(package_list)
+        sys.stderr.write('%s: indexed %d .apk file%s.\n' % (
+            module, count, count != 1 and 's' or ''))
+
+if __name__ == '__main__':
+    # Retrieve the package base url from the settings file
+    base_url = get_setting('PKGSERVER_URL', '').strip().rstrip('/')
+    if not base_url:
+        print("Requires $PKGSERVER_URL to be set to the base url.")
+        exit(1)
+    # Create the index of the default location for buendia packages
+    create_index('/usr/share/buendia/packages', base_url)
+

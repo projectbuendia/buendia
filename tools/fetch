@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+url=$1
+hash=$2
+dest=$3
+
+if [ "$hash" = "" ]; then
+    echo "Usage: $0 <url> <expected-md5-hash> <destination-path>"
+    echo
+    echo "Fetches a file from a URL to a local path.  Checks that the file"
+    echo "has the given MD5 hash; also uses the MD5 hash to cache the file"
+    echo "in /tmp/buendia-fetched and short-circuit the fetch if possible."
+fi
+
+md5=$(which md5 || which md5sum)
+cached=/tmp/buendia-fetched/$hash
+mkdir -p $(dirname $cached) $(dirname $dest)
+
+if [ -f $cached ]; then
+    echo "Copying cached file to $dest (preserving original timestamp)."
+    # We want to preserve the original timestamp here so that when we
+    # make a package twice using the same downloaded file, the resulting
+    # data.tar file is bit-for-bit identical.
+    cp -p $cached $dest
+else
+    echo Fetching $url...
+    if ! curl -o "$dest" -L "$url"; then
+        echo "Fetch failed."
+        exit 1
+    fi
+
+    fetched_hash=$($md5 $dest | grep -o '[0-9a-f]\{32\}')
+    if [ $fetched_hash != $hash ]; then
+        echo "Fetched file does not have the expected hash!"
+        exit 1
+    fi
+
+    # Cache the file, preserving its timestamp.
+    cp -p $dest $cached
+fi

@@ -1,0 +1,142 @@
+{
+    "users": [
+        {
+            "username": "guest",
+            "given_name": "Guest",
+            "family_name": "User"
+        },
+        {
+            "username": "jay",
+            "given_name": "Jay",
+            "family_name": "Achar"
+        },
+        {
+            "username": "simon",
+            "given_name": "Simon",
+            "family_name": "Collins"
+        },
+        {
+            "username": "jane",
+            "given_name": "Jane",
+            "family_name": "Greig"
+        },
+        {
+            "username": "ivan",
+            "given_name": "Ivan",
+            "family_name": "Gayton"
+        }
+    ],
+    "patients": [
+        {
+    "patient_id": "KH.0",
+    "given_name": "@firstname@",
+    "family_name": "LastName",
+    "assigned_location": "Confirmed 1",
+    "age": "26Y",
+    "gender": "F",
+    "admitted_days_ago": 8,
+    "encounters": [
+        {
+"location": "Triage",
+"days_ago": 8,
+"time": "15:00",
+"provider": "Guest User",
+"observations": [
+{
+"concept": "Temperature °C",
+"value": 37.4
+},
+{
+"concept": "Pregnant",
+"value": "Yes"
+},
+{
+"concept": "Condition",
+"value": "Good"
+},
+{
+"concept": "Best Conscious State",
+"value": "Alert"
+},
+{
+"concept": "Mobility",
+"value": "Walking"
+},
+{
+"concept": "Tolerating Diet",
+"value": "Food"
+},
+{
+"concept": "Hydration",
+"value": "Well hydrated"
+},
+{
+"concept": "IV fitted"
+},
+{
+"concept": "Severe Weakness"
+},
+{
+"concept": "Nausea"
+},
+{
+"concept": "Vomiting",
+"value": "None"
+},
+{
+"concept": "Diarrhoea",
+"value": "None"
+},
+{
+"concept": "Cough"
+},
+{
+"concept": "Dyspnoea"
+},
+{
+"concept": "Hiccups"
+},
+{
+"concept": "Pain Assessment",
+"value": "None"
+},
+{
+"concept": "Headache"
+},
+{
+"concept": "Chest"
+},
+{
+"concept": "Abdominal"
+},
+{
+"concept": "Back"
+},
+{
+"concept": "Arthralgia/Myalgia"
+},
+{
+"concept": "Bleeding"
+},
+{
+"concept": "Oral Bleeding"
+},
+{
+"concept": "Haemoptysis"
+},
+{
+"concept": "Haematemesis"
+},
+{
+"concept": "PR Bleeding"
+},
+{
+"concept": "Haematuria"
+}
+]
+}
+
+    ]
+}
+    ]
+}

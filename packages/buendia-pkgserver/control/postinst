@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Make all subdirectories executable and readable
+        chmod -R +rX /usr/share/buendia/packages
+
+        # Disable the default nginx website
+        rm -f /etc/nginx/sites-enabled/default
+
+        # Enable the pkgserver website
+        ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled
+
+        # Bring services back up
+        service nginx start
+        ;;
+
+    *) exit 1
+esac

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        service cron start
+        ;;
+
+    *) exit 1
+esac

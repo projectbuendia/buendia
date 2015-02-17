@@ -62,7 +62,7 @@ connect_ethernet
 $scp $warfile $target:/debian/var/lib/tomcat7/webapps/openmrs.war
 install_runtime_properties "$openmrs_user_password"
 create_openmrs_user "$root_password" "$openmrs_user_password"
-chmod 755 ../../scripts/openmrs_dump
-$scp -p ../../scripts/openmrs_dump $target:/debian/usr/local/bin
+chmod 755 ../../tools/openmrs_dump
+$scp -p ../../tools/openmrs_dump $target:/debian/usr/local/bin
 chmod 755 debian/openmrs_backup
 $scp -p debian/openmrs_backup $target:/debian/usr/local/bin

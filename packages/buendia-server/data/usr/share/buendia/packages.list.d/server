@@ -1,0 +1,4 @@
+# db-migrate should be kept up to date because it may provide an upgrade path
+# that previously didn't exist, enabling buendia-db to upgrade and thus
+# enabling buendia-server to upgrade as well.
+buendia-db-migrate

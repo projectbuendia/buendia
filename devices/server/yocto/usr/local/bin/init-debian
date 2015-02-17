@@ -1,0 +1,25 @@
+#!/bin/ash
+
+# This script performs initializations on the Debian chroot area that need
+# to happen once on each Yocto boot rather than just once on initial system
+# installation.  This script should only be executed once on system startup.
+
+set -e
+
+# If Debian has not been properly installed yet, abort.
+if [ ! -e /debian/etc/debian-installed ]; then
+    echo "Debian is not installed yet."
+    exit 1
+fi
+
+# Make devices and other special filesystems available in Debian.
+if [ ! -e /debian/dev/null ]; then
+    mount --bind /dev /debian/dev
+    mount --bind /dev/pts /debian/dev/pts
+fi
+if [ ! -e /debian/proc/1 ]; then
+    mount --bind /proc /debian/proc
+fi
+if [ ! -e /debian/sys/fs ]; then
+    mount --bind /sys /debian/sys
+fi

@@ -7,14 +7,10 @@ import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.PatientIdentifierType;
-import org.openmrs.PatientProgram;
-import org.openmrs.PatientState;
 import org.openmrs.PersonName;
-import org.openmrs.ProgramWorkflowState;
 import org.openmrs.User;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.PatientService;
-import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -28,19 +24,15 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.DateTimeUtils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Resource for xform templates (i.e. forms without data).
@@ -66,17 +58,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
-    private static final String STATUS = "status";
     private static final String ADMISSION_TIMESTAMP = "admission_timestamp";
 
-    @Deprecated
-    private static final String AGE = "age";
-    @Deprecated
-    private static final String AGE_TYPE = "type";
-    @Deprecated
-    private static final String YEARS = "years";
-    @Deprecated
-    private static final String MONTHS = "months";
     @Deprecated
     private static final String ZONE = "zone";
     @Deprecated
@@ -92,6 +75,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     private final PatientService patientService;
+    private final ObservationsHandler observationsHandler = new ObservationsHandler();
 
     public PatientResource() {
         patientService = Context.getPatientService();
@@ -101,7 +85,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner(context);
+            SimpleObject result = getAllInner();
             logger.reply(context, this, "getAll", result);
             return result;
         } catch (Exception e) {
@@ -110,7 +94,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private SimpleObject getAllInner(RequestContext requestContext) throws ResponseException {
+    private SimpleObject getAllInner() throws ResponseException {
         List<Patient> patients = patientService.getAllPatients();
         return getSimpleObjectWithResults(patients);
     }
@@ -121,21 +105,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 "Gender should be specified as \"F\" or \"M\"");
     }
 
-    /** Parses a date in YYYY-MM-DD format. */
-    private static Date parseDate(String text, String fieldName) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        try {
-            return dateFormat.parse(text);
-        } catch (ParseException e) {
-            throw new InvalidObjectDataException(String.format(
-                    "The %s field should be in YYYY-MM-DD format", fieldName));
-        }
-    }
-
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", json);
-            Object result = createInner(json, context);
+            Object result = createInner(json);
             logger.reply(context, this, "create", result);
             return result;
         } catch (Exception e) {
@@ -144,7 +117,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private Object createInner(SimpleObject json, RequestContext requestContext) throws ResponseException {
+    private Object createInner(SimpleObject json) throws ResponseException {
         // We really want this to use XForms, but lets have a simple default implementation for early testing
 
         if (!json.containsKey(ID)) {
@@ -154,7 +127,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         List<PatientIdentifierType> identifierTypes =
                 Arrays.asList(DbUtil.getMsfIdentifierType());
         List<Patient> existing = patientService.getPatients(
-            null, id, identifierTypes, true /* exact identifier match */);
+                null, id, identifierTypes, true /* exact identifier match */);
         if (!existing.isEmpty()) {
             Patient patient = existing.get(0);
             String given = patient.getGivenName();
@@ -170,25 +143,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         Patient patient = jsonToPatient(json);
         patientService.savePatient(patient);
 
-        // Status
-        if (json.containsKey(STATUS)) {
-            ProgramWorkflowState workflowState =
-                    DbUtil.getStateByKey((String) json.get(STATUS));
-            if (workflowState != null) {
-                statusChange(patient, workflowState);
-                patientService.savePatient(patient);
-            }
+        // Observation for first symptom date
+        if (observationsHandler.hasObservations(json)) {
+            observationsHandler.addObservations(json, patient, patient.getDateCreated(), "Initial triage",
+                    "ADULTINITIAL", LocationResource.TRIAGE_UUID);
         }
 
         return patientToJson(patient);
-    }
-
-    protected boolean isPatientIdInUse(String id) {
-        List<PatientIdentifierType> identifierTypes =
-            Arrays.asList(DbUtil.getMsfIdentifierType());
-        List<Patient> existing = Context.getPatientService().getPatients(
-            null, id, identifierTypes, true /* exact identifier match */);
-        return !existing.isEmpty();
     }
 
     protected static Patient jsonToPatient(SimpleObject json) {
@@ -202,7 +163,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         if (json.containsKey(BIRTHDATE)) {
             patient.setBirthdate(
-                parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
+                DateTimeUtils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
@@ -278,7 +239,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
-            Object result = retrieveInner(uuid, context);
+            Object result = retrieveInner(uuid);
             logger.reply(context, this, "retrieve", result);
             return result;
         } catch (Exception e) {
@@ -287,7 +248,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private Object retrieveInner(String uuid, RequestContext requestContext) throws ResponseException {
+    private Object retrieveInner(String uuid) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
         if (patient == null) {
             throw new ObjectNotFoundException();
@@ -353,7 +314,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     public Object update(String uuid, SimpleObject simpleObject, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + simpleObject);
-            Object result = updateInner(uuid, simpleObject, context);
+            Object result = updateInner(uuid, simpleObject);
             logger.reply(context, this, "update", result);
             return result;
         } catch (Exception e) {
@@ -373,7 +334,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
      *         but for now there may be partial updates
      * </ul>
      */
-    private Object updateInner(String uuid, SimpleObject simpleObject, RequestContext requestContext) throws ResponseException {
+    private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
         Patient patient = patientService.getPatientByUuid(uuid);
         if (patient == null) {
             throw new ObjectNotFoundException();
@@ -417,13 +378,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
-                    patient.setBirthdate(parseDate((String) entry.getValue(), BIRTHDATE));
+                    patient.setBirthdate(DateTimeUtils.parseDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
                 case GENDER:
                     patient.setGender(validateGender((String) entry.getValue()));
                     changedPatient = true;
                     break;
+
+                // ==== JSON keys that change data OTHER than patient attributes.
                 case ADMISSION_TIMESTAMP:
                     // This is really evil and maybe shouldn't even be done. Instead we should have an admission event.
                     // TODO(nfortescue): switch to an admission event
@@ -431,16 +394,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     if (seconds != null) {
                         patient.setDateCreated(new Date(seconds * 1000L));
                         changedPatient = true;
-                    }
-                    break;
-
-                // ==== JSON keys that change data OTHER than patient attributes.
-
-                case STATUS:
-                    ProgramWorkflowState workflowState =
-                        DbUtil.getStateByKey((String) entry.getValue());
-                    if (workflowState != null) {
-                        statusChange(patient, workflowState);
                     }
                     break;
 
@@ -466,66 +419,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private void statusChange(Patient patient, ProgramWorkflowState newWorkflowState) {
-        // OpenMRS has validators (see PatientProgramValidator) that check among other things that you can't
-        // have a patient twice on the same state on the same day.
-
-        // In general, it would be good enough to make all changes within 10 minutes count as edits (rather than
-        // changes). However, for demos, you will probably change the same status many times on the same day.
-        // So we will just go through and delete all changes with the same start date and status as the change
-        // we are trying to add. I will leave as an open question the merge duplicates question.
-        // TODO(nfortescue): decide on whether to merge changes similar in time.
-
-        ProgramWorkflowService workflowService = Context.getProgramWorkflowService();
-        PatientProgram patientProgram = DbUtil.getEbolaStatusPatientProgram(patient);
-        // If this method of set manipulation seems strange it is because hibernate is fussy about how you modify
-        // collections in hibernate created objects.
-        Set<PatientState> allStates = patientProgram.getStates();
-        HashSet<PatientState> toRemove = new HashSet<>();
-        Date ourDate = new Date();
-        // Compare day, month, year. This is dangerous without joda time, and when you think about timezones.
-        // TODO(nfortescue): make this safe.
-        Date ourJustDay = new Date(ourDate.getYear(), ourDate.getMonth(), ourDate.getDate());
-
-        for (PatientState oldState : allStates) {
-            if (newWorkflowState.equals(oldState.getState()) && ourJustDay.equals(oldState.getStartDate())) {
-                toRemove.add(oldState);
-                // we could break; here, but for extra safety make sure we check them all.
-            }
-        }
-
-        if (!toRemove.isEmpty()) {
-            for (PatientState bad : toRemove) {
-                allStates.remove(bad);
-            }
-        }
-        // If we don't save here we get optimistic locking failures from hibernate.
-        workflowService.savePatientProgram(patientProgram);
-        // Important to reuse date here over midnight.
-        patientProgram.transitionToState(newWorkflowState, ourDate);
-        workflowService.savePatientProgram(patientProgram);
-    }
-
-    /**
-     * Converts a date to a year with a fractional part, e.g. Jan 1, 1970
-     * becomes 1970.0; Jul 1, 1970 becomes approximately 1970.5.
-     */
-    // TODO(kpy): Remove this after client v0.2 is no longer in use.
-    private static double dateToFractionalYear(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        double daysInYear = calendar.getActualMaximum(Calendar.DAY_OF_YEAR);
-        return calendar.get(Calendar.YEAR) +
-            calendar.get(Calendar.DAY_OF_YEAR) / daysInYear;
-    }
-
-    /** Estimate the age of a person in years, given their birthdate. */
-    // TODO(kpy): Remove this after client v0.2 is no longer in use.
-    private static double birthDateToAge(Date birthDate) {
-        return dateToFractionalYear(new Date()) -
-            dateToFractionalYear(birthDate);
-    }
-
     protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -539,20 +432,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             jsonForm.add(GENDER, patient.getGender());
             if (patient.getBirthdate() != null) {
                 jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
-
-                // For backward compatibility.  Later clients ignore the "age"
-                // key and calculate the displayed age from the birthdate.
-                // TODO(kpy): Remove this after client v0.2 is no longer in use.
-                SimpleObject ageObject = new SimpleObject();
-                double age = birthDateToAge(patient.getBirthdate());
-                if (age < 1.0) {
-                    ageObject.add(MONTHS, (int) Math.floor(age * 12));
-                    ageObject.add(AGE_TYPE, MONTHS);
-                } else {
-                    ageObject.add(YEARS, (int) Math.floor(age));
-                    ageObject.add(AGE_TYPE, YEARS);
-                }
-                jsonForm.add(AGE, ageObject);
             }
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
@@ -604,11 +483,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
 
-            // TODO(kpy): Store the admission date/time in a patient attribute.
-            // Assuming that admission time is equal to database creation time
-            // prevents retroactive entry of existing patients or editing of
-            // incorrect admission times.
-            // NOTE(kpy): Client expects an integer value, not double.
+            // TODO(kpy): This value was a stopgap before we had a better way to store
+            // the admission date.  This JSON property is no longer used in the client;
+            // instead, the admission date is stored as an observation and returned by
+            // PatientEncountersResource.
             jsonForm.add(ADMISSION_TIMESTAMP,
                 patient.getDateCreated().getTime() / 1000);
         }

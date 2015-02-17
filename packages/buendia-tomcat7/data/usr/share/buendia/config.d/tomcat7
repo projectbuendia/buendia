@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+# Provide a randomly generated Tomcat admin password.
+generated=/usr/share/buendia/site/20-tomcat7
+if [ ! -e $generated ]; then
+    echo "TOMCAT7_ADMIN_PASSWORD=$(buendia-mkpass)" > $generated
+    . /usr/share/buendia/utils.sh  # reload settings
+fi
+
+# Apply the settings to the Tomcat configuration.
+unindent <<< "
+    <?xml version='1.0' encoding='utf-8'?>
+    <tomcat-users>
+        <user username='admin' password='$TOMCAT7_ADMIN_PASSWORD'
+            roles='manager-gui' />
+    </tomcat-users>
+" | create /usr/share/buendia/diversions/etc/tomcat7/tomcat-users.xml

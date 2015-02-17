@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    remove|purge|upgrade|disappear)
+        # Remove the unpacked openmrs.war deployment
+        rm -rf /var/lib/tomcat7/webapps/openmrs
+
+        # Remove our symlink
+        rm -f /usr/share/tomcat7/.OpenMRS
+
+        # Restore any previous .OpenMRS directory
+        if [ -e /usr/share/tomcat7/.OpenMRS.pre-buendia ]; then
+            mv /usr/share/tomcat7/.OpenMRS.pre-buendia /usr/share/tomcat7/.OpenMRS
+        fi
+
+        # Bring tomcat7 back up.
+        service_if_exists tomcat7 start
+        ;;
+
+    *) exit 1
+esac

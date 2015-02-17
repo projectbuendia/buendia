@@ -1,0 +1,37 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          buendia-utils
+# Required-Start:
+# Required-Stop:
+# Should-Start:      glibc
+# Default-Start:     S
+# Default-Stop:
+# Short-Description: Set LED flashing to indicate boot in progress
+# Description:       Set LED flashing to indicate boot in progress
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/bin
+
+case "$1" in
+    start|"")
+        buendia-led red off || true
+        buendia-led green on 4 8 90 || true
+        buendia-led yellow off || true
+        buendia-led blue off || true
+        buendia-led white off || true
+        ;;
+
+    restart|reload|force-reload)
+        echo "Error: argument '$1' not supported" >&2
+        exit 3
+        ;;
+
+    stop|status)
+        # No-op
+        ;;
+
+    *)
+        echo "Usage: buendia-utils start" >&2
+        exit 3
+        ;;
+esac

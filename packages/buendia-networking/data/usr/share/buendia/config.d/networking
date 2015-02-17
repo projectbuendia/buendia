@@ -1,0 +1,122 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+# Update the /etc/hosts file with mappings for this machine's IP addresses.
+buendia-update-hosts
+
+if [ -z "$NETWORKING_SSID" ]; then
+    echo "No NETWORKING_SSID configured."
+    exit 1
+fi
+
+# Create a file that records the requested settings in a canonical format.
+# We'll put this in a temporary location for now, and move it over to /run
+# to indicate that the settings have been applied successfully.
+tmp_settings=/tmp/buendia-networking.settings.$$
+buendia-settings | grep '^NETWORKING_' > $tmp_settings
+trap 'rm -f $tmp_settings' EXIT  # clean up temporary files
+
+# This file persists as a record of successful configuration.  It should
+# exist if and only if the settings it contains were completely and
+# successfully applied.
+run_settings=/run/buendia-networking.settings
+
+# Compare the desired settings against those that were last successfully
+# applied, allowing us to avoid bringing the network down if nothing has
+# changed.  (Specifying the -f switch forces reconfiguration even when
+# nothing appears to have changed.)
+if [ "$1" != "-f" ]; then
+    if [ -e $run_settings ] && diff -q $tmp_settings $run_settings; then
+        echo "Networking configuration unchanged."
+        exit 0
+    fi
+fi
+
+# In case anything goes wrong, don't leave behind an indicator of success.
+rm -f $run_settings
+
+# Apply the settings to the Debian network interface configuration.
+unindent <<< "
+    auto lo usb0 wlan0
+    iface lo inet loopback
+
+    iface wlan0 inet manual
+    up echo 'ifconfig wlan0 $NETWORKING_IP_ADDRESS up' | buendia-enter-yocto
+    down echo 'ifconfig wlan0 down' | buendia-enter-yocto
+" > /etc/network/interfaces
+
+# Activate or deactivate the DHCP server and client according to the settings.
+if $(bool $NETWORKING_DHCP_DNS_SERVER); then
+    echo 'Turning on DHCP/DNS server; disabling DHCP client.'
+
+    # Turn off the local DHCP client.
+    buendia-enter-yocto <<< '
+    # Disable wpa_supplicant_event so that udhcpc will not get launched.
+    systemctl disable wpa_supplicant_event
+    systemctl stop wpa_supplicant_event
+    '
+    killall udhcpc || true  # stop it if it's already running
+
+    # Use the IP address configured in /etc/network/interfaces.
+    buendia-enter-yocto <<< "ifconfig wlan0 up $NETWORKING_IP_ADDRESS"
+
+    # Enable dnsmasq now, and also for future boots.  dnsmasq.conf is
+    # managed in /usr/share/buendia/diversions, so we only need to turn it on.
+    service dnsmasq restart
+    update-rc.d dnsmasq enable
+
+else
+    echo 'Turning off DHCP/DNS server; enabling DHCP client.'
+
+    # Disable dnsmasq now, and also for future boots.
+    service dnsmasq stop
+    update-rc.d dnsmasq disable
+
+    # Enable wpa_supplicant_event, which launches udhcpc.
+    buendia-enter-yocto <<< 'systemctl enable wpa_supplicant_event'
+    buendia-enter-yocto <<< 'systemctl restart wpa_supplicant_event'
+fi
+
+# Activate or deactivate access point mode according to the settings.
+if $(bool $NETWORKING_AP); then
+    echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
+
+    # hostapd runs in Yocto, so this script writes to hostapd.conf directly.
+    cp $tmp_settings /etc/buendia-networking.settings
+    buendia-enter-yocto <<< '
+        hostapd_conf=/etc/hostapd/hostapd.conf
+        . /debian/etc/buendia-networking.settings
+
+        cp $hostapd_conf.pre-buendia $hostapd_conf
+        echo "ssid=$NETWORKING_SSID" >> $hostapd_conf
+        echo "wpa_passphrase=$NETWORKING_PASSWORD" >> $hostapd_conf
+
+        # Turn this machine into an access point now, and also on future boots.
+        systemctl restart hostapd
+        systemctl enable hostapd
+    '
+
+else
+    echo "Joining existing wifi network '$NETWORKING_SSID'."
+    cp $tmp_settings /etc/buendia-networking.settings
+    buendia-enter-yocto <<< '
+        # Stop being an access point now, and do not become one on future boots.
+        systemctl stop hostapd
+        systemctl disable hostapd
+
+        # Connect to an existing wifi network.  This also causes the system
+        # to connect again on boot, reusing the same network SSID and password.
+        . /debian/etc/buendia-networking.settings
+        PATH=/usr/local/bin:/usr/bin:$PATH
+        wifi $NETWORKING_SSID:$NETWORKING_PASSWORD
+    '
+fi
+
+if $(bool $NETWORKING_DHCP_DNS_SERVER); then
+    # Restarting hostapd or wifi clears the wlan0 IP address, so set it again.
+    buendia-enter-yocto <<< "ifconfig wlan0 up $NETWORKING_IP_ADDRESS"
+fi
+
+# Record the fact that the settings that were successfully configured.
+mv $tmp_settings $run_settings || true

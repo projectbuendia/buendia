@@ -1,0 +1,15 @@
+[Unit]
+Description=Debian: initialize and execute startup scripts
+
+# Let startup scripts run indefinitely (TimeoutSec=0), as they can include
+# package installations and upgrades.
+
+[Service]
+Type=forking
+TimeoutSec=0
+ExecStartPre=/usr/local/bin/init-debian
+ExecStart=/usr/local/bin/debian-startup
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target

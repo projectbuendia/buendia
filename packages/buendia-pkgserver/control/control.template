@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Depends: nginx, unzip, python, apt-utils
+Description: Serves up Buendia .deb and .apk files
+Maintainer: projectbuendia.org

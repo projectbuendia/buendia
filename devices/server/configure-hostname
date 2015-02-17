@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+hostname=${1-buendia-server}
+
+if [ "$1" = "-h" ]; then
+    echo "Usage: $0"
+    echo
+    echo "Sets the hostname of the Edison server."
+    exit 1
+fi
+
+do_on_edison <<< "
+    echo $hostname > /etc/hostname
+    echo 127.0.0.1 $hostname $hostname.local >> /etc/hosts
+    hostname $hostname
+"

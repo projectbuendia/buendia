@@ -52,7 +52,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
     
     @Override
-    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json) {
+    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.add("name", form.getName());
         Date dateChanged = form.getDateChanged();
         json.add("date_created", form.getDateCreated());
@@ -109,12 +109,12 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     @Override
-    protected Form retrieveImpl(String uuid, RequestContext context) {
+    protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return formService.getFormByUuid(uuid);
     }
     
     @Override
-    protected Iterable<Form> searchImpl(RequestContext context) {
+    protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
         // No query parameters supported - just give all the forms
         return formService.getAllForms(false);
     }

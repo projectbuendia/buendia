@@ -1,0 +1,21 @@
+#!/bin/bash
+
+service=mysql
+tmpfile=/tmp/$(basename $0).$$
+trap 'rm -rf $tmpfile' EXIT
+
+if service $service status 2>&1 > $tmpfile; then
+    cat $tmpfile
+else
+    if [ -n "$(pidof -x buendia-update apt-get dpkg)" ]; then
+        echo "$service is not running, but package update is running; skipping restart."
+    else
+        echo "$service is not running, restarting..."
+        if service $service restart; then
+            echo "$service has been restarted."
+        else
+            echo "$service could not be restarted."
+        fi
+    fi
+fi
+

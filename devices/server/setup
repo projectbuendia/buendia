@@ -1,0 +1,86 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+source remote-execution.sh
+password=$1
+setup_ssid_psk=$2
+site_id=$3
+repo_url=http://packages-dev.projectbuendia.org:9001
+
+if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
+    echo "
+Usage: $0 <new-root-password> <setup-ssid>[:<psk-password>] [<site-id>]
+
+Completely erases an Edison and brings it to a basic state enabling
+all further installation and configuration to be done by .deb packages:
+
+  - Flashed with Edison firmware image (Yocto Linux)
+  - Root password set
+  - Debian GNU/Linux 7 (within a /home/root/debian chroot inside Yocto)
+  - Yocto configured to execute Debian startup scripts on startup
+
+<setup-ssid> should be a network with Internet access that the Edison
+will use during this setup process to download and install software.
+It can be a wifi network with no password or with a PSK password.
+
+If <site-id> is specified, there should be an available package named
+buendia-site-<site-id>.
+"
+    exit 1
+fi
+
+TOOLS=../../tools
+start=$(date)
+
+# Get sudo access before possibly initiating a long download.
+sudo echo $start
+
+# Flash the Edison with a firmware file from the Intel site.
+$TOOLS/fetch http://downloadmirror.intel.com/24389/eng/edison-image-rel1-maint-rel1-ww42-14.zip 9a7509341cbf936c662af3e46f1b0f34 /tmp/edison-firmware.zip
+sudo ./replace-firmware /tmp/edison-firmware.zip
+flashed=$(date)
+echo $flashed
+
+# Set up the root password.
+./configure-root-access "$password"
+
+# Set the clock to something approximately correct.
+./set-clock
+
+# Prepare a few extra files to copy into the Debian system.
+rm -rf /tmp/debian
+mkdir /tmp/debian
+if [ -n "$site_id" ]; then
+    mkdir -p /tmp/debian/usr/share/buendia/site
+    echo "SITE_ID=$site_id" > /tmp/debian/usr/share/buendia/site/id
+fi
+if [ -n "$repo_url" ]; then
+    mkdir -p /tmp/debian/etc/apt/sources.list.d
+    echo "deb [arch=all] $repo_url stable main" > /tmp/debian/etc/apt/sources.list.d/buendia-base.list
+fi
+
+# Copy all the setup files and scripts onto the Edison.
+echo 'tar cf /var/backups/systemd.tar /etc/systemd /lib/systemd/system' | do_on_edison
+TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
+$TAR --owner=0 --group=0 -cf - -C yocto . | $ssh $target 'tar xf - -C /'
+$TAR --owner=0 --group=0 -cf - -C debian . -C /tmp/debian . | write_to_edison /etc/debian.tar
+
+# Ensure that the Edison can connect to the setup network.  The configuration
+# will be saved and reused when wifi is turned on again in the future.
+echo "/usr/local/bin/wifi '$setup_ssid_psk'" | do_on_edison
+
+# Enable installation on the next boot, and reboot to continue.
+echo 'Rebooting Edison...'
+echo 'systemctl enable install-buendia-base; (sync; reboot) &' | do_on_edison
+reboot=$(date)
+
+echo
+echo "$start - started"
+echo "$flashed - finished writing firmware"
+echo "$reboot - rebooting to continue installation"
+echo
+echo "It is safe to disconnect the Edison from this machine now."
+echo
+echo "When the Edison next boots up, or if it remains connected to power now,"
+echo "it will proceed to install Debian and set up the Buendia base system."

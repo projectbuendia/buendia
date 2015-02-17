@@ -1,0 +1,75 @@
+#!/bin/bash
+
+set -e
+output="$1"; shift
+control="$1"; shift
+
+if [ "$1" = "" ]; then
+    cat <<EOF
+Usage: $0 <output.deb> <control-dir> <data-dir> [<data-dir> ...]
+
+Builds a Debian package at the specified output path, given the files to
+install arranged under the given <data-dir> and the control files in
+<control-dir>.  If more than one <data-dir> is specified, all files under
+them are included; you must ensure that their contents do not collide.
+
+If <control-dir> contains any files named *.template, they are rendered
+(e.g. foo.template renders to produce foo) by performing bash-style parameter
+expansion, command substitution, and arithmetic expansion.  These are
+all the shell expansions triggered by the "\$" character: \$VAR and \${VAR}
+expand to environment variables, \$(command) expands to the output of a
+shell command, and \$((expression)) evaluates an arithmetic expression.
+
+EOF
+    exit 1
+fi
+
+tmp=/tmp/make_package.$$
+trap 'rm -rf $tmp' EXIT
+
+rm -rf $tmp
+TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
+
+# Copy the control files into a temporary directory.
+mkdir -p $tmp/control
+cp -pr $control/* $tmp/control
+
+# Apply bash expansion to any *.template files.
+for i in $tmp/control/*.template; do
+    if [ -f $i ]; then
+        result=${i%.template}
+        cp $i $result  # copy permissions
+        cat <(echo 'cat <<EOF') $i <(echo 'EOF') | bash > $result
+        # Copy the timestamps from the original file, so that the resulting
+        # data.tar remains exactly identical if none of the input files have
+        # changed.  This lets us use diffdeb to detect meaningful changes.
+        touch -r $i $result
+        rm $i
+    fi
+done
+
+# Set each directory's timestamp to the timestamp of the newest file within,
+# giving deterministic timetsamps so that the resulting data.tar remains
+# exactly identical if none of the input files have changed.
+(
+    unset CLICOLOR
+    unset CLICOLOR_FORCE
+    unset LSCOLORS
+    unset LS_COLORS
+    for dir in $(find $tmp -type d | sort -r); do
+        cd $dir
+        touch -r "$(command ls -1t | head -1)" .
+    done
+)
+
+# Pack up the Debian package.
+$TAR --owner=0 --group=0 -cvzf $tmp/control.tar.gz -C $tmp/control .
+$TAR cvf $tmp/data.tar -T /dev/null
+while [ -n "$1" ]; do
+    $TAR --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .
+    shift
+done
+gzip $tmp/data.tar
+echo 2.0 > $tmp/debian-binary
+mkdir -p $(dirname "$output")
+ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz

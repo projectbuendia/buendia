@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Depends: cron-daemon
+Description: Monitoring and log rotation for Buendia devices.
+Maintainer: projectbuendia.org

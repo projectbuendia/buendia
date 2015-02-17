@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    configure)
+        buendia-reconfigure mysql
+        service cron start
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+
+    *) exit 1
+esac
+

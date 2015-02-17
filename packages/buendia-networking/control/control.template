@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Depends: cron-daemon, dnsmasq
+Description: Wifi AP and DHCP/DNS service for Buendia (Yocto system)
+Maintainer: projectbuendia.org

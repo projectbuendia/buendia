@@ -1,0 +1,38 @@
+#/bin/bash
+
+set -e
+limit=$1
+
+if [ "$2" = "" -o "$1" = "-h" ]; then
+    echo "Usage: $0 <kilobytes> [<path> ...]"
+    echo
+    echo "Examines all the specified files and files under the specified"
+    echo "directories (without traversing symlinks).  If their total space"
+    echo "usage exceeds the specified number of kilobytes, removes as many"
+    echo "files as necessary for the total usage to fall under the limit,"
+    echo "removing the oldest first."
+    exit 1
+fi
+
+shift
+
+space=$(du -d 1 -c -k "$@" | tail -1 | grep -o '[0-9]\+')
+echo "$0 $limit $@"
+if [ $space -gt $limit ]; then
+    echo "Total space usage ($space kb) exceeds limit ($limit kb)."
+    for file in $(command ls -1rt $(find "$@" -type f)); do
+        echo "Removing: $file"
+        rm -f $file || true
+        space=$(du -d 1 -c -k "$@" | tail -1 | grep -o '[0-9]\+')
+        if [ $space -le $limit ]; then
+            echo "Total space usage is now $space kb."
+            exit 0
+        fi
+    done
+    echo "Sorry, could not remove enough files to reduce usage to $limit kb."
+    echo "Total space usage is now $space kb."
+    exit 0
+else
+    echo "Total space usage ($space kb) does not exceed limit ($limit kb)."
+    exit 0
+fi

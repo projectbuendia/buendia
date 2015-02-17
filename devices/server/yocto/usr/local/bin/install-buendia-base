@@ -1,0 +1,123 @@
+#!/bin/ash
+
+set -e
+PATH=/usr/local/bin:$PATH
+
+# All the non-Buendia packages that are considered part of the base system.
+# These won't be included in backups of the software installation state.
+# This list should contain any essential tools and diagnostic utilities that
+# will aid troubleshooting, and any especially large packages that are needed
+# by the application and safe to omit from backups.
+BASE_PACKAGES='coreutils less curl netcat dnsutils zip unzip git screen ssh vim strace rsync python2.7 python-pip openjdk-7-jdk gcc libc-dev apt-utils nginx mysql-server tomcat7 tomcat7-admin'
+
+echo "---- install-buendia-base: $(date)"
+if [ -f /etc/buendia-base-installed ]; then
+    echo "Buendia base system is installed."
+    exit 0
+fi
+
+# Make sure the Edison is able to connect to an externally managed wifi network.
+systemctl start wpa_supplicant  # enable WPA client
+systemctl enable wpa_supplicant_event  # enable DHCP client
+systemctl disable hostapd  # don't be an access point
+systemctl stop hostapd  # don't be an access point
+
+# Turn on wifi, using the last saved configuration.
+echo "Starting wifi."
+
+if wifi -; ! ping -c 1 -w 1 debian.org; then
+    if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then
+        if sleep 20; wifi -; ! ping -c 1 -w 1 debian.org; then
+            echo 'Could not connect wifi.'
+            exit 1
+        fi
+    fi
+fi
+
+# Wipe and install Debian at /debian using cdebootstrap.  If the installation
+# fails (most likely due to network unavailability), reboot and try again.
+install-debian || reboot
+
+# Everything after this point is designed to be idempotent so that this script
+# can run safely without a site ID on every boot until a site ID is selected.
+
+# Unpack setup files into the Debian system.
+tar xf /etc/debian.tar -C /debian
+
+# Copy root's password entry and SSH authorizations into Debian.
+cp -p /debian/etc/shadow /debian/etc/shadow.new  # preserve permissions
+grep '^root:' /etc/shadow > /debian/etc/shadow.new
+grep -v '^root:' /debian/etc/shadow >> /debian/etc/shadow.new
+mv /debian/etc/shadow.new /debian/etc/shadow
+cp -pr ~root/.ssh /debian/root/
+
+# Copy configuration settings into /etc.
+for i in fstab host.conf localtime nsswitch.conf resolv.conf; do
+    cp -p /etc/$i /debian/etc || true
+done
+
+# Enable services for future boots.
+systemctl enable debian-startup save-clock.timer wpa_supplicant
+
+# Turn off the default Edison web server on port 80.
+systemctl disable edison_config
+
+# Turn off mDNS; we don't use it and it writes a huge volume of log messages.
+systemctl disable mdns
+
+# ---- The rest of the setup steps below all take place within Debian.
+
+echo $BASE_PACKAGES > /debian/etc/buendia-base.install.list
+init-debian
+cat <<'EOF' | enter-debian
+
+set -e
+
+# Set up the time zone.
+dpkg-reconfigure -f noninteractive tzdata
+
+# Proceed without prompting for user input during package installation.
+export DEBIAN_FRONTEND=noninteractive
+
+# The first time we run apt-get, ignore failure; install as much as possible.
+apt-get update || true
+
+# Tidy up in case there was a previous interrupted installation attempt.
+dpkg --configure -a || true
+apt-get -y -f install || true
+
+# Install all the base packages.
+apt-get -y install $(cat /etc/buendia-base.install.list)
+
+# Save the state of the base package installation for future reference.
+dpkg-query -W --showformat '${Package}=${Version}\n' | sort > /etc/base.packages.list
+
+# Delete the cached .deb files for the base packages, to save space.
+for package in $(cat /etc/base.packages.list); do
+    package=$(echo $package | sed -e 's/=/_/g; s/:/%3a/g')
+    rm -f /var/cache/apt/archives/${package}*.deb
+done
+
+# Try apt-get update again; this time, fail if apt-get fails.
+apt-get update
+
+# Install the essential tool that installs all other Buendia packages.
+apt-get -y --allow-unauthenticated install buendia-update
+
+# If a site has been selected, install the site settings package.
+. /usr/share/buendia/site/id || true
+if [ -n "$SITE_ID" ]; then
+    apt-get -y --allow-unauthenticated install buendia-site-$SITE_ID
+    echo "Buendia site ID configured: $SITE_ID"
+else
+    echo "Buendia site ID not selected."
+    exit 1
+fi
+
+EOF
+
+echo "Buendia base system successfully installed, rebooting."
+echo
+touch /etc/buendia-base-installed
+sleep 10
+reboot    # will run buendia-update on boot and do first install

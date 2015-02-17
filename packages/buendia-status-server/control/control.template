@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION}), buendia-update (>= ${PACKAGE_VERSION})
+Depends: fcgiwrap, nginx
+Description: Serves a system status page for Buendia.
+Maintainer: projectbuendia.org

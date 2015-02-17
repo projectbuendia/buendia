@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+buendia-divert $1 /etc/ntp.conf
+
+case $1 in
+    remove|upgrade|deconfigure) service ntp stop ;;
+    *) exit 1
+esac

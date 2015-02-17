@@ -2,6 +2,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.openmrs.OpenmrsObject;
@@ -16,6 +17,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.DateTimeUtils;
 
 /**
  * Abstract superclass for resources where the REST API only supports read-only
@@ -24,6 +26,7 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implements Listable, Retrievable, Searchable {
 
     static final String RESULTS = "results";
+    static final String SNAPSHOT_TIME = "snapshotTime";
     static final String UUID = "uuid";
     static final String LINKS = "links";
     static final String SELF = "self";
@@ -31,7 +34,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
 
     private final String resourceAlias;
     private final List<Representation> availableRepresentations;
-    
+
     protected AbstractReadOnlyResource(String resourceAlias, Representation... representations) {
         availableRepresentations = Arrays.asList(representations);
         this.resourceAlias = resourceAlias;
@@ -48,7 +51,8 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     public SimpleObject search(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "search");
-            SimpleObject result = searchInner(context);
+            long snapshotTime = System.currentTimeMillis();
+            SimpleObject result = searchInner(context, snapshotTime);
             logger.reply(context, this, "search", result);
             return result;
         } catch (Exception e) {
@@ -57,13 +61,14 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         }
     }
 
-    private SimpleObject searchInner(RequestContext context) throws ResponseException {
+    private SimpleObject searchInner(RequestContext context, long snapshotTime) throws ResponseException {
         List<SimpleObject> results = new ArrayList<>();
-        for (T item : searchImpl(context)) {
-            results.add(convertToJson(item, context));
+        for (T item : searchImpl(context, snapshotTime)) {
+            results.add(convertToJson(item, context, snapshotTime));
         }
         SimpleObject response = new SimpleObject();
         response.put(RESULTS, results);
+        response.put(SNAPSHOT_TIME, DateTimeUtils.toIso8601(new Date(snapshotTime)));
         return response;
     }
 
@@ -71,7 +76,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
-            Object result = retrieveInner(uuid, context);
+            Object result = retrieveInner(uuid, context, System.currentTimeMillis());
             logger.reply(context, this, "retrieve", result);
             return result;
         } catch (Exception e) {
@@ -80,12 +85,12 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         }
     }
 
-    private Object retrieveInner(String uuid, RequestContext context) throws ResponseException {
-        T item = retrieveImpl(uuid, context);
+    private Object retrieveInner(String uuid, RequestContext context, long snapshotTime) throws ResponseException {
+        T item = retrieveImpl(uuid, context, snapshotTime);
         if (item == null) {
             throw new ObjectNotFoundException();
         }
-        return convertToJson(item, context);
+        return convertToJson(item, context, snapshotTime);
     }
 
     @Override
@@ -107,12 +112,12 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
      * Note that this method is also used for "get all" so it's entirely possible
      * for the context to not contain any query parameters.
      */
-    protected abstract Iterable<T> searchImpl(RequestContext context);
+    protected abstract Iterable<T> searchImpl(RequestContext context, long snapshotTime);
     
     /**
      * Retrieve a single domain object by UUID, returning null if it can't be found.
      */
-    protected abstract T retrieveImpl(String uuid, RequestContext context);
+    protected abstract T retrieveImpl(String uuid, RequestContext context, long snapshotTime);
     
     /**
      * Converts a single domain object to JSON. By default, this populates the UUID
@@ -120,16 +125,17 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
      * remaining information. This is expected to be sufficient for most cases, but
      * subclasses can override this method if they want more flexibility.
      */
-    protected SimpleObject convertToJson(T item, RequestContext context) {
+    protected SimpleObject convertToJson(T item, RequestContext context, long snapshotTime) {
         SimpleObject json = new SimpleObject();
         json.put(UUID, item.getUuid());
         json.put(LINKS, getLinks(item));
         // TODO(jonskeet): Version, date created etc?
-        populateJsonProperties(item, context, json);
+        populateJsonProperties(item, context, json, snapshotTime);
         return json;
     }
     
-    protected abstract void populateJsonProperties(T item, RequestContext context, SimpleObject json);
+    protected abstract void populateJsonProperties(T item, RequestContext context, SimpleObject json,
+                                                   long snapshotTime);
     
     /**
      * Retrieves the links for the given item. The default implementation just adds a self link. 

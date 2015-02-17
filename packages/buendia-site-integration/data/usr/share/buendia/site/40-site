@@ -1,0 +1,21 @@
+SERVER_OPENMRS_USER=buendia
+SERVER_OPENMRS_PASSWORD=buendia
+
+PKGSERVER_URL=http://integration.projectbuendia.org:9001
+
+MONITORING_LIMITS='
+500000 /var/log/large/requests
+1000000 /var/log
+
+500000 /var/cache
+
+500000 /var/backups/buendia/packages
+500000 /var/backups/buendia/2*
+1000000 /var/backups/buendia
+
+100000 /usr/share/buendia/packages
+'
+
+# We don't want integration.projectbuendia.org to update itself spontaneously;
+# let Jenkins trigger an update explicitly when running an integration test.
+UPDATE_AUTOUPDATE=0

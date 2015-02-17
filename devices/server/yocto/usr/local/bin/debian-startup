@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Move aside scripts that conflict with startup already done by Yocto.
+cd /debian/etc/rcS.d
+mkdir -p unused
+mv *udev *hwclock.sh *checkroot.sh *mtab.sh *checkfs.sh *mountall.sh unused 2>/dev/null
+
+# Execute the Debian system startup scripts.
+if [ -x /debian/usr/bin/buendia-log ]; then
+    /usr/local/bin/enter-debian buendia-log /etc/init.d/rc S && \
+        /usr/local/bin/enter-debian buendia-log /etc/init.d/rc 2
+else
+    mkdir -p /debian/var/log/buendia
+    (
+        /usr/local/bin/enter-debian /etc/init.d/rc S && \
+            /usr/local/bin/enter-debian /etc/init.d/rc 2
+    ) 2>&1 | tee -a /debian/var/log/buendia/rc.log
+fi

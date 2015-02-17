@@ -1,0 +1,67 @@
+#!/bin/bash
+
+set -e
+if [ "$1" = "-f" ]; then
+    force=yes
+    shift
+fi
+db=$1
+dumpfile=$2
+pwd=$(pwd)
+
+if [ -z "$dumpfile" ]; then
+    echo "Usage: $0 [-f] <database-name> <dump-file.zip>"
+    echo 'Loads a dump file into a MySQL database.  By default, refuses to'
+    echo 'touch a database that already exists; specify -f to wipe and replace'
+    echo 'any existing database with the given name.'
+    echo
+    echo 'Requires a MySQL user that has been granted database access with'
+    echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
+    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
+    echo
+    exit 1
+fi
+
+if [ -z "$MYSQL_USER" ]; then
+    echo '$MYSQL_USER is not set; please set $MYSQL_USER and $MYSQL_PASSWORD.'
+    exit 1
+fi
+
+if [ ! -f "$dumpfile" ]; then
+    echo "$dumpfile: no such file."
+    exit 1
+fi
+
+tmpdir=/tmp/openmrs_load.$$
+tmpzip=/tmp/openmrs_dump.$$.zip
+trap 'rm -rf $tmpdir $tmpzip' EXIT
+
+mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
+
+# Create an empty database.
+if $mysql -e '' $db 2>/dev/null; then
+    if [ "$force" = yes ]; then
+        echo "Wiping existing database $db..."
+        $mysql -s -e 'show tables;' $db 2>/dev/null | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+    else
+        echo "Database $db already exists!  To wipe and replace it, use -f."
+        exit 1
+    fi
+else
+    if $mysql -s -e "create database $db" 2>/dev/null; then
+        echo 'Created a new empty database.'
+    else
+        echo 'Failed to create database $db.'
+        exit 1
+    fi
+fi
+
+# Unpack the zip file in the temporary directory.
+mkdir -p $tmpdir
+cp $dumpfile $tmpzip
+cd $tmpdir
+echo "Unpacking $dumpfile..."
+unzip -q -j $tmpzip
+
+# Load the data.
+$mysql --local-infile --unbuffered -s -e 'source 000_load.sql;' $db

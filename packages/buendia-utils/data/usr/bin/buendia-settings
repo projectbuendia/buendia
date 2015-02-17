@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Prints out all the settings.  The settings are determined by the files
+# in /usr/share/buendia/site, which are evaluated in order.  Files that
+# come later in the order (higher number) can override settings that were
+# set earlier in the order.  This script evaluates all the files and then
+# prints out the final values of all the variables.
+
+# Start with a clean environment (env -i).
+env -i bash -c '
+# Any additional variables that will exist for the second run of "set"
+# (see new_vars below) are also made to exist now, so that the comparison
+# that we are about to do omits these extraneous variables.
+file=1
+old_vars=$(set | cut -f1 -d=)  # run once
+
+old_vars=$(set | cut -f1 -d=)  # collect the list of old variables
+
+for file in /usr/share/buendia/site/*; do [ -f $file ] && . $file || true; done
+new_vars=$(set | cut -f1 -d=)  # collect ths list of new variables
+
+old_list=$(echo . $old_vars .)
+for var in $new_vars; do
+    if ! [[ "$old_list" =~ " $var " ]]; then
+        eval "echo $var=\$"$var  # print only the variables not in old_vars
+    fi
+done
+'

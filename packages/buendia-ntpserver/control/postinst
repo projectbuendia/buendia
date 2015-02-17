@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+buendia-divert $1 /etc/ntp.conf
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        service ntp start
+        ;;
+
+    *) exit 1
+esac
+

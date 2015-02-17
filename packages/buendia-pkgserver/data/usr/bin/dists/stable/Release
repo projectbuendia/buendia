@@ -1,0 +1,7 @@
+Origin: Buendia
+Label: Buendia Debian Packages
+Suite: stable
+Codename: stable
+Architectures: all
+Components: main
+Description: Buendia Debian Packages

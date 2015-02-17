@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+# Provide a randomly generated MySQL root password.
+generated=/usr/share/buendia/site/20-mysql
+if [ ! -e $generated ]; then
+    echo "MYSQL_ROOT_PASSWORD=$(buendia-mkpass)" > $generated
+    . /usr/share/buendia/utils.sh  # reload settings
+fi
+
+# Check if MySQL is already configured with the desired root password.
+if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
+    echo "MySQL root password unchanged."
+    exit 0
+else
+    echo "Setting MySQL root password..."
+fi
+
+# Get the password for the system maintenance user.
+DEBIAN_SYS_MAINT_PASSWORD=$(echo $(
+    sed /etc/mysql/debian.cnf -n -e '/\[client/,/\[/ p' |
+    grep 'password *=' |
+    cut -f2 -d=
+))
+
+# Set the root password.
+mysql -udebian-sys-maint -p"$DEBIAN_SYS_MAINT_PASSWORD" <<< "
+    grant all on *.* to root@localhost identified by '$MYSQL_ROOT_PASSWORD';
+"
+
+# Confirm that the root password was correctly set.
+if mysql -uroot -p$MYSQL_ROOT_PASSWORD </dev/null 2>/dev/null; then
+    echo "Successfully set MySQL root password."
+    exit 0
+else
+    echo "Could not set MySQL root password!"
+    exit 1
+fi

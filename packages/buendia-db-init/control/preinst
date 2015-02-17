@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    install|upgrade)
+        if [ -e /etc/buendia-db-init-installed ]; then
+            echo "buendia-db-init has been previously installed!"
+            echo "Not installing, as there is a risk of destroying user data!"
+            echo "If you are sure you want to wipe the database,"
+            echo "rm /etc/buendia-db-init-installed and reinstall."
+            exit 1
+        fi
+        ;;
+
+    *) exit 1
+esac

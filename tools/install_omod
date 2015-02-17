@@ -1,0 +1,105 @@
+#!/bin/bash
+
+set -e
+host=$1
+omod=$2
+user=$3
+
+if [ "$1" = "-h" -o -z "$omod" ]; then
+  echo "Usage: $0 <host-ip-address> <filename.omod> [username]"
+  echo
+  echo "Installs a Buendia OMOD file on an OpenMRS server, replacing any"
+  echo "existing Buendia module; restarts the server to pick up the change."
+  exit 1
+fi
+
+if [ -z "$user" ]; then
+  user='root'
+fi
+export TARGET=$user@$host
+if [ "$user" = "root" ]; then
+  export sudo=""
+else
+  export sudo="sudo"
+fi
+
+pwd=$(pwd); cd $(dirname $0); source remote-execution.sh; cd $pwd
+
+check_url() {
+  retry_count=0
+  while [[ $retry_count -lt 40 ]]; do
+    echo "Trying $@..."
+    if curl -s --max-time 10 -i -L $@ 1>/dev/null; then
+      return 0
+    fi
+    let retry_count=retry_count+1
+    sleep 5
+  done
+  false
+}
+
+echo
+echo "Copying $omod to $host..."
+echo
+omodname=$(basename $omod)
+tempname=$omodname.$$
+scp $omod $TARGET:/tmp/$tempname
+
+cat <<EOF | do_remote
+
+# This script must be written to run both on GCE and Edison:
+#   - GCE: shell is /bin/bash, services in /etc/init.d, Tomcat in /usr/...
+#   - Edison: shell is /bin/ash, services by systemd, Tomcat in /debian/usr/...
+
+set -e
+if [ -d /debian ]; then
+  cd /debian/usr/share/tomcat7/.OpenMRS
+else
+  cd /usr/share/tomcat7/.OpenMRS
+fi
+
+
+echo
+echo "Previous set of modules:"
+ls -l modules
+
+$sudo mkdir -p old_modules
+
+# old names start with "projectbuendia"; new names start with "buendia".
+$sudo mv -f modules/*buendia*.omod old_modules 2>/dev/null || true
+
+$sudo cp -f /tmp/$tempname $tempname  # get the file onto the same filesystem
+$sudo mv -f $tempname modules/$omodname  # atomically install the file into modules/
+$sudo chmod a+r modules/$omodname # make sure it is tomcat readable
+$sudo rm -f /tmp/$tempname
+
+echo
+echo "New set of modules:"
+ls -l modules
+
+echo
+echo "Restarting tomcat7..."
+if [ -x "\$(which systemctl)" ]; then
+  systemctl restart tomcat7
+else
+  $sudo service tomcat7 restart
+fi
+EOF
+
+echo
+echo "Waiting for new module to come up..."
+echo
+
+# Tomcat
+check_url http://$host:8080/
+
+# OpenMRS
+check_url http://$host:8080/openmrs
+
+# Buendia
+check_url http://$host:8080/openmrs/ws/rest/v1/projectbuendia/user -u android:Android123
+
+echo
+echo
+echo "\o/  Success!  Module $omod installed and running."
+echo

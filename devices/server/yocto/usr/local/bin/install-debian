@@ -1,0 +1,61 @@
+#!/bin/ash
+
+# Installs Debian in a /debian chroot directory.  Requires Internet access.
+
+set -e
+ROOT=/home/root/debian  # must be on the /home filesystem
+
+if [ -f $ROOT/etc/debian-installed ]; then
+    echo "Debian is already installed at $ROOT."
+    exit 0
+fi
+
+MIRROR_URL=http://ftp.debian.org/debian
+VER=0.5.9_i386  # version of cdebootstrap package
+SHA1SUM_SOURCE_URL=ftp://ftp.gnupg.org/gcrypt/binary/sha1sum.c
+DEBIAN_DIST=wheezy
+TMPDIR=/tmp/debootstrap-bin
+
+# Make a clean temporary directory.
+rm -rf $TMPDIR
+mkdir $TMPDIR
+cd $TMPDIR
+
+# Unpack the cdebootstrap tools in the temporary directory.
+wget $MIRROR_URL/pool/main/c/cdebootstrap/cdebootstrap-static_$VER.deb
+ar -x cdebootstrap-static_$VER.deb
+tar xzOf data.tar.gz ./usr/lib/cdebootstrap/cdebootstrap_$VER.tar.gz > cdebootstrap_$VER.tar.gz
+tar xzf cdebootstrap_$VER.tar.gz
+wget -q $SHA1SUM_SOURCE_URL
+cc -O3 -o sha1sum sha1sum.c
+
+# Enable devices and setuid (/home is mounted nodev,nosuid by default).
+grep -v /home /etc/fstab > /etc/fstab.$$
+grep /home /etc/fstab | sed -e 's/,nodev,/,/' -e 's/,nosuid,/,/' >> /etc/fstab.$$
+mv /etc/fstab.$$ /etc/fstab
+mount -o remount /home
+
+# Unmount any mounts within $ROOT so we can safely rm -rf $ROOT.
+for dir in $(mount | grep $ROOT | sed -e 's/.* on //' -e 's/ .*//'); do
+  umount $dir
+done
+
+# Remove any existing Debian installation.
+rm -rf $ROOT
+
+# Run cdebootstrap, which downloads and installs Debian.
+export PATH=$TMPDIR:$PATH
+./cdebootstrap --allow-unauthenticated $DEBIAN_DIST $ROOT $MIRROR_URL
+
+# Clean up.
+rm -rf $TMPDIR
+
+# Empty out the /dev directory; devtmpfs will be mounted over it.
+rm -rf $ROOT/dev/*
+
+# Add a handy symlink from /debian.
+rm -f /debian
+ln -s $ROOT /debian
+
+echo "Debian successfully installed at $ROOT."
+touch $ROOT/etc/debian-installed

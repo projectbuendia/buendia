@@ -1,0 +1,26 @@
+# lon site configuration
+
+SERVER_OPENMRS_USER=buendia
+SERVER_OPENMRS_PASSWORD=buendia
+
+# Small limits for testing.
+MONITORING_LIMITS='
+10000 /var/log/large/requests
+20000 /var/log
+
+120000 /var/cache
+
+50000 /var/backups/buendia/packages
+50000 /var/backups/buendia/2*
+100000 /var/backups/buendia
+
+100000 /usr/share/buendia/packages
+'
+
+# Runs on an Edison, creating its own network.
+NETWORKING_AP=1
+NETWORKING_SSID=buendia-lon
+NETWORKING_DHCP_DNS_SERVER=1
+
+# Keep the Edison up to date.
+UPDATE_AUTOUPDATE=1

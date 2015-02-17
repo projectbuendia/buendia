@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Apply settings
+        buendia-reconfigure update
+
+        # Make the update run once on startup
+        update-rc.d buendia-update defaults
+
+        # Ensure that cron is up so it can run the update periodically
+        service cron start
+        ;;
+
+    *) exit 1
+esac

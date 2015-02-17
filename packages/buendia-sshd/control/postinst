@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+buendia-divert $1 /etc/ssh/sshd_config
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure) service ssh start ;;
+    *) exit 1
+esac

@@ -1,0 +1,25 @@
+#!/bin/bash
+
+result=0
+for file in data/usr/share/buendia/site/*; do
+    if [ -e $file ]; then
+        if [ -x $file ]; then
+            echo "$file should not be executable.  Please chmod a-x all files in site/ before building."
+            ls -al $file
+            exit 1
+        fi
+        echo -n "Checking syntax of $file... "
+        cat $file <(echo '
+            result=0
+            for var in $(set | cut -f1 -d= | grep -E "_USER\$|_PASSWORD\$"); do
+                if ! eval "echo \$"$var | grep -q "^[0-9A-Za-z._-]\+\$"; then
+                    echo
+                    echo "$var is invalid: only [0-9A-Za-z._-] characters are allowed."
+                    result=1
+                fi
+            done
+            exit $result
+        ') | env -i bash && echo OK || result=1
+    fi
+done
+exit $result

@@ -21,8 +21,8 @@ echo
 
 connect_ethernet
 $scp $dumpfile $target:/debian/tmp/dumpfile.zip
-chmod 755 ../../scripts/openmrs_load
-$scp -p ../../scripts/openmrs_load $target:/debian/usr/local/bin
+chmod 755 ../../tools/openmrs_load
+$scp -p ../../tools/openmrs_load $target:/debian/usr/local/bin
 cat <<EOF | do_in_debian
 set -e
 service mysql start

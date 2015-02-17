@@ -1,0 +1,30 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: buendia-server
+# Required-Start: $all
+# Required-Stop:
+# Should-Start:
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Starts warming up the Buendia server once on boot.
+# Description: Makes HTTP requests to the Buendia server until it comes up.
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+case "$1" in
+    start|restart|'')
+        # This can take a long time and should not block system startup or
+        # package installation, so it must run in the background.
+        (buendia-log 'buendia-warmup -r localhost:9000 || service tomcat7 restart' </dev/null >/dev/null 2>/dev/null) &
+        ;;
+
+    stop)
+        # Nothing to do on shutdown.
+        ;;
+
+    *)
+        echo "Usage: buendia-server [start|restart|stop]" >&2
+        exit 3
+        ;;
+esac

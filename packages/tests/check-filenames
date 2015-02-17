@@ -1,0 +1,51 @@
+#!/bin/bash
+
+PACKAGE_NAME=$(basename $(pwd))
+
+# Check that Buendia files in *.d directories are named after the Buendia
+# package that owns them.  Within /usr/share/buendia the "buendia-" prefix
+# is redundant and therefore omitted.
+
+for dir in $(find data -name '*.d'); do
+    case $dir:$PACKAGE_NAME in
+        data/etc/apt/sources.list.d:*) name=buendia.list ;;
+        data/etc/udev/rules.d:*) continue ;;
+        data/usr/share/buendia/*:buendia-site-*) name=site ;;
+        data/usr/share/buendia/*:*) name=${PACKAGE_NAME#buendia-} ;;
+        *) name=$PACKAGE_NAME
+    esac
+
+    for file in $dir/*; do
+        base=$(basename $file)
+        if [ -e "$file" -a "$base" != README ]; then
+            if [ "$base" != $name ]; then
+                echo "$file should be named $name."
+                exit 1
+            fi
+        fi
+    done
+done
+
+# Check that settings files in the site/ directory are named after the package.
+
+if [ -e data/usr/share/buendia/site ]; then
+    case $PACKAGE_NAME in
+        buendia-site-*) name=site ;;
+        *) name=${PACKAGE_NAME#buendia-} ;;
+    esac
+
+    for file in data/usr/share/buendia/site/*; do
+        base=$(basename $file)
+        if [ -e "$file" -a "$base" != README ]; then
+            case $base in
+                [0-9][0-9]-$name)
+                    echo "$file: OK"
+                    ;;
+                *)
+                    echo "$file is badly named; should have the form NN-$name."
+                    exit 1
+                    ;;
+            esac
+        fi
+    done
+fi

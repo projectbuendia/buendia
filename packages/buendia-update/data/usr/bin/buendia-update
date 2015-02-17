@@ -1,0 +1,57 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+name=$(basename $0)
+
+if [ "$1" = "-h" ]; then
+    echo "Usage: $0 [<package-name>...]"
+    echo
+    echo "Updates the specified packages, or all the Buendia packages"
+    echo "if none are specified.  Does not reboot automatically."
+    exit 1
+fi
+
+exec 9> /var/run/lock/$name
+if ! flock -n 9; then
+    echo "$name already running; not starting."
+    exit 1
+fi
+
+# Flash red LED during updates.
+buendia-led red on 4 8 600 || true
+trap 'buendia-led red off || true' EXIT
+
+export DEBIAN_FRONTEND=noninteractive
+echo "--- Starting: $0 $@"
+buendia-status
+
+# Update the package list.
+echo
+echo "--- Updating package list"
+apt-get update || true
+
+# Fix up any broken things.
+echo
+echo "--- Fixing up partially installed packages"
+dpkg --configure -a || true
+apt-get -V -y -f install || true
+
+# Install and upgrade the specified packages, or all the Buendia packages.
+if [ -n "$1" ]; then
+    packages=$*
+else
+    packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
+fi
+echo
+echo "--- Updating packages: $packages"
+buendia-led red on 4 4 600 || true
+apt-get -V -y --allow-unauthenticated install $packages || true
+
+echo
+echo "--- Finished update:"
+buendia-status
+
+if [ -f /var/run/reboot-required ]; then
+    echo
+    echo "One or more packages have indicated that a reboot is required!"
+fi
