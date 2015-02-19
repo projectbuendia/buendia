@@ -1,0 +1,102 @@
+#!/bin/bash
+
+
+set -e; . /usr/share/buendia/utils.sh
+export MYSQL_USER=$OPENMRS_MYSQL_USER
+export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
+root=$1
+progress=$2
+
+if [ "$root" = "" -o "$1" = "-h" ]; then
+    echo "Usage: $0 <restore-root-path> <progress-path>"
+    echo "       $0 <block-device> <progress-path>"
+    echo
+    echo "Restores the OpenMRS database, Buendia configuration,"
+    echo "and installed Buendia packages from the specified path."
+    echo "If a block device is given, mounts the block device"
+    echo "and backs up to the 'restore' directory on the device."
+    echo
+    echo "<progress-path> is a directory where a file will be written"
+    echo "marking the current progress, reducing duplicate steps, and"
+    echo "preventing a second overwriting restore in the event of restart"
+    echo "with backup still attached."
+    exit 1
+fi
+
+# The file to mark our current progress. This is a sequence of lines, as listed below
+# started -> backup started, but nothing done
+# finished -> backup finished, so don't do it again
+
+progressfile=$progress/progress.log
+if [ ! -d $progress ]; then
+  mkdir $progress
+fi
+
+
+# The state so far will be put in a variable called progress-state, as we don't have goto in bash.
+# Define some incrementing constants for each stage fo the script.
+readonly SETTINGS=0
+readonly MYSQL=1
+
+if [ -e $progressfile ]; then
+  # ---- Check to see the any progress on previous backups
+  status=`tail -1 $progressfile`
+  case $status in
+  started)
+    echo "Previously started restore resumed"
+    progress_state=$SETTINGS
+    ;;
+  settings)
+    echo "Previously restored settings."
+    progress_state=$MYSQL
+    ;;
+  finished)
+    echo "Previous restore finished successfully. To restore again remove $progressfile"
+    exit 1
+    ;;
+  *)
+    echo "Previous restore terminated in unknown state. See $progressfile"
+    exit 1
+    ;;
+  esac
+else
+  echo "started" >> $progressfile
+  progress_state=$SETTINGS
+fi
+
+if [ $progress_state -le $SETTINGS ]; then
+  # ---- Restore the buendia settings
+  # TODO(nfortescue): work out whether we need to stop any services
+  echo "Restoring buendia-settings"
+  # Restore the nameserver settings
+  rm -rf /usr/share/buendia/names.d/* # TODO(nfortescue): consider how to make this robust to failure, eg use mv
+  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d #TODO(nfortescue): consider how to cope with failure here
+
+  # Restore generic site settings
+  rm -rf /usr/share/buendia/site/* # TODO(nfortescue): consider how to make this robust to failure, eg use mv
+  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site #TODO(nfortescue): consider how to cope with failure here
+
+  # Restore the openmrs settings
+  # TODO(nfortescue): work out if this should be done before buendia-reconfigure or independently,
+  # and whether we should stop tomcat
+  rm /usr/share/buendia/openmrs/openmrs-runtime.properties
+  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/openmrs/openmrs-runtime.properties
+
+  # reconfigure everything using the new settings
+  buendia-reconfigure # TODO(nfortescue): consider how to cope with failure here
+  echo "settings" >> $progressfile
+fi
+
+if [ $progress_state -le $MYSQL ]; then
+  # ---- Restore the MySQL database.
+  # TODO(nfortescue): work out whether we need to stop any services (eg tomcat)
+  echo "Restoring MySQL database..."
+  if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
+    cat "$tmp/out"
+    echo "buendia-mysql-load failed!"
+    exit 1
+  fi
+fi
+
+# ---- Mark successful completion
+echo "finished" >> $progressfile
