@@ -22,7 +22,11 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
+# Prepare some empty temporary directories.
 tmp="/tmp/buendia-backup.$$"
+trap 'rm -rf "$tmp"' EXIT
+rm -rf "$tmp"
+mkdir -p "$tmp"
 
 # The file to mark our current progress. This is a sequence of lines, as listed
 # below.
@@ -106,7 +110,9 @@ if [ $progress_state -le $MYSQL ]; then
   # TODO(nfortescue): work out whether we need to stop any services (eg tomcat)
   echo "Restoring MySQL database..."
   if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
-    cat "$tmp/out"
+    if [ -e $tmp/out ]; then
+      cat "$tmp/out"
+    fi
     echo "buendia-mysql-load failed!"
     exit 1
   fi
