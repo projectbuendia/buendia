@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 set -e; . /usr/share/buendia/utils.sh
 export MYSQL_USER=$OPENMRS_MYSQL_USER
 export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
@@ -23,23 +22,27 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
-# The file to mark our current progress. This is a sequence of lines, as listed below
-# started -> backup started, but nothing done
-# finished -> backup finished, so don't do it again
+tmp="/tmp/buendia-backup.$$"
 
+# The file to mark our current progress. This is a sequence of lines, as listed
+# below.
+# started -> backup started, but nothing done
+# settings -> backup started, done the settings, but not the database
+# finished -> backup finished, so don't do it again
 progressfile=$progress/progress.log
 if [ ! -d $progress ]; then
   mkdir $progress
 fi
 
 
-# The state so far will be put in a variable called progress-state, as we don't have goto in bash.
+# The state so far will be put in a variable called progress-state, as we don't
+# have goto in bash.
 # Define some incrementing constants for each stage fo the script.
 readonly SETTINGS=0
 readonly MYSQL=1
 
+# ---- Check to see the any progress on previous backups
 if [ -e $progressfile ]; then
-  # ---- Check to see the any progress on previous backups
   status=`tail -1 $progressfile`
   case $status in
   started)
@@ -60,30 +63,41 @@ if [ -e $progressfile ]; then
     ;;
   esac
 else
+  # If there is no progress file, create one and start at the beginning.
   echo "started" >> $progressfile
   progress_state=$SETTINGS
 fi
+
+# TODO(nfortescue): work out how to restore packages. Probably uninstall all
+# buendia upgradable packages, remove them all from the package server. Then
+# copy the packages from the backup into the package server. Finally install
+# the package again. All without breaking this script :-(.
 
 if [ $progress_state -le $SETTINGS ]; then
   # ---- Restore the buendia settings
   # TODO(nfortescue): work out whether we need to stop any services
   echo "Restoring buendia-settings"
   # Restore the nameserver settings
-  rm -rf /usr/share/buendia/names.d/* # TODO(nfortescue): consider how to make this robust to failure, eg use mv
-  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d #TODO(nfortescue): consider how to cope with failure here
+  # TODO(nfortescue): consider how to make this robust to failure, eg use mv
+  rm -rf /usr/share/buendia/names.d/*
+  #TODO(nfortescue): consider how to cope with failure here
+  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d
 
   # Restore generic site settings
-  rm -rf /usr/share/buendia/site/* # TODO(nfortescue): consider how to make this robust to failure, eg use mv
-  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site #TODO(nfortescue): consider how to cope with failure here
+  # TODO(nfortescue): consider how to make this robust to failure, eg use mv
+  rm -rf /usr/share/buendia/site/*
+  #TODO(nfortescue): consider how to cope with failure here
+  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site
 
   # Restore the openmrs settings
-  # TODO(nfortescue): work out if this should be done before buendia-reconfigure or independently,
-  # and whether we should stop tomcat
+  # TODO(nfortescue): work out if this should be done before
+  # buendia-reconfigure or independently, and whether we should stop tomcat
   rm /usr/share/buendia/openmrs/openmrs-runtime.properties
   tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/openmrs/openmrs-runtime.properties
 
   # reconfigure everything using the new settings
-  buendia-reconfigure # TODO(nfortescue): consider how to cope with failure here
+  # TODO(nfortescue): consider how to cope with failure here
+  buendia-reconfigure
   echo "settings" >> $progressfile
 fi
 
