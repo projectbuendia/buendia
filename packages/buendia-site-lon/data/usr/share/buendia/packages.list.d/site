@@ -1,4 +1,5 @@
 buendia-backup
+buendia-dashboard
 buendia-networking
 buendia-ntpserver
 buendia-pkgserver
@@ -6,4 +7,3 @@ buendia-pushclock
 buendia-server
 buendia-site-lon
 buendia-sshd
-buendia-status-server

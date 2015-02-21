@@ -3,9 +3,6 @@
 set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
-    remove|upgrade|deconfigure)
-        service nginx stop
-        ;;
-
+    remove|upgrade|deconfigure) service nginx stop ;;
     *) exit 1
 esac
