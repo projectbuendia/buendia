@@ -1,11 +1,13 @@
 server {
+    listen 80;
     listen 9999;
-    root /usr/share/buendia;
     server_name _;
+    root /usr/share/buendia/dashboard;
+    index index.html;
 
-    location / {
+    location /status {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME status;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/status;
+        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/status;
     }
 }
