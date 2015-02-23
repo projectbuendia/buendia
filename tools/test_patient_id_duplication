@@ -1,0 +1,48 @@
+#!/bin/bash
+
+root_url="$1"
+shift
+username="$1"
+shift
+password="$1"
+shift
+name=$(basename $0)
+cd $(dirname $0)
+
+if [ "$password" = "" ]; then
+    echo "Usage: $0 <openmrs-root-url> <username> <password> [<prefix>]"
+    echo
+    echo "Posts many patients with duplicate IDs to the Buendia API"
+    echo "at the OpenMRS server with the given root URL, using the"
+    echo "given OpenMRS user and password, as a test of whether OpenMRS"
+    echo "can correctly enforce uniqueness of patient IDs in the database."
+    exit 1
+fi
+
+# Get the server's timestamp.
+start=$(./post_patients "$root_url" "$username" "$password" $(date +"%s").$$ | grep -o '"admission_timestamp":[0-9]*' | grep -o '[0-9][0-9]*')
+
+# Ensure all subsequently posted patients will have a strictly greater timestamp.
+sleep 1
+
+# Post a bunch of patients concurrently.
+p="$1"
+echo "Posting many patients concurrently..."
+(sleep 2; ./post_patients "$root_url" "$username" "$password" ${p}1 ${p}2 ${p}3 ${p}4 ${p}5 ${p}6 ${p}7 ${p}8 ${p}9) &
+(sleep 2; ./post_patients "$root_url" "$username" "$password" ${p}1 ${p}2 ${p}3 ${p}4 ${p}5 ${p}6 ${p}7 ${p}8 ${p}9) &
+(sleep 2; ./post_patients "$root_url" "$username" "$password" ${p}1 ${p}2 ${p}3 ${p}4 ${p}5 ${p}6 ${p}7 ${p}8 ${p}9) &
+(sleep 2; ./post_patients "$root_url" "$username" "$password" ${p}1 ${p}2 ${p}3 ${p}4 ${p}5 ${p}6 ${p}7 ${p}8 ${p}9) &
+
+# Wait for all the posting to finish.
+sleep 10
+
+# Show all the patients with admission times after the starting time.
+echo "These are the patients that were added to the database:"
+./get_patients "$root_url" "$username" "$password" | (
+    while read line; do
+        time=$(echo $line | grep -o '"admission_timestamp":[0-9]*' | grep -o '[0-9][0-9]*')
+        if [ -n "$time" -a "$time" -gt $start ]; then
+            echo "$line"
+        fi
+    done
+)

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+root_url=$1
+username=$2
+password=$3
+name=$(basename $0)
+
+if [ "$password" = "" ]; then
+    echo "Usage: $0 <openmrs-root-url> <username> <password>"
+    echo
+    echo "Gets all patients from the Buendia API at the OpenMRS server with"
+    echo "the given root URL, using the given OpenMRS user and password."
+    echo "Outputs the JSON dictionary for each patient on a new line."
+    exit 1
+fi
+
+root_url=${root_url%/}
+
+(curl -s -X GET $root_url/ws/rest/v1/projectbuendia/patient -u "$username:$password" | sed -e 's/},{/}\n{/g' -e 's/^{"results":\[//' -e 's/}]}$/}/'; echo) | grep uuid
