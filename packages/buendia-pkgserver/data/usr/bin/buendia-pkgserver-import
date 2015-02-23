@@ -68,7 +68,7 @@ if [ -b "$source" ]; then
     mkdir -p $mntdir
     mount $source $mntdir
     echo "Mounted $source at $mntdir."
-    trap 'rm -rf $exdir $pkgdir; cd /; fuser -m $mntdir; umount $mntdir && rm -rf $mntdir; buendia-led red off || true' EXIT
+    trap 'rm -rf $exdir $pkgdir; cd /; fuser -m $mntdir || true; umount $mntdir && rm -rf $mntdir || true; buendia-led red off || true' EXIT
     source="$mntdir"
 
 elif [ -d "$source" ]; then
@@ -121,11 +121,11 @@ if [ -n "$unpacked" ]; then
         else
             apks=()
         fi
-        let count=${#debs}+${#apks}
+        let count=${#debs}+${#apks} || true  # let exits with 1 if result is 0
 
         if [ "$count" -gt 0 ]; then
             buendia-led red on 4 8 10 || true
-            s=s; [ "$count" == 1 ] && s=
+            s=s; [ "$count" == 1 ] && s= || true
             if mv $pkgdir/* /usr/share/buendia/packages; then
                 echo "Imported $count package$s."
             else
@@ -153,16 +153,16 @@ if [ -n "$unpacked" ]; then
             fi
         done
 
-        # Mark installed bundles done now.  If reconfiguration scripts or
+        # Mark unpacked bundles done now.  If reconfiguration scripts or
         # shell commands fail below, we still want to mark the bundles done,
         # to avoid repeatedly executing a broken script.
-        for file in "${installed[@]}"; do
+        cd "$source"
+        for file in "${unpacked[@]}"; do
             mv "$file" "$(adjust_filename "$file")" || true
         done
 
-        cd "$source"
-
         # Now apply new settings.
+        cd "$source"
         if [ -n "$settings_changed" ]; then
             echo "Settings changed.  Files:"
             ls -l /usr/share/buendia/site
@@ -172,9 +172,8 @@ if [ -n "$unpacked" ]; then
             buendia-reconfigure || true
         fi
 
-        cd "$exdir"
-
         # Look for shell commands.
+        cd "$exdir"
         if [ -f commands.sh ]; then
             echo "Executing shell script:"
             buendia-led red on 4 4 10 || true

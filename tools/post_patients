@@ -1,0 +1,38 @@
+#!/bin/bash
+
+root_url="$1"
+shift
+username="$1"
+shift
+password="$1"
+shift
+name=$(basename $0)
+
+if [ "$password" = "" ]; then
+    echo "Usage: $0 <openmrs-root-url> <username> <password> <id>..."
+    echo
+    echo "Posts new patients to the Buendia API at the OpenMRS server with"
+    echo "the given root URL, using the given OpenMRS user and password."
+    echo "One patient is posted for each patient ID provided as an argument."
+    exit 1
+fi
+
+root_url=${root_url%/}
+trap 'rm -f /tmp/$name.$$.*' EXIT
+
+let n=0
+
+function post() {
+    id=$1
+    let n=n+1
+    given="Given$id.$n"
+    family="Family$id.$n"
+    echo -n "Post id=$id given=$given family=$family: "
+    curl -s -X POST $root_url/ws/rest/v1/projectbuendia/patient -u "$username:$password" -H 'Content-Type: application/json' -d '{"id": "'$id'", "gender": "F", "given_name": "'$given'", "family_name": "'$family'"}' >/tmp/$name.$$.$n
+    grep -o -E '"message":"([^"]|\\")*"' /tmp/$name.$$.$n || head -1 /tmp/$name.$$.$n
+    echo
+}
+
+for id in "$@"; do
+    post "$id"
+done

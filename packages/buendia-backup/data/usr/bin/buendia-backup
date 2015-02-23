@@ -3,6 +3,7 @@
 set -e; . /usr/share/buendia/utils.sh
 export MYSQL_USER=$OPENMRS_MYSQL_USER
 export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
+name=$(basename $0)
 root=$1
 limit=$2
 
@@ -29,7 +30,6 @@ fi
 backup_id=$(date +'%Y-%m-%d')
 tmp="/tmp/buendia-backup.$$"
 
-
 # Mount the given device, if necessary.
 if [ -b "$root" ]; then
     echo "$root is a block device; mounting..."
@@ -43,7 +43,7 @@ if [ -b "$root" ]; then
     old_dir="$root/old-$$.$backup_id"
     final_deb="$root/packages"
     new_deb="$new_dir/packages"
-    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; cd /; fuser -m $mnt_dir; umount $mnt_dir && rm -rf $mnt_dir' EXIT
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; cd /; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
 
     if [ -n "$limit" ]; then
         percent=limit
@@ -155,10 +155,11 @@ echo Done.
 # This sweeping process is safely interruptible because the moving of each
 # individual file move is atomic, and if packages are left behind because
 # the sweep is interrupted, they will get picked up on the next sweep.
-mv "$root"/backup.*/packages/* "$final_deb" 2>/dev/null
+mkdir -p "$final_deb"
+mv "$root"/backup.*/packages/* "$final_deb" 2>/dev/null || true
 
 # Remove all the empty package directories.
-rmdir "$root"/backup.*/packages 2>/dev/null
+rmdir "$root"/backup.*/packages 2>/dev/null || true
 
 # ---- Limit the total size of backups.
 
