@@ -51,7 +51,7 @@ else
     if $mysql -s -e "create database $db" 2>/dev/null; then
         echo 'Created a new empty database.'
     else
-        echo 'Failed to create database $db.'
+        echo "Failed to create database $db."
         exit 1
     fi
 fi

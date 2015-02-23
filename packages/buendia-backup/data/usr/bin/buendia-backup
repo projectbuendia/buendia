@@ -7,7 +7,7 @@ name=$(basename $0)
 root=$1
 limit=$2
 
-if [ "$root" = "" -o "$1" = "-h" ]; then
+if [ "$root" = "" -o "$1" = "-h" -o "$limit" = "" ]; then
     echo "Usage: $0 <backup-root-path> [<kilobytes>]"
     echo "       $0 <block-device> [<percentage>]"
     echo

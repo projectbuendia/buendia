@@ -4,11 +4,12 @@ set -e; . /usr/share/buendia/utils.sh
 export MYSQL_USER=$OPENMRS_MYSQL_USER
 export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 root=$1
-progress=$2
+name=$(basename $0)
+
 
 if [ "$root" = "" -o "$1" = "-h" ]; then
-    echo "Usage: $0 <restore-root-path> <progress-path>"
-    echo "       $0 <block-device> <progress-path>"
+    echo "Usage: $0 <restore-root-path>"
+    echo "       $0 <block-device>"
     echo
     echo "Restores the OpenMRS database, Buendia configuration,"
     echo "and installed Buendia packages from the specified path."
@@ -22,22 +23,33 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
-# Prepare some empty temporary directories.
-tmp="/tmp/buendia-backup.$$"
-trap 'rm -rf "$tmp"' EXIT
-rm -rf "$tmp"
-mkdir -p "$tmp"
+# Mount the given device, if necessary.
+if [ -b "$root" ]; then
+    echo "$root is a block device; mounting..."
+    mnt_dir="/mnt/$name.$$.$(basename $root)"
+    mkdir -p "$mnt_dir"
+    mount "$root" "$mnt_dir"
+
+    root=$mnt_dir
+
+elif [ ! -d "$root" ]; then
+    echo "$root is neither a block device nor a directory."
+    exit 1
+fi
+
 
 # The file to mark our current progress. This is a sequence of lines, as listed
 # below.
 # started -> backup started, but nothing done
 # settings -> backup started, done the settings, but not the database
 # finished -> backup finished, so don't do it again
-progressfile=$progress/progress.log
-if [ ! -d $progress ]; then
-  mkdir $progress
-fi
+progressfile=$root/progress.log
 
+# Prepare some empty temporary directories.
+tmp="/tmp/$name.$$"
+trap 'rm -rf "$tmp"' EXIT
+rm -rf "$tmp"
+mkdir -p "$tmp"
 
 # The state so far will be put in a variable called progress-state, as we don't
 # have goto in bash.
@@ -69,6 +81,7 @@ if [ -e $progressfile ]; then
 else
   # If there is no progress file, create one and start at the beginning.
   echo "started" >> $progressfile
+  sync
   progress_state=$SETTINGS
 fi
 
@@ -79,44 +92,64 @@ fi
 
 if [ $progress_state -le $SETTINGS ]; then
   # ---- Restore the buendia settings
-  # TODO(nfortescue): work out whether we need to stop any services
   echo "Restoring buendia-settings"
   # Restore the nameserver settings
-  # TODO(nfortescue): consider how to make this robust to failure, eg use mv
-  rm -rf /usr/share/buendia/names.d/*
-  #TODO(nfortescue): consider how to cope with failure here
-  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d
+  mv /usr/share/buendia/names.d /usr/share/buendia/names.$$.d
+  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d; then
+    rm -rf /usr/share/buendia/names.$$.d
+  else # restore the old settings in the event of failure
+    rm -rf /usr/share/buendia/names.d
+    mv /usr/share/buendia/names.$$.d /usr/share/buendia/names.d
+    echo "Failed to extract new settings"
+    exit 1
+  fi
 
   # Restore generic site settings
-  # TODO(nfortescue): consider how to make this robust to failure, eg use mv
-  rm -rf /usr/share/buendia/site/*
-  #TODO(nfortescue): consider how to cope with failure here
-  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site
+  mv /usr/share/buendia/site /usr/share/buendia/site.$$
+  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site; then
+    rm -rf /usr/share/buendia/site.$$
+  else
+    rm -rf /usr/share/buendia/site
+    mv /usr/share/buendia/site.$$ /usr/share/buendia/site
+    echo "Failed to extract new site settings"
+    exit 1
+  fi
 
   # Restore the openmrs settings
   # TODO(nfortescue): work out if this should be done before
   # buendia-reconfigure or independently, and whether we should stop tomcat
-  rm /usr/share/buendia/openmrs/openmrs-runtime.properties
-  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/openmrs/openmrs-runtime.properties
+  mv /usr/share/buendia/openmrs/openmrs-runtime.properties /usr/share/buendia/openmrs/openmrs-runtime.properties.$$
+  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/openmrs/openmrs-runtime.properties; then
+    rm -f /usr/share/buendia/openmrs/openmrs-runtime.properties.$$
+  else
+    rm -f /usr/share/buendia/openmrs/openmrs-runtime.properties
+    mv /usr/share/buendia/openmrs/openmrs-runtime.properties.$$ /usr/share/buendia/openmrs/openmrs-runtime.properties
+    echo "Failed to extract new openmrs-runtime.properties"
+    exit 1
+  fi
 
   # reconfigure everything using the new settings
   # TODO(nfortescue): consider how to cope with failure here
   buendia-reconfigure
   echo "settings" >> $progressfile
+  sync
 fi
 
 if [ $progress_state -le $MYSQL ]; then
   # ---- Restore the MySQL database.
-  # TODO(nfortescue): work out whether we need to stop any services (eg tomcat)
   echo "Restoring MySQL database..."
+  service tomcat7 stop
   if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
     if [ -e $tmp/out ]; then
       cat "$tmp/out"
     fi
     echo "buendia-mysql-load failed!"
+    service tomcat7 start # Always restart the service, even if the load fails.
     exit 1
   fi
+  service tomcat7 start
 fi
 
 # ---- Mark successful completion
 echo "finished" >> $progressfile
+sync
