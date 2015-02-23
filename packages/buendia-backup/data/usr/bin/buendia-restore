@@ -37,6 +37,11 @@ elif [ ! -d "$root" ]; then
     exit 1
 fi
 
+# If the root directory does not exist, then give up
+if [ ! -e $root ]; then
+    echo "$root does not exist, exiting."
+    exit 1
+fi
 
 # The file to mark our current progress. This is a sequence of lines, as listed
 # below.
