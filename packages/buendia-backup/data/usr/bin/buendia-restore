@@ -30,7 +30,7 @@ if [ -b "$root" ]; then
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
 
-    root=$mnt_dir
+    root="$mnt_dir/restore"
 
 elif [ ! -d "$root" ]; then
     echo "$root is neither a block device nor a directory."
