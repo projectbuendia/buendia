@@ -7,7 +7,7 @@ name=$(basename $0)
 root=$1
 limit=$2
 
-if [ "$root" = "" -o "$1" = "-h" -o "$limit" = "" ]; then
+if [ "$root" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <backup-root-path> [<kilobytes>]"
     echo "       $0 <block-device> [<percentage>]"
     echo
@@ -162,12 +162,13 @@ mv "$root"/backup.*/packages/* "$final_deb" 2>/dev/null || true
 rmdir "$root"/backup.*/packages 2>/dev/null || true
 
 # ---- Limit the total size of backups.
-
-half_limit=$(($limit / 2))
-if [[ $half_limit > 0 ]]; then
+if [ -n "$limit" ]; then
+  half_limit=$(($limit / 2))
+  if [[ $half_limit > 0 ]]; then
     buendia-limit $half_limit "$root"/packages
     buendia-limit $half_limit "$root"/backup.*
     buendia-limit $limit "$root"/packages
+  fi
 fi
 
 # ---- Fully remove any backups that were partially removed by buendia-limit.
