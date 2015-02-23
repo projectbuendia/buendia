@@ -127,6 +127,8 @@ if [ $progress_state -le $SETTINGS ]; then
   # As we have changed the settings, we need to source them again. Otherwise
   # usernames and passwords may be wrong for database restore.
   . /usr/share/buendia/utils.sh
+  export MYSQL_USER=$OPENMRS_MYSQL_USER
+  export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 fi
 
 if [ $progress_state -le $MYSQL ]; then
