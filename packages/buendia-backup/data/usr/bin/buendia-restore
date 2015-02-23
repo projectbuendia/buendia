@@ -115,11 +115,8 @@ if [ $progress_state -le $SETTINGS ]; then
     exit 1
   fi
 
-  # DO NOT restore the openmrs runtime settings
-  # We don't restore these because in order to restore the MySQL username
-  # and password we would also need to restore the MySQL users table.
-  # Instead, we will assume the Edison we are using has these correctly set up.
-
+  # DO NOT restore the openmrs runtime settings. Instead let the
+  # buendia-reconfigure above create them appropriately.
 
   # Reconfigure everything using the new settings
   # TODO(nfortescue): consider how to cope with failure here
