@@ -127,11 +127,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String id = (String) json.get(ID);
         List<PatientIdentifierType> identifierTypes =
                 Arrays.asList(DbUtil.getMsfIdentifierType());
+        Patient patient = null;
         synchronized (createPatientLock) {
             List<Patient> existing = patientService.getPatients(
                     null, id, identifierTypes, true /* exact identifier match */);
             if (!existing.isEmpty()) {
-                Patient patient = existing.get(0);
+                patient = existing.get(0);
                 String given = patient.getGivenName();
                 given = (given == null) ? "" : given;
                 String family = patient.getFamilyName();
@@ -142,7 +143,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                         name.isEmpty() ? "with no name" : "named " + name, id));
             }
 
-            Patient patient = jsonToPatient(json);
+            patient = jsonToPatient(json);
             patientService.savePatient(patient);
         }
         // Observation for first symptom date
