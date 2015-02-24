@@ -7,5 +7,5 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Back up to the internal directory.
 10 * * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_INTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_INTERNAL_DIR $BACKUP_INTERNAL_LIMIT_KB
 
-# Restore from an sd-card
+# Restore from a USB drive
 * * * * * root for dev in /dev/sd?[0-9]*; do [ -e $dev ] && buendia-log buendia-restore $dev && break; done;
