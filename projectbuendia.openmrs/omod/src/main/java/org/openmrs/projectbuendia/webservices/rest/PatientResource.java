@@ -76,6 +76,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static Log log = LogFactory.getLog(PatientResource.class);
     private final PatientService patientService;
     private final ObservationsHandler observationsHandler = new ObservationsHandler();
+    private static final Object createPatientLock = new Object();
 
     public PatientResource() {
         patientService = Context.getPatientService();
@@ -136,13 +137,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             family = (family == null) ? "" : family;
             String name = (given + " " + family).trim();
             throw new InvalidObjectDataException(String.format(
-                "Another patient (%s) already has the ID \"%s\"",
-                name.isEmpty() ? "with no name" : "named " + name, id));
+                    "Another patient (%s) already has the ID \"%s\"",
+                    name.isEmpty() ? "with no name" : "named " + name, id));
         }
 
         Patient patient = jsonToPatient(json);
-        patientService.savePatient(patient);
-
+        synchronized (createPatientLock) {
+            patientService.savePatient(patient);
+        }
         // Observation for first symptom date
         if (observationsHandler.hasObservations(json)) {
             observationsHandler.addObservations(json, patient, patient.getDateCreated(), "Initial triage",
