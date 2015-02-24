@@ -1,0 +1,160 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+export MYSQL_USER=$OPENMRS_MYSQL_USER
+export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
+root=$1
+name=$(basename $0)
+
+
+if [ "$root" = "" -o "$1" = "-h" ]; then
+    echo "Usage: $0 <restore-root-path>"
+    echo "       $0 <block-device>"
+    echo
+    echo "Restores the OpenMRS database, Buendia configuration,"
+    echo "and installed Buendia packages from the specified path."
+    echo "If a block device is given, mounts the block device"
+    echo "and restores from the 'restore' directory on the device."
+    echo
+    echo "<progress-path> is a directory where a file will be written"
+    echo "marking the current progress, reducing duplicate steps, and"
+    echo "preventing a second overwriting restore in the event of restart"
+    echo "with backup still attached."
+    exit 1
+fi
+
+# Mount the given device, if necessary.
+if [ -b "$root" ]; then
+    echo "$root is a block device; mounting..."
+    mnt_dir="/mnt/$name.$$.$(basename $root)"
+    mkdir -p "$mnt_dir"
+    mount "$root" "$mnt_dir"
+
+    root="$mnt_dir/restore"
+
+elif [ ! -d "$root" ]; then
+    echo "$root is neither a block device nor a directory."
+    exit 1
+fi
+
+# If the root directory does not exist, then give up
+if [ ! -e $root ]; then
+    echo "$root does not exist, exiting."
+    exit 1
+fi
+
+# The file to mark our current progress. This is a sequence of lines, as listed
+# below.
+# started -> restore started, but nothing done
+# settings -> restore started, done the settings, but not the database
+# finished -> restore finished, so don't do it again
+progressfile=$root/progress.log
+
+# Prepare some empty temporary directories.
+tmp="/tmp/$name.$$"
+trap 'rm -rf "$tmp"' EXIT
+rm -rf "$tmp"
+mkdir -p "$tmp"
+
+# The state so far will be put in a variable called progress-state, as we don't
+# have goto in bash.
+# Define some incrementing constants for each stage fo the script.
+readonly PROGRESS_SETTINGS_NEXT=0
+readonly PROGRESS_MYSQL_NEXT=1
+
+# ---- Check to see the any progress on previous backups
+if [ -e $progressfile ]; then
+  status=`tail -1 $progressfile`
+  case $status in
+  started)
+    echo "Previously started restore resumed"
+    progress_state=$PROGRESS_SETTINGS_NEXT
+    ;;
+  settings)
+    echo "Previously restored settings."
+    progress_state=$PROGRESS_MYSQL_NEXT
+    ;;
+  finished)
+    echo "Previous restore finished successfully. To restore again remove $progressfile"
+    exit 1
+    ;;
+  *)
+    echo "Previous restore terminated in unknown state. See $progressfile"
+    exit 1
+    ;;
+  esac
+else
+  # If there is no progress file, create one and start at the beginning.
+  echo "started" >> $progressfile
+  sync
+  progress_state=$PROGRESS_SETTINGS_NEXT
+fi
+
+# TODO(nfortescue): work out how to restore packages. Probably uninstall all
+# buendia upgradable packages, remove them all from the package server. Then
+# copy the packages from the backup into the package server. Finally install
+# the package again. All without breaking this script :-(.
+
+if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
+  # ---- Restore the buendia settings
+  echo "Restoring buendia-settings"
+  # Restore the nameserver settings
+  mv /usr/share/buendia/names.d /usr/share/buendia/names.$$.d
+  # TODO(nfortescue): investigate tar then move rather than straight tar
+  # to reduce time directory is empty
+  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d; then
+    rm -rf /usr/share/buendia/names.$$.d
+  else # restore the old settings in the event of failure
+    rm -rf /usr/share/buendia/names.d
+    mv /usr/share/buendia/names.$$.d /usr/share/buendia/names.d
+    echo "Failed to extract new settings"
+    exit 1
+  fi
+
+  # Restore backed up site settings
+  mv /usr/share/buendia/site /usr/share/buendia/site.$$
+  # TODO(nfortescue): investigate tar then move rather than straight tar
+  # to reduce time directory is empty
+  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site; then
+    rm -rf /usr/share/buendia/site.$$
+  else
+    rm -rf /usr/share/buendia/site
+    mv /usr/share/buendia/site.$$ /usr/share/buendia/site
+    echo "Failed to extract new site settings"
+    exit 1
+  fi
+
+  # DO NOT restore the openmrs runtime settings. Instead let the
+  # buendia-reconfigure above create them appropriately.
+
+  # Reconfigure everything using the new settings
+  # TODO(nfortescue): consider how to cope with failure here
+  buendia-reconfigure
+  echo "settings" >> $progressfile
+  sync
+
+  # As we have changed the settings, we need to source them again. Otherwise
+  # usernames and passwords may be wrong for database restore.
+  . /usr/share/buendia/utils.sh
+  export MYSQL_USER=$OPENMRS_MYSQL_USER
+  export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
+fi
+
+if [ $progress_state -le $PROGRESS_MYSQL_NEXT ]; then
+  # ---- Restore the MySQL database.
+  echo "Restoring MySQL database..."
+  service tomcat7 stop
+  if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
+    if [ -e $tmp/out ]; then
+      cat "$tmp/out"
+    fi
+    echo "buendia-mysql-load failed!"
+    service tomcat7 start # Always restart the service, even if the load fails.
+    exit 1
+  fi
+  service tomcat7 start
+fi
+
+# ---- Mark successful completion
+echo "finished" >> $progressfile
+sync
