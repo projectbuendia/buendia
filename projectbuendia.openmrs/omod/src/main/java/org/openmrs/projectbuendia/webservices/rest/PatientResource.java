@@ -127,22 +127,23 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String id = (String) json.get(ID);
         List<PatientIdentifierType> identifierTypes =
                 Arrays.asList(DbUtil.getMsfIdentifierType());
-        List<Patient> existing = patientService.getPatients(
-                null, id, identifierTypes, true /* exact identifier match */);
-        if (!existing.isEmpty()) {
-            Patient patient = existing.get(0);
-            String given = patient.getGivenName();
-            given = (given == null) ? "" : given;
-            String family = patient.getFamilyName();
-            family = (family == null) ? "" : family;
-            String name = (given + " " + family).trim();
-            throw new InvalidObjectDataException(String.format(
-                    "Another patient (%s) already has the ID \"%s\"",
-                    name.isEmpty() ? "with no name" : "named " + name, id));
-        }
-
-        Patient patient = jsonToPatient(json);
+        Patient patient = null;
         synchronized (createPatientLock) {
+            List<Patient> existing = patientService.getPatients(
+                    null, id, identifierTypes, true /* exact identifier match */);
+            if (!existing.isEmpty()) {
+                patient = existing.get(0);
+                String given = patient.getGivenName();
+                given = (given == null) ? "" : given;
+                String family = patient.getFamilyName();
+                family = (family == null) ? "" : family;
+                String name = (given + " " + family).trim();
+                throw new InvalidObjectDataException(String.format(
+                        "Another patient (%s) already has the ID \"%s\"",
+                        name.isEmpty() ? "with no name" : "named " + name, id));
+            }
+
+            patient = jsonToPatient(json);
             patientService.savePatient(patient);
         }
         // Observation for first symptom date
