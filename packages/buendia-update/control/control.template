@@ -1,7 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Pre-Depends: buendia-utils
 Depends: buendia-monitoring, cron-daemon, util-linux
 Replaces: buendia-pkgclient
 Description: Keeps Buendia packages installed and up to date

@@ -1,6 +1,6 @@
 server {
     listen 9001;
     root /usr/share/buendia/packages;
-    index index.html;
+    autoindex on;
     server_name _;
 }

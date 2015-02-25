@@ -5,6 +5,11 @@ server {
     root /usr/share/buendia/dashboard;
     index index.html;
 
+    location /client {
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        fastcgi_param SCRIPT_NAME client;
+        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/client;
+    }
     location /status {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME status;
