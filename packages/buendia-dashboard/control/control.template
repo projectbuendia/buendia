@@ -2,6 +2,6 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Pre-Depends: buendia-utils
-Depends: cron-daemon
-Description: Monitoring and log rotation for Buendia devices.
+Depends: fcgiwrap, nginx
+Description: Serves a system status and administration page for Buendia.
 Maintainer: projectbuendia.org

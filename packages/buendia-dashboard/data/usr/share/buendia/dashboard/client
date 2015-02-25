@@ -1,0 +1,26 @@
+#!/bin/bash
+
+cd /usr/share/buendia/packages
+latest=$(ls -t *.apk | head -1)
+
+cat <<EOF
+Content-Type: text/html
+
+<link rel="stylesheet" href="style.css">
+<h1>Buendia client app</h1>
+
+<p>Latest version: <a href="http://packages:9001/$latest">$latest</a>
+
+<p>All versions:
+<ul>
+EOF
+
+for file in $(ls -t *.apk); do
+    cat <<EOF
+<li><a href="http://packages:9001/$file">$file</a>
+EOF
+done
+
+cat <<EOF
+</ul>
+EOF

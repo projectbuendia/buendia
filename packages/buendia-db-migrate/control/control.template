@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Pre-Depends: buendia-utils
 Architecture: all
 Description: Migrates a Buendia database from version to version
 Maintainer: projectbuendia.org

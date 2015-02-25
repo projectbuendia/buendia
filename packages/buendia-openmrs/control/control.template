@@ -1,7 +1,7 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Pre-Depends: buendia-utils (>= ${PACKAGE_VERSION})
+Pre-Depends: buendia-utils
 Depends: buendia-tomcat7, buendia-mysql
 Description: OpenMRS configured for Buendia
 Maintainer: projectbuendia.org

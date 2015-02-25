@@ -22,11 +22,17 @@ fi
 # Get the server's timestamp.
 start=$(./post_patients "$root_url" "$username" "$password" $(date +"%s").$$ | grep -o '"admission_timestamp":[0-9]*' | grep -o '[0-9][0-9]*')
 
+if [ "$start" = "" ]; then
+    echo "Could not post a patient."
+    exit 1
+fi
+
 # Ensure all subsequently posted patients will have a strictly greater timestamp.
 sleep 1
 
 # Post a bunch of patients concurrently.
 p="$1"
+if [ -n "$p" ]; then p="${p}."; fi
 echo "Posting many patients concurrently..."
 (sleep 2; ./post_patients "$root_url" "$username" "$password" ${p}1 ${p}2 ${p}3 ${p}4 ${p}5 ${p}6 ${p}7 ${p}8 ${p}9) &
 (sleep 2; ./post_patients "$root_url" "$username" "$password" ${p}1 ${p}2 ${p}3 ${p}4 ${p}5 ${p}6 ${p}7 ${p}8 ${p}9) &
@@ -39,10 +45,22 @@ sleep 10
 # Show all the patients with admission times after the starting time.
 echo "These are the patients that were added to the database:"
 ./get_patients "$root_url" "$username" "$password" | (
+    let count=0
     while read line; do
         time=$(echo $line | grep -o '"admission_timestamp":[0-9]*' | grep -o '[0-9][0-9]*')
         if [ -n "$time" -a "$time" -gt $start ]; then
             echo "$line"
+            let count=count+1
         fi
     done
+    echo "Patients added: $count"
+    if [ $count -eq 9 ]; then
+        echo
+        echo '==== PASSED ===='
+        echo
+    else
+        echo
+        echo '==== FAILED ===='
+        echo
+    fi
 )

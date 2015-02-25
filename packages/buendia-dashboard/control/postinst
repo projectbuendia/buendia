@@ -4,8 +4,8 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        # Enable the status website
-        ln -sf ../sites-available/buendia-status-server /etc/nginx/sites-enabled
+        # Enable the dashboard website
+        ln -sf ../sites-available/buendia-dashboard /etc/nginx/sites-enabled
 
         # Bring services back up (need to restart here, not merely start)
         service nginx restart

@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
-Pre-Depends: buendia-mysql, buendia-utils (>= ${PACKAGE_VERSION})
+Pre-Depends: buendia-mysql, buendia-utils
 Depends: buendia-site
 Architecture: all
 Description: Initial data for the Buendia database

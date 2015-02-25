@@ -6,7 +6,7 @@ source remote-execution.sh
 password=$1
 setup_ssid_psk=$2
 site_id=$3
-repo_url=http://packages-dev.projectbuendia.org:9001
+repo_url=${REPO_URL:-http://packages.projectbuendia.org:9001}
 
 if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
     echo "
@@ -26,6 +26,9 @@ It can be a wifi network with no password or with a PSK password.
 
 If <site-id> is specified, there should be an available package named
 buendia-site-<site-id>.
+
+The latest packages from $repo_url
+will be installed.  To change the source repository, set REPO_URL.
 "
     exit 1
 fi
