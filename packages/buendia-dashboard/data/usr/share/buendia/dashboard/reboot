@@ -1,0 +1,17 @@
+#!/bin/bash
+
+cat <<EOF
+Content-Type: text/html
+
+<link rel="stylesheet" href="style.css">
+Rebooting server.  Check for status in about 5 minutes.
+
+<script>
+function go_to_status() {
+  window.location = "status";
+}
+window.setTimeout(go_to_status, 60000);
+</script>
+EOF
+
+buendia-reboot

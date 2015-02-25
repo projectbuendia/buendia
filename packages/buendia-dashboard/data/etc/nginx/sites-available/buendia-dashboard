@@ -15,4 +15,14 @@ server {
         fastcgi_param SCRIPT_NAME status;
         fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/status;
     }
+    location /reboot {
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        fastcgi_param SCRIPT_NAME reboot;
+        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/reboot;
+    }
+    location /setclock {
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        fastcgi_param SCRIPT_NAME setclock;
+        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/setclock;
+    }
 }
