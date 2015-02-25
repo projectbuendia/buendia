@@ -2,6 +2,6 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Pre-Depends: buendia-utils
-Depends: buendia-setclock, fcgiwrap, nginx
-Description: Serves a system status and administration page for Buendia.
+Depends: gcc, libc-dev
+Description: Sets the system clock to a specified time
 Maintainer: projectbuendia.org

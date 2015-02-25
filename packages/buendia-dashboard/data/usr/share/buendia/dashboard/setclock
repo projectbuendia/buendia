@@ -1,0 +1,19 @@
+#!/bin/bash
+
+time=$QUERY_STRING
+
+if [ -n "$time" ]; then
+  buendia-setclock $time || true
+fi
+
+date=$(date)
+
+cat <<EOF
+Content-Type: text/html
+
+<link rel="stylesheet" href="style.css">
+Server clock time is now: $date
+
+<p>
+<a href="/">Back to dashboard.</a>
+EOF
