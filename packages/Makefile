@@ -1,15 +1,8 @@
-# Check whether the current commit is tagged as a release.
-CURRENT_TAG := $(shell git log -n 1 --format=format:%d | grep -o -w 'v[0-9][0-9.]*' | tr -d v | head -1)
-ifeq ($(strip $(CURRENT_TAG)),)
-    # Not a release.  "0.0.x" version numbers represent dev builds.
-    ifeq ($(strip $(BUILD_NUMBER)),)
-        BUILD_NUMBER := 0
-    endif
-    export PACKAGE_VERSION := 0.0.$(BUILD_NUMBER)
-else
-    # This is a release.  Use the version number in the release tag.
-    export PACKAGE_VERSION := $(LAST_TAG)
+# Set the environment variable PACKAGE_VERSION before running make.
+ifeq ($(strip $(PACKAGE_VERSION)),)
+    PACKAGE_VERSION := 0
 endif
+export PACKAGE_VERSION
 
 # Execute the Makefiles in all the package subdirectories.
 all:

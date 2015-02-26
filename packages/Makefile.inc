@@ -1,6 +1,8 @@
+# Set the environment variable PACKAGE_VERSION before running make.
 ifeq ($(strip $(PACKAGE_VERSION)),)
-    $(error PACKAGE_VERSION must be set before running make)
+    PACKAGE_VERSION := 0
 endif
+export PACKAGE_VERSION
 
 # All paths are written as though the current directory is one level down,
 # in one of the buendia-* subdirectories, because Makefile.inc is included

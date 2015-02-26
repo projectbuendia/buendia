@@ -52,7 +52,8 @@ if [ -b "$root" ]; then
         echo "Limiting usage to $limit kb (${percent}% of $size-kb filesystem)."
     fi
 
-elif [ -d "$root" ]; then
+elif [ -d "$root" -o ! -e "$root" ]; then
+    mkdir -p "$root"
     final_dir="$root/backup.$backup_id"
     new_dir="$root/new-$$.$backup_id"
     old_dir="$root/old-$$.$backup_id"

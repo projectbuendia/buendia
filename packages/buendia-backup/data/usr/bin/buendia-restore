@@ -23,6 +23,16 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
+# Use the file descriptor to place a runtime lock, to prevent two updates
+# happening simultaneously. When the process exits the file descriptor will
+# be lost (unlike a file). This allows cron to poll every minute while still
+# having a runtime longer than one minute.
+exec 9> /var/run/lock/$name
+if ! flock -n 9; then
+    echo "$name already running; not starting."
+    exit 1
+fi
+
 # Mount the given device, if necessary.
 if [ -b "$root" ]; then
     echo "$root is a block device; mounting..."
@@ -30,6 +40,7 @@ if [ -b "$root" ]; then
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
 
+    trap 'fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
     root="$mnt_dir/restore"
 
 elif [ ! -d "$root" ]; then

@@ -20,11 +20,15 @@ if [ $current = $target ]; then
     exit 0
 fi
 
-current_tag=${current%.build*}
-target_tag=${target%.build*}
+if [[ $current =~ ^([0-9]+.[0-9]+) ]]; then
+    current_minor=$BASH_REMATCH
+fi
+if [[ $target =~ ^([0-9]+.[0-9]+) ]]; then
+    target_minor=$BASH_REMATCH
+fi
 
-if [ $current_tag = $target_tag ]; then
-    echo "$0: Migration from $current to $target successful (same release)."
+if [ -n "$current_minor" -a $current_minor = $target_minor ]; then
+    echo "$0: Migration from $current to $target successful (same minor version)."
     exit 0
 fi
 
