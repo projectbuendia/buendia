@@ -73,7 +73,10 @@ buendia-update && touch $success
 
 if [ -f /var/run/reboot-required ]; then
     echo "Rebooting after package update."
-    buendia-led red on || true
+    # Rebooting: yellow only
+    buendia-led red off || true
+    buendia-led yellow on || true
+    buendia-led green off || true
     reboot  # files in /var/run will be cleaned on boot
 else
     echo "Update complete."

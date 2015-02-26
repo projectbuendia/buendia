@@ -14,10 +14,15 @@ PATH=/sbin:/bin:/usr/bin
 
 case "$1" in
     start|"")
+        # Flash white on boot
+        buendia-led white on || true
+
+        # Booting: yellow only
         buendia-led red off || true
-        buendia-led green on 4 8 90 || true
-        buendia-led yellow off || true
+        buendia-led yellow on || true
+        buendia-led green off || true
         buendia-led blue off || true
+
         buendia-led white off || true
         ;;
 
