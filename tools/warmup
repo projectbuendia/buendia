@@ -64,7 +64,9 @@ function check_url() {
     search="$1"
     shift
     if [ -z "$retry" ]; then
-        buendia-led green on 4 4 360 || true  # should come up within 6 minutes
+        # During initial warmup: yellow only
+        buendia-led yellow on || true
+        buendia-led green off || true
     fi
     while [[ $retry_count -lt 30 ]]; do
         echo
@@ -83,7 +85,7 @@ function check_url() {
             echo "No response from server."
         fi
 
-        buendia-led green off || true  # failure
+        buendia-led yellow off || true  # failure
 
         if [ -z "$retry" ]; then
             false
@@ -117,4 +119,6 @@ echo
 echo "    \o/  Success!  Buendia API at $hostport is up."
 echo
 
-buendia-led green on || true  # success
+# Successfully serving: green only
+buendia-led yellow off || true
+buendia-led green on || true
