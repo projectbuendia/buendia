@@ -15,3 +15,6 @@ MONITORING_LIMITS='
 # We don't want dev.projectbuendia.org to update itself spontaneously;
 # let Jenkins trigger an update explicitly after a build.
 UPDATE_AUTOUPDATE=0
+
+# Turn off external backups
+BACKUP_EXTERNAL=0
