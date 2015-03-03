@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)
+setup_ssid_psk=$1
+repo_url=${REPO_URL:-http://packages.projectbuendia.org:9001}
+
+if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
+    echo "
+Usage: $0 <ssid>[:<psk-password>]
+
+Completely erases an Edison and sets it up as a demo Buendia server.
+
+<setup-ssid> should be a network with Internet access that the Edison
+will use during this setup process to download and install software.
+It can be a wifi network with no password or with a WPA-PSK password.
+
+The result will be a server with the root password 'buendia-demo',
+which when powered up becomes a wifi AP, creates a wifi network named
+'buendia-demo' with the WPA-PSK password 'buendia-demo', and starts up
+OpenMRS at the root URL 'http://server:9000/' with the OpenMRS
+username 'buendia' and password 'buendia'.
+"
+    exit 1
+fi
+
+devices/server/setup buendia-demo $setup_ssid_psk demo

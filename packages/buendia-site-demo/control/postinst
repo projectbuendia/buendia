@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e; . /usr/share/buendia/utils.sh
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        buendia-reconfigure
+        ;;
+
+    *) exit 1
+esac
