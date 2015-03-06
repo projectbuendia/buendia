@@ -39,7 +39,7 @@ def create_index(package_directory, base_url):
                         "url": "%s/%s" % (base_url, filename)
                     })
         except Exception, e:
-            sys.stderr.write('Error processing %s: %s' % (filename, e))
+            sys.stderr.write('Error processing %s: %s\n' % (filename, e))
             continue
 
     # Write each package index to its respective file
