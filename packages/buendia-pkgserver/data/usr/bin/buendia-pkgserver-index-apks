@@ -29,7 +29,8 @@ def create_index(package_directory, base_url):
         name, ext = os.path.splitext(filename)
         if ext == '.apk':
             # Version comes after the last '-'
-            module, version = name.rsplit('-', 1)
+            parts = name.rsplit('-', 1) + ['', '']  # robust against bad input
+            [module, version] = parts[:2]
             if module and version:
                 try:
                     parts = map(int, version.split('.'))
@@ -38,7 +39,7 @@ def create_index(package_directory, base_url):
                 packages.setdefault(module, []).append(
                     {"version": version, "url": "%s/%s" % (base_url, filename)})
 
-    # Write each package index to their respective files
+    # Write each package index to its respective file
     for module in packages:
         # Order the packages on their version label
         package_list = sorted(
