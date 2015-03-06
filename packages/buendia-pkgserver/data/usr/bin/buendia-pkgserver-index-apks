@@ -26,18 +26,21 @@ def create_index(package_directory, base_url):
     """
     packages = {}
     for filename in os.listdir(package_directory):
-        name, ext = os.path.splitext(filename)
-        if ext == '.apk':
-            # Version comes after the last '-'
-            parts = name.rsplit('-', 1) + ['', '']  # robust against bad input
-            [module, version] = parts[:2]
-            if module and version:
-                try:
+        try:
+            name, ext = os.path.splitext(filename)
+            if ext == '.apk':
+                # Version comes after the last '-'
+                parts = name.rsplit('-', 1) + ['', '']
+                [module, version] = parts[:2]
+                if module and version:
                     parts = map(int, version.split('.'))
-                except ValueError:
-                    continue
-                packages.setdefault(module, []).append(
-                    {"version": version, "url": "%s/%s" % (base_url, filename)})
+                    packages.setdefault(module, []).append({
+                        "version": version,
+                        "url": "%s/%s" % (base_url, filename)
+                    })
+        except Exception, e:
+            sys.stderr.write('Error processing %s: %s' % (filename, e))
+            continue
 
     # Write each package index to its respective file
     for module in packages:
