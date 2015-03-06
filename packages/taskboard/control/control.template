@@ -1,0 +1,6 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Depends: python-pip
+Architecture: all
+Description: Shared taskboard app
+Maintainer: projectbuendia.org

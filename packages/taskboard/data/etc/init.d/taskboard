@@ -1,0 +1,56 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: taskboard
+# Required-Start: $all
+# Required-Stop:
+# Should-Start:
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Provides a shared taskboard.
+# Description: Provides a shared taskboard at http://localhost:5000/.
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="taskboard"
+NAME=taskboard
+DAEMON=/usr/share/taskboard/app.py
+PIDFILE=/var/run/taskboard.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+test -f $DAEMON || exit 0
+chmod 755 $DAEMON
+
+. /lib/lsb/init-functions
+
+case "$1" in
+    start)
+        log_daemon_msg "Starting shared taskboard" "taskboard"
+        start-stop-daemon -T -p $PIDFILE || start-stop-daemon -S -o -b -m -p $PIDFILE -x $DAEMON
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] || rm -f $PIDFILE
+        log_end_msg $RETVAL
+        ;;
+
+    stop)
+        log_daemon_msg "Stopping shared taskboard" "taskboard"
+        start-stop-daemon -T -p $PIDFILE && start-stop-daemon -K -o -p $PIDFILE && rm -f $PIDFILE
+        log_end_msg $?
+        ;;
+
+    restart)
+        log_daemon_msg "Restarting shared taskboard" "taskboard"
+        $0 stop
+        $0 start
+        ;;
+
+    status)
+        status_of_proc -p $PIDFILE $DAEMON $NAME && exit 0 || exit $?
+        ;;
+
+
+    *)
+        log_action_msg "Usage: $SCRIPTNAME {start|stop|status|restart}"
+        exit 2
+        ;;
+esac
+exit 0

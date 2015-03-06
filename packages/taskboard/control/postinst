@@ -1,0 +1,11 @@
+#!/bin/bash
+
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        pip install --no-index --find-links=file:///usr/share/eggs -r /usr/share/taskboard/requirements.txt
+        update-rc.d taskboard defaults
+        service taskboard restart
+        ;;
+
+    *) exit 1
+esac

@@ -1,0 +1,58 @@
+<title>Taskboard</title>
+<script src="/static/jquery-2.1.1.min.js"></script>
+<script src="/static/taskboard.js"></script>
+<style>
+  /* Layout */
+  * { box-sizing: border-box; }
+  #window {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    cursor: default;
+    height: 100%; /* explicit height required for .row height calculation */
+    font-family: Roboto, Helvetica, Arial;
+    font-weight: 400;
+    font-size: 32px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+  }
+  #board { display: table; }
+  #board, #list { width: 100%; height: 100%; padding-left: 1em; }
+
+  .tab { white-space: nowrap; padding: 0.2em 1em 0.2em 0.2em; }
+  .tab.above-selected { border-radius: 0 0 0.6em 0; }
+  .tab.below-selected { border-radius: 0 0.6em 0 0; }
+  .cell { display: table-cell; height: 100%; vertical-align: top; }
+  .cell { text-align: center; display: inline-block; }
+  .cell { padding: 0.2em; border: 0.1em solid; border-radius: 0.3em; }
+
+  .counter { display: inline-block; padding-left: 0.4em; }
+  .counter .inc, .counter .dec { padding: 0.3em 0.6em; border-radius: 0.3em; }
+  .counter .value { padding: 0.3em 0.6em; }
+
+  /* Colours */
+  #window { color: #aaa; background: #000; }
+  #board, #list { background: #444; }
+  #tabs { background: #000; }
+  #tablist { background: #444; }
+  .cell { background: #444; }
+  .cell.on { color: #000; background: #fff; }
+  .cell[id^="cell-c"].on { color: #fff; background: #444; }
+  .counter.on { background: #444; }
+  .counter .inc, .counter .dec { background: #333; }
+  .tab { color: #444; background: #000; }
+  .tab.on { color: #fff; }
+  .tab.on:after { content: '*'; }
+  .tab.selected { color: #fff; background: #444; }
+  .cell { border-color: #444; }
+</style>
+<table id="window" cellspacing=0 cellpadding=0 border=0>
+  <tr valign="top">
+    <td width="1%" id="tabs">
+      <div id="tablist"></div>
+    </td>
+    <td width="99%">
+      <div id="board"></div>
+      <div id="list"></div>
+    </td>
+  </tr>
+</table>
