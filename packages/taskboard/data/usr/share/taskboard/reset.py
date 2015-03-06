@@ -7,14 +7,16 @@ import sqlite3
 
 board_data = {
   'tabs': {
-    'order': [1, 2, 3, 4, 5, 6],
+    'order': ['S1', 'S2', 'P1', 'P2', 'C1', 'C2', 'C3', 'C4'],
     'labels': {
-      '1': 'Tent 1',
-      '2': 'Tent 2',
-      '3': 'Tent 3',
-      '4': 'Tent 4',
-      '5': 'Tent 5',
-      '6': 'Tent 6',
+      'S1': 'S1',
+      'S2': 'S2',
+      'P1': 'P1',
+      'P2': 'P2',
+      'C1': 'C1',
+      'C2': 'C2',
+      'C3': 'C3',
+      'C4': 'C4',
     }
   },
   'cells': {
@@ -26,8 +28,8 @@ board_data = {
       # cell IDs starting with 'c' are counters rather than tasks
       ['c1'],
       # cell IDs starting with 'r' are resources rather than tasks
-      ['r1', 'r2', 'r3', 'r4', 'r5'],
-      ['r6', 'r7', 'r8', 'r9', 'r10'],
+      ['r1', 'r2', 'r3', 'r4'],
+      ['r5', 'r6', 'r7', 'r8'],
     ],
     'labels': {
       '1': 'IV bag needed',
@@ -46,9 +48,7 @@ board_data = {
       'r5': 'Bed 5 needs cleaning',
       'r6': 'Bed 6 needs cleaning',
       'r7': 'Bed 7 needs cleaning',
-      'r8': 'Bed 8 needs cleaning',
-      'r9': 'Bed 9 needs cleaning',
-      'r10': 'Bed 10 needs cleaning',
+      'r8': 'Bed 8 needs cleaning'
     }
   }
 }

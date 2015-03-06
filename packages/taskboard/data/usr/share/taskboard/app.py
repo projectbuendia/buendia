@@ -14,7 +14,7 @@ import os
 import sqlite3
 
 app = Flask(__name__, static_url_path='')
-os.chdir(os.path.dirname(__file__))
+os.chdir(os.path.dirname(__file__) or '.')
 
 def get_db():
     if not hasattr(g, 'db'):
