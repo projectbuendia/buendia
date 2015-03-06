@@ -9,4 +9,4 @@ client: Android client app (from the projectbuendia/client repo).
 
 packages: Subdirectories for each .deb package built from this repo.
 
-
+To set up an Edison as a new demo server, run ./setup-demo.
