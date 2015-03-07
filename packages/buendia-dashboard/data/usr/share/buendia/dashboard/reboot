@@ -4,14 +4,26 @@ cat <<EOF
 Content-Type: text/html
 
 <link rel="stylesheet" href="style.css">
-Rebooting server.  Check for status in about 5 minutes.
-
-<script>
-function go_to_status() {
-  window.location = "status";
-}
-window.setTimeout(go_to_status, 60000);
-</script>
+<h1>Reboot</h1>
 EOF
 
-buendia-reboot
+if [ "$REQUEST_METHOD" == "POST" ]; then
+    cat <<EOF
+<p>
+Rebooting now.  The server will come back up in about 5 minutes.
+
+<p>
+Please wait 1 minute before checking for status...
+<script>setTimeout('window.location = "status"', 60000)</script>
+EOF
+    touch /tmp/reboot-requested
+else
+    cat <<EOF
+<form method="POST">
+<p>
+After reboot, the server will take about 5 minutes to come up.
+<p>
+<input type="submit" value="Reboot now">
+</form>
+EOF
+fi

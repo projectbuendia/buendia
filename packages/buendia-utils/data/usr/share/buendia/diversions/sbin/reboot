@@ -1,22 +1,13 @@
 #!/bin/bash
 
-announce=/tmp/announcement.$$
-cat <<< "
-
-    Rebooting in 5 seconds!
-
-" > $announce
+echo 'Rebooting in 5 seconds!' | wall
 
 # Booting: yellow only
 buendia-led red off || true
 buendia-led yellow on || true
 buendia-led green off || true
 buendia-led blue off || true
+buendia-led white off || true
 
-# TODO: If Yocto is not present, just reboot Debian.
-while true; do
-    buendia-enter-yocto <<< "/debian/usr/bin/wall /debian$announce"
-    sleep 5
-    buendia-enter-yocto <<< reboot
-    sleep 5
-done
+sleep 5
+echo reboot | buendia-enter-yocto
