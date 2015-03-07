@@ -1,0 +1,56 @@
+#!/bin/bash
+
+tail -5 /var/log/buendia/buendia-warmup.log | grep -q Success && updown=SERVING || updown=DOWN
+
+uptime=$(uptime | sed -e 's/.* up//' -e 's/, *[0-9][0-9]* *user.*//')
+
+cd /usr/share/buendia/counts
+latest=$(ls -t *.count | head -1)
+cdot='&#xb7;'
+if [ -f "$latest" ]; then
+    eval $(sed -e 's/^"//; s/"$//; s/","/=/' $latest | grep '^\w\+=[0-9]\+$')
+    counts="
+$patient_count patient$([ $patient_count -ne 1 ] && echo s)
+$cdot
+$provider_count user$([ $provider_count -ne 1 ] && echo s)
+$cdot
+$encounter_count submission$([ $encounter_count -ne 1 ] && echo s)
+$cdot
+$obs_count observation$([ $obs_count -ne 1 ] && echo s)
+"
+else
+    counts="No record counts available yet.  This server is brand new!"
+fi
+
+cat <<EOF
+Content-Type: text/html
+
+<link rel="stylesheet" href="style.css">
+
+<h1>Project Buendia server</h1>
+
+<h2>Staff access</h2>
+
+<p><a href="client">Client app</a>
+
+<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">CSV data download</a>
+
+
+<h2>System maintenance</h2>
+
+<p><a href="clock">Server clock</a>
+
+<p><a href="status">System status</a>
+
+<p><a href="//packages:9001">Package repository</a>
+
+<p><a href="reboot">Reboot server</a>
+
+
+<h2>Currently $updown</h2>
+
+<p>$(date +'%Y-%m-%d at %H:%M:%S') UTC $cdot $uptime since boot
+
+<p>$counts
+
+EOF
