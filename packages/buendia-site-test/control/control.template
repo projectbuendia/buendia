@@ -4,5 +4,5 @@ Architecture: all
 Pre-Depends: buendia-utils
 Provides: buendia-site
 Conflicts: buendia-site
-Description: Site config: MSF - Kissi EMC
+Description: Site config: Edison - Integration test
 Maintainer: projectbuendia.org
