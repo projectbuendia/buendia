@@ -4,5 +4,5 @@ Architecture: all
 Pre-Depends: buendia-utils
 Provides: buendia-site
 Conflicts: buendia-site
-Description: Buendia site config: Development server
+Description: Site config: Cloud - Development
 Maintainer: projectbuendia.org

@@ -4,5 +4,5 @@ Architecture: all
 Pre-Depends: buendia-utils
 Provides: buendia-site
 Conflicts: buendia-site
-Description: Buendia site config: Google London office
+Description: Site config: Google London office
 Maintainer: projectbuendia.org

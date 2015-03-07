@@ -1,11 +1,12 @@
-* { font-family: helvetica, arial; }
-body { background: #93a1a1; color: #113355; font-size: 24px; margin: 1em 2em; }
-h1 { font-weight: 300; font-size: 48px; margin: 1em 0 0.5em; }
-h2 { font-size: 24px; margin: 2em 0 0; text-transform: uppercase; }
+* { font-family: helvetica, arial; font-size: 24px; line-height: 1.2; }
+body { background: #93a1a1; color: #113355; margin: 2em 2em; }
+h1 { font-weight: 300; font-size: 48px; margin: 0 0 1em; }
+h2 { margin: 2em 0 0; text-transform: uppercase; }
 h2, .legend { font-weight: 200; }
 .group h2 { display: inline-block; width: 8em; }
-.item { font-weight: 400; font-size: 24px; margin: 0 12px;
-         display: inline-block; }
+.item { font-weight: 400; margin: 0 12px; display: inline-block; }
 .date { font-weight: 100; opacity: 0.5; }
 a, .item a { text-decoration: none; color: inherit; opacity: 0.8; }
 a:hover, .item a:hover { color: #000000; opacity: 1; }
+ul { margin: 0; }
+li { margin: 0.5em 0; }

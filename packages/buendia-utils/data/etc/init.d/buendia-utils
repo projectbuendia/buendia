@@ -4,10 +4,10 @@
 # Required-Start:
 # Required-Stop:
 # Should-Start:      glibc
-# Default-Start:     S
-# Default-Stop:
-# Short-Description: Set LED flashing to indicate boot in progress
-# Description:       Set LED flashing to indicate boot in progress
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Turn on yellow LED to indicate boot in progress
+# Description:       Turn on yellow LED to indicate boot in progress
 ### END INIT INFO
 
 PATH=/sbin:/bin:/usr/bin
@@ -23,6 +23,7 @@ case "$1" in
         buendia-led green off || true
         buendia-led blue off || true
 
+        # Flash white on boot
         buendia-led white off || true
         ;;
 

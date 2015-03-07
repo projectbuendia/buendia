@@ -7,32 +7,15 @@
 
 <p><a href="client">Client app</a>
 
-<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">CSV download</a>
+<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">CSV data download</a>
 
 
 <h2>System maintenance</h2>
+
+<p><a href="clock">Server clock</a>
 
 <p><a href="status">System status</a>
 
 <p><a href="//packages:9001">Package repository</a>
 
-<p><a onclick="reboot()">Reboot server</a>
-
-<p><a onclick="setclock()">Set clock</a>
-
-<script>
-  function reboot() {
-    if (confirm("After reboot, the server will take about 5 minutes to come up.  Reboot now?")) {
-      var seconds = (new Date()).getTime() / 1000;
-      window.location = "reboot?" + Math.floor(seconds);
-    }
-  }
-
-  function setclock() {
-    var date = new Date();
-    if (confirm("This will set the server clock to match your computer's clock (currently " + date + ").  Proceed?")) {
-      var seconds = (new Date()).getTime() / 1000;
-      window.location = "setclock?" + Math.floor(seconds);
-    }
-  }
-</script>
+<p><a href="reboot">Reboot server</a>
