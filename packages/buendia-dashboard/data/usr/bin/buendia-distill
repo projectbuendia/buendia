@@ -1,0 +1,191 @@
+#!/usr/bin/env python
+
+import datetime
+import re
+import sys
+import time
+import os
+import urllib
+
+TEMP_ID = 'tmp%d.%d' % (os.getpid(), time.time())
+
+# Terminal colour escape sequences.
+ESCAPE_PATTERN = re.compile('\x1b[^m]*m')
+
+# Lines logged with a dummy concept by client instrumentation.
+LOG_PATTERN = re.compile(r'^[-0-9T: ]+ -> \S+: GET \S+/concept/5087AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA;(\S+)')
+TIME_PATTERN = re.compile(r'\btime=(\d+)')
+
+# XForm instance submission.
+XFORM_PATTERN = re.compile(r'^[-0-9T: ]+ -> \S+XformInstanceResource.create:[^(]*(.*)')
+DATE_ENTERED_PATTERN = re.compile(r'\bdate_entered=([-0-9.T:Z]+)')
+PATIENT_UUID_PATTERN = re.compile(r'\bpatient_uuid=([^ ,]+)')
+XMLNS_PATTERN = re.compile(r'\bxmlns:\w+="[^"]*"\s*')
+EMPTY_TAG_PATTERN = re.compile(r'<[^>]*/>')
+PROVIDER_PATTERN = re.compile(r'<encounter\.provider_id\b[^>]*>([^<]+)')
+VALUE_TAG_PATTERN = re.compile(r'</?value[^>]*>')
+FORM_ID_PATTERN = re.compile(r'<form[^>]*\bid="([^"]+)')
+FORM_UUID_PATTERN = re.compile(r'<form[^>]*\buuid="([^"]+)')
+FIELD_PATTERN = re.compile(r'<\w+[^>]*\bopenmrs_concept="(\d+)[^"]*"[^>]*>\s*([^<]+)')
+
+# Rejected attempt to create a user or patient.
+REJECT_PATTERN = re.compile(r'^([-0-9.T:Z ]+) <- \S+\.(\w+\.create) [^:]*: (\S+Exception.*)')
+
+# Sync requests.
+SYNC_PATTERN = re.compile(r'^([-0-9.T:Z ]+) <- \S+\.(\w+\.(search|getAll))\D+(\d+) *ms')
+
+XFORM_MARKER = '/projectbuendia/xforminstance'
+EPOCH = datetime.datetime(1970, 1, 1)
+
+def parse_iso_time(iso_time):
+    try:
+        y, l, d, h, m, s = re.sub('[-T:Z]', ' ', iso_time).split()
+        s = float(s)
+        us = (s - int(s))*1e6
+        return datetime.datetime(*map(int, [y, l, d, h, m, s, us]))
+    except Exception, e:
+        print >>sys.stderr, e
+
+def to_millis(dt):
+    return dt and int((dt - EPOCH).total_seconds()*1000)
+
+def distill_line(line):
+    line = re.sub(ESCAPE_PATTERN, '', line)
+
+    m = LOG_PATTERN.search(line)
+    if m:
+        pairs = m.group(1)
+        m = TIME_PATTERN.search(pairs)
+        t = m and datetime.datetime.utcfromtimestamp(float(m.group(1))/1000)
+        return pairs, t and t.date()
+
+    m = XFORM_PATTERN.search(line)
+    if m:
+        data = m.group(1)
+        pairs = []
+        m = DATE_ENTERED_PATTERN.search(data)
+        t = m and parse_iso_time(m.group(1))
+        pairs.append(('time', t and to_millis(t)))
+
+        m = PATIENT_UUID_PATTERN.search(data)
+        pairs.append(('patient_uuid', m and m.group(1).strip()))
+
+        xml = data.split('xml=', 1)[1]
+        xml = XMLNS_PATTERN.sub('', xml)
+        xml = EMPTY_TAG_PATTERN.sub('', xml)
+        xml = VALUE_TAG_PATTERN.sub('', xml)
+
+        m = FORM_ID_PATTERN.search(xml)
+        pairs.append(('form_id', m and m.group(1).strip()))
+
+        m = FORM_UUID_PATTERN.search(xml)
+        pairs.append(('form_uuid', m and m.group(1).strip()))
+
+        m = PROVIDER_PATTERN.search(xml)
+        pairs.append(('provider_id', m and m.group(1).strip()))
+
+        fields = []
+        for (concept_id, value) in FIELD_PATTERN.findall(xml):
+            value = value.split('^')[0].strip()
+            if value in ['1065', '1066']:  # Yes, No
+                fields.append(concept_id + '.' + value)
+            elif value:
+                fields.append(concept_id)
+        pairs.append(('fields', ','.join(fields)))
+        return ';'.join(key + '=' + urllib.quote_plus(str(value))
+                        for key, value in pairs if value), t and t.date()
+
+    m = REJECT_PATTERN.search(line)
+    if m:
+        t = m and parse_iso_time(m.group(1))
+        pairs = [('server_time', to_millis(t)),
+                 ('post', m.group(2)),
+                 ('exception', m.group(3))]
+        return ';'.join(key + '=' + urllib.quote_plus(str(value))
+                        for key, value in pairs if value), t and t.date()
+
+    m = SYNC_PATTERN.search(line)
+    if m:
+        t = m and parse_iso_time(m.group(1))
+        pairs = [('server_time', to_millis(t)),
+                 ('sync', m.group(2)),
+                 ('ms', m.group(4))]
+        return ';'.join(key + '=' + urllib.quote_plus(str(value))
+                        for key, value in pairs if value), t and t.date()
+
+    return None, None
+
+def get_output_path(out_dir, date):
+    return out_dir + '/' + date.isoformat() + '.distilled'
+
+def distill_file(path, out_prefix, out_dir, dest_dir=None):
+    temp_path = path + '.' + TEMP_ID
+    os.rename(path, temp_path)
+    lines_by_date = {}
+    lnum = 0
+    for line in open(temp_path):
+        lnum += 1
+        try:
+            pairs, date = distill_line(line)
+            if date:
+                lines_by_date.setdefault(date, []).append(out_prefix + pairs)
+        except Exception, e:
+            print >>sys.stderr, path + ':%d:' % lnum, e
+            raise
+    for date, lines in lines_by_date.items():
+        file = open(get_output_path(out_dir, date), 'a')
+        file.write('\n'.join(lines) + '\n')
+        file.close()
+    if dest_dir:
+        name = os.path.basename(path)
+        dest_path = dest_dir + '/' + name
+        os.system("cat %s >> %s" % (temp_path, dest_path))
+        print >>sys.stderr, 'moved original %s to %s' % (name, dest_path)
+    os.remove(temp_path)
+    dates = lines_by_date.keys()
+    return dates and max(dates)
+
+def distill_request_logs(in_dir, out_dir, dest_dir=None):
+    dates = []
+    print >>sys.stderr, 'scanning %s, writing to %s' % (in_dir, out_dir)
+    files = os.listdir(in_dir)
+    for file in files:
+        path = in_dir + '/' + file
+        prefix = 'ip=' + file + ';'
+        if os.path.isfile(path):
+            try:
+                dates.append(distill_file(path, prefix, out_dir, dest_dir))
+                print >>sys.stderr, 'distilled %s' % file
+            except Exception, e:
+                print >>sys.stderr, path + ':', e
+                raise
+    return dates and max(dates)
+
+def distill_and_compress(in_dir, out_dir, dest_dir=None):
+    os.path.isdir(out_dir) or os.makedirs(out_dir)
+    latest = distill_request_logs(in_dir, out_dir, dest_dir)
+    if latest:
+        # For extra safety, wait until a little after midnight to pack files.
+        if datetime.datetime.utcnow().hour > 0:
+            to_compress = []
+            for file in os.listdir(out_dir):
+                if file.endswith('.distilled'):  # and not .distilled.gz
+                    file_date = file.split('.')[0]
+                    if file_date < latest.isoformat():
+                        to_compress.append(out_dir + '/' + file)
+            if to_compress:
+                os.spawnlp(os.P_WAIT, 'gzip', 'gzip', '-v', *to_compress)
+
+if __name__ == '__main__':
+    if len(sys.argv) not in [3, 4]:
+        sys.exit('''\
+Usage: %s <input-log-dir> <output-dir> [<log-dest-dir>]
+
+<input-log-dir> should be where the Buendia server writes out request logs.
+<output-dir> is a place to write the distilled information.  <log-dest-dir>
+is a place to move the original request logs after they have been processed;
+if <log-dest-dir> is unspecified, the original request logs are thrown away
+after distillation.
+''' % sys.argv[0])
+
+    distill_and_compress(*sys.argv[1:])
