@@ -5,9 +5,11 @@ set -e; . /usr/share/buendia/utils.sh
 case $1 in
     configure)
         cat <<EOF | buendia-enter-yocto
-        cp /debian/usr/share/buendia/systemd/* /lib/systemd/system
-        systemctl enable reboot-check.timer
-        systemctl start reboot-check.timer
+        if [ -d /debian/usr/share/buendia/systemd ]; then
+            cp /debian/usr/share/buendia/systemd/* /lib/systemd/system
+            systemctl enable reboot-check.timer
+            systemctl start reboot-check.timer
+        fi
 EOF
         buendia-divert $1 /sbin/reboot
         update-rc.d buendia-utils defaults

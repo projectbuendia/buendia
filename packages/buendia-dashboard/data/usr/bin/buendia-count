@@ -1,0 +1,30 @@
+#!/bin/bash
+
+. /usr/share/buendia/utils.sh
+
+out_dir="$1"
+if [ -z "$out_dir" ]; then
+    out_dir="/tmp"
+    write_to_stdout=yes
+fi
+mkdir -p $out_dir
+out_file="$out_dir/$(date +'%Y-%m-%d').count"
+out_temp="$out_file.new.$$"
+
+mysql -uroot -p$MYSQL_ROOT_PASSWORD openmrs <<EOF | grep -v 'count(' | sed -e 's/^\|$/"/g; s/\t/","/g' >$out_temp
+
+select 'patient_count', count(patient_id) from patient;
+select 'provider_count', count(provider_id) from provider;
+select 'encounter_count', count(encounter_id) from encounter;
+select 'obs_count', count(obs_id) from obs;
+select 'obs_count_by_concept', count(obs_id), concept_id from obs group by concept_id;
+select 'encounter_count_by_form', count(encounter_id), form_id from encounter group by form_id;
+
+EOF
+
+if [ -n "$write_to_stdout" ]; then
+    cat $out_temp
+    rm -f $out_temp
+else
+    mv -f $out_temp $out_file
+fi

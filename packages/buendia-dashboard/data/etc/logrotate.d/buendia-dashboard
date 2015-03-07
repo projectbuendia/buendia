@@ -1,0 +1,28 @@
+
+# The Buendia server writes its requests logs to /var/log/large/requests,
+# in files named by client IP address.  The logrotate configuration for
+# that directory is maintained in the buendia-monitoring package.  With
+# buendia-dashboard installed, however, buendia-distill will frequently
+# empty out /var/log/large/requests -- it processes the request logs, writes
+# out the distilled log information to /usr/share/buendia/distilled, then
+# moves the log files away to prevent them from being processed twice.
+# The original logs are placed in /var/log/requests so that they remain
+# available for a while; we need logrotate to clean up /var/log/requests
+# often, as the request log files can grow rapidly.
+/var/log/requests/*
+{
+    rotate 10
+    size 1M
+    compress
+    olddir /var/log/requests/old
+    sharedscripts
+    postrotate
+        # The limit is applied to both the original log directory and this one
+        # as a safety measure, so that space usage is controlled even if
+        # buendia-distill stops working and files don't get moved.
+        # logrotate runs scripts with /bin/sh, which is /bin/dash, NOT bash.
+        # We have to explicitly start bash for this to work.
+        bash -c 'buendia-limit 30000 /var/log/requests /var/log/large'
+        bash -c 'id tomcat7 && chown -R tomcat7.tomcat7 /var/log/large'
+    endscript
+}
