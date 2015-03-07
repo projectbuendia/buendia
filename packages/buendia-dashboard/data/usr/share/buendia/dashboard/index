@@ -31,9 +31,11 @@ Content-Type: text/html
 
 <h2>Staff access</h2>
 
-<p><a href="client">Client app</a>
+<p><a href="client">Download client app</a>
 
-<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">CSV data download</a>
+<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
+
+<p><a href="stats.zip">Download usage stats</a>
 
 
 <h2>System maintenance</h2>
