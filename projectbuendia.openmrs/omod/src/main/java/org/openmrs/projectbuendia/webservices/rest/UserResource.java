@@ -33,16 +33,42 @@ import java.util.List;
  * Resource for users (note that users are stored as Providers, Persons, and Users, but only
  * Providers will be returned by List calls).
  *
- * Expected behavior:
- * GET /user returns "full_name" and "user_id" fields,
- *     as well as "given_name" and "family_name" if present.
- * GET /user/[UUID] returns information on a single user
- * GET /user?q=[QUERY] performs a substring search on user full names
- * POST /user creates a new user. This requires a "user_name", "given_name", and "password",
- *      as well as an optional "family_name". Passwords must be >8 characters, contain at
- *      least one number, and contain at least one uppercase character.
+ * <p>Expected behavior:
+ * GET /user returns all users ({@link #getAll(RequestContext)})
+ * GET /user/[UUID] returns information on a single user ({@link #retrieve(String, RequestContext)})
+ * GET /user?q=[QUERY] performs a substring search on user full names ({@link #search(RequestContext)})
+ * POST /user creates a new user. ({@link #create(SimpleObject, RequestContext)})
  *
- * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
+ * <p>All GET operations return User resources, which have the following format:
+ * <pre>
+ * {
+ *   user_id: "5a382-9", // UUID for the user
+ *   full_name: "John Smith", // constructed from given and family name
+ *   given_name: "John",
+ *   family_name: "Smith"
+ * }
+ * </pre>
+ *
+ * <p>User creation expects a slightly different format:
+ * <pre>
+ * {
+ *   user_name: "jsmith", // user id which can be used to log into OpenMRS
+ *   password: "Password123", // must be >8 characters and contain at least one number and one uppercase character
+ *   given_name: "John",
+ *   family_name: "Smith"
+ * }
+ * </pre>
+ *
+ * <p>If an error occurs, the response will contain the following:
+ * <pre>
+ * {
+ *   "error": {
+ *     "message": "[error message]",
+ *     "code": "[breakpoint]",
+ *     "detail": "[stack trace]"
+ *   }
+ * }
+ * </pre>
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class UserResource implements Listable, Searchable, Retrievable, Creatable {
@@ -151,7 +177,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private Provider createFromSimpleObject(SimpleObject simpleObject) {
         checkRequiredFields(simpleObject, REQUIRED_FIELDS);
 
-        // TODO(akalachman): Localize full name construction?
+        // TODO: Localize full name construction
         String fullName = simpleObject.get(GIVEN_NAME) + " " + simpleObject.get(FAMILY_NAME);
 
         Person person = new Person();

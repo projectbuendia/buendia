@@ -35,8 +35,47 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Resource for xform templates (i.e. forms without data).
- * Note: this is under org.openmrs as otherwise the resource annotation isn't picked up.
+ * Rest API for patients.
+ *
+ * <p>Expected behavior:
+ * GET /patient returns all patients ({@link #getAll(RequestContext)})
+ * GET /patient?q=[query] returns patients with a name or id that contains the query ({@link #search(RequestContext)})
+ * GET /patient/[UUID] returns information on a single patient ({@link #retrieve(String, RequestContext)})
+ * POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
+ * POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject, RequestContext)})
+ *
+ * <p>Each operation handles Patient resources, with the following syntax:
+ *
+ * <pre>
+ * {
+ *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // unique id assigned by OpenMRS, not required for creation
+ *   "id": "567", // required unique id specified by user
+ *   "gender": "F", // required as "M" or "F", unfortunately
+ *   "birthdate": "1990-02-17", // required, but can be estimated
+ *   "given_name": "Jane", // required, "Unknown" suggested if not known
+ *   "family_name": "Doe", // required, "Unknown" suggested if not known
+ *   "assigned_location": { // optional, but highly encouraged
+ *     "uuid": "0a49d383-7019-4f1f-bf4b-875f2cd58964", // UUID of the patient's assigned location
+ *     "parent_uuid": "b9038895-9c9d-4908-9e0d-51fd535ddd3c", // deprecated but allowed
+ *     "zone": "Confirmed Zone", // deprecated but allowed
+ *     "zone_uuid": "b9038895-9c9d-4908-9e0d-51fd535ddd3c", // deprecated but allowed
+ *     "tent": "C2", // deprecated but allowed
+ *     "tent_uuid": "0a49d383-7019-4f1f-bf4b-875f2cd58964" // deprecated but allowed
+ *   },
+ *   "admission_timestamp": 1424190141 // deprecated but allowed
+ * },
+ * </pre>
+ *
+ * <p>If an error occurs, the response will contain the following:
+ * <pre>
+ * {
+ *   "error": {
+ *     "message": "[error message]",
+ *     "code": "[breakpoint]",
+ *     "detail": "[stack trace]"
+ *   }
+ * }
+ * </pre>
  */
 @Resource(
     name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patient",
@@ -46,7 +85,7 @@ import java.util.Map;
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
     // Fake values
     private static final User CREATOR = new User(1);
-    private static final String FACILITY_NAME = "Kailahun";  // TODO(kpy): Use a real facility name.
+    private static final String FACILITY_NAME = "Kailahun";  // TODO: Use a real facility name.
     static final RequestLogger logger = RequestLogger.LOGGER;
 
     // JSON property names
@@ -157,7 +196,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     protected static Patient jsonToPatient(SimpleObject json) {
         Patient patient = new Patient();
-        // TODO(nfortescue): do this properly from authentication
+        // TODO: do this properly from authentication
         patient.setCreator(CREATOR);
         patient.setDateCreated(new Date());
 
@@ -392,7 +431,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 // ==== JSON keys that change data OTHER than patient attributes.
                 case ADMISSION_TIMESTAMP:
                     // This is really evil and maybe shouldn't even be done. Instead we should have an admission event.
-                    // TODO(nfortescue): switch to an admission event
+                    // TODO: switch to an admission event
                     Integer seconds = (Integer) entry.getValue();
                     if (seconds != null) {
                         patient.setDateCreated(new Date(seconds * 1000L));
@@ -439,7 +478,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
 
-            // TODO(nfortescue): refactor so we have a single assigned location with a uuid,
+            // TODO: refactor so we have a single assigned location with a uuid,
             // and we walk up the tree to get extra information for the patient.
             String assignedLocation = DbUtil.getPersonAttributeValue(
                     patient, DbUtil.getAssignedLocationAttributeType());
@@ -456,7 +495,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 }
 
                 // Walk up the tree and then count back.
-                // TODO(nfortescue): remove this code when the client does it's own tree traversal.
+                // TODO: remove this code when the client does it's own tree traversal.
                 ArrayList<Location> branch = new ArrayList<>();
                 while(!location.getUuid().equals(LocationResource.EMC_UUID)) {
                     branch.add(location);
@@ -486,7 +525,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
 
-            // TODO(kpy): This value was a stopgap before we had a better way to store
+            // TODO: This value was a stopgap before we had a better way to store
             // the admission date.  This JSON property is no longer used in the client;
             // instead, the admission date is stored as an observation and returned by
             // PatientEncountersResource.

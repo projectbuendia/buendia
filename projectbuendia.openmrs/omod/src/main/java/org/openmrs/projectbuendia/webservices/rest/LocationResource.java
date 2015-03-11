@@ -29,16 +29,36 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Rest API for getting locations in an EMC (Ebola Management Centre). Example JSON for a location looks like:
+ * Rest API for locations in an EMC (Ebola Management Centre).
+ *
+ * <p>Expected behavior:
+ * GET /location returns all locations ({@link #getAll(RequestContext)})
+ * GET /location/[UUID] returns information on a single location ({@link #retrieve(String, RequestContext)})
+ * POST /location creates a location ({@link #create(SimpleObject, RequestContext)}
+ * POST /location/[UUID] updates a location ({@link #update(String, SimpleObject, RequestContext)})
+ * DELETE /location/[UUID] deletes a location ({@link #delete(String, String, RequestContext)})
+ *
+ * <p>Each operation handles Location resources, with the following syntax:
  *
  * <pre>
  * {
  *   uuid: “1234-5”
  *   names {
- *     “en”: “Kailahun” // Or suspect zone, or tent 3, or bed2, tent 3
+ *     “en”: “Kailahun” // Or suspect zone, or tent 3, or bed 2, tent 3
  *     “fr”: “Kailahun” // we won’t localize at first, but this gives us the ability to later without code changes
  *   }
  *   parent_uuid: “4567-3” // uuid of parent location
+ * }
+ * </pre>
+ *
+ * <p>If an error occurs, the response will contain the following:
+ * <pre>
+ * {
+ *   "error": {
+ *     "message": "[error message]",
+ *     "code": "[breakpoint]",
+ *     "detail": "[stack trace]"
+ *   }
  * }
  * </pre>
  */

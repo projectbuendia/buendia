@@ -19,8 +19,9 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * REST resource for charts. These are stored as OpenMRS forms, but that's primarily
- * to allow for ease of maintenance.
+ * REST resource for charts. These are stored as OpenMRS forms, but that's primarily to allow for ease of maintenance.
+ *
+ * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
@@ -36,11 +37,42 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
         formService = Context.getFormService();
     }
 
+    /**
+     * Retrieves a single form with the given UUID.
+     *
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
+     * @param context the request context; specify "v=full" in the URL params for verbose output
+     */
     @Override
     public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) throws ResponseException {
         return formService.getFormByUuid(uuid);
     }
-    
+
+    /**
+     * Always adds the following fields to the {@link SimpleObject}:
+     * <ul>
+     *     <li>version: the version number (e.g. 0.2.3) of the form</li>
+     * </ul>
+     *
+     * Adds the following fields to the {@link SimpleObject} if verbose output is requested:
+     * <ul>
+     *     <li>
+     *         groups: a {@link List} of {@link SimpleObject}'s, each with the following pairs:
+     *         <ul>
+     *             <li>
+     *                 uuid: the unique id for the concept that represents the group in (note: when defining groups in
+     *                 OpenMRS for charts returned by this endpoint, each group MUST be represented by a concept or this
+     *                 endpoint will return an error)
+     *             </li>
+     *             <li>
+     *                 concepts: a {@link List} of concept ids for concepts contained within the group
+     *             </li>
+     *         </ul>
+     *     </li>
+     * </ul>
+     *
+     * @param context the request context; specify "v=full" in the URL params for verbose output
+     */
     @Override
     protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.put(VERSION, form.getVersion());
@@ -71,7 +103,13 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
         }
         json.put(GROUPS, groups);
     }
-    
+
+    /**
+     * Returns all charts (there is no support for query parameters).
+     *
+     * @see AbstractReadOnlyResource#search(RequestContext)
+     * @param context the request context; specify "v=full" in the URL params for verbose output
+     */
     @Override
     protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
         return getCharts(formService);
