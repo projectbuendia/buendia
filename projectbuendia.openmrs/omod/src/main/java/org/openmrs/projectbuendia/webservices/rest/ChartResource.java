@@ -51,24 +51,18 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
     /**
      * Always adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>version: the version number (e.g. 0.2.3) of the form</li>
+     *     <li>version: the version number (e.g. 0.2.3) of the form
      * </ul>
      *
      * Adds the following fields to the {@link SimpleObject} if verbose output is requested:
      * <ul>
-     *     <li>
-     *         groups: a {@link List} of {@link SimpleObject}'s, each with the following pairs:
+     *     <li>groups: a {@link List} of {@link SimpleObject}'s, each with the following pairs:
      *         <ul>
-     *             <li>
-     *                 uuid: the unique id for the concept that represents the group in (note: when defining groups in
+     *             <li>uuid: the unique id for the concept that represents the group in (note: when defining groups in
      *                 OpenMRS for charts returned by this endpoint, each group MUST be represented by a concept or this
      *                 endpoint will return an error)
-     *             </li>
-     *             <li>
-     *                 concepts: a {@link List} of concept ids for concepts contained within the group
-     *             </li>
+     *             <li>concepts: a {@link List} of concept ids for concepts contained within the group
      *         </ul>
-     *     </li>
      * </ul>
      *
      * @param context the request context; specify "v=full" in the URL params for verbose output

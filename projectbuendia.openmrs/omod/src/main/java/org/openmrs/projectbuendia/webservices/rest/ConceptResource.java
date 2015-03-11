@@ -106,24 +106,20 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     /**
      * Always adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>xform_id: the id used to identify the concept in an xform (which may not match its UUID)</li>
-     *     <li>
-     *         type: a description of the concept datatype, as defined by OpenMRS, where the datatype is one
+     *     <li>xform_id: the id used to identify the concept in an xform (which may not match its UUID)
+     *     <li>type: a description of the concept datatype, as defined by OpenMRS, where the datatype is one
      *         of the following:
      *         <ul>
-     *             <li>coded</li>
-     *             <li>text</li>
-     *             <li>numeric</li>
-     *             <li>datetime</li>
-     *             <li>date</li>
-     *             <li>none</li>
+     *             <li>coded
+     *             <li>text
+     *             <li>numeric
+     *             <li>datetime
+     *             <li>date
+     *             <li>none
      *         </ul>
-     *     </li>
-     *     <li>
-     *         names: a {@link Map} of locales to concept names in that locale. If no locales are specified in the
+     *     <li>names: a {@link Map} of locales to concept names in that locale. If no locales are specified in the
      *         request context, this map will contain all allowed locales; otherwise, only the specified locales will
      *         be included.
-     *     </li>
      * </ul>
      *
      * @param context the request context; specify "locales=[comma separated locales]" in the URL params to request

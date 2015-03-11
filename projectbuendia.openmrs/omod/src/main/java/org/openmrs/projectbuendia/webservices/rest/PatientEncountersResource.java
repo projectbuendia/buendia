@@ -56,10 +56,8 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      * @param context the request context; the following parameters are supported:
      *                <ul>
-     *                  <li>
-     *                      sm: timestamp, in ms; if specified, only encounters created after this time (inclusive) will
+     *                  <li>sm: timestamp, in ms; if specified, only encounters created after this time (inclusive) will
      *                      be returned
-     *                  </li>
      *                </ul>
      */
     @Override
@@ -73,10 +71,8 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
      * @see AbstractReadOnlyResource#search(RequestContext)
      * @param context the request context; the following parameters are supported:
      *                <ul>
-     *                  <li>
-     *                      sm: timestamp, in ms; if specified, only encounters created after this time (inclusive) will
+     *                  <li>sm: timestamp, in ms; if specified, only encounters created after this time (inclusive) will
      *                      be returned
-     *                  </li>
      *                </ul>
      */
     @Override
@@ -87,14 +83,12 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
     /**
      * Always adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>
-     *         encounters: {@link List} of {@link SimpleObject}'s, each containing the following pairs:
+     *     <li>encounters: {@link List} of {@link SimpleObject}'s, each containing the following pairs:
      *         <ul>
-     *             <li>timestamp: ISO6801-formatted timestamp, accurate to the minute</li>
-     *             <li>uuid: unique identifier for this encounter</li>
-     *             <li>observations: {@link java.util.Map} of concept UUID's to values</li>
+     *             <li>timestamp: ISO6801-formatted timestamp, accurate to the minute
+     *             <li>uuid: unique identifier for this encounter
+     *             <li>observations: {@link java.util.Map} of concept UUID's to values
      *         </ul>
-     *     </li>
      * </ul>
      *
      * @param context the request context; specify "v=full" in the URL params for verbose output

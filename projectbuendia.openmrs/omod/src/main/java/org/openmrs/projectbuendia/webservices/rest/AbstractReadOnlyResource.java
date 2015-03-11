@@ -71,7 +71,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     /**
      * Performs a search, using the given {@link RequestContext}. What parameters are used for a
      * search, as well as how the search is performed, is delegated to the
-     * {@link #searchImpl(RequestContext, long) function.
+     * {@link #searchImpl(RequestContext, long)} function.
      *
      * <p>If no search query is specified, this function returns all results.
      *
@@ -79,13 +79,9 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
      * are expected
      * @return a {@link SimpleObject} with the following pairs:
      * <ul>
-     *     <li>
-     *         results: a {@link List} of {@link SimpleObject}'s, each representing a single resource, equivalent to the
+     *     <li>results: a {@link List} of {@link SimpleObject}'s, each representing a single resource, equivalent to the
      *         output of a {@link #retrieve(String, RequestContext)} operation
-     *     </li>
-     *     <li>
-     *         snapshotTime: a timestamp in ISO 6801 format labeled snapshotTime
-     *     </li>
+     *     <li>snapshotTime: a timestamp in ISO 6801 format labeled snapshotTime
      * </ul>
      * @throws ResponseException if anything goes wrong
      */
@@ -130,13 +126,10 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
      * <li>
      *     links: a {@link List} of {@link SimpleObject}'s, each containing the following pairs:
      *     <ul>
-     *         <li>uri: uri for requesting this resource</li>
-     *         <li>rel: what the uri is relative to ("self" if relative to this server or absolute)</li>
+     *         <li>uri: uri for requesting this resource
+     *         <li>rel: what the uri is relative to ("self" if relative to this server or absolute)
      *     </ul>
-     * </li>
-     * <li>
-     *     Resource-specific data provided by {@link #populateJsonProperties(T, RequestContext, SimpleObject, long)}
-     * </li>
+     * <li>Resource-specific data provided by {@link #populateJsonProperties(T, RequestContext, SimpleObject, long)}
      * </ul>
      * @throws ResponseException if anything goes wrong
      */

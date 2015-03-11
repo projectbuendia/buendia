@@ -56,20 +56,16 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     /**
      * Always adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>name: display name of the form</li>
-     *     <li>date_created: the date the form was created, as ms since epoch</li>
-     *     <li>version: the version number of the form (e.g. 0.2.1)</li>
-     *     <li>
-     *         date_changed: the date the form was last modified, as ms since epoch; for forms that contain a provider
+     *     <li>name: display name of the form
+     *     <li>date_created: the date the form was created, as ms since epoch
+     *     <li>version: the version number of the form (e.g. 0.2.1)
+     *     <li>date_changed: the date the form was last modified, as ms since epoch; for forms that contain a provider
      *         field, this date will also be updated whenever the set of providers on the server changes
-     *     </li>
      * </ul>
      *
      * Adds the following fields to the {@link SimpleObject} if verbose output is requested:
      * <ul>
-     *     <li>
-     *         xml: the contents of the xform in XML format
-     *     </li>
+     *     <li>xml: the contents of the xform in XML format
      * </ul>
      *
      * @param context the request context; specify "v=full" in the URL params for verbose output
