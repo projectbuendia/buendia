@@ -44,7 +44,8 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
  *   patient_id: "123", // patient id assigned by medical center
  *   patient_uuid: "24ae3-5", // patient unique identifier in OpenMRS
  *   enterer_id: “1234-5”, // the provider's person id
- *   date_entered: "2015-03-14T09:26:53.589", // date in which encounter was recorded (not necessarily when it happened)
+ *   date_entered: "2015-03-14T09:26:53.589", // date (in ISO8601 format) in which encounter was recorded
+ *                                            // (not necessarily when it happened)
  *   xml: "..." // XML contents of form entry, as provided by ODK
  * }
  * </pre>

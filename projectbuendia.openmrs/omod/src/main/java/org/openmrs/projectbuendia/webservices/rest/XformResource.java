@@ -131,7 +131,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
      * Retrieves a single xform with the given UUID.
      *
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     * @param context the request context; specify "v=full" in the URL params for verbose output
+     * @param context the request context; specify "v=full" in the URL params to retrieve the form alongside the
+     *                metadata; by default, only metadata is returned
      */
     @Override
     protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
@@ -142,10 +143,13 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
      * Returns all xforms (there is no support for query parameters).
      *
      * @see AbstractReadOnlyResource#search(RequestContext)
-     * @param context the request context; specify "v=full" in the URL params for verbose output
+     * @param context the request context; specify "v=full" in the URL params to retrieve the form alongside the
+     *                metadata; by default, only metadata is returned
+     *                Note: because of a bug in parsing form definitions, "v=full" is currently broken for this function
      */
     @Override
     protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
+        // TODO: Fix verbose mode. Currently produces error: "No bind node for bindName _3._bleeding_sites".
         // No query parameters supported - just give all the forms
         return formService.getAllForms(false);
     }

@@ -56,15 +56,10 @@ import java.util.Map;
  *   "family_name": "Doe", // required, "Unknown" suggested if not known
  *   "assigned_location": { // optional, but highly encouraged
  *     "uuid": "0a49d383-7019-4f1f-bf4b-875f2cd58964", // UUID of the patient's assigned location
- *     "parent_uuid": "b9038895-9c9d-4908-9e0d-51fd535ddd3c", // deprecated but allowed
- *     "zone": "Confirmed Zone", // deprecated but allowed
- *     "zone_uuid": "b9038895-9c9d-4908-9e0d-51fd535ddd3c", // deprecated but allowed
- *     "tent": "C2", // deprecated but allowed
- *     "tent_uuid": "0a49d383-7019-4f1f-bf4b-875f2cd58964" // deprecated but allowed
- *   },
- *   "admission_timestamp": 1424190141 // deprecated but allowed
+ *   }
  * },
  * </pre>
+ * Note that results may contain other fields not listed above, but these fields are deprecated and no longer supported.
  *
  * <p>If an error occurs, the response will contain the following:
  * <pre>
