@@ -1,5 +1,0 @@
-#!/bin/bash
-
-export DEBIAN_FRONTEND=noninteractive
-apt-get -y install dnsmasq
-cp -pr dnsmasq.d /etc
