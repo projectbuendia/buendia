@@ -32,6 +32,8 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
 /**
  * Resource for xform templates (i.e. forms without data). Note: this is under
  * org.openmrs as otherwise the resource annotation isn't picked up.
+ *
+ * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformResource extends AbstractReadOnlyResource<Form> {
@@ -50,7 +52,24 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         this.formService = Context.getFormService();
         this.providerService = Context.getProviderService();
     }
-    
+
+    /**
+     * Always adds the following fields to the {@link SimpleObject}:
+     * <ul>
+     *     <li>name: display name of the form
+     *     <li>date_created: the date the form was created, as ms since epoch
+     *     <li>version: the version number of the form (e.g. 0.2.1)
+     *     <li>date_changed: the date the form was last modified, as ms since epoch; for forms that contain a provider
+     *         field, this date will also be updated whenever the set of providers on the server changes
+     * </ul>
+     *
+     * Adds the following fields to the {@link SimpleObject} if verbose output is requested:
+     * <ul>
+     *     <li>xml: the contents of the xform in XML format
+     * </ul>
+     *
+     * @param context the request context; specify "v=full" in the URL params for verbose output
+     */
     @Override
     protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.add("name", form.getName());
@@ -60,7 +79,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         boolean includesProviders = false;
         if (context.getRepresentation() == Representation.FULL) {
             try {
-                // TODO(jonskeet): Use description instead of name?
+                // TODO: Use description instead of name?
                 FormData formData = BuendiaXformBuilderEx.buildXform(form, new BuendiaXformCustomizer());
                 String xml = convertToOdkCollect(formData.xml, form.getName());
                 includesProviders = formData.includesProviders;
@@ -108,13 +127,29 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         return d1.before(d2) ? d2 : d1;
     }
 
+    /**
+     * Retrieves a single xform with the given UUID.
+     *
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
+     * @param context the request context; specify "v=full" in the URL params to retrieve the form alongside the
+     *                metadata; by default, only metadata is returned
+     */
     @Override
     protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return formService.getFormByUuid(uuid);
     }
-    
+
+    /**
+     * Returns all xforms (there is no support for query parameters).
+     *
+     * @see AbstractReadOnlyResource#search(RequestContext)
+     * @param context the request context; specify "v=full" in the URL params to retrieve the form alongside the
+     *                metadata; by default, only metadata is returned
+     *                Note: because of a bug in parsing form definitions, "v=full" is currently broken for this function
+     */
     @Override
     protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
+        // TODO: Fix verbose mode. Currently produces error: "No bind node for bindName _3._bleeding_sites".
         // No query parameters supported - just give all the forms
         return formService.getAllForms(false);
     }

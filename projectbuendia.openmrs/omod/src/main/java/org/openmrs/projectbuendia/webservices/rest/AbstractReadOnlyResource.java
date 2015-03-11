@@ -21,7 +21,28 @@ import org.openmrs.projectbuendia.DateTimeUtils;
 
 /**
  * Abstract superclass for resources where the REST API only supports read-only
- * operations. Subclasses are required to provide the Resource annotation to specify the URL etc. 
+ * operations. Subclasses are required to provide the Resource annotation to specify the URL etc.
+ *
+ * <p>Every AbstractReadOnlyResource supports retrieve, list (getAll), and search operations.
+ *
+ * <p>Retrieve operations are implemented by {@link #retrieve(String, RequestContext)}.
+ * List operations are implemented by {@link #getAll(RequestContext)}.
+ * Search operations are implemented by {@link #search(RequestContext)}.
+ *
+ * <p>Each of these functions returns a SimpleObject, which is converted to a JSON representation in the response. If
+ * an error occurs, this SimpleObject will contain the following:
+ * <pre>
+ * {
+ *   "error": {
+ *     "message": "[error message]",
+ *     "code": "[breakpoint]",
+ *     "detail": "[stack trace]"
+ *   }
+ * }
+ * </pre>
+ *
+ * <p>For more details about each operation, including expected input/output and request parameters,
+ * see method-level comments.
  */
 public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implements Listable, Retrievable, Searchable {
 
@@ -47,6 +68,23 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         return RestConstants.URI_PREFIX + res.name() + "/" + mrsObject.getUuid();
     }
 
+    /**
+     * Performs a search, using the given {@link RequestContext}. What parameters are used for a
+     * search, as well as how the search is performed, is delegated to the
+     * {@link #searchImpl(RequestContext, long)} function.
+     *
+     * <p>If no search query is specified, this function returns all results.
+     *
+     * @param context the request context; see {@link #searchImpl(RequestContext, long)} to determine what parameters
+     * are expected
+     * @return a {@link SimpleObject} with the following pairs:
+     * <ul>
+     *     <li>results: a {@link List} of {@link SimpleObject}'s, each representing a single resource, equivalent to the
+     *         output of a {@link #retrieve(String, RequestContext)} operation
+     *     <li>snapshotTime: a timestamp in ISO 6801 format labeled snapshotTime
+     * </ul>
+     * @throws ResponseException if anything goes wrong
+     */
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
         try {
@@ -72,6 +110,29 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         return response;
     }
 
+    /**
+     * Retrieves the resource with the specified UUID.
+     *
+     * <p>Responds to: {@code GET [API root]/[resource type]/[UUID]}
+     *
+     * @param uuid the UUID that uniquely identifies the requested resource
+     * @param context the request context; see {@link #retrieveImpl(String, RequestContext, long)} to determine what
+     * parameters are expected
+     * @return a {@link SimpleObject} with the following pairs:
+     * <ul>
+     * <li>
+     *     uuid: the unique identifier of the resource
+     * </li>
+     * <li>
+     *     links: a {@link List} of {@link SimpleObject}'s, each containing the following pairs:
+     *     <ul>
+     *         <li>uri: uri for requesting this resource
+     *         <li>rel: what the uri is relative to ("self" if relative to this server or absolute)
+     *     </ul>
+     * <li>Resource-specific data provided by {@link #populateJsonProperties(T, RequestContext, SimpleObject, long)}
+     * </ul>
+     * @throws ResponseException if anything goes wrong
+     */
     @Override
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
@@ -99,7 +160,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     }
 
     /**
-     * Delegates directly to search; the implementation of searchImpl should list all
+     * Delegates directly to {@link #search(RequestContext)}; the implementation of searchImpl should list all
      * appropriate items if no query parameters have been given. 
      */
     @Override
