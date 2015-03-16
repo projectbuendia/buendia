@@ -36,10 +36,33 @@ import java.util.Set;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
 
 /**
- * Resource for instances of xforms (i.e. filled in forms). Currently write-only
+ * Resource for instances of xforms (i.e. filled in forms). Currently write-only.
+ *
+ * <p>Responds to POST [API root]/xforminstance. Example JSON for an xform instance looks like:
+ * <pre>
+ * {
+ *   patient_id: "123", // patient id assigned by medical center
+ *   patient_uuid: "24ae3-5", // patient unique identifier in OpenMRS
+ *   enterer_id: “1234-5”, // the provider's person id
+ *   date_entered: "2015-03-14T09:26:53.589", // date (in ISO8601 format) in which encounter was recorded
+ *                                            // (not necessarily when it happened)
+ *   xml: "..." // XML contents of form entry, as provided by ODK
+ * }
+ * </pre>
+ *
+ * <p>When creation is successful, the created XformInstance JSON is returned. If an error occurs, the response will
+ * contain the following:
+ * <pre>
+ * {
+ *   "error": {
+ *     "message": "[error message]",
+ *     "code": "[breakpoint]",
+ *     "detail": "[stack trace]"
+ *   }
+ * }
+ * </pre>
  */
-// TODO(jonskeet): Still not really sure what supportedClass to use here... can
-// we omit it?
+// TODO: Still not really sure what supportedClass to use here... can we omit it?
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
     static final RequestLogger logger = RequestLogger.LOGGER;
@@ -65,8 +88,8 @@ public class XformInstanceResource implements Creatable {
 
     @SuppressWarnings("unused")
     private static final Log getLog() {
-        // TODO(kpy): Figure out why getLog(XformInstanceResource.class) gives
-        // no log output.  Using "org.openmrs.api" works, though.
+        // TODO: Figure out why getLog(XformInstanceResource.class) gives no log output.  Using "org.openmrs.api" works,
+        // though.
         return LogFactory.getLog("org.openmrs.api");
     }
 
@@ -156,7 +179,7 @@ public class XformInstanceResource implements Creatable {
                 .setTextContent(formattedDatetime);
     }
 
-    // TODO(kpy): The following function is no longer used.  Previously when
+    // TODO: The following function is no longer used.  Previously when
     // the tablets had better clocks than the server, we would adjust the
     // server's clock.  Now the server is the authoritative time source, so
     // instead of pushing the server's clock forward, we use NTP to make the
@@ -246,7 +269,7 @@ public class XformInstanceResource implements Creatable {
         Element patientIdElement = getFirstElementOrCreate(doc, patient, "patient.patient_id");
 
         // Add patient element if we've been given a patient ID.
-        // TODO(jonskeet): Is this okay if there's already a patient element?
+        // TODO: Is this okay if there's already a patient element?
         // Need to see how the Xforms module behaves.
         if (patientId != null) {
             patientIdElement.setTextContent(String.valueOf(patientId));
@@ -272,7 +295,7 @@ public class XformInstanceResource implements Creatable {
         // We must set the encounter_datetime to ensure it is properly formatted.
         setEncounterDatetime(doc, datetime);
 
-        //TODO(nfortescue); we should also have some code here to ensure that the correct XLST exists for every form
+        //TODO: we should also have some code here to ensure that the correct XSLT exists for every form
         // otherwise we lose it on form rename.
 
         // Make sure that all observations are under the obs element, with appropriate attributes

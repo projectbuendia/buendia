@@ -25,12 +25,13 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * REST resource for charts. These are stored as OpenMRS forms, but that's primarily
- * to allow for ease of maintenance.
+ * REST resource for concepts that are present in at least one chart returned by {@link ChartResource}.
+ *
+ * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/concept", supportedClass = Concept.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ConceptResource extends AbstractReadOnlyResource<Concept> {    
-    // TODO(jonskeet): Add versioning, possibly via a global property
+    // TODO: Add versioning, possibly via a global property
 //    private static final String VERSION = "version";
     private static final String XFORM_ID = "xform_id";
     private static final String TYPE = "type";
@@ -59,12 +60,27 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
         conceptService = Context.getConceptService();
         namer = new ClientConceptNamer(Context.getLocale());
     }
-    
+
+    /**
+     * Retrieves a single concept with the given UUID.
+     *
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
+     * @param context the request context; specify "locales=[comma separated locales]" in the URL params to request
+     *                localized concept names for specific locales; otherwise, all available locales will be returned
+     */
     @Override
     protected Concept retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return conceptService.getConceptByUuid(uuid);
     }
-    
+
+    /**
+     * Returns all concepts present in at least one chart returned by {@link ChartResource} (there is no support for
+     * query parameters).
+     *
+     * @see AbstractReadOnlyResource#search(RequestContext)
+     * @param context the request context; specify "locales=[comma separated locales]" in the URL params to request
+     *                localized concept names for specific locales; otherwise, all available locales will be returned
+     */
     @Override
     protected Iterable<Concept> searchImpl(RequestContext context, long snapshotTime) {
         // No querying as yet.
@@ -86,7 +102,29 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
         }
         return ret;
     }
-    
+
+    /**
+     * Always adds the following fields to the {@link SimpleObject}:
+     * <ul>
+     *     <li>xform_id: the id used to identify the concept in an xform (which may not match its UUID)
+     *     <li>type: a description of the concept datatype, as defined by OpenMRS, where the datatype is one
+     *         of the following:
+     *         <ul>
+     *             <li>coded
+     *             <li>text
+     *             <li>numeric
+     *             <li>datetime
+     *             <li>date
+     *             <li>none
+     *         </ul>
+     *     <li>names: a {@link Map} of locales to concept names in that locale. If no locales are specified in the
+     *         request context, this map will contain all allowed locales; otherwise, only the specified locales will
+     *         be included.
+     * </ul>
+     *
+     * @param context the request context; specify "locales=[comma separated locales]" in the URL params to request
+     *                localized concept names for specific locales; otherwise, all available locales will be returned
+     */
     @Override
     protected void populateJsonProperties(Concept concept, RequestContext context, SimpleObject json,
                                           long snapshotTime) {
@@ -107,7 +145,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     }
 
     private List<Locale> getLocalesForRequest(RequestContext context) {
-        // TODO(jonskeet): Make this cheap to call multiple times for a single request.
+        // TODO: Make this cheap to call multiple times for a single request.
         String localeIds = context.getRequest().getParameter(LOCALES_PARAMETER);
         if (localeIds == null || localeIds.trim().equals("")) {
             return Context.getAdministrationService().getAllowedLocales();
