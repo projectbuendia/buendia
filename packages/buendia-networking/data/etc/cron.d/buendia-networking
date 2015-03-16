@@ -2,3 +2,4 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 * * * * * root buendia-update-hosts
+*/2 * * * * root buendia-log buendia-wifi-watchdog
