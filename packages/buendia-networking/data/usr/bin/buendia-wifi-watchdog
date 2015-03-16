@@ -3,6 +3,9 @@
 set -e
 . /usr/share/buendia/utils.sh
 
+tmpfile=/tmp/$(basename $0).$$
+trap 'rm -rf $tmpfile' EXIT
+
 # If it's only been a couple of minutes since boot, the server is still coming
 # up; don't expect networking to be up yet.
 min_upsecs=180
@@ -12,18 +15,23 @@ if [ "$upsecs" -lt "$min_upsecs" ]; then
     exit 1
 fi
 
-wpa_state=$(echo 'wpa_cli status' | buendia-enter-yocto | grep wpa_state)
+if bool "$NETWORKING_AP"; thn
+    echo "Not checking wifi: server is an AP creating its own wifi network."
+    exit 1
+fi
 
-# Check whether wpa_cli produces any output at all.  It will not produce
-# output when the server is in AP mode or when the server is not a Yocto
-# system -- in both of these situations, we don't want to restart networking.
-if [[ -n "$wpa_state" ]]; then
-    echo "wpa_cli status: $wpa_state"
-    # If the state is anything other than "COMPLETED", wifi is down.
-    if [[ "$wpa_state" != *COMPLETED* ]]; then
-        echo "Restarting wifi."
-        # "-f" means to force redoing network setup even though the network
-        # configuration settings haven't changed.
-        buendia-reconfigure -f networking
-    fi
+if [ -z "$NETWORKING_SSID" ]; then
+    echo "Not checking wifi: NETWORKING_SSID is unset."
+    exit 1
+fi
+
+echo 'wpa_cli status' | buendia-enter-yocto >$tmpfile 2>&1
+
+cat $tmpfile  # for the log
+# If the state is anything other than "COMPLETED", wifi is down.
+if ! grep -q COMPLETED $tmpfile; then
+    echo "Restarting wifi."
+    # "-f" means to force redoing network setup even though the network
+    # configuration settings haven't changed.
+    buendia-reconfigure -f networking
 fi
