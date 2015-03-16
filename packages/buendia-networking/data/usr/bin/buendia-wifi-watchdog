@@ -3,8 +3,12 @@
 set -e
 . /usr/share/buendia/utils.sh
 
-tmpfile=/tmp/$(basename $0).$$
-trap 'rm -rf $tmpfile' EXIT
+# The networking configuration may be changing during an update.
+exec 9> /var/run/lock/buendia-update
+if ! flock -s -n 9; then
+    echo "Not checking wifi: buendia-update is currently running."
+    exit 1
+fi
 
 # If it's only been a couple of minutes since boot, the server is still coming
 # up; don't expect networking to be up yet.
@@ -25,6 +29,8 @@ if [ -z "$NETWORKING_SSID" ]; then
     exit 1
 fi
 
+tmpfile=/tmp/$(basename $0).$$
+trap 'rm -rf $tmpfile' EXIT
 echo 'wpa_cli status' | buendia-enter-yocto >$tmpfile 2>&1
 
 cat $tmpfile  # for the log
