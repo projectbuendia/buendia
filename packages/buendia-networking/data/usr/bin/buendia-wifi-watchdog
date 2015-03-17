@@ -1,9 +1,17 @@
 #!/bin/bash
 
+# When the server is in wifi client mode (connecting to an external AP), we've
+# observed that it sometimes loses its connection to the wifi AP after a
+# couple of days, resulting in a major outage of the system; we don't know if
+# it's due to the server's wifi hardware, driver software, or a problem with
+# the wifi AP.  However, we do know that in this state a simple reboot brings
+# everything back to working order.  This watchdog checks if the server has
+# fallen off the wifi network, and kicks wpa_supplicant to make it rejoin.
+
 set -e
 . /usr/share/buendia/utils.sh
 
-# The networking configuration may be changing during an update.
+# If a software update is in progress, we don't want to interfere with it.
 exec 9> /var/run/lock/buendia-update
 if ! flock -s -n 9; then
     echo "Not checking wifi: buendia-update is currently running."
@@ -19,6 +27,7 @@ if [ "$upsecs" -lt "$min_upsecs" ]; then
     exit 1
 fi
 
+# The observed problem occurs when the server is a wifi client, not a wifi AP.
 if bool "$NETWORKING_AP"; then
     echo "Not checking wifi: server is an AP creating its own wifi network."
     exit 1
@@ -29,13 +38,19 @@ if [ -z "$NETWORKING_SSID" ]; then
     exit 1
 fi
 
+# The "wpa_cli" command tells us the status of the wifi client subsystem.
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
-echo 'wpa_cli status' | buendia-enter-yocto >$tmpfile 2>&1
+echo 'wpa_cli status; true' | buendia-enter-yocto >$tmpfile 2>&1
 
-cat $tmpfile  # for the log
-# If the state is anything other than "COMPLETED", wifi is down.
-if ! grep -q COMPLETED $tmpfile; then
+cat $tmpfile  # cause the output of wpa_cli status to appear in the log
+
+# If wpa_supplicant is not running at all, wpa_cli status will just contain
+# an error message.  If wpa_supplicant is up but not (yet) connected to an AP,
+# wpa_cli status will say that the state is something other than COMPLETED,
+# such as SCANNING or DISCONNECTED or ASSOCIATING.  In all of these cases, we
+# just want to restart the wifi connection.
+if ! grep -q wpa_state=COMPLETED $tmpfile; then
     echo "Restarting wifi."
     # "-f" means to force redoing network setup even though the network
     # configuration settings haven't changed.
