@@ -18,8 +18,9 @@ rm -rf $tmp
 mkdir -p $tmp
 trap 'rm -rf $tmp $repo/dists.old' EXIT
 
-# Make sure all packages are world-readable.
-chmod a+r $repo/*
+# Make sure all packages are world-readable.  If there are some files
+# whose permissions the current user can't update, continue anyway.
+chmod a+r $repo/* || true
 
 # Build the index in a mirror of the package tree, because the dist/
 # directory needs to be empty for the indexes to be built properly,
