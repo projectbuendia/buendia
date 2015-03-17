@@ -2,4 +2,9 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
 * * * * * root buendia-update-hosts
+
+# "sleep 30" reduces the crowding of too many cron jobs starting on the
+# minute; in particular, buendia-update will usually run then, and it's
+# better not to be kicking the network configuration right when we're
+# about to start a software update.
 * * * * * root sleep 30; buendia-log buendia-wifi-watchdog
