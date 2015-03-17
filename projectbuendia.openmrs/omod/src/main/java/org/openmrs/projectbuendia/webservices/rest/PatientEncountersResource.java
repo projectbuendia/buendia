@@ -22,9 +22,12 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Read-only resource representing multiple observations for a single patient.
+ * Resource representing multiple observations for a single patient, taken within a single encounter (e.g. a single
+ * form entry).
+ *
+ * @see AbstractReadOnlyResource
  */
-// TODO(jonskeet): Ideally, this would be under patient/{uuid}/encounters; it's unclear whether
+// TODO: Ideally, this would be under patient/{uuid}/encounters; it's unclear whether
 // that can be supported here...
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters",
         supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
@@ -47,16 +50,49 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         encounterService = Context.getEncounterService();
     }
 
+    /**
+     * Retrieves patient encounters for a single patient with the given UUID.
+     *
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
+     * @param context the request context; the following parameters are supported:
+     *                <ul>
+     *                  <li>sm: timestamp, in ms; if specified, only encounters created after this time (inclusive) will
+     *                      be returned
+     *                </ul>
+     */
     @Override
     protected Patient retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         return patientService.getPatientByUuid(uuid);
     }
 
+    /**
+     * Returns patient encounters for all patients (there is no support for query parameters).
+     *
+     * @see AbstractReadOnlyResource#search(RequestContext)
+     * @param context the request context; the following parameters are supported:
+     *                <ul>
+     *                  <li>sm: timestamp, in ms; if specified, only encounters created after this time (inclusive) will
+     *                      be returned
+     *                </ul>
+     */
     @Override
     public List<Patient> searchImpl(RequestContext context, long snapshotTime) {
         return patientService.getAllPatients();
     }
 
+    /**
+     * Always adds the following fields to the {@link SimpleObject}:
+     * <ul>
+     *     <li>encounters: {@link List} of {@link SimpleObject}'s, each containing the following pairs:
+     *         <ul>
+     *             <li>timestamp: ISO6801-formatted timestamp, accurate to the minute
+     *             <li>uuid: unique identifier for this encounter
+     *             <li>observations: {@link java.util.Map} of concept UUID's to values
+     *         </ul>
+     * </ul>
+     *
+     * @param context the request context; specify "v=full" in the URL params for verbose output
+     */
     @Override
     protected void populateJsonProperties(Patient patient, RequestContext context, SimpleObject json,
                                           long snapshotTime) {
@@ -204,7 +240,7 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         // JSON Syntax for this method (create) is different from the JSON syntax for get. This is
         // terrible REST design. However, we are close to shipping, and I don't want to introduce the
         // server and client side changes needed if I changed the wire format. So instead, there is this comment.
-        // TODO(nfortescue): refactor the wire format for getEncounters so it matches the create format.
+        // TODO: refactor the wire format for getEncounters so it matches the create format.
 
         if (!post.containsKey(UUID)) {
             throw new InvalidObjectDataException("No patient UUID specified");
@@ -227,7 +263,7 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         }
         if (observationsHandler.hasObservations(post)) {
             Encounter encounter = observationsHandler.addObservations(post, patient, encounterTime, "new observation",
-                    // TODO(nfortescue): send the correct location in the RPC, rather than using the whole facility
+                    // TODO: send the correct location in the RPC, rather than using the whole facility
                     "ADULTRETURN", LocationResource.EMC_UUID);
             return encounterToJson(encounter);
         } else {

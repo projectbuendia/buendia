@@ -1,9 +1,0 @@
-[Unit]
-Description=OpenMRS Database Backup Service
-After=debian-mounts.service
-Requires=debian-mounts.service
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/enter-debian-nomount /usr/local/bin/openmrs_backup
-TimeoutStartSec=60

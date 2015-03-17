@@ -23,6 +23,7 @@ MONITORING_LIMITS='
 # Create the buendia-demo wifi network and provide DHCP/DNS.
 NETWORKING_AP=1
 NETWORKING_SSID=buendia-demo
+NETWORKING_PASSWORD=buendia-demo
 NETWORKING_DHCP_DNS_SERVER=1
 
 # Keep the Edison up to date.

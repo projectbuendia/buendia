@@ -1,8 +1,0 @@
-[Unit]
-Description=Mount SD card as /debian/sd
-
-# Set up /var/backups and /var/log to reside on the SD card, if present.
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/mount_sd
