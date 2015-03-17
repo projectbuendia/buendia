@@ -5,9 +5,13 @@ set -e; . /usr/share/buendia/utils.sh
 if [ "$1" = "-h" ]; then
     echo "Usage: $0 [-u <seconds>]"
     echo
-    echo "Updates all the Buendia packages, then reboots if necessary."
-    echo "Skips the update if none of the remote repositories are reachable"
-    echo "and nothing has changed in the local repository since the last run."
+    echo "(buendia-autoupdate is designed to be run by cron; if you want to"
+    echo "manually start a software update, use buendia-update.)"
+    echo
+    echo "Updates all the Buendia packages by triggering buendia-update, then"
+    echo "reboots if necessary.  To avoid pointless work, skips the update if"
+    echo "none of the remote repositories are reachable and nothing has"
+    echo "changed in the local repository since the last run."
     echo
     echo "Performs the update only if UPDATE_AUTOUPDATE is set to 1 in"
     echo "/usr/share/buendia/site."
