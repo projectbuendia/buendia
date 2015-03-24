@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.servlet;
 
 import org.apache.commons.csv.CSVFormat;
@@ -40,9 +51,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-/**
- * A servlet for serving up a patient data dump
- */
+/** A servlet that generates a CSV dump of all the patient data. */
 public class DataExportServlet extends HttpServlet {
 
     private static final Comparator<Patient> PATIENT_COMPARATOR = new Comparator<Patient>() {
@@ -68,23 +77,21 @@ public class DataExportServlet extends HttpServlet {
             return c1.getUuid().compareTo(c2.getUuid());
         }
     };
-    private static final String[] FIXED_HEADERS = new String[]{"Patient UUID",
-            "MSF Patient Id",
+    private static final String[] FIXED_HEADERS = new String[] {
+            "Patient UUID",
+            "MSF patient ID",
             "Approximate date of birth",
             "Encounter UUID",
-            "Encounter time epoch milliseconds",
-            "Encounter time ISO8601 UTC",
-            "Encounter time yyyy-MM-dd HH:mm:ss UTC",
+            "Time in epoch milliseconds",
+            "Time in ISO8601 UTC",
+            "Time in yyyy-MM-dd HH:mm:ss UTC",
     };
     private static final int COLUMNS_PER_OBS = 3;
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
-
-    /**
-     * Indexes a fixed set of concepts in sorted UUID order.
-     */
+    /** Indexes a fixed set of concepts in sorted UUID order. */
     private static class FixedSortedConceptIndexer {
-        final Concept [] concepts;
+        final Concept[] concepts;
 
         public FixedSortedConceptIndexer(Collection<Concept> concepts) {
             this.concepts = concepts.toArray(new Concept[concepts.size()]);
@@ -153,7 +160,7 @@ public class DataExportServlet extends HttpServlet {
         writeHeaders(printer, indexer);
 
         // Write one encounter per line
-        final Object [] values = new Object[FIXED_HEADERS.length + indexer.size() * COLUMNS_PER_OBS];
+        final Object[] values = new Object[FIXED_HEADERS.length + indexer.size() * COLUMNS_PER_OBS];
         for (Patient patient : patients) {
             ArrayList<Encounter> encounters = new ArrayList<>(encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
@@ -171,8 +178,10 @@ public class DataExportServlet extends HttpServlet {
                     if (index == null) {
                         continue;
                     }
-                    // For each observation have two columns, first as a friendly English string,
-                    // secondly as a UUID.
+                    // For each observation there are three columns: if the value of the
+                    // observation is a concept, then the three columns contain the English
+                    // name, the OpenMRS ID, and the UUID of the concept; otherwise all
+                    // three columns contain the formatted value.
                     final int valueColumn = FIXED_HEADERS.length + index * COLUMNS_PER_OBS;
                     VisitObsValue.visit(obs, new VisitObsValue.ObsValueVisitor<Void>() {
                         @Override
@@ -267,8 +276,8 @@ public class DataExportServlet extends HttpServlet {
             printer.print(fixedHeader);
         }
         for (int i=0; i<indexer.size(); i++) {
-            // For each observation have two columns, first as a friendly English string,
-            // secondly as a UUID.
+            // For each observation there are three columns: one for the English
+            // name, one for the OpenMRS ID, and one for the UUID of the concept.
             assert COLUMNS_PER_OBS == 3;
             Concept concept = indexer.getConcept(i);
             printer.print(NAMER.getClientName(concept));
