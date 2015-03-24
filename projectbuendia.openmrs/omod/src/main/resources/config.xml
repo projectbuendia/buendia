@@ -2,69 +2,67 @@
 
 <module configVersion="1.2">
 
-	<!-- Module Properties -->
-	<id>${project.parent.artifactId}</id>
-	<name>${project.parent.name}</name>
-	<version>${project.parent.version}</version>
-	<package>${project.parent.groupId}.${project.parent.artifactId}</package>
-	<author>jonskeet@google.com</author>
-	<description>
-		${project.parent.description}
-	</description>
-	<updateURL>https://modules.openmrs.org/modules/download/${project.parent.artifactId}/update.rdf</updateURL>
-	<require_version>${openMRSVersion}</require_version>
-	<require_modules>
-		<require_module version="${webservicesRestVersion}">org.openmrs.module.webservices.rest</require_module>
-		<require_module version="${xformsVersion}">org.openmrs.module.xforms</require_module>
-	</require_modules>
-	<!-- / Module Properties -->
+  <!-- Module Properties -->
+  <id>${project.parent.artifactId}</id>
+  <name>${project.parent.name}</name>
+  <version>${project.parent.version}</version>
+  <package>${project.parent.groupId}.${project.parent.artifactId}</package>
+  <author>jonskeet@google.com</author>
+  <description>
+    ${project.parent.description}
+  </description>
+  <updateURL>https://modules.openmrs.org/modules/download/${project.parent.artifactId}/update.rdf</updateURL>
+  <require_version>${openMRSVersion}</require_version>
+  <require_modules>
+    <require_module version="${webservicesRestVersion}">org.openmrs.module.webservices.rest</require_module>
+    <require_module version="${xformsVersion}">org.openmrs.module.xforms</require_module>
+  </require_modules>
+  <!-- / Module Properties -->
 
-    <!-- Required Global Properties -->
-    <globalProperty>
-        <property>projectbuendia.chartUuids</property>
-        <defaultValue></defaultValue>
-        <description>UUIDs of forms listed as charts by the REST endpoint. (Comma-separated.)</description>
-    </globalProperty>
-    	
-	<!-- Module Activator -->
-	<activator>org.projectbuendia.openmrs.ProjectBuendiaActivator</activator>
-	
-	
-	<!-- Adds link to admin page -->
-	<extension>
-		<point>org.openmrs.admin.list</point>
-		<class>org.projectbuendia.openmrs.extension.html.AdminList</class>
-	</extension>
-	
-	<!-- Maps hibernate file's, if present -->
-	<mappingFiles>
-				
-		ProjectBuendia.hbm.xml
-				
-	</mappingFiles>
+  <!-- Required Global Properties -->
+  <globalProperty>
+    <property>projectbuendia.chartUuids</property>
+    <defaultValue></defaultValue>
+    <description>UUIDs of forms listed as charts by the REST endpoint. (Comma-separated.)</description>
+  </globalProperty>
 
-	<!-- Internationalization -->
-	<!-- All message codes should start with ${project.parent.artifactId}. -->
-	<messages>
-		<lang>en</lang>
-		<file>messages.properties</file>
-	</messages>
-	<messages>
-		<lang>fr</lang>
-		<file>messages_fr.properties</file>
-	</messages>
-	<messages>
-		<lang>es</lang>
-		<file>messages_es.properties</file>
-	</messages>
-	<!-- /Internationalization -->
+  <!-- Module Activator -->
+  <activator>org.projectbuendia.openmrs.ProjectBuendiaActivator</activator>
 
-	<!-- Servlets -->
-	<!-- Accessed through the url /pageContext()/moduleServlet/<servlet-name> -->
-	<servlet>
-		<servlet-name>buendiadata</servlet-name>
-		<servlet-class>org.openmrs.projectbuendia.servlet.DataExportServlet</servlet-class>
-	</servlet>
+
+  <!-- Adds link to admin page -->
+  <extension>
+    <point>org.openmrs.admin.list</point>
+    <class>org.projectbuendia.openmrs.extension.html.AdminList</class>
+  </extension>
+
+  <!-- Maps hibernate files, if present -->
+  <mappingFiles>
+    ProjectBuendia.hbm.xml
+  </mappingFiles>
+
+  <!-- Internationalization -->
+  <!-- All message codes should start with ${project.parent.artifactId}. -->
+  <messages>
+    <lang>en</lang>
+    <file>messages.properties</file>
+  </messages>
+  <messages>
+    <lang>fr</lang>
+    <file>messages_fr.properties</file>
+  </messages>
+  <messages>
+    <lang>es</lang>
+    <file>messages_es.properties</file>
+  </messages>
+  <!-- /Internationalization -->
+
+  <!-- Servlets -->
+  <!-- Accessed through the url /pageContext()/moduleServlet/<servlet-name> -->
+  <servlet>
+    <servlet-name>buendiadata</servlet-name>
+    <servlet-class>org.openmrs.projectbuendia.servlet.DataExportServlet</servlet-class>
+  </servlet>
 
 </module>
 
