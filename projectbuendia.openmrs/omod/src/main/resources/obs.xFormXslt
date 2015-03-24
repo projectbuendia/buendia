@@ -3,11 +3,11 @@
 <!--
 This is a modified copy of the OpenMRS FormEntry Form HL7 Translation XSLT.
 
-We have copied and modified because the original does not support sending
-encounters as datetime rather than just date. This file should be checked
-into the database for each form that uses it as a Form Resource; the admin
-interface lets you do this using "Manage Forms", "Manage Resources".  This
-file is kept in source control as a record of what should go in the database.
+This modified copy was created because the original does not support sending
+encounters as datetime rather than just date.  This file should be stored
+in the database for each form that uses it as a Form resource; the admin
+interface lets you do this using Manage Forms > Manage Resources.  This file
+is kept in source control as a record of what should go in the database.
 -->
 
 <!--
