@@ -20,9 +20,9 @@ import org.springframework.util.ObjectUtils;
 import java.util.Locale;
 
 /**
- * A class to get a String representing a concept in the client. For a full document on why this is hard,
- * and why we decided to make these decisions see
- * https://docs.google.com/document/d/1ILDgcEDp_Bdm3q7IJa0gys4I-WfpJdATwuyI1pofuHE/edit?usp=sharing
+ * A class to get a String representing a concept in the client. See the wiki
+ * page explaining why this is hard and why we made these design decisions:
+ * http://github.com/projectbuendia/buendia/wiki/... TODO: Fill in URL.
  */
 public class ClientConceptNamer {
 
@@ -114,9 +114,8 @@ public class ClientConceptNamer {
         // fail over to anything we can get
         ConceptName defaultName = concept.getName();
         if (defaultName == null) {
-            log.error("tried to get a name for concept, uuid=" + concept.getUuid() + ", id=" + concept.getId()
-                    + ", but none found");
-            return "UNKNOWN Concept " + concept.getId();
+            log.error("No name found for concept: uuid=" + concept.getUuid() + ", id=" + concept.getId());
+            return "[Concept " + concept.getId() + "]";
         }
         return defaultName.getName();
     }

@@ -20,12 +20,12 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
-/** Helper class for doing date/time work as we don't have Joda. */
+/** Helper class for date/time functions, as we don't have Joda. */
 public class DateTimeUtils {
 
     private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
 
-    /** ISO 8610 format for a complete date and time. */
+    /** ISO 8601 format for a complete date and time in UTC. */
     public static final DateFormat FORMAT = new SimpleDateFormat(
             "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
     static {
@@ -41,12 +41,12 @@ public class DateTimeUtils {
         SPREADSHEET_FORMAT.setTimeZone(UTC);
     }
 
-    /** Formats a datetime as an ISO8601 string in the UTC timezone. */
+    /** Formats a datetime as an ISO 8601 string in the UTC timezone. */
     public static String toIso8601(Date dateTime) {
         return FORMAT.format(dateTime);
     }
 
-    /** Parses a date in yyyy-MM-dd format, throwing appropriate exceptions. */
+    /** Parses a yyyy-MM-dd date or throws InvalidObjectDataException. */
     public static Date parseDate(String text, String fieldName) {
         try {
             return YYYYMMDD_FORMAT.parse(text);
