@@ -1,3 +1,6 @@
+// TODO/license: Confirm whether this file is licensed under MPL 2.0 like
+// the rest of OpenMRS and add whatever license header is necessary.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang.StringUtils;

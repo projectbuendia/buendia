@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import java.util.ArrayList;
@@ -20,31 +31,33 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.DateTimeUtils;
 
 /**
- * Abstract superclass for resources where the REST API only supports read-only
- * operations. Subclasses are required to provide the Resource annotation to specify the URL etc.
+ * Abstract superclass for resources whose REST API only supports read
+ * operations. Subclasses must provide the @Resource annotation with a "name"
+ * parameter specifying the URL path, "supportedClass" giving the class of
+ * items in the REST collection, and "supportedOpenmrsVersions" giving a
+ * comma-separated list of supported OpenMRS Platform version numbers.
  *
- * <p>Every AbstractReadOnlyResource supports retrieve, list (getAll), and search operations.
- *
- * <p>Retrieve operations are implemented by {@link #retrieve(String, RequestContext)}.
- * List operations are implemented by {@link #getAll(RequestContext)}.
- * Search operations are implemented by {@link #search(RequestContext)}.
- *
- * <p>Each of these functions returns a SimpleObject, which is converted to a JSON representation in the response. If
- * an error occurs, this SimpleObject will contain the following:
+ * <p>Every AbstractReadOnlyResource provides the operations:
+ * <ul>
+ *     <li>Retrieve an item: {@link #retrieve(String, RequestContext)}
+ *     <li>List all items: {@link #getAll(RequestContext)}
+ *     <li>Search for items: {@link #search(RequestContext)}
+ * </ul>
+ * <p>Each of these methods returns a SimpleObject, which is converted to a
+ * JSON response.  If an error occurs, the returned JSON will have the form:
  * <pre>
  * {
  *   "error": {
- *     "message": "[error message]",
+ *     "message": "error message]",
  *     "code": "[breakpoint]",
  *     "detail": "[stack trace]"
  *   }
  * }
  * </pre>
- *
- * <p>For more details about each operation, including expected input/output and request parameters,
- * see method-level comments.
+ * <p>For more details about each operation, see the method-level comments.
  */
-public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implements Listable, Retrievable, Searchable {
+public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
+        implements Listable, Retrievable, Searchable {
 
     static final String RESULTS = "results";
     static final String SNAPSHOT_TIME = "snapshotTime";
@@ -60,7 +73,8 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         availableRepresentations = Arrays.asList(representations);
         this.resourceAlias = resourceAlias;
     }
-    
+
+    // TODO/deprecate: This will be unused once the "links" key is gone.
     @Override
     public String getUri(Object instance) {
         OpenmrsObject mrsObject = (OpenmrsObject) instance;
@@ -69,19 +83,20 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     }
 
     /**
-     * Performs a search, using the given {@link RequestContext}. What parameters are used for a
-     * search, as well as how the search is performed, is delegated to the
-     * {@link #searchImpl(RequestContext, long)} function.
+     * Performs a search using the given {@link RequestContext}. The real work
+     * is done by the {@link #searchImpl(RequestContext, long)} function, which
+     * also defines the search parameters.  If no search parameters are given,
+     * this returns all the items in the collection.
      *
-     * <p>If no search query is specified, this function returns all results.
-     *
-     * @param context the request context; see {@link #searchImpl(RequestContext, long)} to determine what parameters
-     * are expected
-     * @return a {@link SimpleObject} with the following pairs:
+     * @param context the request context; see individual implementations of
+     *     {@link #searchImpl(RequestContext, long)} for parameter details.
+     *     {@link #searchImpl(RequestContext, long)} for the search parameters.
+     * @return a {@link SimpleObject} with the following keys:
      * <ul>
-     *     <li>results: a {@link List} of {@link SimpleObject}'s, each representing a single resource, equivalent to the
-     *         output of a {@link #retrieve(String, RequestContext)} operation
-     *     <li>snapshotTime: a timestamp in ISO 6801 format labeled snapshotTime
+     *     <li>"results": a {@link List} of {@link SimpleObject}s representing
+     *         items that match the search parameters, in the same form as that
+     *         returned by {@link #retrieve(String, RequestContext)}
+     *     <li>"snapshotTime": a timestamp in ISO 8601 format, in UTC
      * </ul>
      * @throws ResponseException if anything goes wrong
      */
@@ -99,6 +114,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         }
     }
 
+    /** Wraps searchImpl, converting items (of type T) to SimpleObjects. */
     private SimpleObject searchInner(RequestContext context, long snapshotTime) throws ResponseException {
         List<SimpleObject> results = new ArrayList<>();
         for (T item : searchImpl(context, snapshotTime)) {
@@ -111,26 +127,27 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     }
 
     /**
-     * Retrieves the resource with the specified UUID.
+     * Retrieves the item with a specified UUID.
      *
      * <p>Responds to: {@code GET [API root]/[resource type]/[UUID]}
      *
-     * @param uuid the UUID that uniquely identifies the requested resource
-     * @param context the request context; see {@link #retrieveImpl(String, RequestContext, long)} to determine what
-     * parameters are expected
+     * @param uuid the UUID of the desired item
+     * @param context the request context; see individual implementations of
+     *     {@link #searchImpl(RequestContext, long)} for parameter details.
      * @return a {@link SimpleObject} with the following pairs:
      * <ul>
-     * <li>
-     *     uuid: the unique identifier of the resource
-     * </li>
-     * <li>
-     *     links: a {@link List} of {@link SimpleObject}'s, each containing the following pairs:
+     * <li>uuid: the unique identifier of the resource
+     * <li>links: a {@link List} of {@link SimpleObject}s each with the keys:
      *     <ul>
-     *         <li>uri: uri for requesting this resource
-     *         <li>rel: what the uri is relative to ("self" if relative to this server or absolute)
+     *         <li>"uri": uri for requesting this resource
+     *         <li>"rel": what the uri is relative to ("self" if relative to
+     *             this server or absolute)
      *     </ul>
      * <li>Resource-specific data provided by {@link #populateJsonProperties(T, RequestContext, SimpleObject, long)}
      * </ul>
+     * <p>TODO/deprecate: The information in "links" is incorrect (and would be
+     * redundant if it were correct).  It doesn't appear to be used at all by
+     * the client anyway, so it should just be removed.
      * @throws ResponseException if anything goes wrong
      */
     @Override
@@ -160,8 +177,8 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     }
 
     /**
-     * Delegates directly to {@link #search(RequestContext)}; the implementation of searchImpl should list all
-     * appropriate items if no query parameters have been given. 
+     * Delegates to {@link #search(RequestContext)}, which returns all the items
+     * in the collection if no search parameters are specified.
      */
     @Override
     public SimpleObject getAll(RequestContext context) throws ResponseException {
@@ -169,19 +186,17 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
     }
 
     /**
-     * Find all the domain objects matching the query within the request context.
-     * Note that this method is also used for "get all" so it's entirely possible
-     * for the context to not contain any query parameters.
+     * Lists all the items matching the specified search parameters.  Note that
+     * this method is also used for "get all", so it's entirely possible for the
+     * context to not contain any query parameters.
      */
     protected abstract Iterable<T> searchImpl(RequestContext context, long snapshotTime);
-    
-    /**
-     * Retrieve a single domain object by UUID, returning null if it can't be found.
-     */
+
+    /** Retrieves a single item by UUID, returning null if it can't be found. */
     protected abstract T retrieveImpl(String uuid, RequestContext context, long snapshotTime);
-    
+
     /**
-     * Converts a single domain object to JSON. By default, this populates the UUID
+     * Converts a single item to JSON. By default, this populates the UUID
      * and a self link automatically, then delegates to populateJsonProperties for the
      * remaining information. This is expected to be sufficient for most cases, but
      * subclasses can override this method if they want more flexibility.
@@ -194,12 +209,14 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject> implemen
         populateJsonProperties(item, context, json, snapshotTime);
         return json;
     }
-    
-    protected abstract void populateJsonProperties(T item, RequestContext context, SimpleObject json,
-                                                   long snapshotTime);
-    
+
+    /** Populates the given SimpleObject with data from the given item. */
+    protected abstract void populateJsonProperties(
+            T item, RequestContext context, SimpleObject json, long snapshotTime);
+
     /**
-     * Retrieves the links for the given item. The default implementation just adds a self link. 
+     * Retrieves the links for the given item. The default implementation just adds a self link.
+     * TODO/deprecate: Remove this when it's no longer used by convertToJson.
      */
     protected List<Hyperlink> getLinks(T item) {
         Hyperlink self = new Hyperlink(SELF, getUri(item));

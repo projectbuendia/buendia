@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
@@ -29,29 +40,31 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Rest API for locations in an EMC (Ebola Management Centre).
+ * REST API for locations (places where patients can be located).
  *
  * <p>Expected behavior:
- * GET /location returns all locations ({@link #getAll(RequestContext)})
- * GET /location/[UUID] returns information on a single location ({@link #retrieve(String, RequestContext)})
- * POST /location creates a location ({@link #create(SimpleObject, RequestContext)}
- * POST /location/[UUID] updates a location ({@link #update(String, SimpleObject, RequestContext)})
- * DELETE /location/[UUID] deletes a location ({@link #delete(String, String, RequestContext)})
+ * <ul>
+ * <li>GET /location returns all locations ({@link #getAll(RequestContext)})
+ * <li>GET /location/[UUID] returns a single location ({@link #retrieve(String, RequestContext)})
+ * <li>POST /location adds a location ({@link #create(SimpleObject, RequestContext)}
+ * <li>POST /location/[UUID] updates a location ({@link #update(String, SimpleObject, RequestContext)})
+ * <li>DELETE /location/[UUID] deletes a location ({@link #delete(String, String, RequestContext)})
+ * </ul>
  *
- * <p>Each operation handles Location resources, with the following syntax:
+ * <p>Each operation accepts and returns locations in the following JSON form:
  *
  * <pre>
  * {
- *   uuid: “1234-5”
- *   names {
- *     “en”: “Kailahun” // Or suspect zone, or tent 3, or bed 2, tent 3
- *     “fr”: “Kailahun” // we won’t localize at first, but this gives us the ability to later without code changes
+ *   "uuid": “12345678-1234-1234-1234-123456789abc",
+ *   "names": {
+ *     “en”: “Kailahun”,
+ *     “fr”: “Kailahun”  // (if other locales are available in the future)
  *   }
- *   parent_uuid: “4567-3” // uuid of parent location
+ *   "parent_uuid": “87654321-4321-4321-4321-cba9876543210"  // parent location
  * }
  * </pre>
  *
- * <p>If an error occurs, the response will contain the following:
+ * <p>If an error occurs, the response will be in the form:
  * <pre>
  * {
  *   "error": {
@@ -62,17 +75,15 @@ import java.util.Set;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location", supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class LocationResource implements Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
-
-    // JSON Constants.
-    private static final String UUID = "uuid";
-    private static final String PARENT_UUID = "parent_uuid";
-    private static final String NAMES = "names";
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location",
+    supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+public class LocationResource implements
+        Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
 
     // Known locations.
     // The root location.
     public static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
+    // TODO/generalize: The facility name should not be hardcoded here.
     private static final String EMC_NAME = "Facility Kailahun";
     public static final String TRIAGE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
     // The hard-coded zones. These are (name, UUID) pairs, and are children of the EMC.
@@ -140,12 +151,12 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     private Object createInner(SimpleObject request) throws ResponseException {
-        if (request.containsKey(UUID)) {
-            throw new InvalidObjectDataException("UUID is specified but not allowed");
+        if (request.containsKey("uuid")) {
+            throw new InvalidObjectDataException("\"uuid\" key is specified but not allowed");
         }
-        String parentUuid = (String) request.get(PARENT_UUID);
+        String parentUuid = (String) request.get("parent_uuid");
         if (parentUuid == null) {
-            throw new InvalidObjectDataException("Parent UUID is required but not specified");
+            throw new InvalidObjectDataException("Required \"parent_uuid\" key is missing");
         }
         Location parent = locationService.getLocationByUuid(parentUuid);
         if (parent == null) {
@@ -158,7 +169,7 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     private void updateNames(SimpleObject request, Location location) {
-        Map names = (Map) request.get(NAMES);
+        Map names = (Map) request.get("names");
         if (names == null || names.isEmpty()) {
             throw new InvalidObjectDataException("No name specified for new location");
         }
@@ -194,7 +205,8 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
         // A new fetch is needed to sort out the hibernate cache.
         Location root = locationService.getLocationByUuid(EMC_UUID);
         if (root == null) {
-            throw new IllegalStateException("Somehow the management centre does not exist with UUID " + EMC_UUID);
+            throw new IllegalStateException(
+                "Top-level location not found, expected UUID: " + EMC_UUID);
         }
         addRecursively(root, jsonResults);
         SimpleObject list = new SimpleObject();
@@ -217,14 +229,14 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
         if (location == null) {
             throw new NullPointerException();
         }
-        result.add(UUID, location.getUuid());
+        result.add("uuid", location.getUuid());
         Location parentLocation = location.getParentLocation();
         if (parentLocation != null) {
-            result.add(PARENT_UUID, parentLocation.getUuid());
+            result.add("parent_uuid", parentLocation.getUuid());
         }
         SimpleObject names = new SimpleObject();
         names.add("en", location.getDisplayString());
-        result.add(NAMES, names);
+        result.add("names", names);
         return result;
     }
 
@@ -270,7 +282,8 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
 
 
     @Override
-    public Object update(String uuid, SimpleObject request, RequestContext context) throws ResponseException {
+    public Object update(String uuid, SimpleObject request, RequestContext context)
+            throws ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + request);
             Object result = updateInner(uuid, request);
@@ -300,7 +313,8 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     @Override
-    public void delete(String uuid, String reason, RequestContext context) throws ResponseException {
+    public void delete(String uuid, String reason, RequestContext context)
+            throws ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + reason);
             deleteInner(uuid);
@@ -317,7 +331,8 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
         }
         for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
             if (nameAndUuid[1].equals(uuid)) {
-                throw new InvalidObjectDataException("Cannot delete the zone \"" + nameAndUuid[0] + "\"");
+                throw new InvalidObjectDataException(
+                        "Cannot delete the zone \"" + nameAndUuid[0] + "\"");
             }
         }
         Location location = locationService.getLocationByUuid(uuid);
@@ -329,8 +344,10 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
     }
 
     private void deleteLocationRecursively(Location location) {
-        // We can't rely on database constraints to fail if we delete a location, as we only store as string.
-        // This is really slow, and slower than it need be, but deleting locations should be rare.
+        // We can't rely on database constraints to fail when deleting a
+        // location, as locations are only stored as strings.  Checking all
+        // the patient attributes and child locations is really slow, and
+        // slower than it need be, but deleting locations should be rare.
         PatientService patientService = Context.getPatientService();
         for (Patient patient : patientService.getAllPatients()) {
             Set<PersonAttribute> attributes = patient.getAttributes();
@@ -343,7 +360,6 @@ public class LocationResource implements Listable, Searchable, Retrievable, Crea
                 }
             }
         }
-
         for (Location child : location.getChildLocations()) {
             deleteLocationRecursively(child);
         }
