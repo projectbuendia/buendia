@@ -73,6 +73,13 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         this.resourceAlias = resourceAlias;
     }
 
+    @Override
+    public String getUri(Object instance) {
+        OpenmrsObject mrsObject = (OpenmrsObject) instance;
+        Resource res = getClass().getAnnotation(Resource.class);
+        return RestConstants.URI_PREFIX + res.name() + "/" + mrsObject.getUuid();
+    }
+
     /**
      * Performs a search using the given {@link RequestContext}. The real work
      * is done by the {@link #searchImpl(RequestContext, long)} function, which
