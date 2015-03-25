@@ -20,7 +20,6 @@ import org.openmrs.OpenmrsObject;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.Hyperlink;
 import org.openmrs.module.webservices.rest.web.RequestContext;
-import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
@@ -72,14 +71,6 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
     protected AbstractReadOnlyResource(String resourceAlias, Representation... representations) {
         availableRepresentations = Arrays.asList(representations);
         this.resourceAlias = resourceAlias;
-    }
-
-    // TODO/deprecate: This will be unused once the "links" key is gone.
-    @Override
-    public String getUri(Object instance) {
-        OpenmrsObject mrsObject = (OpenmrsObject) instance;
-        Resource res = getClass().getAnnotation(Resource.class);
-        return RestConstants.URI_PREFIX + res.name() + "/" + mrsObject.getUuid();
     }
 
     /**
@@ -204,7 +195,6 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
     protected SimpleObject convertToJson(T item, RequestContext context, long snapshotTime) {
         SimpleObject json = new SimpleObject();
         json.put(UUID, item.getUuid());
-        json.put(LINKS, getLinks(item));
         // TODO(jonskeet): Version, date created etc?
         populateJsonProperties(item, context, json, snapshotTime);
         return json;
@@ -213,16 +203,4 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
     /** Populates the given SimpleObject with data from the given item. */
     protected abstract void populateJsonProperties(
             T item, RequestContext context, SimpleObject json, long snapshotTime);
-
-    /**
-     * Retrieves the links for the given item. The default implementation just adds a self link.
-     * TODO/deprecate: Remove this when it's no longer used by convertToJson.
-     */
-    protected List<Hyperlink> getLinks(T item) {
-        Hyperlink self = new Hyperlink(SELF, getUri(item));
-        self.setResourceAlias(resourceAlias);
-        List<Hyperlink> links = new ArrayList<>();
-        links.add(self);
-        return links;
-    }
 }
