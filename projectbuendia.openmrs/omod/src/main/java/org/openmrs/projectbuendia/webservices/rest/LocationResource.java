@@ -82,11 +82,11 @@ public class LocationResource implements
 
     // Known locations.
     // The root location.
-    public static final String EMC_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
+    public static final String ROOT_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
     // TODO/generalize: The facility name should not be hardcoded here.
-    private static final String EMC_NAME = "Facility Kailahun";
+    private static final String ROOT_NAME = "Facility Kailahun";
     public static final String TRIAGE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
-    // The hard-coded zones. These are (name, UUID) pairs, and are children of the EMC.
+    // The hard-coded zones. These are (name, UUID) pairs, and are children of the root location.
     private static final String[][] ZONE_NAMES_AND_UUIDS = {
         {"Triage Zone", TRIAGE_UUID},
         {"Suspected Zone", "2f1e2418-ede6-481a-ad80-b9939a7fde8e"},
@@ -108,13 +108,13 @@ public class LocationResource implements
     }
 
     private static Location getEmcLocation(LocationService service) {
-        Location location = service.getLocationByUuid(EMC_UUID);
+        Location location = service.getLocationByUuid(ROOT_UUID);
         if (location == null) {
-            log.info("Creating root EMC location");
+            log.info("Creating root location");
             location = new Location();
-            location.setName(EMC_NAME);
-            location.setUuid(EMC_UUID);
-            location.setDescription(EMC_NAME);
+            location.setName(ROOT_NAME);
+            location.setUuid(ROOT_UUID);
+            location.setDescription(ROOT_NAME);
             service.saveLocation(location);
         }
         return location;
@@ -203,10 +203,10 @@ public class LocationResource implements
     private SimpleObject getAllInner() throws ResponseException {
         ArrayList<SimpleObject> jsonResults = new ArrayList<>();
         // A new fetch is needed to sort out the hibernate cache.
-        Location root = locationService.getLocationByUuid(EMC_UUID);
+        Location root = locationService.getLocationByUuid(ROOT_UUID);
         if (root == null) {
             throw new IllegalStateException(
-                "Top-level location not found, expected UUID: " + EMC_UUID);
+                "Top-level location not found, expected UUID: " + ROOT_UUID);
         }
         addRecursively(root, jsonResults);
         SimpleObject list = new SimpleObject();
@@ -326,7 +326,7 @@ public class LocationResource implements
     }
 
     private void deleteInner(String uuid) throws ResponseException {
-        if (EMC_UUID.equals(uuid)) {
+        if (ROOT_UUID.equals(uuid)) {
             throw new InvalidObjectDataException("Cannot delete the root location");
         }
         for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
