@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia;
 
 import org.openmrs.Concept;
@@ -101,10 +112,10 @@ public class Utils {
     };
 
     /**
-     * Adjusts an encounter datetime to ensure it will be accepted by the OpenMRS core.
-     * The OpenMRS core is not designed for a client-server setup -- it will summarily
-     * reject the encounter if the encounter_datetime is in the future, even if the
-     * client's clock is off by only one millisecond.
+     * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
+     * The OpenMRS core is not designed for a client-server setup -- it will
+     * summarily reject a submitted encounter if the encounter_datetime is in
+     * the future, even if the client's clock is off by only one millisecond.
      * @param datetime The date and time of an encounter.
      * @return
      */
