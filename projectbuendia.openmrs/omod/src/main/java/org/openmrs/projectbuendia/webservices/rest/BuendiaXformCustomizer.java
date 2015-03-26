@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang.StringUtils;
@@ -15,9 +26,7 @@ import org.openmrs.util.FormConstants;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Project Buendia choices about how to display elements in the XForms.
- */
+/** Project Buendia choices about how to display elements in the XForms. */
 public class BuendiaXformCustomizer implements XformCustomizer {
 
     final ClientConceptNamer namer = new ClientConceptNamer(Context.getLocale());
@@ -29,10 +38,10 @@ public class BuendiaXformCustomizer implements XformCustomizer {
 
     @Override
     public List<Location> getEncounterLocations() {
-        Location emc = Context.getLocationService().getLocationByUuid(LocationResource.EMC_UUID);
+        Location root = Context.getLocationService().getLocationByUuid(LocationResource.ROOT_UUID);
 
         ArrayList<Location> result = new ArrayList<>();
-        for (Location child : emc.getChildLocations()) {
+        for (Location child : root.getChildLocations()) {
             if (!child.isRetired()) {
                 result.add(child);
             }
@@ -81,24 +90,21 @@ public class BuendiaXformCustomizer implements XformCustomizer {
         Field field = formField.getField();
         FieldType fieldType = field.getFieldType();
         if (fieldType.getFieldTypeId().equals(FormConstants.FIELD_TYPE_SECTION)) {
-            // Prefix with "full" compact or minimal, as per xforms spec.
-            StringBuilder attribute = new StringBuilder("full");
-            boolean changed = false;
+            String extras = "";
             // use binary anywhere in the section to add binary select 1
             String name = formField.getName();
             if (name == null) {
                 name = field.getName();
             }
             if (name != null && name.contains("binary")) {
-                attribute.append("|binary-select-one");
-                changed = true;
+                extras += "|binary-select-one";
             }
             if (name != null && name.contains("invisible")) {
-                attribute.append("|invisible");
-                changed = true;
+                extras += "|invisible";
             }
-            if (changed) {
-                return attribute.toString();
+            if (!extras.isEmpty()) {
+                // Prefix with "full", "compact", or "minimal", per xforms spec.
+                return "full" + extras;
             }
         }
         return null;

@@ -492,7 +492,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 // Walk up the tree and then count back.
                 // TODO: remove this code when the client does it's own tree traversal.
                 ArrayList<Location> branch = new ArrayList<>();
-                while(!location.getUuid().equals(LocationResource.EMC_UUID)) {
+                while(!location.getUuid().equals(LocationResource.ROOT_UUID)) {
                     branch.add(location);
                     location = location.getParentLocation();
                     if (location == null) {
