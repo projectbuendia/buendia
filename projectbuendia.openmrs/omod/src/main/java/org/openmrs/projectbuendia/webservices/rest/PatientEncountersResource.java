@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
@@ -22,13 +33,13 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Resource representing multiple observations for a single patient, taken within a single encounter (e.g. a single
- * form entry).
+ * A resource representing an encounter (a form submission) containing
+ * observations for a single patient taken at a single point in time.
  *
  * @see AbstractReadOnlyResource
  */
-// TODO: Ideally, this would be under patient/{uuid}/encounters; it's unclear whether
-// that can be supported here...
+// TODO: Ideally, this would be under patient/{uuid}/encounters;
+// it's unclear whether that can be supported here.
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters",
         supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class PatientEncountersResource extends AbstractReadOnlyResource<Patient> implements Creatable {
@@ -42,7 +53,6 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
 
     private final PatientService patientService;
     private final EncounterService encounterService;
-    private final ObservationsHandler observationsHandler = new ObservationsHandler();
 
     public PatientEncountersResource() {
         super("patient", Representation.DEFAULT);
@@ -243,31 +253,29 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         // TODO: refactor the wire format for getEncounters so it matches the create format.
 
         if (!post.containsKey(UUID)) {
-            throw new InvalidObjectDataException("No patient UUID specified");
+            throw new InvalidObjectDataException("Patient UUID not specified");
         }
         Patient patient = patientService.getPatientByUuid(post.get(UUID).toString());
         if (patient == null) {
-            throw new InvalidObjectDataException("No such patient: " + post.get(UUID));
+            throw new InvalidObjectDataException("Patient not found: " + post.get(UUID));
         }
         Date encounterTime;
+        String timestamp = post.get("timestamp");
         try {
-            if (post.containsKey(TIMESTAMP)) {
-                encounterTime = new Date(Long.parseLong(post.get(TIMESTAMP).toString()) * 1000L);
+            if (timestamp != null) {
+                encounterTime = new Date(Long.parseLong(timestamp.toString()) * 1000L);
             } else {
-                // if no timestamp, use the server current time, to allow the client this as an option
+                // Allow clients to omit the timestamp to use the current server time.
                 encounterTime = new Date();
             }
         } catch (NumberFormatException ex) {
-            throw new InvalidObjectDataException("Bad TIMESTAMP format, should be seconds since epoch: "
-                    + ex.getMessage());
+            throw new InvalidObjectDataException(
+                    "Expected seconds since epoch for \"timestamp\" value: " + ex.getMessage());
         }
-        if (observationsHandler.hasObservations(post)) {
-            Encounter encounter = observationsHandler.addObservations(post, patient, encounterTime, "new observation",
-                    // TODO: send the correct location in the RPC, rather than using the whole facility
-                    "ADULTRETURN", LocationResource.EMC_UUID);
-            return encounterToJson(encounter);
-        } else {
-            throw new InvalidObjectDataException("No observations specified");
-        }
+        Encounter encounter = ObservationsHandler.addEncounter(
+                post, patient, encounterTime, "new observation", "ADULTRETURN",
+                // TODO: Use patient's location instead of the root location.
+                LocationResource.ROOT_UUID);
+        return encounterToJson(encounter);
     }
 }
