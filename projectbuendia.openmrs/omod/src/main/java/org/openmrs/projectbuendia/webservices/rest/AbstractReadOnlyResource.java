@@ -59,13 +59,7 @@ import org.openmrs.projectbuendia.DateTimeUtils;
 public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         implements Listable, Retrievable, Searchable {
 
-    static final String RESULTS = "results";
-    static final String SNAPSHOT_TIME = "snapshotTime";
-    static final String UUID = "uuid";
-    static final String LINKS = "links";
-    static final String SELF = "self";
     static final RequestLogger logger = RequestLogger.LOGGER;
-
     private final String resourceAlias;
     private final List<Representation> availableRepresentations;
 
@@ -74,7 +68,6 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         this.resourceAlias = resourceAlias;
     }
 
-    // TODO/deprecate: This will be unused once the "links" key is gone.
     @Override
     public String getUri(Object instance) {
         OpenmrsObject mrsObject = (OpenmrsObject) instance;
@@ -121,8 +114,8 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
             results.add(convertToJson(item, context, snapshotTime));
         }
         SimpleObject response = new SimpleObject();
-        response.put(RESULTS, results);
-        response.put(SNAPSHOT_TIME, DateTimeUtils.toIso8601(new Date(snapshotTime)));
+        response.put("results", results);
+        response.put("snapshotTime", DateTimeUtils.toIso8601(new Date(snapshotTime)));
         return response;
     }
 
@@ -134,20 +127,9 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
      * @param uuid the UUID of the desired item
      * @param context the request context; see individual implementations of
      *     {@link #searchImpl(RequestContext, long)} for parameter details.
-     * @return a {@link SimpleObject} with the following pairs:
-     * <ul>
-     * <li>uuid: the unique identifier of the resource
-     * <li>links: a {@link List} of {@link SimpleObject}s each with the keys:
-     *     <ul>
-     *         <li>"uri": uri for requesting this resource
-     *         <li>"rel": what the uri is relative to ("self" if relative to
-     *             this server or absolute)
-     *     </ul>
-     * <li>Resource-specific data provided by {@link #populateJsonProperties(T, RequestContext, SimpleObject, long)}
+     * @return a {@link SimpleObject} with a "uuid" field and additional fields
+     *     provided by {@link #populateJsonProperties(T, RequestContext, SimpleObject, long)}
      * </ul>
-     * <p>TODO/deprecate: The information in "links" is incorrect (and would be
-     * redundant if it were correct).  It doesn't appear to be used at all by
-     * the client anyway, so it should just be removed.
      * @throws ResponseException if anything goes wrong
      */
     @Override
@@ -197,15 +179,13 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
 
     /**
      * Converts a single item to JSON. By default, this populates the UUID
-     * and a self link automatically, then delegates to populateJsonProperties for the
-     * remaining information. This is expected to be sufficient for most cases, but
-     * subclasses can override this method if they want more flexibility.
+     * automatically, then delegates to populateJsonProperties to add the
+     * remaining information. This is expected to be sufficient for most cases,
+     * but subclasses can override this method if they want more flexibility.
      */
     protected SimpleObject convertToJson(T item, RequestContext context, long snapshotTime) {
         SimpleObject json = new SimpleObject();
-        json.put(UUID, item.getUuid());
-        json.put(LINKS, getLinks(item));
-        // TODO(jonskeet): Version, date created etc?
+        json.put("uuid", item.getUuid());
         populateJsonProperties(item, context, json, snapshotTime);
         return json;
     }
@@ -213,16 +193,4 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
     /** Populates the given SimpleObject with data from the given item. */
     protected abstract void populateJsonProperties(
             T item, RequestContext context, SimpleObject json, long snapshotTime);
-
-    /**
-     * Retrieves the links for the given item. The default implementation just adds a self link.
-     * TODO/deprecate: Remove this when it's no longer used by convertToJson.
-     */
-    protected List<Hyperlink> getLinks(T item) {
-        Hyperlink self = new Hyperlink(SELF, getUri(item));
-        self.setResourceAlias(resourceAlias);
-        List<Hyperlink> links = new ArrayList<>();
-        links.add(self);
-        return links;
-    }
 }
