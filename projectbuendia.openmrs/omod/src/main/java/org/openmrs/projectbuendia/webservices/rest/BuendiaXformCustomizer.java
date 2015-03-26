@@ -38,10 +38,10 @@ public class BuendiaXformCustomizer implements XformCustomizer {
 
     @Override
     public List<Location> getEncounterLocations() {
-        Location emc = Context.getLocationService().getLocationByUuid(LocationResource.ROOT_UUID);
+        Location root = Context.getLocationService().getLocationByUuid(LocationResource.ROOT_UUID);
 
         ArrayList<Location> result = new ArrayList<>();
-        for (Location child : emc.getChildLocations()) {
+        for (Location child : root.getChildLocations()) {
             if (!child.isRetired()) {
                 result.add(child);
             }
