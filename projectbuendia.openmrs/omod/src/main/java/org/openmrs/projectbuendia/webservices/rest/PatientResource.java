@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,13 +49,15 @@ import java.util.Map;
  * Rest API for patients.
  *
  * <p>Expected behavior:
- * GET /patient returns all patients ({@link #getAll(RequestContext)})
- * GET /patient?q=[query] returns patients with a name or id that contains the query ({@link #search(RequestContext)})
- * GET /patient/[UUID] returns information on a single patient ({@link #retrieve(String, RequestContext)})
- * POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
- * POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject, RequestContext)})
+ * <ul>
+ * <li>GET /patient returns all patients ({@link #getAll(RequestContext)})
+ * <li>GET /patient?q=[query] returns patients with a name or id that contains the query ({@link #search(RequestContext)})
+ * <li>GET /patient/[UUID] returns information on a single patient ({@link #retrieve(String, RequestContext)})
+ * <li>POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
+ * <li>POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject, RequestContext)})
+ * </ul>
  *
- * <p>Each operation handles Patient resources, with the following syntax:
+ * <p>Each operation handles Patient resources in the following JSON form:
  *
  * <pre>
  * {
@@ -59,7 +72,7 @@ import java.util.Map;
  *   }
  * },
  * </pre>
- * Note that results may contain other fields not listed above, but these fields are deprecated and no longer supported.
+ * (Results may also contain deprecated fields other than those described above.)
  *
  * <p>If an error occurs, the response will contain the following:
  * <pre>
@@ -219,6 +232,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             identifier.setCreator(patient.getCreator());
             identifier.setDateCreated(patient.getDateCreated());
             identifier.setIdentifier((String) json.get(ID));
+            // TODO/generalize: Instead of getting the root location by a hardcoded
+            // name (almost certainly an inappropriate name), change the helper
+            // function to DbUtil.getRootLocation().
             identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
             identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
             identifier.setPreferred(true);
@@ -297,7 +313,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return Arrays.asList(Representation.DEFAULT);
     }
 
-    private List<Patient> filterPatients(String query, boolean searchUuid, List<Patient> allPatients) {
+    private List<Patient> filterPatients(
+            String query, boolean searchUuid, List<Patient> allPatients) {
         List<Patient> filteredPatients = new ArrayList<>();
 
         // Filter patients by id, name, and MSF id. Don't use patientService.getPatients() for
@@ -360,14 +377,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     /**
-     * The SimpleObject arriving is a Gson serialization of a client Patient Bean. It has the following semantics:
+     * Receives a SimpleObject that is parsed from the Gson serialization of a client-side
+     * Patient bean.  It has the following semantics:
      * <ul>
      *     <li>Any field set overwrites the current content
      *     <li>Any field with a key but value == null deletes the current content
-     *     <li>Any field not contained leaves the current content unchanged
-     *     <li>Recursive merge for location and age should not be done, instead the whole item is written
-     *     <li>If the client requests a change which is illegal that is an error. Really the whole call should fail,
-     *         but for now there may be partial updates
+     *     <li>Any field whose key is not present leaves the current content unchanged
+     *     <li>Subfields of location and age are not merged; instead the whole item is replaced
+     *     <li>If the client requests a change that is illegal, that is an error. Really the
+     *         whole call should fail, but for now there may be partial updates
      * </ul>
      */
     private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
@@ -434,7 +452,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     break;
 
                 default:
-                    log.warn("Patient has no such property or property is not updatable (ignoring) Change: " + entry);
+                    log.warn("Property is nonexistent or not updatable; ignoring: " + entry);
                     break;
             }
         }
@@ -495,7 +513,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     branch.add(location);
                     location = location.getParentLocation();
                     if (location == null) {
-                        // If we never end up at the camp root, then it is an illegal location, ignore.
+                        // If we never end up at the root, then it is an illegal location, ignore.
                         branch.clear();
                         break;
                     }
