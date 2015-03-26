@@ -11,7 +11,7 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-/** Simple bean for information about an XForm form after it has been built. */
+/** Simple bean for information about an XForms form after it has been built. */
 public class FormData {
     /** The Xform XML representation of the form. */
     public final String xml;

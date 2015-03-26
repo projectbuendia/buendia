@@ -109,7 +109,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     private final PatientService patientService;
-    private final ObservationsHandler observationsHandler = new ObservationsHandler();
     private static final Object createPatientLock = new Object();
 
     public PatientResource() {
@@ -181,9 +180,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patientService.savePatient(patient);
         }
         // Observation for first symptom date
-        if (observationsHandler.hasObservations(json)) {
-            observationsHandler.addObservations(json, patient, patient.getDateCreated(), "Initial triage",
-                    "ADULTINITIAL", LocationResource.TRIAGE_UUID);
+        ObservationsHandler.addEncounter(
+                json, patient, patient.getDateCreated(), "Initial triage",
+                "ADULTINITIAL", LocationResource.TRIAGE_UUID);
         }
 
         return patientToJson(patient);
@@ -492,7 +491,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 // Walk up the tree and then count back.
                 // TODO: remove this code when the client does it's own tree traversal.
                 ArrayList<Location> branch = new ArrayList<>();
-                while(!location.getUuid().equals(LocationResource.ROOT_UUID)) {
+                while (!location.getUuid().equals(LocationResource.ROOT_UUID)) {
                     branch.add(location);
                     location = location.getParentLocation();
                     if (location == null) {
