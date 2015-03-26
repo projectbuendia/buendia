@@ -32,9 +32,9 @@ import org.openmrs.projectbuendia.DateTimeUtils;
 
 /**
  * Abstract superclass for resources whose REST API only supports read
- * operations. Subclasses must provide the @Resource annotation with a "name"
- * parameter specifying the URL path, "supportedClass" giving the class of
- * items in the REST collection, and "supportedOpenmrsVersions" giving a
+ * operations. Subclasses must provide the {@link Resource} annotation with a
+ * "name" parameter specifying the URL path, "supportedClass" giving the class
+ * of items in the REST collection, and "supportedOpenmrsVersions" giving a
  * comma-separated list of supported OpenMRS Platform version numbers.
  *
  * <p>Every AbstractReadOnlyResource provides the operations:
@@ -43,12 +43,12 @@ import org.openmrs.projectbuendia.DateTimeUtils;
  *     <li>List all items: {@link #getAll(RequestContext)}
  *     <li>Search for items: {@link #search(RequestContext)}
  * </ul>
- * <p>Each of these methods returns a SimpleObject, which is converted to a
- * JSON response.  If an error occurs, the returned JSON will have the form:
+ * <p>Each of these methods returns a {@link SimpleObject}, which is converted
+ * to a JSON response.  If an error occurs, the returned JSON has the form:
  * <pre>
  * {
  *   "error": {
- *     "message": "error message]",
+ *     "message": "[error message]",
  *     "code": "[breakpoint]",
  *     "detail": "[stack trace]"
  *   }
@@ -74,9 +74,11 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         this.resourceAlias = resourceAlias;
     }
 
-    // TODO/deprecate: This will be unused once the "links" key is gone.
     @Override
     public String getUri(Object instance) {
+        // This will return an incorrect URI if the webservices.rest.uriPrefix
+        // property is incorrect.  We don't use getUri() at all in our resource
+        // classes, but the Resource interface requires that we implement it.
         OpenmrsObject mrsObject = (OpenmrsObject) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + mrsObject.getUuid();
@@ -85,11 +87,10 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
     /**
      * Performs a search using the given {@link RequestContext}. The real work
      * is done by the {@link #searchImpl(RequestContext, long)} function, which
-     * also defines the search parameters.  If no search parameters are given,
-     * this returns all the items in the collection.
+     * also defines how the search is controlled by URL parameters.  If no
+     * search * parameters are given, returns all the items in the collection.
      *
      * @param context the request context; see individual implementations of
-     *     {@link #searchImpl(RequestContext, long)} for parameter details.
      *     {@link #searchImpl(RequestContext, long)} for the search parameters.
      * @return a {@link SimpleObject} with the following keys:
      * <ul>
@@ -133,7 +134,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
      *
      * @param uuid the UUID of the desired item
      * @param context the request context; see individual implementations of
-     *     {@link #searchImpl(RequestContext, long)} for parameter details.
+     *     {@link #retrieveImpl(RequestContext, long)} for parameter details.
      * @return a {@link SimpleObject} with the following pairs:
      * <ul>
      * <li>uuid: the unique identifier of the resource
