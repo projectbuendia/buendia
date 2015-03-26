@@ -264,7 +264,7 @@ public class PatientEncountersResource extends AbstractReadOnlyResource<Patient>
         if (observationsHandler.hasObservations(post)) {
             Encounter encounter = observationsHandler.addObservations(post, patient, encounterTime, "new observation",
                     // TODO: send the correct location in the RPC, rather than using the whole facility
-                    "ADULTRETURN", LocationResource.EMC_UUID);
+                    "ADULTRETURN", LocationResource.ROOT_UUID);
             return encounterToJson(encounter);
         } else {
             throw new InvalidObjectDataException("No observations specified");
