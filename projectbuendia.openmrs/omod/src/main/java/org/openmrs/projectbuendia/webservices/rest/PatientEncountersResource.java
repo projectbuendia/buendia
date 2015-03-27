@@ -11,7 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
@@ -111,15 +110,13 @@ public class PatientEncountersResource
         String parameter = context.getParameter("sm");
         Long startMillisecondsInclusive = null;
         if (parameter != null) {
-            try {
-                startMillisecondsInclusive = Long.parseLong(parameter);
-            } catch (NumberFormatException e) {
-                throw new InvalidObjectDataException("Non-numeric \"sm\" query parameter");
-            }
+            // Fail fast throwing number format exception to aid debugging.
+            startMillisecondsInclusive = Long.parseLong(parameter);
         }
-        List<Encounter> encounters = encounterService.getEncountersByPatient(patient);
-        encounters = filterExistedAt(snapshotTime, encounters);
-        if (startMillisecondsInclusive != null) {
+        List<Encounter> encountersByPatient;
+        if (startMillisecondsInclusive == null) {
+            encountersByPatient = encounterService.getEncountersByPatient(patient);
+        } else {
             // It would be nice to be able to use the getEncounters() method here, which has some
             // filtering parameters such as fromDate and toDate.  Unfortunately, these restrict
             // according to the encounter date, whereas we need to filter by creation/modification
@@ -132,47 +129,50 @@ public class PatientEncountersResource
             // 1. Use the DAO directly, hooking in to the spring injection code to get it.
             // 2. Load the encounters, and then filter in RAM before getting the observations.
             // For now, we are going with 2 and hoping it is fast enough.
-            encounters = filterNewDataSince(startMillisecondsInclusive, encounters);
+            encountersByPatient = filterEncountersByModificationTime(startMillisecondsInclusive,
+                    encounterService.getEncountersByPatient(patient));
         }
-        List<SimpleObject> encounterJsonList = new ArrayList<>();
-        for (Encounter encounter : encounters) {
-            encounterJsonList.add(encounterToJson(encounter, snapshotTime));
+        List<SimpleObject> encounters = new ArrayList<>();
+        for (Encounter encounter : filterBeforeSnapshotTime(snapshotTime, encountersByPatient)) {
+            encounters.add(encounterToJson(encounter));
         }
-        json.put("encounters", encounterJsonList);
+        json.put("encounters", encounters);
     }
 
     /**
-     * Given a list of encounters or observations, selects those that were created or modified
+     * Given a list of encounters, selects those that were created or modified
      * at or after a specified time.
-     * @param minMillis a timestamp in epoch milliseconds
-     * @param items a list of encounters or observations
-     * @return a new list of the items with creation or modification times &gt;= minMillis
+     * @param startMillisecondsInclusive a timestamp in epoch milliseconds
+     * @param encountersByPatient a list of encounters or observations
+     * @return a new list of the items with creation or modification times &gt;= startMillisecondsInclusive
      */
-    private <T extends BaseOpenmrsData> List<T> filterNewDataSince(long minMillis, Iterable<T> items) {
-        List<T> filtered = new ArrayList<>();
-        for (T item : items) {
+    private List<Encounter> filterEncountersByModificationTime(
+            long startMillisecondsInclusive, List<Encounter> encountersByPatient) {
+        ArrayList<Encounter> filtered = new ArrayList<>();
+        for (Encounter encounter : encountersByPatient) {
             // Sigh.  OpenMRS does not set modification time on initial create,
             // so we have to check both the creation and modification times.
-            if (item.getDateCreated().getTime() >= minMillis || (
-                    item.getDateChanged() != null
-                    && item.getDateChanged().getTime() >= minMillis)) {
-                filtered.add(item);
+            if (encounter.getDateCreated().getTime() >= startMillisecondsInclusive || (
+                    encounter.getDateChanged() != null
+                    && encounter.getDateChanged().getTime() >= startMillisecondsInclusive)) {
+                filtered.add(encounter);
             }
         }
         return filtered;
     }
 
     /**
-     * Given a list of encounters or observations, selects those that existed at a given time.
-     * @param millis a timestamp in epoch milliseconds
-     * @param items a list of encounters or observations
-     * @return a new list of the items with creation times strictly less than millis
+     * Given a list of encounters, selects those that existed at a given time.
+     * @param snapshotTime a timestamp in epoch milliseconds
+     * @param encountersByPatient a list of encounters
+     * @return a new list of encounters with creation times strictly less than snapshotTime
      */
-    private <T extends BaseOpenmrsData> List<T> filterExistedAt(long millis, Iterable<T> items) {
-        List<T> filtered = new ArrayList<>();
-        for (T item : items) {
-            if (item.getDateCreated().getTime() < millis) {
-                filtered.add(item);
+    private List<Encounter> filterBeforeSnapshotTime(
+            long snapshotTime, List<Encounter> encountersByPatient) {
+        List<Encounter> filtered = new ArrayList<>();
+        for (Encounter encounter : encountersByPatient) {
+            if (encounter.getDateCreated().getTime() < snapshotTime) {
+                filtered.add(encounter);
             }
         }
         return filtered;
@@ -181,18 +181,16 @@ public class PatientEncountersResource
     /**
      * Converts an encounter to its JSON representation, filling in observation data.
      * @param encounter an encounter instance
-     * @param snapshotTime a timestamp in epoch milliseconds
-     * @return a SimpleObject containing the data for the encounter ready to be
-     *     serialized to JSON, including only the observations that existed at
-     *     the specified snapshotTime.
+     * @return a SimpleObject representing the encounter, ready to be serialized to JSON
      */
-    private SimpleObject encounterToJson(Encounter encounter, long snapshotTime) {
+    private SimpleObject encounterToJson(Encounter encounter) {
         SimpleObject encounterJson = new SimpleObject();
         // TODO: Check what format this ends up in.
         encounterJson.put("timestamp", DateTimeUtils.toIso8601(encounter.getEncounterDatetime()));
-        encounterJson.put("uuid", encounter.getUuid());
         SimpleObject observations = new SimpleObject();
-        for (Obs obs : filterExistedAt(snapshotTime, encounter.getObs())) {
+        for (Obs obs : encounter.getObs()) {
+            // TODO/simplify: Move this .put() call outside the loop.
+            encounterJson.put("uuid", encounter.getUuid());
             observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
                     obs, new VisitObsValue.ObsValueVisitor<String>() {
                         @Override
@@ -294,6 +292,6 @@ public class PatientEncountersResource
         if (encounter == null) {
             throw new InvalidObjectDataException("No observations specified");
         }
-        return encounterToJson(encounter, new Date().getTime());
+        return encounterToJson(encounter);
     }
 }
