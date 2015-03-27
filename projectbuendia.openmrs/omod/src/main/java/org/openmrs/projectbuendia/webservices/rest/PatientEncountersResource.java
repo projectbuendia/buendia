@@ -147,7 +147,7 @@ public class PatientEncountersResource
      * @param items a list of encounters or observations
      * @return a new list of the items with creation or modification times &gt;= minMillis
      */
-    private List<T extends BaseOpenmrsData> filterNewDataSince(long minMillis, List<T> items) {
+    private <T extends BaseOpenmrsData> List<T> filterNewDataSince(long minMillis, List<T> items) {
         List<T> filtered = new ArrayList<>();
         for (T item : items) {
             // Sigh.  OpenMRS does not set modification time on initial create,
@@ -167,7 +167,7 @@ public class PatientEncountersResource
      * @param items a list of encounters or observations
      * @return a new list of the items with creation times strictly less than millis
      */
-    private List<T extends BaseOpenmrsData> filterExistedAt(long millis, List<T> items) {
+    private <T extends BaseOpenmrsData> List<T> filterExistedAt(long millis, List<T> items) {
         List<T> filtered = new ArrayList<>();
         for (T item : items) {
             if (item.getDateCreated().getTime() < millis) {
@@ -224,7 +224,6 @@ public class PatientEncountersResource
                             return DateTimeUtils.toIso8601(value);
                         }
                     }));
-            }
         }
         encounterJson.put("observations", observations);
         return encounterJson;
