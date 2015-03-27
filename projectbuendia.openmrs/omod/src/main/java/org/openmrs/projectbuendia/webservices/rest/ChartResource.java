@@ -99,7 +99,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
                         form.getUuid(), groupField.getField().getName());
             }
             SimpleObject group = new SimpleObject();
-            group.put(UUID, groupConcept.getUuid());
+            group.put("uuid", groupConcept.getUuid());
             List<String> groupFieldConceptIds = new ArrayList<>();
             for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
                 Concept fieldConcept = fieldInGroup.getField().getConcept();
