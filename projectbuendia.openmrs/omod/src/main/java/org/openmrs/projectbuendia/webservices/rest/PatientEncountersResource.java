@@ -39,8 +39,8 @@ import java.util.List;
  *
  * @see AbstractReadOnlyResource
  */
-// TODO: Ideally, this would be under patient/{uuid}/encounters;
-// it's unclear whether that can be supported here.
+// TODO: Merge with PatientResource and let clients use a query parameter to
+// indicate whether encounter data should be included with each returned patient.
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters",
         supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class PatientEncountersResource
@@ -99,7 +99,7 @@ public class PatientEncountersResource
      *     a previous fetch (the results will contain only the encounter and
      *     observation data with creation or modification times at or after the
      *     specified time).  To fetch just the new data since a previous fetch,
-     *     set "ms" to the snapshotTime that was returned in that previous fetch.
+     *     set "sm" to the snapshotTime that was returned in that previous fetch.
      * @param snapshotTime a server clock time in epoch milliseconds; only
      *     encounters and observations that existed as of this snapshot time
      *     (i.e. created strictly before snapshotTime) will be returned.
