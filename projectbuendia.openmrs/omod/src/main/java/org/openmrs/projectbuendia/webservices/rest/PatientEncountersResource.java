@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
@@ -57,7 +58,7 @@ public class PatientEncountersResource
     /**
      * Retrieves the patient with a given UUID.  The retrieved record will
      * be filled in with the patient's encounter and observation data by
-     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, snapshotTime)}
+     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
      * on its way to becoming JSON that is sent to the client.
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      * @param context unused here; see populateJsonProperties() for details
@@ -69,9 +70,9 @@ public class PatientEncountersResource
     }
 
     /**
-     * Returns patient encounters for all patients.  The retrieved records will
-     * be filled in with the patient's encounter and observation data by
-     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, snapshotTime)}
+     * Returns all patients.  The retrieved records will be filled in with
+     * each patient's encounter and observation data by
+     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
      * on its way to becoming JSON that is sent to the client.
      * @see AbstractReadOnlyResource#search(RequestContext)
      * @param context unused here; see populateJsonProperties() for details
@@ -109,7 +110,7 @@ public class PatientEncountersResource
             Patient patient, RequestContext context, SimpleObject json, long snapshotTime) {
         String parameter = context.getParameter("sm");
         Long startMillisecondsInclusive = null;
-        if (context.hasParameter("sm")) {
+        if (parameter != null) {
             try {
                 startMillisecondsInclusive = Long.parseLong(parameter);
             } catch (NumberFormatException e) {
@@ -135,7 +136,7 @@ public class PatientEncountersResource
         }
         List<SimpleObject> encounterJsonList = new ArrayList<>();
         for (Encounter encounter : encounters) {
-            encounterJsonList.add(encounterToJson(encounter));
+            encounterJsonList.add(encounterToJson(encounter, snapshotTime));
         }
         json.put("encounters", encounterJsonList);
     }
@@ -147,7 +148,7 @@ public class PatientEncountersResource
      * @param items a list of encounters or observations
      * @return a new list of the items with creation or modification times &gt;= minMillis
      */
-    private <T extends BaseOpenmrsData> List<T> filterNewDataSince(long minMillis, List<T> items) {
+    private <T extends BaseOpenmrsData> List<T> filterNewDataSince(long minMillis, Iterable<T> items) {
         List<T> filtered = new ArrayList<>();
         for (T item : items) {
             // Sigh.  OpenMRS does not set modification time on initial create,
@@ -167,7 +168,7 @@ public class PatientEncountersResource
      * @param items a list of encounters or observations
      * @return a new list of the items with creation times strictly less than millis
      */
-    private <T extends BaseOpenmrsData> List<T> filterExistedAt(long millis, List<T> items) {
+    private <T extends BaseOpenmrsData> List<T> filterExistedAt(long millis, Iterable<T> items) {
         List<T> filtered = new ArrayList<>();
         for (T item : items) {
             if (item.getDateCreated().getTime() < millis) {
@@ -293,6 +294,6 @@ public class PatientEncountersResource
         if (encounter == null) {
             throw new InvalidObjectDataException("No observations specified");
         }
-        return encounterToJson(encounter);
+        return encounterToJson(encounter, new Date().getTime());
     }
 }
