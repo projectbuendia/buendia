@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
@@ -11,29 +22,19 @@ import java.util.List;
  * Interface for describing how to do certain automatic Xform things that may need to be changed.
  */
 public interface XformCustomizer {
-    /**
-     * Generate the string representation for the given concept.
-     */
+    /** Generate the string representation for the given concept. */
     public String getLabel(Concept c);
 
-    /**
-     * @return the choice of locations to provide for the encounter.
-     */
+    /** Returns the choice of locations to provide for the encounter. */
     public List<Location> getEncounterLocations();
 
-    /**
-     * @return the String label to use for the given encounter location.
-     */
+    /** Returns the String label to use for the given encounter location. */
     public String getLabel(Location location);
 
-    /**
-     * @return the String label to use when displaying providers.
-     */
+    /** Returns the String label to use when displaying providers. */
     public String getLabel(Provider provider);
 
-    /**
-     * @return the label to attach to a group (section) in the form.
-     */
+    /** Returns the label to attach to a group (section) in the form.  */
     public String getGroupLabel(FormField field);
 
     /**

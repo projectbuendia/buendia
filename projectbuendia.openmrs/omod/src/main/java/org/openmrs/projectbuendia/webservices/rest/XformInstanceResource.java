@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang.time.DateFormatUtils;
@@ -36,22 +47,22 @@ import java.util.Set;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
 
 /**
- * Resource for instances of xforms (i.e. filled in forms). Currently write-only.
+ * Resource for submitted "form instances" (filled-in forms).  Write-only.
  *
- * <p>Responds to POST [API root]/xforminstance. Example JSON for an xform instance looks like:
+ * <p>Accepts POST requests to [API root]/xforminstance with JSON data of the form:
  * <pre>
  * {
  *   patient_id: "123", // patient id assigned by medical center
  *   patient_uuid: "24ae3-5", // patient unique identifier in OpenMRS
  *   enterer_id: “1234-5”, // the provider's person id
- *   date_entered: "2015-03-14T09:26:53.589", // date (in ISO8601 format) in which encounter was recorded
- *                                            // (not necessarily when it happened)
- *   xml: "..." // XML contents of form entry, as provided by ODK
+ *   date_entered: "2015-03-14T09:26:53.589Z", // date that the encounter was
+ *           // *entered* (not necessarily when observations were taken)
+ *   xml: "..." // XML contents of the form instance, as provided by ODK
  * }
  * </pre>
  *
- * <p>When creation is successful, the created XformInstance JSON is returned. If an error occurs, the response will
- * contain the following:
+ * <p>When creation is successful, the created XformInstance JSON is returned.
+ * If an error occurs, the response will be in the form:
  * <pre>
  * {
  *   "error": {
@@ -63,7 +74,8 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
  * </pre>
  */
 // TODO: Still not really sure what supportedClass to use here... can we omit it?
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance", supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance",
+        supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
     static final RequestLogger logger = RequestLogger.LOGGER;
 
@@ -78,18 +90,12 @@ public class XformInstanceResource implements Creatable {
         KNOWN_CHILD_ELEMENTS.add("obs");
     }
 
-    static String XML_PROPERTY = "xml";
-    static String PATIENT_ID_PROPERTY = "patient_id";
-    static String PATIENT_UUID_PROPERTY = "patient_uuid";
-    static String ENTERER_ID_PROPERTY = "enterer_id";
-    static String DATE_ENTERED_PROPERTY = "date_entered";
-
     private static final XformsQueueProcessor processor = new XformsQueueProcessor();
 
     @SuppressWarnings("unused")
     private static final Log getLog() {
-        // TODO: Figure out why getLog(XformInstanceResource.class) gives no log output.  Using "org.openmrs.api" works,
-        // though.
+        // TODO: Figure out why getLog(XformInstanceResource.class) gives no
+        // log output.  Using "org.openmrs.api" works, though.
         return LogFactory.getLog("org.openmrs.api");
     }
 
@@ -105,6 +111,7 @@ public class XformInstanceResource implements Creatable {
         return null;
     }
 
+    /** Accepts a submitted form instance. */
     @Override
     public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
         try {
@@ -118,8 +125,10 @@ public class XformInstanceResource implements Creatable {
         }
     }
 
+    /** Accepts a submitted form instance. */
     private Object createInner(SimpleObject post, RequestContext context) throws ResponseException {
         try {
+            // We have to fix a few things before OpenMRS will accept the form.
             String xml = completeXform(convertIdIfNecessary(post));
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
@@ -167,6 +176,7 @@ public class XformInstanceResource implements Creatable {
         return new Date();
     }
 
+    /** Sets the encounter_datetime element to the given value. */
     private static void setEncounterDatetime(Document doc, Date datetime) {
         // Format the encounter_datetime to ensure its timezone has a minute section.
         // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
@@ -225,20 +235,20 @@ public class XformInstanceResource implements Creatable {
 
     /** Fill in any missing "id" property by converting the UUID to a person_id. */
     private SimpleObject convertIdIfNecessary(SimpleObject post) {
-        Object patientId = post.get(PATIENT_ID_PROPERTY);
+        Object patientId = post.get("patient_id");
 
         if (patientId != null) {
             return post;
         }
 
-        String uuid = (String) post.get(PATIENT_UUID_PROPERTY);
+        String uuid = (String) post.get("patient_uuid");
         if (uuid != null) {
 
             Patient patient = patientService.getPatientByUuid(uuid);
             if (patient == null) {
                 throw new IllegalPropertyException("Patient UUID did not exist: " + uuid);
             }
-            post.add(PATIENT_ID_PROPERTY, patient.getPatientId());
+            post.add("patient_id", patient.getPatientId());
             return post;
         }
 
@@ -252,17 +262,18 @@ public class XformInstanceResource implements Creatable {
      * datetime formats, etc.
      */
     static String completeXform(SimpleObject post) throws SAXException, IOException {
-        String xml = (String) post.get(XML_PROPERTY);
-        Integer patientId = (Integer) post.get(PATIENT_ID_PROPERTY);
+        String xml = (String) post.get("xml");
+        Integer patientId = (Integer) post.get("patient_id");
 
-        int entererId = (Integer) post.get(ENTERER_ID_PROPERTY);
-        String dateEntered = (String) post.get(DATE_ENTERED_PROPERTY);
+        int entererId = (Integer) post.get("enterer_id");
+        String dateEntered = (String) post.get("date_entered");
         dateEntered = workAroundClientIssue(dateEntered);
         Document doc = XmlUtil.parse(xml);
 
-        // If we haven't been given a patient id, then the XForms processor will create a patient
-        // then fill in the patient.patient_id in the DOM. However, it won't actually create the node,
-        // just fill it in. So whatever the case, make sure a patient.patient_id node exists.
+        // If we haven't been given a patient id, then the XForms processor will
+        // create a patient then fill in the patient.patient_id in the DOM.
+        // However, it won't actually create the node, just fill it in.
+        // So whatever the case, make sure a patient.patient_id node exists.
 
         Element root = doc.getDocumentElement();
         Element patient = getFirstElementOrCreate(doc, root, "patient");
@@ -295,8 +306,8 @@ public class XformInstanceResource implements Creatable {
         // We must set the encounter_datetime to ensure it is properly formatted.
         setEncounterDatetime(doc, datetime);
 
-        //TODO: we should also have some code here to ensure that the correct XSLT exists for every form
-        // otherwise we lose it on form rename.
+        // TODO: we should also have some code here to ensure that the correct XSLT exists
+        // for every form otherwise we lose it on form rename.
 
         // Make sure that all observations are under the obs element, with appropriate attributes
         Element obs = getFirstElementOrCreate(doc, root, "obs");
@@ -315,7 +326,10 @@ public class XformInstanceResource implements Creatable {
     }
 
     // VisibleForTesting
-    // Before a fix, the Android client posted a date of yyyyMMddTHHmmss.SSSZ 
+    /**
+     * Handles the case where the Android client posts dates in
+     * yyyyMMddTHHmmss.SSSZ format, which isn't ISO 8601.
+     */
     static String workAroundClientIssue(String fromClient) {
         // Just detect it by the lack of hyphens...
         if (fromClient.indexOf('-') == -1) {
@@ -330,7 +344,12 @@ public class XformInstanceResource implements Creatable {
         return fromClient;
     }
 
-    private static Element getFirstElementOrCreate(Document doc, Element parent, String elementName) {
+    /**
+     * Searches for a element among the descendants of a given root element,
+     * or creates it as an immediate child of the given element.
+     */
+    private static Element getFirstElementOrCreate(
+            Document doc, Element parent, String elementName) {
         NodeList patientElements = parent.getElementsByTagName(elementName);
         Element patient;
         if (patientElements == null || patientElements.getLength() == 0) {

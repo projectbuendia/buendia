@@ -51,8 +51,9 @@ import java.util.Map;
  * <p>Expected behavior:
  * <ul>
  * <li>GET /patient returns all patients ({@link #getAll(RequestContext)})
- * <li>GET /patient?q=[query] returns patients with a name or id that contains the query ({@link #search(RequestContext)})
- * <li>GET /patient/[UUID] returns information on a single patient ({@link #retrieve(String, RequestContext)})
+ * <li>GET /patient?q=[query] returns patients whose name or ID contains the query string
+ *     ({@link #search(RequestContext)})
+ * <li>GET /patient/[UUID] returns a single patient ({@link #retrieve(String, RequestContext)})
  * <li>POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
  * <li>POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject, RequestContext)})
  * </ul>
@@ -61,7 +62,7 @@ import java.util.Map;
  *
  * <pre>
  * {
- *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // unique id assigned by OpenMRS, not required for creation
+ *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for creation
  *   "id": "567", // required unique id specified by user
  *   "gender": "F", // required as "M" or "F", unfortunately
  *   "birthdate": "1990-02-17", // required, but can be estimated
@@ -165,7 +166,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     private Object createInner(SimpleObject json) throws ResponseException {
-        // We really want this to use XForms, but lets have a simple default implementation for early testing
+        // We really want this to use XForms, but let's have a simple default
+        // implementation for early testing
 
         if (!json.containsKey(ID)) {
             throw new InvalidObjectDataException("Patient ID is required but not specified");

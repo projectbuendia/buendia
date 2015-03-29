@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.StringUtils;
@@ -34,12 +45,15 @@ import java.util.List;
  * Providers will be returned by List calls).
  *
  * <p>Expected behavior:
- * GET /user returns all users ({@link #getAll(RequestContext)})
- * GET /user/[UUID] returns information on a single user ({@link #retrieve(String, RequestContext)})
- * GET /user?q=[QUERY] performs a substring search on user full names ({@link #search(RequestContext)})
- * POST /user creates a new user. ({@link #create(SimpleObject, RequestContext)})
+ * <ul>
+ * <li>GET /user returns all users ({@link #getAll(RequestContext)})
+ * <li>GET /user/[UUID] returns a single user ({@link #retrieve(String, RequestContext)})
+ * <li>GET /user?q=[QUERY] returns users whose full name contains the query string
+ *     ({@link #search(RequestContext)})
+ * <li>POST /user creates a new user ({@link #create(SimpleObject, RequestContext)})
+ * </ul>
  *
- * <p>All GET operations return User resources, which have the following format:
+ * <p>All GET operations return User resources in the following JSON form:
  * <pre>
  * {
  *   user_id: "5a382-9", // UUID for the user
@@ -53,7 +67,7 @@ import java.util.List;
  * <pre>
  * {
  *   user_name: "jsmith", // user id which can be used to log into OpenMRS
- *   password: "Password123", // must be >8 characters and contain at least one number and one uppercase character
+ *   password: "Password123", // must have &gt; 8 characters, at least 1 digit and 1 uppercase
  *   given_name: "John",
  *   family_name: "Smith"
  * }
@@ -106,6 +120,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         userService = Context.getUserService();
     }
 
+    /** Returns all Providers. */
     @Override
     public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
@@ -119,6 +134,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
+    /** Returns all Providers. */
     private SimpleObject getAllInner() throws ResponseException {
         List<Provider> providers;
         // Returning providers is not a thread-safe operation as it may add the guest user
@@ -130,9 +146,12 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return getSimpleObjectWithResults(providers);
     }
 
+    /** Creates a Provider named "Guest User" if one doesn't already exist. */
     private void addGuestIfNotPresent(List<Provider> providers) {
         boolean guestFound = false;
         for (Provider provider : providers) {
+            // TODO/robustness: Use a fixed UUID instead of searching for
+            // anything with a matching name.
             if (provider.getName().equals(GUEST_FULL_NAME)) {
                 guestFound = true;
                 break;
@@ -146,8 +165,9 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
                 guestDetails.put(USER_NAME, GUEST_USER_NAME);
                 guestDetails.put(PASSWORD, GUEST_PASSWORD);
             synchronized (guestAddLock) {
-                // Fetch again to avoid problems if added in the meantime, but use "Users" for check, to avoid
-                // hibernate cache issues
+                // Fetch again to avoid duplication in case another thread has
+                // added Guest User, but use the UserService for the check to
+                // avoid Hibernate cache issues.
                 User guestUser = userService.getUserByUsername(GUEST_USER_NAME);
                 if (guestUser == null) {
                     providers.add(createFromSimpleObject(guestDetails));
@@ -156,7 +176,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
-
+    /** Adds a new Provider. */
     @Override
     public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
         try {
@@ -174,6 +194,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return providerToJson(createFromSimpleObject(simpleObject));
     }
 
+    /** Adds a new Provider (with associated User and Person). */
     private Provider createFromSimpleObject(SimpleObject simpleObject) {
         checkRequiredFields(simpleObject, REQUIRED_FIELDS);
 
@@ -211,6 +232,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return RestConstants.URI_PREFIX + res.name() + "/" + patient.getUuid();
     }
 
+    /** Returns a specific Provider. */
     @Override
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
@@ -237,6 +259,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return Arrays.asList(Representation.DEFAULT);
     }
 
+    /** Searches for Providers whose names contain the 'q' parameter. */
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
         try {
@@ -250,6 +273,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
+    /** Searches for Providers whose names contain the 'q' parameter. */
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
         // Partial string query for searches.
         String query = requestContext.getParameter("q");
@@ -268,7 +292,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return getSimpleObjectWithResults(filteredProviders);
     }
 
-    // Throws an exception if the given SimpleObject is missing any required fields.
+    /** Throws an exception if the given SimpleObject is missing any required fields. */
     private void checkRequiredFields(SimpleObject simpleObject, String[] requiredFields) {
         List<String> missingFields = new ArrayList<>();
         for (String requiredField : requiredFields) {
@@ -283,6 +307,10 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
     }
 
+    /**
+     * Converts a list of Providers into a SimpleObject in the form
+     * {"results": [...]} with an array of SimpleObjects, one for each Provider.
+     */
     private SimpleObject getSimpleObjectWithResults(List<Provider> providers) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Provider provider : providers) {
@@ -293,6 +321,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return list;
     }
 
+    /** Builds a SimpleObject describing the given Provider. */
     private SimpleObject providerToJson(Provider provider) {
         SimpleObject jsonForm = new SimpleObject();
         if (provider != null) {
