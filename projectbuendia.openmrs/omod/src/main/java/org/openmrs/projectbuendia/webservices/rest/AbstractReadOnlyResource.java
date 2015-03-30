@@ -82,7 +82,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
      * Performs a search using the given {@link RequestContext}. The real work
      * is done by the {@link #searchImpl(RequestContext, long)} function, which
      * also defines how the search is controlled by URL parameters.  If no
-     * search * parameters are given, returns all the items in the collection.
+     * search parameters are given, returns all the items in the collection.
      *
      * @param context the request context; see individual implementations of
      *     {@link #searchImpl(RequestContext, long)} for the search parameters.
@@ -91,8 +91,15 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
      *     <li>"results": a {@link List} of {@link SimpleObject}s representing
      *         items that match the search parameters, in the same form as that
      *         returned by {@link #retrieve(String, RequestContext)}
-     *     <li>"snapshotTime": a timestamp in ISO 8601 format, in UTC
+     *     <li>"snapshotTime": a timestamp in ISO 8601 UTC format, indicating
+     *         the server clock time at which the results were retrieved; for
+     *         resources that support incremental fetch, clients can pass in
+     *         this snapshotTime as the "sm" query parameter of the next request
+     *         to get just the data added or changed since this request
      * </ul>
+     * TODO: It's nuts that snapshotTime and the "sm" parameter are in different
+     * formats (ISO 8601 vs. millis) when the only purpose of snapshotTime is to
+     * be passed back in as "sm".  Make them both use millis.
      * @throws ResponseException if anything goes wrong
      */
     @Override
@@ -109,8 +116,16 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         }
     }
 
-    /** Wraps searchImpl, converting items (of type T) to SimpleObjects. */
-    private SimpleObject searchInner(RequestContext context, long snapshotTime) throws ResponseException {
+    /**
+     * Wraps searchImpl, converting items (of type T) to SimpleObjects.
+     * @param context the request context; see individual implementations of
+     *     {@link #searchImpl(RequestContext, long)} for the search parameters.
+     * @param snapshotTime a timestamp (in millis) to use as the time at which
+     *     to take a consistent snapshot; all the returned results will reflect
+     *     the state of the database at that particular point in time.
+     */
+    private SimpleObject searchInner(RequestContext context, long snapshotTime)
+            throws ResponseException {
         List<SimpleObject> results = new ArrayList<>();
         for (T item : searchImpl(context, snapshotTime)) {
             results.add(convertToJson(item, context, snapshotTime));
@@ -147,7 +162,8 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         }
     }
 
-    private Object retrieveInner(String uuid, RequestContext context, long snapshotTime) throws ResponseException {
+    private Object retrieveInner(String uuid, RequestContext context, long snapshotTime)
+            throws ResponseException {
         T item = retrieveImpl(uuid, context, snapshotTime);
         if (item == null) {
             throw new ObjectNotFoundException();

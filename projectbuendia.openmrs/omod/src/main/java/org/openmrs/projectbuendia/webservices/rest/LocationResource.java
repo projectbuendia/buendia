@@ -106,11 +106,11 @@ public class LocationResource implements
 
     public LocationResource() {
         locationService = Context.getLocationService();
-        Location emcLocation = getEmcLocation(locationService);
-        ensureZonesExist(locationService, emcLocation);
+        Location root = getRootLocation(locationService);
+        ensureZonesExist(locationService, root);
     }
 
-    private static Location getEmcLocation(LocationService service) {
+    private static Location getRootLocation(LocationService service) {
         Location location = service.getLocationByUuid(ROOT_UUID);
         if (location == null) {
             log.info("Creating root location");
@@ -123,7 +123,7 @@ public class LocationResource implements
         return location;
     }
 
-    private static void ensureZonesExist(LocationService service, Location emc) {
+    private static void ensureZonesExist(LocationService service, Location root) {
         for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
             String name = nameAndUuid[0];
             String uuid = nameAndUuid[1];
@@ -134,7 +134,7 @@ public class LocationResource implements
                 zone.setName(name);
                 zone.setUuid(uuid);
                 zone.setDescription(name);
-                zone.setParentLocation(emc);
+                zone.setParentLocation(root);
                 service.saveLocation(zone);
             }
         }

@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
@@ -26,16 +37,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import javax.annotation.Nullable;
 
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
 
 /**
- * Resource for xform templates (i.e. forms without data). Note: this is under
+ * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
  * org.openmrs as otherwise the resource annotation isn't picked up.
  *
  * @see AbstractReadOnlyResource
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform",
+        supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformResource extends AbstractReadOnlyResource<Form> {
 
     private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
@@ -54,24 +67,26 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Always adds the following fields to the {@link SimpleObject}:
+     * Adds the following fields to the {@link SimpleObject}:
      * <ul>
      *     <li>name: display name of the form
      *     <li>date_created: the date the form was created, as ms since epoch
      *     <li>version: the version number of the form (e.g. 0.2.1)
-     *     <li>date_changed: the date the form was last modified, as ms since epoch; for forms that contain a provider
-     *         field, this date will also be updated whenever the set of providers on the server changes
+     *     <li>date_changed: the date the form was last modified, as ms since epoch;
+     *         for forms that contain a provider field, this date will also be
+     *         updated whenever the set of providers on the server changes
      * </ul>
      *
-     * Adds the following fields to the {@link SimpleObject} if verbose output is requested:
-     * <ul>
-     *     <li>xml: the contents of the xform in XML format
-     * </ul>
+     * If the query parameter "?v=full" is present, also adds the "xml" field
+     * containing the XML of the form model definition.
      *
-     * @param context the request context; specify "v=full" in the URL params for verbose output
+     * @param context the request context; specify "v=full" in the URL params
+     *     to include the XML for the form model in the response
+     * @param snapshotTime ignored
      */
     @Override
-    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
+    protected void populateJsonProperties(
+            Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.add("name", form.getName());
         Date dateChanged = form.getDateChanged();
         json.add("date_created", form.getDateCreated());
@@ -80,7 +95,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         if (context.getRepresentation() == Representation.FULL) {
             try {
                 // TODO: Use description instead of name?
-                FormData formData = BuendiaXformBuilderEx.buildXform(form, new BuendiaXformCustomizer());
+                FormData formData = BuendiaXformBuilderEx.buildXform(
+                        form, new BuendiaXformCustomizer());
                 String xml = convertToOdkCollect(formData.xml, form.getName());
                 includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);
@@ -89,13 +105,15 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
                 throw new RuntimeException(e);
             }
         } else {
-            // Do a linear search, as otherwise it puts too many assumptions on comparison order.
-            // Also FormField overrides compare to be based on lots of fields, but leaves .equals() based
-            // on UUID unchanged, which is really dangerous.
+            // Do a linear search, as otherwise it puts too many assumptions on
+            // comparison order.  Also FormField overrides compare to be based
+            // on lots of fields, but leaves .equals() based on UUID unchanged,
+            // which is really dangerous.
             for (FormField formField : form.getFormFields()) {
                 Field field = formField.getField();
-                if (FormConstants.FIELD_TYPE_DATABASE.equals(field.getFieldType().getFieldTypeId()) &&
-                        "encounter".equals(field.getTableName())) {
+                if (FormConstants.FIELD_TYPE_DATABASE.equals(
+                        field.getFieldType().getFieldTypeId())
+                        && "encounter".equals(field.getTableName())) {
                     includesProviders = true;
                 }
                 dateChanged = maxDate(dateChanged, dateChanged(formField));
@@ -109,6 +127,11 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         json.add("date_changed", dateChanged);
     }
 
+    /**
+     * Returns the actual last modification time of an OpenMRS object.
+     * Because OpenMRS doesn't set the modification time upon initial
+     * creation (sigh) we have to check both dateChanged and dateCreated.
+     */
     private Date dateChanged(BaseOpenmrsMetadata d) {
         Date dateChanged = d.getDateChanged();
         if (dateChanged != null) {
@@ -117,7 +140,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         return d.getDateCreated();
     }
 
-    private Date maxDate(Date d1, Date d2) {
+    /** Returns the later of two nullable dates. */
+    private Date maxDate(@Nullable Date d1, @Nullable Date d2) {
         if (d1 == null) {
             return d2;
         }
@@ -128,11 +152,13 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Retrieves a single xform with the given UUID.
+     * Retrieves a single xform with the given UUID.  See
+     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
+     * for details on the context and snapshotTime arguments.
      *
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     * @param context the request context; specify "v=full" in the URL params to retrieve the form alongside the
-     *                metadata; by default, only metadata is returned
+     * @param context unused here
+     * @param snapshotTime unused here
      */
     @Override
     protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
@@ -140,20 +166,24 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Returns all xforms (there is no support for query parameters).
+     * Returns all xforms (there is no support for query parameters).  See
+     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
+     * for details on the context and snapshotTime arguments.
      *
      * @see AbstractReadOnlyResource#search(RequestContext)
-     * @param context the request context; specify "v=full" in the URL params to retrieve the form alongside the
-     *                metadata; by default, only metadata is returned
-     *                Note: because of a bug in parsing form definitions, "v=full" is currently broken for this function
+     * @param context unused here
+     * @param snapshotTime unused here
+     * Note: because of a bug in parsing form definitions, "v=full" is currently
+     * broken for this function
      */
     @Override
     protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
-        // TODO: Fix verbose mode. Currently produces error: "No bind node for bindName _3._bleeding_sites".
+        // TODO/bug: Fix verbose mode. Currently produces the error:
+        // "No bind node for bindName _3._bleeding_sites".
         // No query parameters supported - just give all the forms
         return formService.getAllForms(false);
     }
-    
+
     // Visible for testing
     /**
      * Converts a vanilla Xform into one that ODK Collect is happy to work with.
@@ -200,8 +230,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         }
 
         // Having removed the model and everything after it, we can now just
-        // append the head
-        // and body to the document element...
+        // append the head and body to the document element...
         root.appendChild(head);
         root.appendChild(body);
 
@@ -225,8 +254,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         }
 
         // Remove every parent of a label element with a text of
-        // "RELATIONSHIPS". (Easiest
-        // way to find the ones added...)
+        // "RELATIONSHIPS". (Easiest way to find the ones added...)
         for (Element label : toElementIterable(doc
                 .getElementsByTagNameNS(XFORMS_NAMESPACE, "label"))) {
             Element parent = (Element) label.getParentNode();
@@ -236,8 +264,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
 
                 removeNode(parent);
                 // We don't need to find other labels now, especially if they
-                // may already
-                // have been removed.
+                // may already have been removed.
                 break;
             }
         }
@@ -245,8 +272,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     private static void removeBinding(Document doc, String id) {
-        for (Element binding : toElementIterable(doc.getElementsByTagNameNS(XFORMS_NAMESPACE,
-                "bind"))) {
+        for (Element binding : toElementIterable(
+                doc.getElementsByTagNameNS(XFORMS_NAMESPACE, "bind"))) {
             if (binding.getAttribute("id").equals(id)) {
                 removeNode(binding);
                 return;

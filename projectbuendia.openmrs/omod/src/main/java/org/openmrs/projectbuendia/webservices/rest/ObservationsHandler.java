@@ -100,7 +100,7 @@ public class ObservationsHandler {
             String questionUuid = (String) observationObject.get(QUESTION_UUID);
             Concept questionConcept = conceptService.getConceptByUuid(questionUuid);
             if (questionConcept == null) {
-                log.warn("question concept not found: " + questionUuid);
+                log.warn("Question concept not found: " + questionUuid);
                 continue;
             }
             Obs obs = new Obs(patient, questionConcept, encounterTime, location);
@@ -110,7 +110,7 @@ public class ObservationsHandler {
             if (answerUuid != null) {
                 Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
                 if (answerConcept == null) {
-                    log.warn("answer concept not found: " + answerUuid);
+                    log.warn("Answer concept not found: " + answerUuid);
                     continue;
                 }
                 obs.setValueCoded(answerConcept);
@@ -118,18 +118,18 @@ public class ObservationsHandler {
                 try {
                     obs.setValueDate(DateTimeUtils.YYYYMMDD_FORMAT.parse(answerDate));
                 } catch (ParseException e) {
-                    log.warn("invalid date answer: " + answerDate);
+                    log.warn("Invalid date answer: " + answerDate);
                     continue;
                 }
             } else if (observationObject.containsKey(ANSWER_NUMBER)) {
                 try {
                     obs.setValueNumeric(Double.parseDouble(answerNumber));
                 } catch (IllegalArgumentException e) {
-                    log.warn("invalid numeric answer: " + answerUuid);
+                    log.warn("Invalid numeric answer: " + answerUuid);
                     continue;
                 }
             } else {
-                log.warn("invalid answer type: " + observationObject);
+                log.warn("Invalid answer type: " + observationObject);
                 continue;
             }
             obsList.add(obs);
