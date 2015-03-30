@@ -22,7 +22,7 @@ import java.util.List;
  * Interface for describing how to do certain automatic Xform things that may need to be changed.
  */
 public interface XformCustomizer {
-    /** Generate the string representation for the given concept. */
+    /** Generates the string representation for the given concept. */
     public String getLabel(Concept c);
 
     /** Returns the choice of locations to provide for the encounter. */
@@ -38,16 +38,16 @@ public interface XformCustomizer {
     public String getGroupLabel(FormField field);
 
     /**
-     * The xform spec says that appearance should be full, compact, or minimal.
-     * In order to add extra qualifiers, ODK separates them with pipes |.
-     * So you could add for example "full|binary-select-one".
+     * Gets the value of the appearance attribute for a form field.  The XForms
+     * spec says that this should be "full", "compact", or "minimal"; ODK adds
+     * extra qualifiers using "|" as a separator, e.g. "full|binary-select-one".
      *
-     * @return the contents of the appearance attribute, or null if none
+     * @return the value of the appearance attribute, or null if none
      */
     public String getAppearanceAttribute(FormField field);
 
     /**
-     * Get the number of rows for querying a particular text question.
+     * Gets the number of rows for querying a particular text question.
      *
      * @param concept the concept used for the question
      * @return null for default (single line) or an integer number of rows

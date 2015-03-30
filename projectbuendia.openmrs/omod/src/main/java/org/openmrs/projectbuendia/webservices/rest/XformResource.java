@@ -152,11 +152,13 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Retrieves a single xform with the given UUID.
+     * Retrieves a single xform with the given UUID.  See
+     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
+     * for details on the context and snapshotTime arguments.
      *
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     * @param context unused here; see populateJsonProperties() for details
-     * @param snapshotTime unused here; see populateJsonProperties() for details
+     * @param context unused here
+     * @param snapshotTime unused here
      */
     @Override
     protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
@@ -164,11 +166,13 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Returns all xforms (there is no support for query parameters).
+     * Returns all xforms (there is no support for query parameters).  See
+     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
+     * for details on the context and snapshotTime arguments.
      *
      * @see AbstractReadOnlyResource#search(RequestContext)
-     * @param context unused here; see populateJsonProperties() for details
-     * @param snapshotTime unused here; see populateJsonProperties() for details
+     * @param context unused here
+     * @param snapshotTime unused here
      * Note: because of a bug in parsing form definitions, "v=full" is currently
      * broken for this function
      */
