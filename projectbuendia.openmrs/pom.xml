@@ -9,13 +9,13 @@
     <name>Project Buendia Module</name>
     <description>OpenMRS module for Project Buendia (http://projectbuendia.org)</description>
     <url>https://wiki.openmrs.org/display/docs/Project+Buendia+Module+Module</url>
-    
+
     <developers>
         <developer>
             <name>jonskeet@google.com</name>
         </developer>
     </developers>
-    
+
     <organization>
         <name>OpenMRS</name>
         <url>http://openmrs.org</url>
@@ -32,7 +32,7 @@
         <module>omod</module>
     <module>openmrs-project</module>
   </modules>
-    
+
     <properties>
         <openMRSVersion>1.10.0</openMRSVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -42,7 +42,7 @@
 
     <dependencyManagement>
         <dependencies>
-        
+
             <!--
             Libraries to add as dependencies with compile or runtime scope:
             Find matching dependencies in the maven central repository.
@@ -53,11 +53,9 @@
                 <scope>compile</scope>
             </dependency>
             -->
-            
-            
 
             <!-- Begin OpenMRS core -->
-            
+
             <dependency>
                 <groupId>org.openmrs.api</groupId>
                 <artifactId>openmrs-api</artifactId>
@@ -73,7 +71,7 @@
                 <type>jar</type>
                 <scope>provided</scope>
             </dependency>
-                        
+
             <dependency>
                 <groupId>org.openmrs.api</groupId>
                 <artifactId>openmrs-api</artifactId>
@@ -81,7 +79,7 @@
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.openmrs.web</groupId>
                 <artifactId>openmrs-web</artifactId>
@@ -89,7 +87,7 @@
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.openmrs.test</groupId>
                 <artifactId>openmrs-test</artifactId>
@@ -97,7 +95,7 @@
                 <type>pom</type>
                 <scope>test</scope>
             </dependency>
-                        
+
             <!-- End OpenMRS core -->
 
         </dependencies>

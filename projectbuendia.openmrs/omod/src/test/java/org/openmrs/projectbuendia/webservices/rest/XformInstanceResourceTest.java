@@ -13,9 +13,9 @@ public class XformInstanceResourceTest {
         String input = readResourceAsString(getClass(), "original-instance-add.xml");
         String expected = readResourceAsString(getClass(), "expected-instance-add.xml");
         SimpleObject post = new SimpleObject();
-        post.add(XformInstanceResource.DATE_ENTERED_PROPERTY, "2014-11-15");
-        post.add(XformInstanceResource.ENTERER_ID_PROPERTY, 1);
-        post.add(XformInstanceResource.XML_PROPERTY, input);
+        post.add("date_entered", "2014-11-15");
+        post.add("enterer_id", 1);
+        post.add("xml", input);
         String actual = XformInstanceResource.completeXform(post);
         assertXmlEqual(expected, actual);
     }
@@ -25,10 +25,10 @@ public class XformInstanceResourceTest {
         String input = readResourceAsString(getClass(), "original-instance-edit.xml");
         String expected = readResourceAsString(getClass(), "expected-instance-edit.xml");
         SimpleObject post = new SimpleObject();
-        post.add(XformInstanceResource.DATE_ENTERED_PROPERTY, "2014-11-15");
-        post.add(XformInstanceResource.ENTERER_ID_PROPERTY, 1);
-        post.add(XformInstanceResource.PATIENT_ID_PROPERTY, 10);
-        post.add(XformInstanceResource.XML_PROPERTY, input);
+        post.add("date_entered", "2014-11-15");
+        post.add("enterer_id", 1);
+        post.add("patient_id", 10);
+        post.add("xml", input);
         String actual = XformInstanceResource.completeXform(post);
         assertXmlEqual(expected, actual);
     }
@@ -38,9 +38,9 @@ public class XformInstanceResourceTest {
         String input = readResourceAsString(getClass(), "original-grouped.xml");
         String expected = readResourceAsString(getClass(), "expected-grouped.xml");
         SimpleObject post = new SimpleObject();
-        post.add(XformInstanceResource.DATE_ENTERED_PROPERTY, "2014-11-15");
-        post.add(XformInstanceResource.ENTERER_ID_PROPERTY, 1);
-        post.add(XformInstanceResource.XML_PROPERTY, input);
+        post.add("date_entered", "2014-11-15");
+        post.add("enterer_id", 1);
+        post.add("xml", input);
         String actual = XformInstanceResource.completeXform(post);
         assertXmlEqual(expected, actual);
     }
