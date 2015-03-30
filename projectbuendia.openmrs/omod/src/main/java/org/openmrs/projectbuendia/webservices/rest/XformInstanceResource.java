@@ -52,9 +52,9 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
  * <p>Accepts POST requests to [API root]/xforminstance with JSON data of the form:
  * <pre>
  * {
- *   patient_id: "123", // patient id assigned by medical center
- *   patient_uuid: "24ae3-5", // patient unique identifier in OpenMRS
- *   enterer_id: “1234-5”, // the provider's person id
+ *   patient_id: "123", // patient ID assigned by medical center
+ *   patient_uuid: "24ae3-5", // patient UUID in OpenMRS
+ *   enterer_id: "1234-5", // person ID of the provider entering the data
  *   date_entered: "2015-03-14T09:26:53.589Z", // date that the encounter was
  *           // *entered* (not necessarily when observations were taken)
  *   xml: "..." // XML contents of the form instance, as provided by ODK
