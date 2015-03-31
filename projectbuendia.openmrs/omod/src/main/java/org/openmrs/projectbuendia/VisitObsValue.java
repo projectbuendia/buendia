@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia;
 
 import org.openmrs.Concept;
@@ -7,50 +18,33 @@ import org.openmrs.hl7.HL7Constants;
 
 import java.util.Date;
 
-/**
- * Common place for handling the logic in handling observation data of different types
- */
+/** Visitor design pattern for observation values of various types. */
 public class VisitObsValue {
-
     /**
-     * Visitor design pattern interface for observations values
+     * Visitor design pattern interface for observation values.
      * @param <T>
      */
     public interface ObsValueVisitor<T> {
-        /**
-         * Visit a coded (Concept) value
-         */
+        /** Visits a coded (Concept) value. */
         public T visitCoded(Concept value);
 
-        /**
-         * Visit a numeric value.
-         */
+        /** Visits a numeric value. */
         public T visitNumeric(Double value);
 
-        /**
-         * Visit a boolean value.
-         */
+        /** Visits a boolean value. */
         public T visitBoolean(Boolean value);
 
-        /**
-         * Visit a text value.
-         */
+        /** Visits a text value. */
         public T visitText(String value);
 
-        /**
-         * Visit a date value.
-         */
+        /** Visits a date value. */
         public T visitDate(Date value);
 
-        /**
-         * Visit a date-time value.
-         */
+        /** Visits a datetime value. */
         public T visitDateTime(Date value);
     }
 
-    /**
-     * Use a visitor on an observation (we can't retro fit to Obs).
-     */
+    /** Applies a visitor to an observation (we can't retrofit to Obs). */
     public static <T> T visit(Obs obs, ObsValueVisitor<T> visitor) {
         Concept concept = obs.getConcept();
         ConceptDatatype dataType = concept.getDatatype();

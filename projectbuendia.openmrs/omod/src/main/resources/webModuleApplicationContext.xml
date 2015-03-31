@@ -1,32 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 The Project Buendia Authors
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License.  You may obtain a copy
+of the License at: http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+specific language governing permissions and limitations under the License.
+-->
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:p="http://www.springframework.org/schema/p"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:jee="http://www.springframework.org/schema/jee"
-       xmlns:tx="http://www.springframework.org/schema/tx"
-       xmlns:aop="http://www.springframework.org/schema/aop"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-  		    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-  		    http://www.springframework.org/schema/context
-  		    http://www.springframework.org/schema/context/spring-context-3.0.xsd
-  		    http://www.springframework.org/schema/jee
-  		    http://www.springframework.org/schema/jee/spring-jee-3.0.xsd
-  		    http://www.springframework.org/schema/tx
-  		    http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
-  		    http://www.springframework.org/schema/aop
-  		    http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
-  		    http://www.springframework.org/schema/util
-  		    http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:p="http://www.springframework.org/schema/p"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jee="http://www.springframework.org/schema/jee"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/jee
+        http://www.springframework.org/schema/jee/spring-jee-3.0.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
-	<!-- Add here beans related to the web context -->
+    <!-- Add here beans related to the web context -->
 
-	 
-	<!-- Annotation based controllers -->
-	<bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
-	
-	<context:component-scan base-package="org.projectbuendia.openmrs.web.controller" />
-	<context:component-scan base-package="org.projectbuendia.openmrs.webservices.rest" /> 
-		
+
+    <!-- Annotation based controllers -->
+    <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping"/>
+
+    <context:component-scan base-package="org.projectbuendia.openmrs.web.controller" />
+    <context:component-scan base-package="org.projectbuendia.openmrs.webservices.rest" />
+
 </beans>

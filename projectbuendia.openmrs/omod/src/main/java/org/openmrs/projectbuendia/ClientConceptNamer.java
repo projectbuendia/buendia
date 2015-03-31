@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia;
 
 import org.apache.commons.logging.Log;
@@ -9,9 +20,9 @@ import org.springframework.util.ObjectUtils;
 import java.util.Locale;
 
 /**
- * A class to get a String representing a concept in the client. For a full document on why this is hard,
- * and why we decided to make these decisions see
- * https://docs.google.com/document/d/1ILDgcEDp_Bdm3q7IJa0gys4I-WfpJdATwuyI1pofuHE/edit?usp=sharing
+ * A class to get a String representing a concept in the client. See the wiki
+ * page explaining why this is hard and why we made these design decisions:
+ * http://github.com/projectbuendia/buendia/wiki/... TODO: Fill in URL.
  */
 public class ClientConceptNamer {
 
@@ -35,8 +46,12 @@ public class ClientConceptNamer {
     }
 
     /**
-     * Get the name for the concept to display in the client. Suppose we are given the locale es_419. The algorithm
-     * used is as follows:
+     * Gets the best available concept name string to display in the client.
+     * The configured locale is checked for a preferred name string, first
+     * with and then without the "_client" variant, and then without the
+     * region if any.  If this does not succeed, then English is checked,
+     * first with and then without the "_client" variant.  For example, if the
+     * locale is "es_419", the following locales will be tried, in order:
      * <ol>
      *     <li>es_419_client
      *     <li>es_419
@@ -45,7 +60,7 @@ public class ClientConceptNamer {
      *     <li>en
      * </ol>
      *
-     * If we ask for fr the sequence will be
+     * If the configured locale is "fr", the sequence will be:
      * <ol>
      *     <li>fr_GB_client
      *     <li>fr
@@ -53,20 +68,15 @@ public class ClientConceptNamer {
      *     <li>en
      * </ol>
      *
-     * So we try client localisation first, then the correct language, then if that language is not found we fallback
-     * to english, client then default. For a given locale we will use the preferred String.
-     *
      * @param concept the concept to get a name for
      * @return a String for the client with the best match we can get for that locale
      */
     public String getClientName(Concept concept) {
         String variant = locale.getVariant();
-        Locale.Builder builder;
-        if (VARIANT.equals(variant)) {
-            builder = new Locale.Builder().setLocale(locale);
-        } else {
-            builder = new Locale.Builder().setLocale(locale)
-                    .setVariant(VARIANT);
+        Locale.Builder builder = new Locale.Builder().setLocale(locale);
+        if (!VARIANT.equals(variant)) {
+            builder.setVariant(VARIANT);
+            // getCountry() and setRegion() refer to the same field.  Oy.
             if ("".equals(locale.getCountry())) {
                 builder.setRegion(CLIENT_REGION);
             }
@@ -104,9 +114,8 @@ public class ClientConceptNamer {
         // fail over to anything we can get
         ConceptName defaultName = concept.getName();
         if (defaultName == null) {
-            log.error("tried to get a name for concept, uuid=" + concept.getUuid() + ", id=" + concept.getId()
-                    + ", but none found");
-            return "UNKNOWN Concept " + concept.getId();
+            log.error("No name found for concept: uuid=" + concept.getUuid() + ", id=" + concept.getId());
+            return "[Concept " + concept.getId() + "]";
         }
         return defaultName.getName();
     }

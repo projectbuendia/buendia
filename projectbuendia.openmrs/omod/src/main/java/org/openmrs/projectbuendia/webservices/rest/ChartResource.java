@@ -1,3 +1,14 @@
+// Copyright 2015 The Project Buendia Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at: http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software distrib-
+// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+// specific language governing permissions and limitations under the License.
+
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
@@ -19,17 +30,19 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * REST resource for charts. These are stored as OpenMRS forms, but that's primarily to allow for ease of maintenance.
+ * REST resource for charts. These are stored as OpenMRS forms, but that's
+ * primarily to allow for ease of maintenance (OpenMRS provides an editing UI).
  *
  * @see AbstractReadOnlyResource
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart", supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart",
+        supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
-    
+
     private static final String GROUPS = "groups";
     private static final String VERSION = "version";
     private static final String CONCEPTS = "concepts";
-        
+
     private final FormService formService;
 
     public ChartResource() {
@@ -41,31 +54,35 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
      * Retrieves a single form with the given UUID.
      *
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     * @param context the request context; specify "v=full" in the URL params for verbose output
+     * @param context the request context; specify the URL query parameter
+     *     "?v=full" to get a list of the groups and concepts in the form.
      */
     @Override
-    public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) throws ResponseException {
+    public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime)
+            throws ResponseException {
         return formService.getFormByUuid(uuid);
     }
 
     /**
-     * Always adds the following fields to the {@link SimpleObject}:
+     * Adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>version: the version number (e.g. 0.2.3) of the form
+     *     <li>"version": the version number (e.g. 0.2.3) of the form
      * </ul>
      *
-     * Adds the following fields to the {@link SimpleObject} if verbose output is requested:
+     * <p>If details are requested with the URL query parameter "?v=full",
+     * also adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>groups: a {@link List} of {@link SimpleObject}'s, each with the following pairs:
-     *         <ul>
-     *             <li>uuid: the unique id for the concept that represents the group in (note: when defining groups in
-     *                 OpenMRS for charts returned by this endpoint, each group MUST be represented by a concept or this
-     *                 endpoint will return an error)
-     *             <li>concepts: a {@link List} of concept ids for concepts contained within the group
-     *         </ul>
+     * <li>"groups": a {@link List} of {@link SimpleObject}s, each containing:
+     *   <ul>
+     *   <li>"uuid": the UUID for the concept representing the group (note: when
+     *       defining groups in OpenMRS for charts returned by this endpoint,
+     *       each group MUST be represented by a concept or this will fail)
+     *   <li>"concepts": a {@link List} of UUIDs of the concepts in the group
+     *   </ul>
      * </ul>
      *
-     * @param context the request context; specify "v=full" in the URL params for verbose output
+     * @param context the request context; specify the URL query parameter
+     *     "?v=full" to get a list of the groups and concepts in the form.
      */
     @Override
     protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
@@ -82,7 +99,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
                         form.getUuid(), groupField.getField().getName());
             }
             SimpleObject group = new SimpleObject();
-            group.put(UUID, groupConcept.getUuid());
+            group.put("uuid", groupConcept.getUuid());
             List<String> groupFieldConceptIds = new ArrayList<>();
             for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
                 Concept fieldConcept = fieldInGroup.getField().getConcept();
@@ -99,16 +116,17 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Returns all charts (there is no support for query parameters).
+     * Returns all charts (there is no support for searching or filtering).
      *
      * @see AbstractReadOnlyResource#search(RequestContext)
-     * @param context the request context; specify "v=full" in the URL params for verbose output
+     * @param context the request context; specify the URL query parameter
+     *     "?v=full" to get a list of the groups and concepts in each form.
      */
     @Override
     protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
         return getCharts(formService);
     }
-    
+
     public static List<Form> getCharts(FormService formService) {
         List<Form> charts = new ArrayList<>();
         String[] uuids = Context.getAdministrationService()
@@ -117,7 +135,8 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
         for (String uuid : uuids) {
             Form form = formService.getFormByUuid(uuid);
             if (form == null) {
-                throw new ConfigurationException("Configured chart UUIDs incorrect - can't find form " + uuid);
+                throw new ConfigurationException(GlobalProperties.CHART_UUIDS +
+                    " property is incorrect; cannot find form " + uuid);
             }
             charts.add(form);
         }
