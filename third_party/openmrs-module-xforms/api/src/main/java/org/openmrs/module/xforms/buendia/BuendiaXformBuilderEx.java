@@ -7,7 +7,7 @@
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
-package org.openmrs.module.xforms;
+package org.openmrs.module.xforms.buendia;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
