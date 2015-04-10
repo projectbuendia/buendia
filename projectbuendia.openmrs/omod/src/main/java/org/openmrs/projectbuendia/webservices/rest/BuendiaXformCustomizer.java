@@ -11,7 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Field;
 import org.openmrs.FieldType;
@@ -20,14 +19,15 @@ import org.openmrs.Location;
 import org.openmrs.Person;
 import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.xforms.buendia.XformCustomizer;
 import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.util.FormConstants;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Project Buendia choices about how to display elements in the XForms. */
-public class BuendiaXformCustomizer implements XformCustomizer {
+/** XForm rendering customizations for Buendia. */
+public class BuendiaXformCustomizer extends XformCustomizer {
 
     final ClientConceptNamer namer = new ClientConceptNamer(Context.getLocale());
 
@@ -62,27 +62,6 @@ public class BuendiaXformCustomizer implements XformCustomizer {
             name = person.getPersonName().toString();
         }
         return name;
-    }
-
-    @Override
-    public String getGroupLabel(FormField formField) {
-        String name = formField.getDescription();
-        if (StringUtils.isNotEmpty(name)) {
-            return name;
-        }
-        name = formField.getName();
-        if (StringUtils.isNotEmpty(name)) {
-            return name;
-        }
-        name = formField.getField().getDescription();
-        if (StringUtils.isNotEmpty(name)) {
-            return name;
-        }
-        name = formField.getField().getName();
-        if (StringUtils.isNotEmpty(name)) {
-            return name;
-        }
-        throw new IllegalArgumentException("No field name available");
     }
 
     @Override

@@ -9,6 +9,29 @@
  */
 package org.openmrs.module.xforms.buendia;
 
+import org.apache.commons.lang.StringUtils;
+import org.kxml2.io.KXmlParser;
+import org.kxml2.io.KXmlSerializer;
+import org.kxml2.kdom.Document;
+import org.kxml2.kdom.Element;
+import org.openmrs.Concept;
+import org.openmrs.ConceptMap;
+import org.openmrs.ConceptReferenceTerm;
+import org.openmrs.ConceptSource;
+import org.openmrs.api.ConceptService;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.xforms.XformConstants;
+import org.openmrs.module.xforms.XformsService;
+import org.openmrs.module.xforms.util.XformsUtil;
+import org.openmrs.util.OpenmrsUtil;
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.Map;
+
 import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONSTRAINT;
 import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_ID;
 import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_LOCKED;
@@ -48,29 +71,6 @@ import static org.openmrs.module.xforms.XformBuilder.NODE_XFORMS_VALUE;
 import static org.openmrs.module.xforms.XformBuilder.VALUE_TRUE;
 import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_FALSE;
 import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_TRUE;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
-import org.kxml2.io.KXmlParser;
-import org.kxml2.io.KXmlSerializer;
-import org.kxml2.kdom.Document;
-import org.kxml2.kdom.Element;
-import org.openmrs.Concept;
-import org.openmrs.ConceptMap;
-import org.openmrs.ConceptReferenceTerm;
-import org.openmrs.ConceptSource;
-import org.openmrs.api.ConceptService;
-import org.openmrs.api.context.Context;
-import org.openmrs.module.xforms.XformConstants;
-import org.openmrs.module.xforms.XformsService;
-import org.openmrs.module.xforms.util.XformsUtil;
-import org.openmrs.util.OpenmrsUtil;
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
 
 //TODO This class is too big. May need breaking into smaller ones.
 

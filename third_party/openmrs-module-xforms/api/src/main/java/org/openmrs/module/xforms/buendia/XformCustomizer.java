@@ -1,9 +1,14 @@
-// TODO/license: Confirm whether this file is licensed under MPL 2.0 like
-// the rest of OpenMRS and add whatever license header is necessary.
+/**
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
+package org.openmrs.module.xforms.buendia;
 
-package org.openmrs.projectbuendia.webservices.rest;
-
-import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.FormField;
 import org.openmrs.Location;
@@ -14,29 +19,23 @@ import org.openmrs.api.context.Context;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * The default implementation of XformCustomizer taken from the original OpenMRS code.
- */
-public class DefaultXformCustomizer implements XformCustomizer {
+/** A class that provides customizable values used for rendering an XForm. */
+public class XformCustomizer {
 
     private final Locale locale = Context.getLocale();
 
-    @Override
     public String getLabel(Concept c) {
         return c.getName(locale).getName();
     }
 
-    @Override
     public List<Location> getEncounterLocations() {
         return Context.getLocationService().getAllLocations(false);
     }
 
-    @Override
     public String getLabel(Location loc) {
         return loc.getName() + " [" + loc.getLocationId() + "]";
     }
 
-    @Override
     public String getLabel(Provider provider) {
         String name = provider.getName();
         if (name == null) {
@@ -47,33 +46,30 @@ public class DefaultXformCustomizer implements XformCustomizer {
         return name + " [" + identifier + "]";
     }
 
-    @Override
     public String getGroupLabel(FormField formField) {
         String name = formField.getDescription();
-        if (StringUtils.isNotEmpty(name)) {
+        if (name != null && name.length() > 0) {
             return name;
         }
         name = formField.getName();
-        if (StringUtils.isNotEmpty(name)) {
+        if (name != null && name.length() > 0) {
             return name;
         }
         name = formField.getField().getDescription();
-        if (StringUtils.isNotEmpty(name)) {
+        if (name != null && name.length() > 0) {
             return name;
         }
         name = formField.getField().getName();
-        if (StringUtils.isNotEmpty(name)) {
+        if (name != null && name.length() > 0) {
             return name;
         }
         throw new IllegalArgumentException("No field name available");
     }
 
-    @Override
     public String getAppearanceAttribute(FormField field) {
         return null;
     }
 
-    @Override
     public Integer getRows(Concept concept) {
         return null;
     }

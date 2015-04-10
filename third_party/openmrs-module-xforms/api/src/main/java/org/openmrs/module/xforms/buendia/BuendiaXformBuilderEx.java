@@ -48,7 +48,47 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
-import static org.openmrs.module.xforms.XformBuilder.*;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_APPEARANCE;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_BIND;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONCEPT_ID;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_CONSTRAINT;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_ID;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_MESSAGE;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_NODESET;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_OPENMRS_CONCEPT;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_REQUIRED;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_TYPE;
+import static org.openmrs.module.xforms.XformBuilder.ATTRIBUTE_UUID;
+import static org.openmrs.module.xforms.XformBuilder.CONTROL_INPUT;
+import static org.openmrs.module.xforms.XformBuilder.CONTROL_REPEAT;
+import static org.openmrs.module.xforms.XformBuilder.CONTROL_SELECT;
+import static org.openmrs.module.xforms.XformBuilder.CONTROL_SELECT1;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_BASE64BINARY;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_BOOLEAN;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_DATE;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_DATETIME;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_DECIMAL;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_TEXT;
+import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_TIME;
+import static org.openmrs.module.xforms.XformBuilder.INSTANCE_ID;
+import static org.openmrs.module.xforms.XformBuilder.MODEL_ID;
+import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XFORMS;
+import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XML_INSTANCE;
+import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XML_SCHEMA;
+import static org.openmrs.module.xforms.XformBuilder.NODE_BIND;
+import static org.openmrs.module.xforms.XformBuilder.NODE_GROUP;
+import static org.openmrs.module.xforms.XformBuilder.NODE_HINT;
+import static org.openmrs.module.xforms.XformBuilder.NODE_INSTANCE;
+import static org.openmrs.module.xforms.XformBuilder.NODE_ITEM;
+import static org.openmrs.module.xforms.XformBuilder.NODE_LABEL;
+import static org.openmrs.module.xforms.XformBuilder.NODE_MODEL;
+import static org.openmrs.module.xforms.XformBuilder.NODE_VALUE;
+import static org.openmrs.module.xforms.XformBuilder.NODE_XFORMS;
+import static org.openmrs.module.xforms.XformBuilder.PREFIX_XFORMS;
+import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_INSTANCES;
+import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA;
+import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA2;
+import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_TRUE;
 
 /**
  * This is a clone of the Xforms module XformBuilderEx class, allowing us to tinker with the view
@@ -85,7 +125,7 @@ public class BuendiaXformBuilderEx {
      */
     public static FormData buildXform(Form form, XformCustomizer customizer) throws Exception {
         if (customizer == null) {
-            customizer = new DefaultXformCustomizer();
+            customizer = new XformCustomizer();
         }
         return new BuendiaXformBuilderEx(customizer).buildXformImpl(form);
     }
