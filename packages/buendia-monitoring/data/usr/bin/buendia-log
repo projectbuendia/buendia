@@ -1,49 +1,59 @@
-#!/bin/bash                                                                     
-                                                                                
-set -e; . /usr/share/buendia/utils.sh                                           
-                                                                                
-if [ "$1" = "" -o "$1" = "-h" ]; then                                           
-    echo "Usage: $0 [-y] <command>"                                             
-    echo                                                                        
-    echo "Runs a command and logs its output under /var/log/buendia, exiting"   
-    echo "with the exit status of the command.  Specify -y to run the command"  
-    echo "in Yocto; otherwise it will run in Debian."                           
-    exit 1                                                                      
-fi                                                                              
-                                                                                
-if [ "$1" = "-y" ]; then                                                        
-    yocto=yes                                                                   
-    shift                                                                       
-fi                                                                              
-                                                                                
-# Name the log file after the first word in the command.                        
-logfile=/var/log/buendia/$(basename $(echo "$*" | sed -e 's/ .*//')).log        
-mkdir -p /var/log/buendia                                                       
-                                                                                
-export LOGGER_PID=$$                                                            
-                                                                                
-# Save the exit status of the command so we can exit with the same status.      
-export RESULT_FILE=$tmp/buendia-log.result.$$                                   
-trap 'rm -f $RESULT_FILE' EXIT                                                  
-                                                                                
-(                                                                               
-    echo "(start) $*"                                                           
-    set +e                                                                      
-    if [ -n "$yocto" ]; then                                                    
-        echo "$*" | buendia-enter-yocto                                         
-    else                                                                        
-        eval "$@"                                                               
-    fi                                                                          
-    result=$?                                                                   
-    echo "(end, status $result)"                                                
-    echo $result > $RESULT_FILE                                                 
-) 2>&1 | perl -n -e '                                                           
-    $| = 1;  # unbuffer output                                                  
-    my ($s, $m, $h, $d, $l, $y) = gmtime();                                     
-    printf "%04d-%02d-%02d %02d:%02d:%02d %5d> ",                               
-        $y + 1900, $l + 1, $d, $h, $m, $s, $ENV{"LOGGER_PID"};                  
-    s/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d //;                                    
-    print $_;                                                                   
-' | tee -a $logfile                                                             
-                                                                                
-exit $(cat $RESULT_FILE)                                                        
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+set -e; . /usr/share/buendia/utils.sh
+
+if [ "$1" = "" -o "$1" = "-h" ]; then
+    echo "Usage: $0 [-y] <command>"
+    echo
+    echo "Runs a command and logs its output under /var/log/buendia, exiting"
+    echo "with the exit status of the command.  Specify -y to run the command"
+    echo "in Yocto; otherwise it will run in Debian."
+    exit 1
+fi
+
+if [ "$1" = "-y" ]; then
+    yocto=yes
+    shift
+fi
+
+# Name the log file after the first word in the command.
+logfile=/var/log/buendia/$(basename $(echo "$*" | sed -e 's/ .*//')).log
+mkdir -p /var/log/buendia
+
+export LOGGER_PID=$$
+
+# Save the exit status of the command so we can exit with the same status.
+export RESULT_FILE=$tmp/buendia-log.result.$$
+trap 'rm -f $RESULT_FILE' EXIT
+
+(
+    echo "(start) $*"
+    set +e
+    if [ -n "$yocto" ]; then
+        echo "$*" | buendia-enter-yocto
+    else
+        eval "$@"
+    fi
+    result=$?
+    echo "(end, status $result)"
+    echo $result > $RESULT_FILE
+) 2>&1 | perl -n -e '
+    $| = 1;  # unbuffer output
+    my ($s, $m, $h, $d, $l, $y) = gmtime();
+    printf "%04d-%02d-%02d %02d:%02d:%02d %5d> ",
+        $y + 1900, $l + 1, $d, $h, $m, $s, $ENV{"LOGGER_PID"};
+    s/^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d //;
+    print $_;
+' | tee -a $logfile
+
+exit $(cat $RESULT_FILE)
