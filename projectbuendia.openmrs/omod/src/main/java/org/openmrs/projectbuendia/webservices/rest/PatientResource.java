@@ -106,20 +106,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
-    private static final String ADMISSION_TIMESTAMP = "admission_timestamp";
-
-    @Deprecated
-    private static final String ZONE = "zone";
-    @Deprecated
-    private static final String ZONE_UUID = "zone_uuid";
-    @Deprecated
-    private static final String TENT = "tent";
-    @Deprecated
-    private static final String TENT_UUID = "tent_uuid";
-    @Deprecated
-    private static final String BED = "bed";
-    @Deprecated
-    private static final String BED_UUID = "bed_uuid";
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     private final PatientService patientService;
@@ -439,18 +425,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     patient.setGender(validateGender((String) entry.getValue()));
                     changedPatient = true;
                     break;
-
-                // ==== JSON keys that change data OTHER than patient attributes.
-                case ADMISSION_TIMESTAMP:
-                    // This is really evil and maybe shouldn't even be done. Instead we should have an admission event.
-                    // TODO: switch to an admission event
-                    Integer seconds = (Integer) entry.getValue();
-                    if (seconds != null) {
-                        patient.setDateCreated(new Date(seconds * 1000L));
-                        changedPatient = true;
-                    }
-                    break;
-
                 default:
                     log.warn("Property is nonexistent or not updatable; ignoring: " + entry);
                     break;
@@ -499,50 +473,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 Location location = locationService.getLocation(
                     Integer.valueOf(assignedLocation));
 
-                // last entry in branch is zone, second last is tent, third is bed, ignore the rest.
                 SimpleObject locationJson = new SimpleObject();
                 locationJson.add(UUID, location.getUuid());
                 if (location.getParentLocation() != null) {
                     locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
                 }
-
-                // Walk up the tree and then count back.
-                // TODO: remove this code when the client does it's own tree traversal.
-                ArrayList<Location> branch = new ArrayList<>();
-                while (!location.getUuid().equals(LocationResource.ROOT_UUID)) {
-                    branch.add(location);
-                    location = location.getParentLocation();
-                    if (location == null) {
-                        // If we never end up at the root, then it is an illegal location, ignore.
-                        branch.clear();
-                        break;
-                    }
-                }
-
-                if (branch.size() > 0) {
-                    Location zone = branch.get(branch.size()-1);
-                    locationJson.add(ZONE, zone.getDisplayString());
-                    locationJson.add(ZONE_UUID, zone.getUuid());
-                }
-                if (branch.size() > 1) {
-                    Location tent = branch.get(branch.size()-2);
-                    locationJson.add(TENT, tent.getDisplayString());
-                    locationJson.add(TENT_UUID, tent.getUuid());
-                }
-                if (branch.size() > 2) {
-                    Location bed = branch.get(branch.size()-2);
-                    locationJson.add(BED, bed.getDisplayString());
-                    locationJson.add(BED_UUID, bed.getUuid());
-                }
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
-
-            // TODO: This value was a stopgap before we had a better way to store
-            // the admission date.  This JSON property is no longer used in the client;
-            // instead, the admission date is stored as an observation and returned by
-            // PatientEncountersResource.
-            jsonForm.add(ADMISSION_TIMESTAMP,
-                patient.getDateCreated().getTime() / 1000);
         }
         return jsonForm;
     }
