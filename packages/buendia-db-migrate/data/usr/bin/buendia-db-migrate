@@ -42,5 +42,10 @@ if [ -n "$current_minor" -a $current_minor = $target_minor ]; then
     exit 0
 fi
 
+if [ "$current_minor/$target_minor" = "0.3/0.4" ]; then
+    echo "$0: Migration from $current to $target successful (no schema changes from 0.3.x to 0.4.y)."
+    exit 0
+fi
+
 echo "$0: Don't know how to migrate from version $current to version $target."
 exit 1
