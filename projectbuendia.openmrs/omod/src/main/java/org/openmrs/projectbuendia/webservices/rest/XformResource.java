@@ -25,6 +25,8 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
+import org.openmrs.module.xforms.buendia.BuendiaXformBuilderEx;
+import org.openmrs.module.xforms.buendia.FormData;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.util.FormConstants;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -33,13 +35,15 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import javax.annotation.Nullable;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.*;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrowNS;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementIterable;
 
 /**
  * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
@@ -153,7 +157,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
 
     /**
      * Retrieves a single xform with the given UUID.  See
-     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
+     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
      * for details on the context and snapshotTime arguments.
      *
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
@@ -167,7 +171,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
 
     /**
      * Returns all xforms (there is no support for query parameters).  See
-     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
+     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
      * for details on the context and snapshotTime arguments.
      *
      * @see AbstractReadOnlyResource#search(RequestContext)
