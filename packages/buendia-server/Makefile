@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-SOURCE_DIR=../../projectbuendia.openmrs/omod/target
+SOURCE_DIR=../../openmrs/omod/target
 TARGET_DIR=$(EXTRA_DATA)/usr/share/buendia/openmrs/modules
 
 $(EXTRA_DATA): $(TARGET_DIR)/buendia-server.omod $(TARGET_DIR)/xforms-4.3.1.omod
