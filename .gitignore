@@ -3,12 +3,12 @@
 
 # Generated files
 gen/
-projectbuendia.openmrs/api/target
-projectbuendia.openmrs/omod/target
-projectbuendia.openmrs/openmrs-project/server/openmrs
-projectbuendia.openmrs/openmrs-project/server/target
-projectbuendia.openmrs/openmrs-project/target
-projectbuendia.openmrs/target
+openmrs/api/target
+openmrs/omod/target
+openmrs/openmrs-project/server/openmrs
+openmrs/openmrs-project/server/target
+openmrs/openmrs-project/target
+openmrs/target
 
 # Gradle files
 .gradle/
