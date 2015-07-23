@@ -1,0 +1,33 @@
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# Builds the Buendia module and installs it in the OpenMRS development server.
+
+set -e
+cd $(dirname $0)
+cd ..
+
+# Get the binary dependencies.
+if [ ! -e buendia-libs/* ]; then
+    git submodule update --init buendia-libs
+fi
+modules/install-modules
+
+# Build the module.
+mvn -f openmrs install
+
+# Install the module in the OpenMRS development server.
+SERVER='-DserverId=server'
+GROUP='-DgroupId=org.projectbuendia'
+ARTIFACT='-DartifactId=projectbuendia.openmrs'
+VERSION='-Dversion=1.0-SNAPSHOT'
+mvn -f openmrs openmrs-sdk:install-module $SERVER $GROUP $ARTIFACT $VERSION
