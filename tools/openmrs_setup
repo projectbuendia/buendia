@@ -1,0 +1,50 @@
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# Sets up a local OpenMRS server with a MySQL database, for development.
+
+set -e
+if [ "$1" = "-f" ]; then
+    force_flag="-f"
+fi
+
+# Go to the root of the buendia repository tree.
+cd $(dirname $0)
+cd ..
+
+# mvn openmrs-sdk:setup-platform installs OpenMRS in this directory.
+server_dir=$HOME/openmrs/server
+
+# Create the openmrs_user account in MySQL.
+echo "Enter the MySQL root password, or just hit Enter if there is no password."
+mysql -uroot -p <<< "
+    grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
+    grant file on *.* to openmrs_user@localhost;
+    flush privileges;
+"
+echo 'Added MySQL user "openmrs_user" with password "openmrs".'
+
+# Configure OpenMRS to use the openmrs_user account.
+cat <<EOF >$server_dir/openmrs-runtime.properties
+connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
+connection.username=openmrs_user
+connection.password=openmrs
+auto_update_database=true
+module.allow_web_admin=true
+EOF
+echo 'Configured OpenMRS to use the MySQL user openmrs_user@localhost.'
+
+# Load initial data into the MySQL database.
+git submodule update --init db-snapshot
+zip -qj /tmp/init.$$.zip db-snapshot/*
+trap 'rm -f /tmp/init.$$.zip' EXIT
+tools/openmrs_load $force_flag openmrs /tmp/init.$$.zip
