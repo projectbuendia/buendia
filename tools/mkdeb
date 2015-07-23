@@ -38,7 +38,33 @@ tmp=/tmp/make_package.$$
 trap 'rm -rf $tmp' EXIT
 
 rm -rf $tmp
-TAR=$(which gtar || which tar)  # we need GNU tar for the --owner flag
+mkdir -p $tmp
+TAR=$(which gtar || which tar)  # we prefer GNU tar for the --owner flag
+
+# If --owner and --group are supported, use them.
+touch $tmp/dummy.txt
+if $TAR --owner=0 --group=0 cvf $tmp/dummy.tar $tmp/dummy.txt 2>/dev/null; then
+    function append_to_tar_with_uid_0() {
+        dest="$1"
+        input_root="$2"
+        $TAR --owner=0 --group=0 rvf "$dest" -C "$input_root" .
+    }
+else
+    # If --format=mtree is supported, use that to set owners and groups.
+    if $TAR cf - --format=mtree $tmp | grep -q '/dummy.txt.*type=file'; then
+        function append_to_tar_with_uid_0() {
+            dest="$1"
+            input_root="$2"
+            $TAR cf - --format=mtree -C "$input_root" . | \
+                sed -e 's/ .* \(type=[a-z]*\).*/ uid=0 gid=0 \1/' | \
+                $TAR rvf "$dest" -C "$input_root" @-
+        }
+    else
+        echo "$TAR doesn't support setting file owners or groups."
+        echo "Please install GNU tar."
+        exit 1
+    fi
+fi
 
 # Copy the control files into a temporary directory.
 mkdir -p $tmp/control
@@ -73,13 +99,13 @@ done
 )
 
 # Pack up the Debian package.
-$TAR --owner=0 --group=0 -cvzf $tmp/control.tar.gz -C $tmp/control .
-$TAR cvf $tmp/data.tar -T /dev/null
+append_to_tar_with_uid_0 $tmp/control.tar $tmp/control
 while [ -n "$1" ]; do
-    $TAR --owner=0 --group=0 -rvf $tmp/data.tar -C $1 .
+    append_to_tar_with_uid_0 $tmp/data.tar "$1"
     shift
 done
-gzip $tmp/data.tar
+gzip $tmp/control.tar $tmp/data.tar
 echo 2.0 > $tmp/debian-binary
 mkdir -p $(dirname "$output")
 ar -r $output $tmp/debian-binary $tmp/control.tar.gz $tmp/data.tar.gz
+echo "$output OK ($(echo $(wc -c < "$output")) bytes)"
