@@ -1,0 +1,103 @@
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# Sets up the OpenMRS account used for Buendia API requests.
+
+set -e
+openmrs_user="$1"
+openmrs_password="$2"
+if [ -z "$openmrs_password" ]; then
+    echo "Usage: $0 <username> <password>"
+    echo
+    echo "Sets up an OpenMRS user with the given username and password"
+    echo "as the account to be used for Buendia API requests.  If the"
+    echo "OpenMRS user account already exists, changes its password."
+    echo
+    echo 'Requires a MySQL user that has been granted database access with'
+    echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
+    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
+    echo
+    exit 1
+fi
+
+if [ -z "$MYSQL_USER" ]; then
+    echo '$MYSQL_USER is not set; please set $MYSQL_USER and $MYSQL_PASSWORD.'
+    exit 1
+fi
+
+# This is the UUID for the user account used for all Buendia API requests.
+# If there is no row with this uuid in the users table, one will be added.
+USER_UUID=129a5d04-3bd7-4e9d-8b82-dac5109cd1db
+
+# If a person or person_name need to be added, they are added with these UUIDs.
+PERSON_UUID=a0e512fd-a6e0-11e4-b418-040ccecfdba4
+PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
+
+# Ensure MySQL is running.
+MYSQL="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD openmrs"
+
+# If there is no user account with the expected UUID, add one.
+if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1; then
+    echo "Creating user $openmrs_user..."
+    salt=$(xxd -l 64 -p /dev/urandom | tr -d '\n')
+    $MYSQL <<< "
+        set @admin_id = (select user_id from users where system_id = 'admin');
+
+        insert ignore into person (date_created, creator, uuid)
+            values (now(), @admin_id, '$PERSON_UUID');
+
+        set @person_id :=
+            (select person_id from person where uuid = '$PERSON_UUID');
+
+        insert ignore into person_name (preferred, given_name, family_name,
+                                        date_created, creator, person_id, uuid)
+            values (1, 'Buendia', 'Client',
+                    now(), @admin_id, @person_id, '$PERSON_NAME_UUID');
+
+        insert into users (username, password,
+                           salt, date_created, creator, person_id, uuid)
+            values ('$openmrs_user',
+                    sha2('$openmrs_password$salt', 512),
+                    '$salt', now(), @admin_id, @person_id, '$USER_UUID');
+
+        set @user_id := last_insert_id();
+
+        insert into user_role (user_id, role)
+        values (@user_id, 'Authenticated'),
+               (@user_id, 'Clinician'),
+               (@user_id, 'Data Assistant'),
+               (@user_id, 'Data Manager'),
+               (@user_id, 'Provider'),
+               (@user_id, 'System Developer');
+    "
+fi
+
+# Check if the username and password are already correctly set.
+if $MYSQL <<< "
+    select count(*) from users
+        where uuid='$USER_UUID' and username='$openmrs_user' and
+        password = sha2(concat('$openmrs_password', salt), 512);
+" | grep -q 1; then
+    echo "Server username and password unchanged."
+else
+    # Set the username and password for the Android client, using fresh salt.
+    echo "Setting server username and password..."
+    salt=$(xxd -p -l 64 /dev/urandom | tr -d '\n')
+    $MYSQL <<< "
+        update users set
+            salt='$salt', username='$openmrs_user',
+            password=sha2(concat('$openmrs_password', salt), 512)
+            where uuid='$USER_UUID';
+    "
+fi
+
+echo "OpenMRS account '$openmrs_user' is ready for Buendia API requests."
