@@ -19,6 +19,7 @@ package org.openmrs.projectbuendia.webservices.rest;
  */
 public final class GlobalProperties {
     public static final String CHART_UUIDS = "projectbuendia.chartUuids";
+    public static final String CURRENT_PROFILE = "projectbuendia.currentProfile";
 
     private GlobalProperties() {
     }

@@ -7,7 +7,7 @@
   <li
     <c:if test='<%= request.getRequestURI().contains("/manage") %>'>class="active"</c:if>>
     <a
-    href="${pageContext.request.contextPath}/module/projectbuendia.openmrs/manage.form"><spring:message
+    href="${pageContext.request.contextPath}/module/projectbuendia/openmrs/manage.form"><spring:message
         code="projectbuendia.openmrs.manage" /></a>
   </li>
 

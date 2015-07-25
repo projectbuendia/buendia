@@ -35,10 +35,17 @@
     <defaultValue></defaultValue>
     <description>UUIDs of forms listed as charts by the REST endpoint. (Comma-separated.)</description>
   </globalProperty>
+  <globalProperty>
+    <property>projectbuendia.currentProfile</property>
+    <defaultValue></defaultValue>
+    <description>
+      Name of the currently active profile, which defines the forms and UI customizations for the Buendia app.
+      This should be the name of a file in /usr/share/buendia/profiles (including the .csv extension).
+    </description>
+  </globalProperty>
 
   <!-- Module Activator -->
   <activator>org.projectbuendia.openmrs.ProjectBuendiaActivator</activator>
-
 
   <!-- Adds link to admin page -->
   <extension>
