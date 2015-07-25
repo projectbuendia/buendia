@@ -15,19 +15,15 @@
 set -e
 cd $(dirname $0)
 cd ..
+INSTALL='mvn openmrs-sdk:install-module -DserverId=server'
 
-# Get the binary dependencies.
-if [ ! -e buendia-libs/* ]; then
-    git submodule update --init buendia-libs
-fi
-modules/install-modules
+# Install the binary dependencies in the OpenMRS development server.
+$INSTALL -DartifactId=xforms -Dversion=4.3.5
+$INSTALL -DartifactId=webservices.rest -Dversion=2.6
 
-# Build the module.
-mvn -f openmrs install
+# Build the Buendia module, passing along any flags given to this script.
+mvn -f openmrs install "$@"
 
 # Install the module in the OpenMRS development server.
-SERVER='-DserverId=server'
-GROUP='-DgroupId=org.projectbuendia'
-ARTIFACT='-DartifactId=projectbuendia.openmrs'
-VERSION='-Dversion=1.0-SNAPSHOT'
-mvn -f openmrs openmrs-sdk:install-module $SERVER $GROUP $ARTIFACT $VERSION
+$INSTALL -DgroupId=org.projectbuendia \
+      -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT

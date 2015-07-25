@@ -1,9 +1,6 @@
 [submodule "client"]
 	path = client
 	url = ../client
-[submodule "buendia-libs"]
-	path = buendia-libs
-	url = ../buendia-libs
 [submodule "db-snapshot"]
 	path = db-snapshot
 	url = ../db-snapshot
