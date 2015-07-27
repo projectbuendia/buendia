@@ -1,125 +1,87 @@
-OpenMRS-module
-==============
+Buendia OpenMRS module
+======================
 
-Preparation
------------
 
-- Make sure you have JDK 7 installed
-- Install the OpenMRS SDK installed:
-  https://wiki.openmrs.org/display/docs/OpenMRS+SDK
-- Check with "omrs-version"
+Follow these instructions to get your system set up to do Buendia server development.
 
-Building and running
---------------------
 
-Enter the following commands, replacing
-/opt/omrssdk-1.0.7/apache-maven/bin with your installation of Maven.
-(If you have Maven installed already, type `which mvn` to find the
-relevant path.)
+## Prerequisites
 
-```
-cd modules
-./install-modules /opt/omrssdk-1.0.7/apache-maven/bin
-cd ../projectbuendia.openmrs
-omrs-run -Pinstall-wizard
-```
+##### JDK 7
+  * If `java -version` does not report a version >= 1.7, install JDK 7:
+      * Linux: `sudo apt-get install openjdk-7-jdk`
+      * Mac OS: Download from [Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
 
-This will:
-- Install the xforms jar files (omod and api) into the local Maven repo
-- Build the module
-- Run the tests
-- Start OpenMRS
+##### Apache Maven
 
-Visit http://localhost:8080/openmrs to view the server; on the first
-run, it wlil ask you to go through the installation wizard. If this is
-the only version of OpenMRS you want on your system, you can use the
-"simple" option (and add demo data). Otherwise, use the "advanced"
-option and create a new MySQL database (e.g. openmrs-sdk).
+  * Linux: `sudo apt-get install maven`
+  * Mac OS:
+      * Visit https://maven.apache.org/download.cgi and download the **Binary zip archive**.
+      * Unzip the archive in your home directory.
+      * Add the `bin` subdirectory of the unpacked archive (e.g. `$HOME/apache-maven-3.3.3/bin`) to your shell's `PATH`.
+      * Confirm that the `mvn` command works by running `mvn -v`.
 
-For future runs, just use `omrs-run` (no `-Pinstall-wizard`).
+##### MySQL Server 5.6
+  * Linux: `sudo apt-get install mysql-server`
+  * Mac OS:
+      * Go to http://dev.mysql.com/downloads/mysql/ and download the **DMG Archive** for your Mac OS version.
+      * Open the downloaded file and then open the .pkg file within to install it.
+      * Open System Preferences > MySQL and click **Start MySQL Server** to bring the server up.
 
-Note: you need to make sure Maven is running with Java 7. The exact
-way of doing this will depend on your platform, but
-http://stackoverflow.com/questions/18813828 gives a good starting point.
-If you run `which omrs-run` you'll find out where OpenMRS SDK was
-installed; under that directory, there's an `apache-maven` directory
-with a `bin` directory under that - if you run
+##### IntelliJ IDEA
+  * Download the Community Edition at https://www.jetbrains.com/idea/download/ and follow the [setup instructions](https://www.jetbrains.com/idea/help/basics-and-installation.html#d1847332e131).
 
-    /opt/omrssdk-1.0.7/apache-maven/bin/mvn -v
-    
-(or the equivalent, based on your SDK location) you should see
-something like:
 
-```
-Apache Maven 3.1.0 (893ca28a1da9d5f51ac03827af98bb730128f9f2;
-2013-06-28 03:15:32+0100)
-Maven home: /opt/omrssdk-1.0.7/apache-maven
-Java version: 1.7.0_65, vendor: Oracle Corporation
-Java home: /usr/lib/jvm/java-7-openjdk-amd64/jre
-Default locale: en_GB, platform encoding: UTF-8
-OS name: "linux", version: "3.13.0-39-generic", arch: "amd64", family: "unix"
-```
+## Building and running the server
 
-The bit with "Java version" is important - it needs to be Java 1.7.
-Not Java 1.6 (or we won't be able to use Java 7 language constructs,
-which really help) and not Java 1.8 (which OpenMRS currently thinks
-isn't as recent as Java 1.6 - see https://issues.openmrs.org/browse/TRUNK-4514).
+1.  Get the Buendia server source code:
 
-IntelliJ
-----
+        git clone https://github.com/projectbuendia/buendia
+        cd buendia
 
-To set up the project in IntelliJ, go to File &gt; Project Structure...,
-select Modules, in the plus-sign menu click Import Module, then select
-the pom.xml file in projectbuendia.openmrs/.  Tick "Import Maven projects automatically"
-and "Search for projects recursively".
+2.  Set up a OpenMRS server configured to use MySQL and initialize the MySQL database with the "dev" site configuration:
 
-To debug the running JVM in IntelliJ:
+        tools/openmrs_setup dev
 
-1. Edit the omrssdk-1.0.7/bin/omrs-run script and change line 56 from
+3.  Build the Buendia module and set up an OpenMRS server with the module installed:
 
-    export MAVEN_OPTS="-Xmx768M -XX:MaxPermSize=256M"
+        tools/openmrs_build
 
-to
+4.  Start the server:
 
-    export MAVEN_OPTS="-Xmx768M -XX:MaxPermSize=256M $MAVEN_OPTS"
+        tools/openmrs_run
 
-2. Then in the shell where you run omrs-run, do this:
+5.  When you see the line:
 
-    export MAVEN_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-    omrs-run
+        [INFO] Started Jetty Server
 
-3. If this is working properly, you should see (within the first ~10 lines of output):
+    the server is ready, and you can log in at [[http://localhost:9000/openmrs/]] as "buendia" with password "buendia".
 
-    Listening for transport dt_socket at address: 5005
+After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.
 
-Installing on GCE
-----
+## Setting up the project in IntelliJ IDEA
 
-- Build the module locally (e.g. with `omrs-clean && omrs-run`)
-- Log into the GCE instance of OpenMRS
-- Go into the "Manage Modules" page of the Administration section
-- Delete the current ProjectBuendia module
-- Add your locally-built version from `openmrs-project/server/openmrs/RELEASE/modules`
-  as if it's a new module
+1.  In the "Welcome" dialog, click **Import Project** and select the `openmrs/pom.xml` file inside your `buendia` repo.  As you proceed through the import wizard:
+      * Turn on **Search for projects recursively** and **Import Maven projects automatically**.
+      * On the "Select Maven projects to import" page, you only need the project named `org.projectbuendia:projectbuendia.openmrs`.  You can deselect the others to reduce clutter.
 
-REST collections exposed
-----
+2.  After you click **Finish**, wait a few moments for IntelliJ IDEA to import the project.  The projectbuendia.openmrs module should appear in the Project pane on the left.
 
-This module exposes the following collections, under the
-`projectbuendia` namespace:
+You're all set!
 
-xform
-=====
+Most of the interesting code resides in [openmrs/omod/src/main/java/org/openmrs/projectbuendia/webservices.rest](http://github.com/projectbuendia/buendia/openmrs/omod/src/main/java/org/openmrs/projectbuendia/webservices.rest).  You can make changes in IntelliJ IDEA and use the **Build** command to confirm that the module builds correctly.
 
-(e.g. http://localhost:8080/openmrs/ws/rest/v1/projectbuendia/xform)
+When you want to test your module, use `tools/openmrs_build` and `tools/openmrs_run` from a Terminal within IntelliJ IDEA or any command shell.  You can also do `tools/openmrs_build -DskipTests` to build without running tests (use with care).
 
-Template xforms from the OpenMRS forms database.
 
-Supports:
+## Debugging the server
 
-- List forms, e.g. .../xform
-- Fetch an individual form, e.g. .../xform/{form-uuid}
-- Default representation (just metadata) and full representation
-  (includes an `xml` property with the full XML)
-  
-For the full representation, use `?v=full` at the end of the URL.
+If you start the OpenMRS server from the shell with `tools/openmrs_run`, it will run with remote debugging enabled so that you can debug the running server from within IntelliJ IDEA.  To set this up:
+
+1. Click Run > Edit Configurations...
+
+2. Click the little plus button (+) in the top-left corner and select **Remote**.
+
+3. Change "Unnamed" to something recognizable, then click **OK**.
+
+Now when you click Run > Debug and use this configuration, IntelliJ IDEA will connect to the currently running OpenMRS server.
