@@ -10,12 +10,21 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-# Builds the Buendia module and installs it in the OpenMRS development server.
+# Builds the Buendia module and installs it in an OpenMRS development server.
 
 set -e
+SERVER_ID=server
+OPENMRS_PLATFORM_VERSION=1.10.2  # db-snapshot data is compatible with 1.10.x
+SETUP_PLATFORM="mvn openmrs-sdk:setup-platform -DserverId=$SERVER_ID"
+INSTALL="mvn openmrs-sdk:install-module -DserverId=$SERVER_ID"
+
 cd $(dirname $0)
 cd ..
-INSTALL='mvn openmrs-sdk:install-module -DserverId=server'
+
+# Set up the OpenMRS SDK and server platform if needed.
+if [ ! -f $HOME/openmrs/$SERVER_ID/$OPENMRS_PLATFORM_VERSION ]; then
+    $SETUP_PLATFORM -Dversion=$OPENMRS_PLATFORM_VERSION
+fi
 
 # Install the binary dependencies in the OpenMRS development server.
 $INSTALL -DartifactId=xforms -Dversion=4.3.5
@@ -26,4 +35,4 @@ mvn -f openmrs install "$@"
 
 # Install the module in the OpenMRS development server.
 $INSTALL -DgroupId=org.projectbuendia \
-      -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT
+    -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT

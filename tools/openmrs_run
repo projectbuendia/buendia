@@ -13,6 +13,7 @@
 # Starts a local OpenMRS server for development.
 
 set -e
+SERVER_ID=server
 
 # Serve on port 9000 to match production.
 PORT_OPTS="-Djetty.port=9000"
@@ -24,7 +25,11 @@ MEMORY_OPTS="-Xmx2G -XX:MaxPermSize=128m"
 DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 
 # Go to the OpenMRS installation directory.
-cd $HOME/openmrs/server
+if [ ! -d $HOME/openmrs/$SERVER_ID ]; then
+    echo "OpenMRS server not installed; run openmrs_build first."
+    exit 1
+fi
+cd $HOME/openmrs/$SERVER_ID
 
 # Start the server.
 export MAVEN_OPTS="$PORT_OPTS $MEMORY_OPTS $DEBUG_OPTS"
