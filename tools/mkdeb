@@ -43,7 +43,7 @@ TAR=$(which gtar || which tar)  # we prefer GNU tar for the --owner flag
 
 # If --owner and --group are supported, use them.
 touch $tmp/dummy.txt
-if $TAR cvf $tmp/dummy.tar --owner=0 --group=0 $tmp/dummy.txt 2>/dev/null; then
+if $TAR cf $tmp/dummy.tar --owner=0 --group=0 $tmp/dummy.txt 2>/dev/null; then
     function append_to_tar_with_uid_0() {
         dest="$1"
         input_root="$2"
