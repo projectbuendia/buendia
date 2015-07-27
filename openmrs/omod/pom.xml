@@ -70,7 +70,6 @@
             <artifactId>xforms-api</artifactId>
             <version>${xformsVersion}</version>
             <type>jar</type>
-            <scope>provided</scope>
         </dependency>
         <!-- End OpenMRS modules -->
 

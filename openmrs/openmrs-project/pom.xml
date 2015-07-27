@@ -63,7 +63,7 @@
                 </artifactItem>
                 <artifactItem>
                   <groupId>org.openmrs.module</groupId>
-                  <artifactId>xforms</artifactId>
+                  <artifactId>xforms-omod</artifactId>
                   <version>${xformsVersion}</version>
                   <destFileName>xforms.omod</destFileName>
                 </artifactItem>
