@@ -26,7 +26,7 @@ DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 
 # Go to the OpenMRS installation directory.
 if [ ! -d $HOME/openmrs/$SERVER_ID ]; then
-    echo "OpenMRS server not installed; run openmrs_build first."
+    echo "OpenMRS server not installed; run openmrs_setup first."
     exit 1
 fi
 cd $HOME/openmrs/$SERVER_ID

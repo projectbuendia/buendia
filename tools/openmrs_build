@@ -21,12 +21,17 @@ cd ..  # go to the root of the Buendia repository
 # Install the OpenMRS SDK.
 mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
 
+# Create the server directory so that openmrs_build can run even if the
+# dev server hasn't been set up by openmrs_setup yet.
+mkdir -p $HOME/openmrs/$SERVER_ID
+
 # Install the binary dependencies in the OpenMRS development server.
 $INSTALL -DartifactId=xforms -Dversion=4.3.5
 $INSTALL -DartifactId=webservices.rest -Dversion=2.6
 
 # Build the Buendia module, passing along any flags given to this script.
-mvn -f openmrs install "$@"
+cd openmrs
+mvn install "$@"
 
 # Install the module in the OpenMRS development server.
 $INSTALL -DgroupId=org.projectbuendia \
