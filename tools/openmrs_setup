@@ -55,6 +55,10 @@ fi
 # Set up the OpenMRS platform if needed.
 server_dir=$HOME/openmrs/$SERVER_ID
 if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
+    echo
+    echo "Installing OpenMRS SDK..."
+    mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+    echo
     echo "Installing OpenMRS platform $OPENMRS_PLATFORM_VERSION..."
     mvn openmrs-sdk:setup-platform \
         -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION
