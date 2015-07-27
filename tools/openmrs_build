@@ -18,6 +18,9 @@ INSTALL="mvn openmrs-sdk:install-module -DserverId=$SERVER_ID"
 cd $(dirname $0)
 cd ..  # go to the root of the Buendia repository
 
+# Install the OpenMRS SDK.
+mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+
 # Install the binary dependencies in the OpenMRS development server.
 $INSTALL -DartifactId=xforms -Dversion=4.3.5
 $INSTALL -DartifactId=webservices.rest -Dversion=2.6
