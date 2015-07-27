@@ -57,7 +57,7 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
 
 After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.
 
-## Setting up the project in IntelliJ IDEA
+## IntelliJ IDEA project setup
 
 1.  In the "Welcome" dialog, click **Import Project** and select the `openmrs/pom.xml` file inside your `buendia` repo.  As you proceed through the import wizard:
       * Turn on **Search for projects recursively** and **Import Maven projects automatically**.
