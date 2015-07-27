@@ -21,6 +21,7 @@
     could not be
     <c:if test="${param.failure == 'add'}">added.</c:if>
     <c:if test="${param.failure == 'apply'}">applied.</c:if>
+    <c:if test="${param.failure == 'delete'}">deleted.</c:if>
     <pre class="output">${fn:escapeXml(param.output)}</pre>
     Please correct the problems and try again.
   </div>
