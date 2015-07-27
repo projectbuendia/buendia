@@ -12,6 +12,7 @@
 package org.projectbuendia.openmrs.web.controller;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.api.context.Context;
@@ -40,8 +41,6 @@ import java.util.List;
 /** The controller for the profile management page. */
 @Controller
 public class ProfileManager {
-    final View REDIRECT_TO_SELF = new RedirectView("profiles.form");
-
     final File PROFILE_DIR = new File("/usr/share/buendia/profiles");
     final String VALIDATE_CMD = "buendia-profile-validate";
     final String APPLY_CMD = "buendia-profile-apply";
@@ -52,42 +51,39 @@ public class ProfileManager {
         model.addAttribute("user", Context.getAuthenticatedUser());
         model.addAttribute("profiles", PROFILE_DIR.listFiles());
         model.addAttribute("currentProfile",
-                Context.getAdministrationService().getGlobalProperty(GlobalProperties.CURRENT_PROFILE));
-        model.addAttribute("success", request.getParameter("success"));
-        model.addAttribute("filename", request.getParameter("filename"));
+                Context.getAdministrationService().getGlobalProperty(
+                        GlobalProperties.CURRENT_PROFILE));
     }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.POST)
-    public View post(HttpServletRequest request, /*HttpServletResponse response,*/ ModelMap model) {
+    public View post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
         if (request instanceof MultipartHttpServletRequest) {
-            return addProfile((MultipartHttpServletRequest) request, model);
+            addProfile((MultipartHttpServletRequest) request, model);
         } else {
             String filename = request.getParameter("profile");
             String op = request.getParameter("op");
             if (filename != null) {
                 File file = new File(PROFILE_DIR, filename);
                 if (file.isFile()) {
+                    model.addAttribute("filename", filename);
                     if ("Apply".equals(op)) {
-                        return applyProfile(file, model);
-                    }
-                    if ("Download".equals(op)) {
-                        model.addAttribute("filename", filename);
-                        return new RedirectView("download.form");
-                    }
-                    if ("Delete".equals(op)) {
-                        return deleteProfile(file, model);
+                        applyProfile(file, model);
+                    } else if ("Download".equals(op)) {
+                        downloadProfile(file, response);
+                    } else if ("Delete".equals(op)) {
+                        deleteProfile(file, model);
                     }
                 }
             }
         }
-        return REDIRECT_TO_SELF;
+        return new RedirectView("profiles.form");  // reload this page with a GET request
     }
 
     /**
      * Executes a command with one argument, returning true if the command succeeds.
-     * Gathers the output from stdout and stderr in a list of lines.
+     * Gathers the output from stdout and stderr into the provided list of lines.
      */
-    boolean execute(String command, File arg, List<String> output) {
+    boolean execute(String command, File arg, List<String> lines) {
         ProcessBuilder pb = new ProcessBuilder(command, arg.getAbsolutePath());
         pb.redirectErrorStream(true);  // redirect stderr to stdout
         try {
@@ -95,7 +91,7 @@ public class ProfileManager {
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(proc.getInputStream()));
             String line;
-            while ((line = reader.readLine()) != null) output.add(line);
+            while ((line = reader.readLine()) != null) lines.add(line);
             proc.waitFor();
             return proc.exitValue() == 0;
         } catch (Exception e) {
@@ -111,22 +107,20 @@ public class ProfileManager {
     }
 
     /** Handles an uploaded profile. */
-    View addProfile(MultipartHttpServletRequest request, ModelMap model) {
-        List<String> output = new ArrayList<>();
+    void addProfile(MultipartHttpServletRequest request, ModelMap model) {
+        List<String> lines = new ArrayList<>();
         MultipartFile mpf = request.getFile("file");
         if (mpf != null) {
             try {
                 File tempFile = File.createTempFile("profile", null);
                 mpf.transferTo(tempFile);
-                if (execute(VALIDATE_CMD, tempFile, output)) {
+                if (execute(VALIDATE_CMD, tempFile, lines)) {
                     String filename = sanitizeName(mpf.getOriginalFilename());
                     File newFile = new File(PROFILE_DIR, filename);
                     model.addAttribute("filename", filename);
                     if (newFile.exists()) {
                         model.addAttribute("failure", "add");
-                        output.add("A profile named " + filename + " already exists.");
-                        model.addAttribute("output", output);
-                        return null;  // render a page with just an error message
+                        model.addAttribute("output", "A profile named " + filename + " already exists.");
                     } else {
                         FileUtils.moveFile(tempFile, newFile);
                         model.addAttribute("success", "add");
@@ -134,22 +128,19 @@ public class ProfileManager {
                 } else {
                     model.addAttribute("failure", "add");
                     model.addAttribute("filename", mpf.getOriginalFilename());
-                    model.addAttribute("output", output);
-                    return null;  // render a page with just an error message
+                    model.addAttribute("output", StringUtils.join(lines, "\n"));
                 }
             } catch (Exception e) {
                 log.error("Problem saving uploaded profile", e);
             }
         }
-        return REDIRECT_TO_SELF;
     }
 
-    @RequestMapping(value = "/module/projectbuendia/openmrs/download", method = RequestMethod.GET)
-    public void download(HttpServletRequest request, HttpServletResponse response) {
-        File file = new File(PROFILE_DIR, request.getParameter("filename"));
+    /** Downloads a profile. */
+    public void downloadProfile(File file, HttpServletResponse response) {
         response.setContentType("application/octet-stream");
-        response.setHeader("Content-Disposition",
-                "attachment; filename=\"" + file.getName() + "\"");
+        response.setHeader(
+                "Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
         try {
             response.getOutputStream().write(
                     Files.readAllBytes(Paths.get(file.getAbsolutePath())));
@@ -158,30 +149,40 @@ public class ProfileManager {
         }
     }
 
-    View applyProfile(File file, ModelMap model) {
-        model.addAttribute("filename", file.getName());
-        List<String> output = new ArrayList<>();
-        if (execute(APPLY_CMD, file, output)) {
-            Context.getAdministrationService().setGlobalProperty(
-                    GlobalProperties.CURRENT_PROFILE, file.getName());
+    /** Applies a profile to the OpenMRS database. */
+    void applyProfile(File file, ModelMap model) {
+        List<String> lines = new ArrayList<>();
+        if (execute(APPLY_CMD, file, lines)) {
+            setCurrentProfile(file.getName());
             model.addAttribute("success", "apply");
-            return REDIRECT_TO_SELF;
         } else {
             model.addAttribute("failure", "apply");
-            model.addAttribute("output", output);
-            return null;  // render a page with just an error message
+            model.addAttribute("output", StringUtils.join(lines, "\n"));
         }
     }
 
-    View deleteProfile(File file, ModelMap model) {
-        model.addAttribute("filename", file.getName());
-        if (file.delete()) {
+    /** Deletes a profile. */
+    void deleteProfile(File file, ModelMap model) {
+        if (file.getName().equals(getCurrentProfile())) {
+            model.addAttribute("failure", "delete");
+            model.addAttribute("output", "Cannot delete the currently active profile.");
+        } else if (file.delete()) {
             model.addAttribute("success", "delete");
-            return REDIRECT_TO_SELF;
         } else {
             log.error("Error deleting profile: " + file.getName());
             model.addAttribute("failure", "delete");
-            return null;
         }
+    }
+
+    /** Sets the global property for the name of the current profile. */
+    void setCurrentProfile(String name) {
+        Context.getAdministrationService().setGlobalProperty(
+                GlobalProperties.CURRENT_PROFILE, name);
+    }
+
+    /** Gets the global property for the name of the current profile. */
+    String getCurrentProfile() {
+        return Context.getAdministrationService().getGlobalProperty(
+                GlobalProperties.CURRENT_PROFILE);
     }
 }
