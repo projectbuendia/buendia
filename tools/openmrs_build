@@ -14,17 +14,9 @@
 
 set -e
 SERVER_ID=server
-OPENMRS_PLATFORM_VERSION=1.10.2  # db-snapshot data is compatible with 1.10.x
-SETUP_PLATFORM="mvn openmrs-sdk:setup-platform -DserverId=$SERVER_ID"
 INSTALL="mvn openmrs-sdk:install-module -DserverId=$SERVER_ID"
-
 cd $(dirname $0)
-cd ..
-
-# Set up the OpenMRS SDK and server platform if needed.
-if [ ! -f $HOME/openmrs/$SERVER_ID/$OPENMRS_PLATFORM_VERSION ]; then
-    $SETUP_PLATFORM -Dversion=$OPENMRS_PLATFORM_VERSION
-fi
+cd ..  # go to the root of the Buendia repository
 
 # Install the binary dependencies in the OpenMRS development server.
 $INSTALL -DartifactId=xforms -Dversion=4.3.5

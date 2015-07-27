@@ -13,39 +13,30 @@
 # Sets up a local OpenMRS server with a MySQL database, for development.
 
 set -e
+SITE_SQL_DIR=packages/buendia-db-init/data/usr/share/buendia/db
+SERVER_ID=server
+OPENMRS_PLATFORM_VERSION=1.10.2  # db-snapshot data is compatible with 1.10.x
 if [ "$1" = "-f" ]; then
     force_flag="-f"
     shift
 fi
 site="$1"
-
-# mvn openmrs-sdk:setup-platform installs OpenMRS in this directory.
-server_dir=$HOME/openmrs/server
-
-# Site-specific SQL scripts are in this directory.
-site_sql_dir=packages/buendia-db-init/data/usr/share/buendia/db
-
-set -e
-if [ "$1" = "-f" ]; then
-    force_flag="-f"
-    shift
-fi
-site=$1
-site_sql="$site_sql_dir/site-$site.sql"
+site_sql="$SITE_SQL_DIR/site-$site.sql"
+cd $(dirname $0)
+cd ..  # go to the root of the Buendia repository
 
 if [ "$1" = "-h" -o -z "$site" ]; then
     echo "Usage: $0 [-f] <site-id>"
     echo
-    echo 'Configures OpenMRS to use MySQL, sets up the MySQL user openmrs_user'
-    echo 'with the password "openmrs", and initializes the MySQL database'
-    echo 'from the current contents of the db-snapshot directory.  By default,'
-    echo 'this will refuse to touch the MySQL database if it already exists;'
-    echo 'specify -f to wipe and replace the existing database.'
+    echo 'Installs the OpenMRS platform, configures it to use MySQL, sets up'
+    echo 'the MySQL user openmrs_user with the password "openmrs", and'
+    echo 'initializes the MySQL database from the contents of the db-snapshot'
+    echo 'directory.  By default, this will refuse to overwrite the MySQL'
+    echo 'database named "openmrs" if it already exists; specify -f to wipe'
+    echo 'and replace the existing database.'
     echo
-    echo 'There should be an existing OpenMRS development server at:'
-    echo "    $server_dir"
-    echo 'and you must specify a site ID corresponding to a SQL file in:'
-    echo "    $site_sql_dir"
+    echo 'You must specify a site ID corresponding to a SQL file in:'
+    echo "    $SITE_SQL_DIR"
     echo 'For example, use "openmrs_setup dev" to load site-dev.sql.'
     echo
     exit 1
@@ -55,15 +46,19 @@ if [ ! -f "$site_sql" ]; then
     echo "$site_sql not found."
     echo
     echo 'You must specify a site ID corresponding to a SQL file in:'
-    echo "    $site_sql_dir"
+    echo "    $SITE_SQL_DIR"
     echo 'For example, use "openmrs_setup dev" to load site-dev.sql.'
     echo
     exit 1
 fi
 
-# Go to the root of the buendia repository tree.
-cd $(dirname $0)
-cd ..
+# Set up the OpenMRS platform if needed.
+server_dir=$HOME/openmrs/$SERVER_ID
+if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
+    echo "Installing OpenMRS platform $OPENMRS_PLATFORM_VERSION..."
+    mvn openmrs-sdk:setup-platform \
+        -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION
+fi
 
 # Create the openmrs_user account in MySQL.
 echo "Enter the MySQL root password, or just hit Enter if there is no password."
@@ -89,9 +84,10 @@ git submodule update --init db-snapshot
 zip -qj /tmp/init.$$.zip db-snapshot/*
 trap 'rm -f /tmp/init.$$.zip' EXIT
 
-# Load the blank snapshot into the MySQL database.
+# Load the snapshot into the MySQL database.
 export MYSQL_USER=openmrs_user
 export MYSQL_PASSWORD=openmrs
+echo
 tools/openmrs_load $force_flag openmrs /tmp/init.$$.zip
 
 # Apply the selected site configuration.
