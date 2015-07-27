@@ -1,7 +1,7 @@
 # Buendia server (OpenMRS module)
 
 Follow these instructions to get your system set up to do Buendia server development.
-
+See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more details about the app.
 
 ## Prerequisites
 
