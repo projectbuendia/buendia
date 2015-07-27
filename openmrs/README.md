@@ -1,6 +1,4 @@
-Buendia OpenMRS module
-======================
-
+# Buendia server (OpenMRS module)
 
 Follow these instructions to get your system set up to do Buendia server development.
 
