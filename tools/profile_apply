@@ -1,0 +1,112 @@
+#!/usr/bin/env python
+
+import csv
+import MySQLdb
+import os
+import sys
+import uuid
+
+CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
+LOCALE = 'en_GB_client'
+
+class Database:
+    def __init__(self, database, user, password):
+        self.db = MySQLdb.connect(db=database, user=user, passwd=password)
+        self.commit = self.db.commit
+
+    def select_one(self, query, *params):
+        cursor = self.db.cursor()
+        cursor.execute(query, params)
+        return cursor.fetchone()
+
+    def iter(self, query, *params):
+        cursor = self.db.cursor()
+        cursor.execute(query, params)
+        return iter(cursor)
+
+    def execute(self, query, *params):
+        cursor = self.db.cursor()
+        cursor.execute(query, params)
+        cursor.close()
+
+    def get(self, field, table, **constraints):
+        items = constraints.items()
+        condition = ' and '.join(key + ' = %s' for (key, value) in items)
+        result = self.select_one(
+            'select %s from %s where %s' % (field, table, condition),
+            *(value for (key, value) in items))
+        return result and result[0]
+
+def get_db(database):
+    pipe = os.popen("bash -c '. /usr/share/buendia/utils.sh; "
+                    "echo $OPENMRS_MYSQL_USER; echo $OPENMRS_MYSQL_PASSWORD'")
+    user = pipe.readline().strip()
+    password = pipe.readline().strip()
+    if not user:
+        user, password = 'openmrs_user', 'openmrs'
+    return Database(database, user, password)
+
+def read_csv(filename):
+    grid_rows = []
+    infile = open(filename)
+    section = None
+    for row in csv.DictReader(infile):
+        if row['section']:
+            section = row['section']
+        if section == 'grid' and row['concept']:
+            grid_rows.append((int(row['concept']), row['label']))
+    return grid_rows
+
+def apply_grid(grid_rows):
+    db = get_db('openmrs')
+    user_id = db.get('user_id', 'users', username='buendia_admin')
+    form_id = db.get('form_id', 'form', uuid=CHART_UUID)
+
+    db.execute('/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */')
+    db.execute('delete from form_field where form_id = %d' % form_id)
+    db.execute('/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */')
+
+    field_type = db.get('field_type_id', 'field_type', name='Concept')
+
+    parent_concept = db.get('concept_id', 'concept', uuid='ffac28f9-e495-4e02-8255-8d7c34716e2d')
+    parent_field = db.get('field_id', 'field', concept_id=parent_concept)
+    pffu = uuid.uuid4()
+    db.execute(
+        'insert into form_field'
+        ' (form_id, field_id, creator, sort_weight, uuid, date_created)'
+        ' values (%s, %s, %s, %s, %s, now())',
+        form_id, parent_field, user_id, 1, pffu)
+    parent_form_field = db.get('form_field_id', 'form_field', uuid=pffu)
+
+    for i, (concept, label) in enumerate(grid_rows):
+        field_id = db.get('field_id', 'field', concept_id=concept)
+        if not field_id:
+            name = db.get('name', 'concept_name', concept_id=concept)
+            db.execute(
+                'insert into field'
+                ' (name, field_type, concept_id, creator, uuid, date_created)'
+                ' values (%s, %s, %s, %s, %s, now())',
+                name, field_type, concept, user_id, uuid.uuid4())
+            field_id = db.get('field_id', 'field', concept_id=concept)
+        db.execute(
+            'insert into form_field'
+            ' (form_id, field_id, parent_form_field, creator, sort_weight, uuid, date_created)'
+            ' values (%s, %s, %s, %s, %s, %s, now())',
+            form_id, field_id, parent_form_field, user_id, i, uuid.uuid4())
+
+        if db.get('concept_id', 'concept_name',
+                  concept_id=concept, locale=LOCALE):
+            db.execute('update concept_name set name = %s, locale_preferred = 1'
+                       ' where concept_id = %s and locale = %s',
+                       label, concept, LOCALE)
+        else:
+            db.execute(
+                'insert into concept_name'
+                ' (concept_id, name, locale, creator, uuid, locale_preferred, date_created)'
+                ' values (%s, %s, %s, %s, %s, 1, now())',
+                concept, label, LOCALE, user_id, uuid.uuid4())
+    db.commit()
+
+if __name__ == '__main__':
+    grid_rows = read_csv(sys.argv[1])
+    apply_grid(grid_rows)

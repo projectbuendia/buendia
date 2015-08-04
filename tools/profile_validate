@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+import csv
+import sys
+
+infile = open(sys.argv[1])
+
+reader = csv.DictReader(infile)
+if not set(reader.fieldnames).issuperset(['section', 'concept', 'label']):
+    print '''
+Required columns are missing.  The first row should contain the column
+headings "section", "concept", and "label".
+'''
+    sys.exit(1)
