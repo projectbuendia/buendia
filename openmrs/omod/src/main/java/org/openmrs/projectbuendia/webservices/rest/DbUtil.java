@@ -42,18 +42,51 @@ public class DbUtil {
     }
 
     /** Gets or creates a Concept with a given UUID and name. */
-    public static Concept getConcept(String name, String uuid, String typeUuid) {
+    public static Concept getConcept(String name, String uuid, String typeName, String className) {
         ConceptService conceptService = Context.getConceptService();
         Concept concept = conceptService.getConceptByUuid(uuid);
         if (concept == null) {
             concept = new Concept();
             concept.setUuid(uuid);
             concept.setShortName(new ConceptName(name, new Locale("en")));
-            concept.setDatatype(conceptService.getConceptDatatypeByUuid(typeUuid));
-            concept.setConceptClass(conceptService.getConceptClassByUuid(ConceptClass.MISC_UUID));
+            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
+            concept.setConceptClass(conceptService.getConceptClassByName(className));
             conceptService.saveConcept(concept);
         }
         return concept;
+    }
+
+    public static ConceptClass getConceptClass(String name) {
+        ConceptService conceptService = Context.getConceptService();
+        return conceptService.getConceptClassByName(name);
+    }
+
+    public static OrderType getDrugOrderType() {
+        OrderService orderService = Context.getOrderService();
+        OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass("Drug"));
+        if (orderType == null) {
+            orderType = new OrderType();
+            orderType.addConceptClass(getConceptClass("Drug"));
+            orderType.setName("Drug");
+            orderType.setDescription("Drug order");
+            orderType.setJavaClassName("org.openmrs.DrugOrder");
+            orderService.saveOrderType(orderType);
+        }
+        return orderType;
+    }
+
+    public static OrderType getMiscOrderType() {
+        OrderService orderService = Context.getOrderService();
+        OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass("Misc"));
+        if (orderType == null) {
+            orderType = new OrderType();
+            orderType.addConceptClass(getConceptClass("Misc"));
+            orderType.setName("Misc order");
+            orderType.setDescription("Misc order");
+            orderType.setJavaClassName("org.openmrs.Order");
+            orderService.saveOrderType(orderType);
+        }
+        return orderType;
     }
 
     /** Gets or creates a PersonAttributeType with a given UUID and name. */
