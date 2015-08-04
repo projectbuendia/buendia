@@ -14,6 +14,7 @@
 
 set -e
 SERVER_ID=server
+MODULE_DIR=$HOME/openmrs/$SERVER_ID/modules
 INSTALL="mvn openmrs-sdk:install-module -DserverId=$SERVER_ID"
 cd $(dirname $0)
 cd ..  # go to the root of the Buendia repository
@@ -21,13 +22,21 @@ cd ..  # go to the root of the Buendia repository
 # Install the OpenMRS SDK.
 mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
 
-# Create the server directory so that openmrs_build can run even if the
-# dev server hasn't been set up by openmrs_setup yet.
-mkdir -p $HOME/openmrs/$SERVER_ID
+# Clean out any old modules, then re-create the server module directory so that
+# openmrs_build can run even if openmrs_setup hasn't set up the dev server yet.
+rm -rf $MODULE_DIR
+mkdir -p $MODULE_DIR
 
-# Install the binary dependencies in the OpenMRS development server.
+# TODO(ping): Figure out how to cache these module dependencies in the local
+# Maven repository so that builds can work offline.
+
+# Install the module dependencies in the OpenMRS development server.
 $INSTALL -DartifactId=xforms -Dversion=4.3.5
 $INSTALL -DartifactId=webservices.rest -Dversion=2.6
+
+# openmrs-sdk-maven-plugin has a bug that looks up xforms-api as xforms-api-omod
+# and can't find it, so we have to download xforms-api separately.
+curl -o $HOME/openmrs/$SERVER_ID/modules/xforms-api-4.3.5.omod http://mavenrepo.openmrs.org/nexus/content/repositories/public/org/openmrs/module/xforms-api/4.3.5/xforms-api-4.3.5.jar
 
 # Build the Buendia module, passing along any flags given to this script.
 cd openmrs
