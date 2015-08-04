@@ -38,12 +38,17 @@ if [[ $target =~ ^([0-9]+.[0-9]+) ]]; then
 fi
 
 if [ -n "$current_minor" -a $current_minor = $target_minor ]; then
-    echo "$0: Migration from $current to $target successful (same minor version)."
+    echo "$0: Migrated from $current to $target (no-op: same minor version)."
+    exit 0
+fi
+
+if [ "$current_minor" = "0.0" -o "$target_minor" = "0.0" ]; then
+    echo "$0: Migrated from $current to $target (no-op: to or from dev version)."
     exit 0
 fi
 
 if [ "$current_minor/$target_minor" = "0.3/0.4" ]; then
-    echo "$0: Migration from $current to $target successful (no schema changes from 0.3.x to 0.4.y)."
+    echo "$0: Migrated from $current to $target (no-op: no schema changes in 0.4)."
     exit 0
 fi
 
