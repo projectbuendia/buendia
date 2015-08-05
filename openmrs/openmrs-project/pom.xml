@@ -23,7 +23,7 @@
     <openMRSVersion>RELEASE</openMRSVersion>
     <h2Version>1.2.135</h2Version>
     <webservicesRestVersion>2.6</webservicesRestVersion>
-    <xformsVersion>4.3.1</xformsVersion>
+    <xformsVersion>4.3.5</xformsVersion>
   </properties>
   <modules>
     <module>server</module>
@@ -63,7 +63,7 @@
                 </artifactItem>
                 <artifactItem>
                   <groupId>org.openmrs.module</groupId>
-                  <artifactId>xforms</artifactId>
+                  <artifactId>xforms-omod</artifactId>
                   <version>${xformsVersion}</version>
                   <destFileName>xforms.omod</destFileName>
                 </artifactItem>

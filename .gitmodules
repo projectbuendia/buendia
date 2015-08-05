@@ -4,6 +4,3 @@
 [submodule "db-snapshot"]
 	path = db-snapshot
 	url = ../db-snapshot
-[submodule "buendia-libs"]
-	path = buendia-libs
-	url = ../buendia-libs
