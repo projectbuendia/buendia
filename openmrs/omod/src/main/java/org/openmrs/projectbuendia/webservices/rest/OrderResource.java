@@ -21,10 +21,7 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
-import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
-import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
-import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.resource.api.*;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -73,7 +70,7 @@ import java.util.List;
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class OrderResource implements Searchable, Retrievable, Creatable, Updatable {
+public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
     static final User CREATOR = new User(1);  // fake value
     static final RequestLogger logger = RequestLogger.LOGGER;
     static Log log = LogFactory.getLog(OrderResource.class);
@@ -96,7 +93,7 @@ public class OrderResource implements Searchable, Retrievable, Creatable, Updata
     Patient getPatient(RequestContext context) {
         String patientUuid = context.getParameter("patient");
         if (patientUuid == null) {
-            throw new IllegalArgumentException("?patient= parameter not specified");
+            return null;
         }
         Patient patient = patientService.getPatientByUuid(patientUuid);
         if (patient == null) {
@@ -104,6 +101,24 @@ public class OrderResource implements Searchable, Retrievable, Creatable, Updata
         }
         return patient;
     }
+
+    @Override
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "getAll");
+            SimpleObject result = getAllInner();
+            logger.reply(context, this, "getAll", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "getAll", e);
+            throw e;
+        }
+    }
+
+    private SimpleObject getAllInner() throws ResponseException {
+        return getSimpleObjectWithResults(getAllOrders());
+    }
+
 
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
@@ -119,14 +134,26 @@ public class OrderResource implements Searchable, Retrievable, Creatable, Updata
     }
 
     SimpleObject searchInner(Patient patient) throws ResponseException {
-        List<Order> orders = orderService.getAllOrdersByPatient(patient);  // includes stopped orders
-        return getSimpleObjectWithResults(orders);
+        return getSimpleObjectWithResults(patient == null ?
+                getAllOrders() :
+                orderService.getAllOrdersByPatient(patient));
+    }
+
+    public List<Order> getAllOrders() {
+        List<Order> orders = new ArrayList<>();
+        for (Encounter encounter : encounterService.getEncounters(
+                null, null, null, null, null, null, null, null, null, false)) {
+            for (Order order : encounter.getOrders()) {
+                orders.add(order);
+            }
+        }
+        return orders;
     }
 
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", json);
-            Object result = createInner(getPatient(context), json);
+            Object result = createInner(json);
             logger.reply(context, this, "create", result);
             return result;
         } catch (Exception e) {
@@ -135,13 +162,22 @@ public class OrderResource implements Searchable, Retrievable, Creatable, Updata
         }
     }
 
-    Object createInner(Patient patient, SimpleObject json) throws ResponseException {
-        Order order = jsonToOrder(patient, json);
+    Object createInner(SimpleObject json) throws ResponseException {
+        Order order = jsonToOrder(json);
         orderService.saveOrder(order, null);
         return orderToJson(order);
     }
 
-    protected Order jsonToOrder(Patient patient, SimpleObject json) {
+    /** Creates a new Order and a corresponding Encounter containing it. */
+    protected Order jsonToOrder(SimpleObject json) {
+        String patientUuid = (String) json.get("patient_uuid");
+        if (patientUuid == null) {
+            throw new IllegalArgumentException("Required key 'patient_uuid' is missing");
+        }
+        Patient patient = patientService.getPatientByUuid(patientUuid);
+        if (patient == null) {
+            throw new ObjectNotFoundException();
+        }
         Encounter encounter = new Encounter();
         encounter.setEncounterDatetime(new Date());
         encounter.setPatient(patient);
@@ -204,9 +240,9 @@ public class OrderResource implements Searchable, Retrievable, Creatable, Updata
         for (Order order : orders) {
             jsonResults.add(orderToJson(order));
         }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+        SimpleObject json = new SimpleObject();
+        json.add("results", jsonResults);
+        return json;
     }
 
     @Override
@@ -282,22 +318,23 @@ public class OrderResource implements Searchable, Retrievable, Creatable, Updata
 
     /** Serializes an order to JSON. */
     protected static SimpleObject orderToJson(Order order) {
-        SimpleObject jsonForm = new SimpleObject();
+        SimpleObject json = new SimpleObject();
         if (order != null) {
-            jsonForm.add("uuid", order.getUuid());
+            json.add("uuid", order.getUuid());
+            json.add("patient_uuid", order.getPatient().getUuid());
             String instructions = order.getInstructions();
             if (instructions != null) {
-                jsonForm.add("instructions", instructions);
+                json.add("instructions", instructions);
             }
             Date start = order.getDateActivated();
             if (start != null) {
-                jsonForm.add("start", start.getTime());
+                json.add("start", start.getTime());
             }
             Date stop = order.getAutoExpireDate();
             if (stop != null) {
-                jsonForm.add("stop", stop.getTime());
+                json.add("stop", stop.getTime());
             }
         }
-        return jsonForm;
+        return json;
     }
 }
