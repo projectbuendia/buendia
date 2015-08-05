@@ -37,7 +37,7 @@
         <openMRSVersion>1.10.0</openMRSVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <webservicesRestVersion>2.6</webservicesRestVersion>
-        <xformsVersion>4.3.5</xformsVersion>
+        <xformsVersion>4.3.1</xformsVersion>
     </properties>
 
     <dependencyManagement>
