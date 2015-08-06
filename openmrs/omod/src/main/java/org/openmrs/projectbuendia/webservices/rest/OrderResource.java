@@ -26,10 +26,7 @@ import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Rest API for orders.
@@ -119,7 +116,6 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return getSimpleObjectWithResults(getAllOrders());
     }
 
-
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
         try {
@@ -139,15 +135,20 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
                 orderService.getAllOrdersByPatient(patient));
     }
 
-    public List<Order> getAllOrders() {
-        List<Order> orders = new ArrayList<>();
+    public Collection<Order> getAllOrders() {
+        Map<String, Order> orders = new HashMap<>();
+        Set<String> previousOrderUuids = new HashSet<>();
         for (Encounter encounter : encounterService.getEncounters(
                 null, null, null, null, null, null, null, null, null, false)) {
             for (Order order : encounter.getOrders()) {
-                orders.add(order);
+                orders.put(order.getUuid(), order);
+                previousOrderUuids.add(order.getPreviousOrder().getUuid());
             }
         }
-        return orders;
+        for (String uuid : previousOrderUuids) {
+            orders.remove(uuid);
+        }
+        return orders.values();
     }
 
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
@@ -168,6 +169,27 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return orderToJson(order);
     }
 
+    Encounter createEncounter(Patient patient) {
+        Encounter encounter = new Encounter();
+        encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
+        encounter.setEncounterDatetime(new Date());
+        encounter.setPatient(patient);
+        encounter.setLocation(Context.getLocationService().getDefaultLocation());
+        encounter.setEncounterType(encounterService.getEncounterType("ADULTRETURN"));
+        encounterService.saveEncounter(encounter);
+        return encounter;
+    }
+
+    Concept getFreeTextOrderConcept() {
+        return DbUtil.getConcept(
+                "Order described in free text instructions",
+                FREE_TEXT_ORDER_UUID, "N/A", "Misc");
+    }
+
+    Provider getProvider() {
+        return providerService.getAllProviders(false).get(0); // omit retired
+    }
+
     /** Creates a new Order and a corresponding Encounter containing it. */
     protected Order jsonToOrder(SimpleObject json) {
         String patientUuid = (String) json.get("patient_uuid");
@@ -178,27 +200,27 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         if (patient == null) {
             throw new ObjectNotFoundException();
         }
-        Encounter encounter = new Encounter();
-        encounter.setEncounterDatetime(new Date());
-        encounter.setPatient(patient);
-        encounter.setLocation(Context.getLocationService().getDefaultLocation());
-        encounter.setEncounterType(encounterService.getEncounterType("ADULTRETURN"));
-        encounterService.saveEncounter(encounter);
+        String instructions = (String) json.get("instructions");
+        if (instructions == null || instructions.isEmpty()) {
+            throw new IllegalArgumentException("Required key 'instructions' is missing or empty");
+        }
+        Integer startMillis = (Integer) json.get("start");
+        Date startDate = startMillis == null ? new Date() : new Date(startMillis);
+        Integer stopMillis = (Integer) json.get("stop");
+        Date stopDate = stopMillis == null ? null : new Date(stopMillis);
 
         Order order = new Order();  // an excellent band
         order.setCreator(CREATOR);  // TODO: do this properly from authentication
-        List<Provider> providers = providerService.getAllProviders(false); // omit retired
-        order.setOrderer(providers.get(0));
+        order.setEncounter(createEncounter(patient));
+        order.setOrderer(getProvider());
         order.setOrderType(DbUtil.getMiscOrderType());
         order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
-        order.setConcept(DbUtil.getConcept(
-                "Order described in free text instructions",
-                FREE_TEXT_ORDER_UUID, "N/A", "Misc"));
+        order.setConcept(getFreeTextOrderConcept());
         order.setDateCreated(new Date());
         order.setPatient(patient);
-        order.setInstructions((String) json.get("instructions"));
-        order.setDateActivated(new Date());
-        order.setEncounter(encounter);
+        order.setInstructions(instructions);
+        order.setDateActivated(startDate);
+        order.setAutoExpireDate(stopDate);
         return order;
     }
 
@@ -235,7 +257,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return Arrays.asList(Representation.DEFAULT);
     }
 
-    SimpleObject getSimpleObjectWithResults(List<Order> orders) {
+    SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Order order : orders) {
             jsonResults.add(orderToJson(order));
@@ -275,24 +297,28 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
             throw new ObjectNotFoundException();
         }
 
-        if (applyEdits(order, simpleObject)) {
-            orderService.saveOrder(order, null);
+        Order revisedOrder = reviseOrder(order, simpleObject);
+        if (revisedOrder != null) {
+            orderService.saveOrder(revisedOrder, null);
+            order = revisedOrder;
         }
         return orderToJson(order);
     }
 
-    /** Applies edits to an Order.  Returns true if any changes were made. */
-    protected boolean applyEdits(Order order, SimpleObject edits) {
+    /** Revises an order.  Returns null if no changes were made. */
+    protected Order reviseOrder(Order order, SimpleObject edits) {
+        Order newOrder = order.cloneForRevision();
         boolean changed = false;
+
         for (String key : edits.keySet()) {
             Object value = edits.get(key);
             switch (key) {
                 case "stop":
                     if (value == null) {
-                        order.setAutoExpireDate(null);
+                        newOrder.setAutoExpireDate(null);
                         changed = true;
                     } else if (value instanceof Integer) {
-                        order.setAutoExpireDate(new Date((Integer) value));
+                        newOrder.setAutoExpireDate(new Date((Integer) value));
                         changed = true;
                     } else {
                         log.warn("Key '" + key + "' has value of invalid type: " + value);
@@ -301,7 +327,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
                 case "instructions":
                     if (value instanceof String) {
-                        order.setInstructions((String) value);
+                        newOrder.setInstructions((String) value);
                         changed = true;
                     } else {
                         log.warn("Key '" + key + "' has value of invalid type: " + value);
@@ -313,7 +339,11 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
                     break;
             }
         }
-        return changed;
+
+        if (!changed) return null;
+        newOrder.setEncounter(createEncounter(order.getPatient()));
+        newOrder.setOrderer(getProvider());
+        return newOrder;
     }
 
     /** Serializes an order to JSON. */
