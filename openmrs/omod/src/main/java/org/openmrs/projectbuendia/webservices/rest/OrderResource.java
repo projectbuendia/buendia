@@ -142,7 +142,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
                 null, null, null, null, null, null, null, null, null, false)) {
             for (Order order : encounter.getOrders()) {
                 orders.put(order.getUuid(), order);
-                previousOrderUuids.add(order.getPreviousOrder().getUuid());
+                if (order.getPreviousOrder() != null) {
+                    previousOrderUuids.add(order.getPreviousOrder().getUuid());
+                }
             }
         }
         for (String uuid : previousOrderUuids) {
