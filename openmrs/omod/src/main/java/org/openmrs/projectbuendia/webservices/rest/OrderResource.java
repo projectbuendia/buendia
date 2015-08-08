@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import net.sourceforge.jtds.jdbc.DateTime;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.*;
@@ -210,6 +211,13 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         Date startDate = startMillis == null ? new Date() : new Date(startMillis);
         Long stopMillis = (Long) json.get("stop");
         Date stopDate = stopMillis == null ? null : new Date(stopMillis);
+        Date now = new Date();
+        if (startMillis != null && startMillis > now.getTime()) {
+            // OpenMRS will reject orders with dateActivated in the future,
+            // which can happen if the client's clock is out of sync with
+            // the server's.  Fix up the startDate in this case.
+            startDate = now;
+        }
 
         Order order = new Order();  // an excellent band
         order.setCreator(CREATOR);  // TODO: do this properly from authentication
