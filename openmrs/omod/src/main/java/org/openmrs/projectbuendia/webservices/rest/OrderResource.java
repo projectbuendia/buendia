@@ -172,10 +172,10 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return orderToJson(order);
     }
 
-    Encounter createEncounter(Patient patient) {
+    Encounter createEncounter(Patient patient, Date encounterDateTime) {
         Encounter encounter = new Encounter();
         encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
-        encounter.setEncounterDatetime(new Date());
+        encounter.setEncounterDatetime(encounterDateTime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());
         encounter.setEncounterType(encounterService.getEncounterType("ADULTRETURN"));
@@ -221,7 +221,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
         Order order = new Order();  // an excellent band
         order.setCreator(CREATOR);  // TODO: do this properly from authentication
-        order.setEncounter(createEncounter(patient));
+        order.setEncounter(createEncounter(patient, startDate));
         order.setOrderer(getProvider());
         order.setOrderType(DbUtil.getMiscOrderType());
         order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
@@ -351,7 +351,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
 
         if (!changed) return null;
-        newOrder.setEncounter(createEncounter(order.getPatient()));
+        Date now = new Date();
+        newOrder.setDateActivated(now);
+        newOrder.setEncounter(createEncounter(order.getPatient(), now));
         newOrder.setOrderer(getProvider());
         return newOrder;
     }
