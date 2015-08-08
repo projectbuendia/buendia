@@ -206,9 +206,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         if (instructions == null || instructions.isEmpty()) {
             throw new IllegalArgumentException("Required key 'instructions' is missing or empty");
         }
-        Integer startMillis = (Integer) json.get("start");
+        Long startMillis = (Long) json.get("start");
         Date startDate = startMillis == null ? new Date() : new Date(startMillis);
-        Integer stopMillis = (Integer) json.get("stop");
+        Long stopMillis = (Long) json.get("stop");
         Date stopDate = stopMillis == null ? null : new Date(stopMillis);
 
         Order order = new Order();  // an excellent band

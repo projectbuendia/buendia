@@ -13,12 +13,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.Concept;
-import org.openmrs.Encounter;
-import org.openmrs.EncounterType;
-import org.openmrs.Location;
-import org.openmrs.Obs;
-import org.openmrs.Patient;
+import org.openmrs.*;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
@@ -58,6 +53,7 @@ public class ObservationsHandler {
     private static final String ANSWER_DATE = "answer_date";
     private static final String ANSWER_NUMBER = "answer_number";
     private static final String ANSWER_UUID = "answer_uuid";
+    private static final String ORDER_UUID = "order_uuid";
 
     /**
      * Adds a new encounter with observations from the given SimpleObject
@@ -131,6 +127,15 @@ public class ObservationsHandler {
             } else {
                 log.warn("Invalid answer type: " + observationObject);
                 continue;
+            }
+            String orderUuid = (String) observationObject.get(ORDER_UUID);
+            if (orderUuid != null) {
+                Order order = Context.getOrderService().getOrderByUuid(orderUuid);
+                if (order == null) {
+                    log.warn("Order not found: " + orderUuid);
+                } else {
+                    obs.setOrder(order);
+                }
             }
             obsList.add(obs);
         }

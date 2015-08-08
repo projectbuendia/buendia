@@ -188,9 +188,16 @@ public class PatientEncountersResource
         // TODO: Check what format this ends up in.
         encounterJson.put("timestamp", DateTimeUtils.toIso8601(encounter.getEncounterDatetime()));
         SimpleObject observations = new SimpleObject();
+        SimpleObject orders = new SimpleObject();
         for (Obs obs : encounter.getObs()) {
             // TODO/simplify: Move this .put() call outside the loop.
             encounterJson.put("uuid", encounter.getUuid());
+            Concept concept = obs.getConcept();
+            if (concept != null &&
+                    concept.getUuid().equals(DbUtil.getOrderExecutionCountConcept().getUuid())) {
+                orders.put(obs.getOrder().getUuid(), obs.getValueNumeric());
+                continue;
+            }
             observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
                     obs, new VisitObsValue.ObsValueVisitor<String>() {
                         @Override
@@ -225,6 +232,7 @@ public class PatientEncountersResource
                     }));
         }
         encounterJson.put("observations", observations);
+        encounterJson.put("orders", orders);
         return encounterJson;
     }
 
@@ -240,7 +248,9 @@ public class PatientEncountersResource
      *         "answer_date": "2013-01-30"
      *         "answer_number": 40
      *         "answer_uuid": "xxxx-...."
-     *       }, ...
+     *         # and OPTIONALLY this field:
+     *         "order_uuid": "xxxx-..."
+     *       },
      *     ]
      * }
      */

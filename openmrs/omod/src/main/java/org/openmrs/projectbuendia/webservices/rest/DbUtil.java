@@ -89,6 +89,14 @@ public class DbUtil {
         return orderType;
     }
 
+    public static Concept getOrderExecutionCountConcept() {
+        return DbUtil.getConcept(
+                "Order execution count for current day",
+                "buendia.order_execution_count_day",
+                "Numeric",
+                "Finding");
+    }
+
     /** Gets or creates a PersonAttributeType with a given UUID and name. */
     private static PersonAttributeType getPersonAttributeType(String uuid, String name) {
         PersonService personService = Context.getPersonService();
