@@ -211,17 +211,10 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         Date startDate = startMillis == null ? new Date() : new Date(startMillis);
         Long stopMillis = (Long) json.get("stop");
         Date stopDate = stopMillis == null ? null : new Date(stopMillis);
-        Date now = new Date();
-        if (startMillis != null && startMillis > now.getTime()) {
-            // OpenMRS will reject orders with dateActivated in the future,
-            // which can happen if the client's clock is out of sync with
-            // the server's.  Fix up the startDate in this case.
-            startDate = now;
-        }
 
         Order order = new Order();  // an excellent band
         order.setCreator(CREATOR);  // TODO: do this properly from authentication
-        order.setEncounter(createEncounter(patient, startDate));
+        order.setEncounter(createEncounter(patient, new Date()));
         order.setOrderer(getProvider());
         order.setOrderType(DbUtil.getMiscOrderType());
         order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
@@ -229,7 +222,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         order.setDateCreated(new Date());
         order.setPatient(patient);
         order.setInstructions(instructions);
-        order.setDateActivated(startDate);
+        order.setScheduledDate(startDate);
         order.setAutoExpireDate(stopDate);
         return order;
     }
@@ -352,7 +345,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
         if (!changed) return null;
         Date now = new Date();
-        newOrder.setDateActivated(now);
+        newOrder.setScheduledDate(now);
         newOrder.setEncounter(createEncounter(order.getPatient(), now));
         newOrder.setOrderer(getProvider());
         return newOrder;
@@ -368,7 +361,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
             if (instructions != null) {
                 json.add("instructions", instructions);
             }
-            Date start = order.getDateActivated();
+            Date start = order.getScheduledDate();
             if (start != null) {
                 json.add("start", start.getTime());
             }
