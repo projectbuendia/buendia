@@ -222,6 +222,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         order.setDateCreated(new Date());
         order.setPatient(patient);
         order.setInstructions(instructions);
+        order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
         order.setScheduledDate(startDate);
         order.setAutoExpireDate(stopDate);
         return order;
@@ -345,6 +346,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
         if (!changed) return null;
         Date now = new Date();
+        newOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
         newOrder.setScheduledDate(now);
         newOrder.setEncounter(createEncounter(order.getPatient(), now));
         newOrder.setOrderer(getProvider());
