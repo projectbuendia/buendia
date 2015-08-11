@@ -34,7 +34,7 @@ $INSTALL -DartifactId=webservices.rest -Dversion=2.6
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
 # given to this script.
 cd openmrs
-mvn install "$@"
+mvn clean install "$@"
 
 # Install the module in the OpenMRS development server.
 $INSTALL -DgroupId=org.projectbuendia \
