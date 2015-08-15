@@ -17,6 +17,7 @@ import org.openmrs.*;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
+import org.openmrs.api.OrderService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.DateTimeUtils;
@@ -32,8 +33,7 @@ import java.util.Map;
 public class ObservationsHandler {
     /**
      * For consistency these should be accepted as XForm instances, but as a
-     * short-term fix we allow an observations section in the JSON RPC in the
-     * following format:
+     * short-term fix we allow observations to be expressed in this JSON format:
      * <pre>
      * "observations": [
      *   {
@@ -56,30 +56,24 @@ public class ObservationsHandler {
     private static final String ORDER_UUID = "order_uuid";
 
     /**
-     * Adds a new encounter with observations from the given SimpleObject
-     * (if there are no observations, no encounter is added).
+     * Adds a new encounter with the given observations and orders.
      *
-     * @param json an object whose "observations" key contains observation data
+     * @param observations a list of observations
+     * @param orderUuids a list of order UUIDs
      * @param patient the patient for whom to add the encounter
      * @param encounterTime the time of the encounter
      * @param changeMessage a message to be recorded with the observation
      * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
      * @param locationUuid the UUID of the location where the encounter happened
      */
-    public static Encounter addEncounter(SimpleObject json, Patient patient,
+    public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
             Date encounterTime, String changeMessage, String encounterTypeName,
             String locationUuid) {
-        List observations = (List) json.get(OBSERVATIONS);
-        if (observations == null || observations.isEmpty()) {
-            return null;
-        }
-
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = Utils.fixEncounterDateTime(encounterTime);
 
         EncounterService encounterService = Context.getEncounterService();
-        ConceptService conceptService = Context.getConceptService();
         final Location location = Context.getLocationService().getLocationByUuid(locationUuid);
         if (location == null) {
             throw new InvalidObjectDataException("Location not found: " + locationUuid);
@@ -89,55 +83,17 @@ public class ObservationsHandler {
             throw new InvalidObjectDataException("Encounter type not found: " + encounterTypeName);
         }
 
-        // Parse all the observation data into a list of Obs objects.
         List<Obs> obsList = new ArrayList<>();
-        for (Object observation : observations) {
-            Map observationObject = (Map) observation;
-            String questionUuid = (String) observationObject.get(QUESTION_UUID);
-            Concept questionConcept = conceptService.getConceptByUuid(questionUuid);
-            if (questionConcept == null) {
-                log.warn("Question concept not found: " + questionUuid);
-                continue;
+        if (observations != null) {
+            for (Object observation : observations) {
+                obsList.add(jsonObservationToObs(observation, patient, encounterTime, location));
             }
-            Obs obs = new Obs(patient, questionConcept, encounterTime, location);
-            String answerUuid = (String) observationObject.get(ANSWER_UUID);
-            String answerDate = (String) observationObject.get(ANSWER_DATE);
-            String answerNumber = (String) observationObject.get(ANSWER_NUMBER);
-            if (answerUuid != null) {
-                Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
-                if (answerConcept == null) {
-                    log.warn("Answer concept not found: " + answerUuid);
-                    continue;
-                }
-                obs.setValueCoded(answerConcept);
-            } else if (answerDate != null) {
-                try {
-                    obs.setValueDate(DateTimeUtils.YYYYMMDD_FORMAT.parse(answerDate));
-                } catch (ParseException e) {
-                    log.warn("Invalid date answer: " + answerDate);
-                    continue;
-                }
-            } else if (observationObject.containsKey(ANSWER_NUMBER)) {
-                try {
-                    obs.setValueNumeric(Double.parseDouble(answerNumber));
-                } catch (IllegalArgumentException e) {
-                    log.warn("Invalid numeric answer: " + answerUuid);
-                    continue;
-                }
-            } else {
-                log.warn("Invalid answer type: " + observationObject);
-                continue;
+        }
+
+        if (orderUuids != null) {
+            for (Object item : orderUuids) {
+                obsList.add(orderUuidToObs((String) item, patient, encounterTime, location));
             }
-            String orderUuid = (String) observationObject.get(ORDER_UUID);
-            if (orderUuid != null) {
-                Order order = Context.getOrderService().getOrderByUuid(orderUuid);
-                if (order == null) {
-                    log.warn("Order not found: " + orderUuid);
-                } else {
-                    obs.setOrder(order);
-                }
-            }
-            obsList.add(obs);
         }
 
         // Write the encounter and all the observations to the database.
@@ -150,9 +106,65 @@ public class ObservationsHandler {
 
         ObsService obsService = Context.getObsService();
         for (Obs obs : obsList) {
-            encounter.addObs(obs);
-            obsService.saveObs(obs, changeMessage);
+            if (obs != null) {
+                encounter.addObs(obs);
+                obsService.saveObs(obs, changeMessage);
+            }
         }
         return encounter;
+    }
+
+    static Obs jsonObservationToObs(Object jsonObservation, Patient patient,
+                             Date encounterTime, Location location) {
+        Map observationObject = (Map) jsonObservation;
+        String questionUuid = (String) observationObject.get(QUESTION_UUID);
+        ConceptService conceptService = Context.getConceptService();
+        Concept questionConcept = conceptService.getConceptByUuid(questionUuid);
+        if (questionConcept == null) {
+            log.warn("Question concept not found: " + questionUuid);
+            return null;
+        }
+        Obs obs = new Obs(patient, questionConcept, encounterTime, location);
+        String answerUuid = (String) observationObject.get(ANSWER_UUID);
+        String answerDate = (String) observationObject.get(ANSWER_DATE);
+        String answerNumber = (String) observationObject.get(ANSWER_NUMBER);
+        if (answerUuid != null) {
+            Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
+            if (answerConcept == null) {
+                log.warn("Answer concept not found: " + answerUuid);
+                return null;
+            }
+            obs.setValueCoded(answerConcept);
+        } else if (answerDate != null) {
+            try {
+                obs.setValueDate(DateTimeUtils.YYYYMMDD_FORMAT.parse(answerDate));
+            } catch (ParseException e) {
+                log.warn("Invalid date answer: " + answerDate);
+                return null;
+            }
+        } else if (observationObject.containsKey(ANSWER_NUMBER)) {
+            try {
+                obs.setValueNumeric(Double.parseDouble(answerNumber));
+            } catch (IllegalArgumentException e) {
+                log.warn("Invalid numeric answer: " + answerUuid);
+                return null;
+            }
+        } else {
+            log.warn("Invalid answer type: " + observationObject);
+            return null;
+        }
+        return obs;
+    }
+
+    static Obs orderUuidToObs(String orderUuid, Patient patient, Date encounterTime, Location location) {
+        Order order = Context.getOrderService().getOrderByUuid(orderUuid);
+        if (order == null) {
+            log.warn("Order not found: " + orderUuid);
+            return null;
+        }
+        Obs obs = new Obs(patient, DbUtil.getOrderExecutedConcept(), encounterTime, location);
+        obs.setOrder(order);
+        obs.setValueNumeric(new Double(1));
+        return obs;
     }
 }

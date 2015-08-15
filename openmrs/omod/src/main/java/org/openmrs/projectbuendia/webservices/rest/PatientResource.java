@@ -182,7 +182,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         // Observation for first symptom date
         ObservationsHandler.addEncounter(
-                json, patient, patient.getDateCreated(), "Initial triage",
+                (List) json.get("observations"), null,
+                patient, patient.getDateCreated(), "Initial triage",
                 "ADULTINITIAL", LocationResource.TRIAGE_UUID);
         return patientToJson(patient);
     }

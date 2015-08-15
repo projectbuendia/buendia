@@ -89,11 +89,17 @@ public class DbUtil {
         return orderType;
     }
 
-    public static Concept getOrderExecutionCountConcept() {
+    // Gets the concept representing that an order has been executed.  Each time
+    // an order is executed, this is recorded in the system as an encounter in
+    // which "order executed" is observed for the appropriate order.
+    public static Concept getOrderExecutedConcept() {
         return DbUtil.getConcept(
-                "Order execution count for current day",
-                "buendia.order_execution_count_day",
-                "Numeric",
+                "Order executed",
+                // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for
+                // arbitrary string IDs unrelated to RFC 4122.  Therefore, to prevent
+                // collisions, UUIDs specific to this module are prefixed "buendia.".
+                "buendia.order_executed",
+                "N/A",
                 "Finding");
     }
 

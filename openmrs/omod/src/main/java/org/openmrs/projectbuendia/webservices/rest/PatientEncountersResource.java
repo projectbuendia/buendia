@@ -188,14 +188,14 @@ public class PatientEncountersResource
         // TODO: Check what format this ends up in.
         encounterJson.put("timestamp", DateTimeUtils.toIso8601(encounter.getEncounterDatetime()));
         SimpleObject observations = new SimpleObject();
-        SimpleObject orders = new SimpleObject();
+        List<String> orderUuids = new ArrayList<>();
         for (Obs obs : encounter.getObs()) {
             // TODO/simplify: Move this .put() call outside the loop.
             encounterJson.put("uuid", encounter.getUuid());
             Concept concept = obs.getConcept();
             if (concept != null &&
-                    concept.getUuid().equals(DbUtil.getOrderExecutionCountConcept().getUuid())) {
-                orders.put(obs.getOrder().getUuid(), obs.getValueNumeric());
+                    concept.getUuid().equals(DbUtil.getOrderExecutedConcept().getUuid())) {
+                orderUuids.add(obs.getOrder().getUuid());
                 continue;
             }
             observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
@@ -231,8 +231,12 @@ public class PatientEncountersResource
                         }
                     }));
         }
-        encounterJson.put("observations", observations);
-        encounterJson.put("orders", orders);
+        if (!observations.isEmpty()) {
+            encounterJson.put("observations", observations);
+        }
+        if (!orderUuids.isEmpty()) {
+            encounterJson.put("order_uuids", orderUuids);
+        }
         return encounterJson;
     }
 
@@ -296,7 +300,8 @@ public class PatientEncountersResource
                     "Expected seconds since epoch for \"timestamp\" value: " + ex.getMessage());
         }
         Encounter encounter = ObservationsHandler.addEncounter(
-                post, patient, encounterTime, "new observation", "ADULTRETURN",
+                (List) post.get("observations"), (List) post.get("order_uuids"),
+                patient, encounterTime, "new observation", "ADULTRETURN",
                 // TODO: Consider using patient's location instead of the root location.
                 LocationResource.ROOT_UUID);
         if (encounter == null) {
