@@ -35,7 +35,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.SimpleDateFormat;
@@ -199,7 +199,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         if (json.containsKey(BIRTHDATE)) {
             patient.setBirthdate(
-                DateTimeUtils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
+                Utils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
@@ -419,7 +419,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
-                    patient.setBirthdate(DateTimeUtils.parseDate((String) entry.getValue(), BIRTHDATE));
+                    patient.setBirthdate(Utils.parseDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
                 case GENDER:

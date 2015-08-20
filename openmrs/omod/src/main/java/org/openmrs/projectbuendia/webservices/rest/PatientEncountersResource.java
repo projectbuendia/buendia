@@ -24,7 +24,7 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -186,7 +186,7 @@ public class PatientEncountersResource
     private SimpleObject encounterToJson(Encounter encounter) {
         SimpleObject encounterJson = new SimpleObject();
         // TODO: Check what format this ends up in.
-        encounterJson.put("timestamp", DateTimeUtils.toIso8601(encounter.getEncounterDatetime()));
+        encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
         SimpleObject observations = new SimpleObject();
         List<String> orderUuids = new ArrayList<>();
         for (Obs obs : encounter.getObs()) {
@@ -222,12 +222,12 @@ public class PatientEncountersResource
 
                         @Override
                         public String visitDate(Date value) {
-                            return DateTimeUtils.YYYYMMDD_FORMAT.format(value);
+                            return Utils.YYYYMMDD_FORMAT.format(value);
                         }
 
                         @Override
                         public String visitDateTime(Date value) {
-                            return DateTimeUtils.toIso8601(value);
+                            return Utils.toIso8601(value);
                         }
                     }));
         }

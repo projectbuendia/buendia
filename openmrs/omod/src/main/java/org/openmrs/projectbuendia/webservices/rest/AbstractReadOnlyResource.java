@@ -18,7 +18,6 @@ import java.util.List;
 
 import org.openmrs.OpenmrsObject;
 import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.module.webservices.rest.web.Hyperlink;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -28,7 +27,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.DateTimeUtils;
+import org.openmrs.projectbuendia.Utils;
 
 /**
  * Abstract superclass for resources whose REST API only supports read
@@ -132,7 +131,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         }
         SimpleObject response = new SimpleObject();
         response.put("results", results);
-        response.put("snapshotTime", DateTimeUtils.toIso8601(new Date(snapshotTime)));
+        response.put("snapshotTime", Utils.toIso8601(new Date(snapshotTime)));
         return response;
     }
 

@@ -17,10 +17,7 @@ import org.openmrs.*;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
-import org.openmrs.api.OrderService;
 import org.openmrs.api.context.Context;
-import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.projectbuendia.DateTimeUtils;
 import org.openmrs.projectbuendia.Utils;
 
 import java.text.ParseException;
@@ -137,7 +134,7 @@ public class ObservationsHandler {
             obs.setValueCoded(answerConcept);
         } else if (answerDate != null) {
             try {
-                obs.setValueDate(DateTimeUtils.YYYYMMDD_FORMAT.parse(answerDate));
+                obs.setValueDate(Utils.YYYYMMDD_FORMAT.parse(answerDate));
             } catch (ParseException e) {
                 log.warn("Invalid date answer: " + answerDate);
                 return null;

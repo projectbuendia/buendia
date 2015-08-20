@@ -25,7 +25,6 @@ import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.projectbuendia.ClientConceptNamer;
-import org.openmrs.projectbuendia.DateTimeUtils;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
@@ -167,11 +166,11 @@ public class DataExportServlet extends HttpServlet {
             for (Encounter encounter : encounters) {
                 values[0] = patient.getUuid();
                 values[1] = patient.getPatientIdentifier("MSF");
-                values[2] = DateTimeUtils.YYYYMMDD_FORMAT.format(patient.getBirthdate());
+                values[2] = Utils.YYYYMMDD_FORMAT.format(patient.getBirthdate());
                 values[3] = encounter.getUuid();
                 values[4] = encounter.getEncounterDatetime().getTime();
-                values[5] = DateTimeUtils.toIso8601(encounter.getEncounterDatetime());
-                values[6] = DateTimeUtils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
+                values[5] = Utils.toIso8601(encounter.getEncounterDatetime());
+                values[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
                 Arrays.fill(values, FIXED_HEADERS.length, FIXED_HEADERS.length + indexer.size() * COLUMNS_PER_OBS, "");
                 for (Obs obs : encounter.getAllObs()) {
                     Integer index = indexer.getIndex(obs.getConcept());
@@ -243,7 +242,7 @@ public class DataExportServlet extends HttpServlet {
                             if (d == null) {
                                 value = "";
                             } else {
-                                value = DateTimeUtils.YYYYMMDD_FORMAT.format(d);
+                                value = Utils.YYYYMMDD_FORMAT.format(d);
                             }
                             values[valueColumn] = value;
                             values[valueColumn + 1] = value;
@@ -257,7 +256,7 @@ public class DataExportServlet extends HttpServlet {
                             if (d == null) {
                                 value = "";
                             } else {
-                                value = DateTimeUtils.SPREADSHEET_FORMAT.format(d);
+                                value = Utils.SPREADSHEET_FORMAT.format(d);
                             }
                             values[valueColumn] = value;
                             values[valueColumn + 1] = value;
