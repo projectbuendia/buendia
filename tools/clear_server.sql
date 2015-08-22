@@ -18,22 +18,24 @@ DELETE FROM hl7_in_archive WHERE 1;
 DELETE FROM hl7_in_error WHERE 1;
 DELETE FROM hl7_in_queue WHERE 1;
 
+-- Remove all encounters/observations
+DELETE FROM active_list WHERE 1; -- references obs
+DELETE FROM concept_proposal_tag_map WHERE 1; -- references concept_proposal
+DELETE FROM concept_proposal WHERE 1; -- references obs, encounter
+DELETE FROM note WHERE 1; -- references obs, encounter
+DELETE FROM obs WHERE 1; -- references order, encounter
+
 -- Remove all orders
 DELETE FROM drug_order WHERE 1; -- references orders
 DELETE FROM order_type WHERE parent IS NOT NULL; -- references orders
 DELETE FROM test_order WHERE 1; -- references orders
 DELETE FROM orders WHERE 1; -- references encounter
 
--- Remove all encounters/observations
-DELETE FROM active_list WHERE 1; -- references obs
-DELETE FROM concept_proposal_tag_map WHERE 1; -- references concept_proposal
-DELETE FROM concept_proposal WHERE 1; -- references obs, encounter
-DELETE FROM note WHERE 1; -- references obs, encounter
-DELETE FROM obs WHERE 1; -- references encounter
+-- Remove all encounters
 DELETE FROM encounter_provider WHERE 1; -- references encounter
 DELETE FROM encounter WHERE 1;
 
--- At the moment we aren't using location tags, clear them out.
+-- At the moment we aren't using location tags; clear them out.
 DELETE FROM location_tag_map WHERE 1;
 DELETE FROM location_tag WHERE 1;
 
