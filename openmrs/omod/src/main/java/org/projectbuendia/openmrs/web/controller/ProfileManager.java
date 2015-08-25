@@ -70,6 +70,7 @@ public class ProfileManager {
                         applyProfile(file, model);
                     } else if ("Download".equals(op)) {
                         downloadProfile(file, response);
+                        return null;  // download the file, don't redirect
                     } else if ("Delete".equals(op)) {
                         deleteProfile(file, model);
                     }
