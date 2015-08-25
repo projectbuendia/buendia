@@ -7,6 +7,7 @@ import sys
 import uuid
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
+FORM_UUID = '736b90ee-fda6-4438-a6ed-71acd36381f3'
 LOCALE = 'en_GB_client'
 
 class Database:
@@ -29,6 +30,14 @@ class Database:
         cursor.execute(query, params)
         cursor.close()
 
+    def force(self, query, *params):
+        cursor = self.db.cursor()
+        cursor.execute('/*!40014 SET @OLD_FKC=@@FOREIGN_KEY_CHECKS */')
+        cursor.execute('/*!40014 SET FOREIGN_KEY_CHECKS=0 */')
+        cursor.execute(query, params)
+        cursor.execute('/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FKC */')
+        cursor.close()
+
     def get(self, field, table, **constraints):
         items = constraints.items()
         condition = ' and '.join(key + ' = %s' for (key, value) in items)
@@ -37,76 +46,181 @@ class Database:
             *(value for (key, value) in items))
         return result and result[0]
 
+class OpenmrsDatabase:
+    def __init__(self, db, username):
+        self.db = db
+        self.user_id = db.get('user_id', 'users', username=username)
+
+    def insert(self, table, **kwargs):
+        new_uuid = uuid.uuid4()
+        columns = kwargs.keys() + ['uuid', 'creator', 'date_created']
+        values = kwargs.values() + [new_uuid, self.user_id]
+        placeholders = ['%s'] * len(values) + ['now()']
+        self.db.execute(
+            'insert into %s (%s) values (%s)' %
+            (table, ', '.join(columns), ', '.join(placeholders)), *values)
+        return self.db.get(table + '_id', table, uuid=new_uuid)
+
+    def update(self, table, id, **kwargs):
+        pairs = [column + ' = %s' for column in kwargs.keys()]
+        values = kwargs.values() + [id]
+        self.db.execute(
+            'update %s set %s where %s = %%s' %
+            (table, ', '.join(pairs), table + '_id'), *values)
+        return id
+
 def get_db(database):
     pipe = os.popen("bash -c '. /usr/share/buendia/utils.sh; "
                     "echo $OPENMRS_MYSQL_USER; echo $OPENMRS_MYSQL_PASSWORD'")
-    user = pipe.readline().strip()
-    password = pipe.readline().strip()
-    if not user:
-        user, password = 'openmrs_user', 'openmrs'
+    user = pipe.readline().strip() or 'openmrs_user'
+    password = pipe.readline().strip() or 'openmrs'
     return Database(database, user, password)
 
-def read_csv(filename):
-    grid_rows = []
+def read_csv(filename, tab=None):
+    """Returns a dictionary mapping tab names to lists of row dictionaries."""
     infile = open(filename)
-    section = None
+    tabs = {}
     for row in csv.DictReader(infile):
-        if row['section']:
-            section = row['section']
-        if section == 'grid' and row['concept']:
-            grid_rows.append((int(row['concept']), row['label']))
-    return grid_rows
+        tab = row['tab'] or tab
+        tabs.setdefault(tab, []).append(row)
+    return tabs
 
-def apply_grid(grid_rows):
+def apply(tabs):
     db = get_db('openmrs')
-    user_id = db.get('user_id', 'users', username='buendia_admin')
-    form_id = db.get('form_id', 'form', uuid=CHART_UUID)
+    odb = OpenmrsDatabase(db, 'buendia_admin')
+    concept_field_type = db.get('field_type_id', 'field_type', name='Concept')
+    element_field_type = db.get('field_type_id', 'field_type', name='Database element')
+    section_field_type = db.get('field_type_id', 'field_type', name='Section')
 
-    db.execute('/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */')
-    db.execute('delete from form_field where form_id = %d' % form_id)
-    db.execute('/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */')
+    def get_or_insert(table, **values):
+        return (db.get(table + '_id', table, **values) or
+                odb.insert(table, **values))
 
-    field_type = db.get('field_type_id', 'field_type', name='Concept')
+    def get_field_for_element(table, attribute, name=None):
+        field_id = get_or_insert('field', field_type=element_field_type,
+                                 table_name=table, attribute_name=attribute)
+        return odb.update('field', field_id,
+                          name=name or table + '.' + attribute)
 
-    parent_concept = db.get('concept_id', 'concept', uuid='ffac28f9-e495-4e02-8255-8d7c34716e2d')
-    parent_field = db.get('field_id', 'field', concept_id=parent_concept)
-    pffu = uuid.uuid4()
-    db.execute(
-        'insert into form_field'
-        ' (form_id, field_id, creator, sort_weight, uuid, date_created)'
-        ' values (%s, %s, %s, %s, %s, now())',
-        form_id, parent_field, user_id, 1, pffu)
-    parent_form_field = db.get('form_field_id', 'form_field', uuid=pffu)
+    def get_field_for_section(name, description=None, concept_id=None):
+        return get_or_insert('field', field_type=section_field_type,
+                             name=name, description=description or name,
+                             concept_id=concept_id)
 
-    for i, (concept, label) in enumerate(grid_rows):
-        field_id = db.get('field_id', 'field', concept_id=concept)
-        if not field_id:
-            name = db.get('name', 'concept_name', concept_id=concept)
-            db.execute(
-                'insert into field'
-                ' (name, field_type, concept_id, creator, uuid, date_created)'
-                ' values (%s, %s, %s, %s, %s, now())',
-                name, field_type, concept, user_id, uuid.uuid4())
-            field_id = db.get('field_id', 'field', concept_id=concept)
-        db.execute(
-            'insert into form_field'
-            ' (form_id, field_id, parent_form_field, creator, sort_weight, uuid, date_created)'
-            ' values (%s, %s, %s, %s, %s, %s, now())',
-            form_id, field_id, parent_form_field, user_id, i, uuid.uuid4())
+    def get_field_for_concept(concept_id, name=None, description=None):
+        name = name or db.get('name', 'concept_name', concept_id=concept_id)
+        return get_or_insert('field', field_type=concept_field_type,
+                             name=name, description=description or name,
+                             concept_id=concept_id)
 
-        if db.get('concept_id', 'concept_name',
-                  concept_id=concept, locale=LOCALE):
-            db.execute('update concept_name set name = %s, locale_preferred = 1'
-                       ' where concept_id = %s and locale = %s',
-                       label, concept, LOCALE)
-        else:
-            db.execute(
-                'insert into concept_name'
-                ' (concept_id, name, locale, creator, uuid, locale_preferred, date_created)'
-                ' values (%s, %s, %s, %s, %s, 1, now())',
-                concept, label, LOCALE, user_id, uuid.uuid4())
+    def add_field_to_form(form_id, field_id, parent_form_field_id=None,
+                          field_number=None, sort_weight=1):
+        return odb.insert('form_field', form_id=form_id, field_id=field_id,
+                          parent_form_field=parent_form_field_id,
+                          field_number=field_number, sort_weight=sort_weight)
+
+    def set_concept_name(concept_id, locale, concept_name):
+        concept_name_id = get_or_insert('concept_name',
+                                        concept_id=concept_id, locale=locale)
+        return odb.update('concept_name', concept_name_id,
+                          name=concept_name, locale_preferred=1)
+
+    def apply_chart(rows):
+        """Applies the chart definition given rows from the chart tab."""
+        section = None
+        grid_rows = []
+        for row in rows:
+            section = row['section'] or section
+            if section == 'grid' and row['concept']:
+                grid_rows.append((int(row['concept']), row['label']))
+        apply_grid(grid_rows)
+
+    def clear_form(form_id):
+        db.force('delete from form_field where form_id = %s', form_id)
+
+    def apply_grid(grid_rows):
+        """
+        Applies the desired selection and sequence of grid rows by making
+        changes to the chart form.  The OpenMRS data model consists of:
+          - 'form' table: each row is a form (we only edit the CHART_UUID form)
+          - 'form_field' table: puts fields in forms and determines their order
+          - 'field' table: each row is a field (usually linked to a concept)
+        """
+        form_id = db.get('form_id', 'form', uuid=CHART_UUID)
+        clear_form(form_id)
+
+        # Add a single section under which we put all the fields (to satisfy
+        # the client's assumption that all fields are grouped under sections).
+        field_id = get_field_for_section('All', concept_id=1163)
+        section_id = add_field_to_form(form_id, field_id, field_number=1)
+
+        # Add the fields to the section, setting the appropriate concept names.
+        for i, (concept_id, label) in enumerate(grid_rows):
+            field_id = get_field_for_concept(concept_id, label)
+            add_field_to_form(form_id, field_id, section_id, i + 1)
+            set_concept_name(concept_id, LOCALE, label)
+
+    def apply_form(rows):
+        form_id = db.get('form_id', 'form', uuid=FORM_UUID)
+        clear_form(form_id)
+
+        # Add default fields
+        fn = 1
+        field_id = get_field_for_section('ENCOUNTER', 'Encounter')
+        section_id = add_field_to_form(form_id, field_id, None, fn)
+        field_id = get_field_for_element('encounter', 'encounter_datetime')
+        add_field_to_form(form_id, field_id, section_id, sort_weight=1)
+        field_id = get_field_for_element('encounter', 'location_id')
+        add_field_to_form(form_id, field_id, section_id, sort_weight=2)
+        field_id = get_field_for_element('encounter', 'provider_id')
+        add_field_to_form(form_id, field_id, section_id, sort_weight=3)
+
+        section_id = None
+        last_type = None
+        for i, row in enumerate(rows):
+            if row['section']:
+                fn += 1
+                field_id = get_field_for_section(row['section'])
+                section_id = add_field_to_form(form_id, field_id, None, fn)
+                last_type = None
+                continue
+
+            if row['type'] in ['yes_no', 'number', 'text', 'select_one']:
+                if last_type == 'select_multiple':
+                    fn += 1
+                    field_id = get_field_for_section('[invisible]')
+                    section_id = add_field_to_form(form_id, field_id, None, fn)
+
+                field_id = get_field_for_concept(row['concept'], row['label'])
+                add_field_to_form(form_id, field_id, section_id, sort_weight=i)
+                set_concept_name(row['concept'], LOCALE, row['label'])
+
+            # TODO: set answers to concepts for yes_no, select_one
+
+            if row['type'] == 'select_multiple':
+                fn += 1
+                field_id = get_field_for_section(
+                    row['label'] + '[binary]', row['label'])
+                section_id = add_field_to_form(form_id, field_id, None, fn)
+
+            last_type = row['type'] or last_type
+
+            if last_type == 'select_one' and row['option concept']:
+                concept_id = row['option concept']
+                set_concept_name(concept_id, LOCALE, row['option label'])
+
+            if last_type == 'select_multiple' and row['option concept']:
+                concept_id = row['option concept']
+                field_id = get_field_for_concept(concept_id, row['option label'])
+                add_field_to_form(form_id, field_id, section_id, sort_weight=i)
+                set_concept_name(concept_id, LOCALE, row['option label'])
+
+    if 'chart' in tabs:
+        apply_chart(tabs['chart'])
+    if 'form' in tabs:
+        apply_form(tabs['form'])
     db.commit()
 
+
 if __name__ == '__main__':
-    grid_rows = read_csv(sys.argv[1])
-    apply_grid(grid_rows)
+    apply(read_csv(sys.argv[1]))
