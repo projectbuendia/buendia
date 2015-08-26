@@ -5,8 +5,8 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
 
 ## Prerequisites
 
-##### JDK 7
-  * If `java -version` does not report a version >= 1.7, install JDK 7:
+##### JDK 7 (note OpenMRS does not work with JDK 8!)
+  * If `java -version` does not report version 1.7.x, install JDK 7:
       * Linux: `sudo apt-get install openjdk-7-jdk`
       * Mac OS: Download from [Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
 
