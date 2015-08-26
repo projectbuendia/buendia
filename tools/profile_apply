@@ -5,52 +5,54 @@ import MySQLdb
 import os
 import sys
 import uuid
+import q
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
 FORM_UUID = '736b90ee-fda6-4438-a6ed-71acd36381f3'
 LOCALE = 'en_GB_client'
 
 class Database:
+    @q.trace
     def __init__(self, database, user, password):
         self.db = MySQLdb.connect(db=database, user=user, passwd=password)
         self.commit = self.db.commit
 
-    def select_one(self, query, *params):
-        cursor = self.db.cursor()
-        cursor.execute(query, params)
-        return cursor.fetchone()
-
+    @q.trace
     def iter(self, query, *params):
         cursor = self.db.cursor()
         cursor.execute(query, params)
         return iter(cursor)
 
+    @q.trace
     def execute(self, query, *params):
         cursor = self.db.cursor()
         cursor.execute(query, params)
         cursor.close()
 
-    def force(self, query, *params):
-        cursor = self.db.cursor()
-        cursor.execute('/*!40014 SET @OLD_FKC=@@FOREIGN_KEY_CHECKS */')
-        cursor.execute('/*!40014 SET FOREIGN_KEY_CHECKS=0 */')
-        cursor.execute(query, params)
-        cursor.execute('/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FKC */')
-        cursor.close()
-
-    def get(self, field, table, **constraints):
+    @q.trace
+    def get(self, field, table=None, **constraints):
+        table = table or field.endswith('_id') and field[:-3]
         items = constraints.items()
         condition = ' and '.join(key + ' = %s' for (key, value) in items)
-        result = self.select_one(
+        for row in self.iter(
             'select %s from %s where %s' % (field, table, condition),
-            *(value for (key, value) in items))
-        return result and result[0]
+            *(value for (key, value) in items)):
+            return row[0]
 
 class OpenmrsDatabase:
+    @q.trace
     def __init__(self, db, username):
         self.db = db
         self.user_id = db.get('user_id', 'users', username=username)
+        self.columns = {}
 
+    def get_columns(self, table):
+        if table not in self.columns:
+            self.columns[table] = [row[0]
+                                   for row in self.db.iter('describe ' + table)]
+        return self.columns[table]
+
+    @q.trace
     def insert(self, table, **kwargs):
         new_uuid = uuid.uuid4()
         columns = kwargs.keys() + ['uuid', 'creator', 'date_created']
@@ -59,16 +61,22 @@ class OpenmrsDatabase:
         self.db.execute(
             'insert into %s (%s) values (%s)' %
             (table, ', '.join(columns), ', '.join(placeholders)), *values)
-        return self.db.get(table + '_id', table, uuid=new_uuid)
+        if table + '_id' in self.get_columns(table):
+            return self.db.get(table + '_id', uuid=new_uuid)
 
+    @q.trace
     def update(self, table, id, **kwargs):
         pairs = [column + ' = %s' for column in kwargs.keys()]
-        values = kwargs.values() + [id]
+        values = kwargs.values()
+        if 'changed_by' in self.get_columns(table):
+            pairs += ['changed_by = %s', 'date_changed = now()']
+            values += [self.user_id]
         self.db.execute(
             'update %s set %s where %s = %%s' %
-            (table, ', '.join(pairs), table + '_id'), *values)
+            (table, ', '.join(pairs), table + '_id'), *(values + [id]))
         return id
 
+@q.trace
 def get_db(database):
     pipe = os.popen("bash -c '. /usr/share/buendia/utils.sh; "
                     "echo $OPENMRS_MYSQL_USER; echo $OPENMRS_MYSQL_PASSWORD'")
@@ -76,6 +84,7 @@ def get_db(database):
     password = pipe.readline().strip() or 'openmrs'
     return Database(database, user, password)
 
+@q.trace
 def read_csv(filename, tab=None):
     """Returns a dictionary mapping tab names to lists of row dictionaries."""
     infile = open(filename)
@@ -85,68 +94,144 @@ def read_csv(filename, tab=None):
         tabs.setdefault(tab, []).append(row)
     return tabs
 
+@q.trace
 def apply(tabs):
     db = get_db('openmrs')
     odb = OpenmrsDatabase(db, 'buendia_admin')
-    concept_field_type = db.get('field_type_id', 'field_type', name='Concept')
-    element_field_type = db.get('field_type_id', 'field_type', name='Database element')
-    section_field_type = db.get('field_type_id', 'field_type', name='Section')
+    concept_field_type = db.get('field_type_id', name='Concept')
+    element_field_type = db.get('field_type_id', name='Database element')
+    section_field_type = db.get('field_type_id', name='Section')
 
+    coded_datatype = db.get('concept_datatype_id', name='Coded')
+    numeric_datatype = db.get('concept_datatype_id', name='Numeric')
+    text_datatype = db.get('concept_datatype_id', name='Text')
+    answer_datatype = db.get('concept_datatype_id', name='N/A')
+    datatypes_by_type = {
+        'yes_no': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
+        'select_one': coded_datatype,
+        'select_multiple': coded_datatype,  # no (1066) or yes (1065)
+        'number': numeric_datatype,
+        'text': text_datatype,
+    }
+
+    # "Finding", "Symptom", and "Symptom/Finding" all seem like reasonable
+    # classes for observations; "Finding" is by far the most commonly used.
+    obs_class = db.get('concept_class_id', name='Finding')
+
+    @q.trace
     def get_or_insert(table, **values):
-        return (db.get(table + '_id', table, **values) or
-                odb.insert(table, **values))
+        return (db.get(table + '_id', **values) or odb.insert(table, **values))
 
+    @q.trace
+    def update_or_insert(table, id, **values):
+        if db.get(table + '_id', **{table + '_id': id}):
+            odb.update(table, id, **values)
+        else:
+            odb.insert(table, **dict(values.items() + [(table + '_id', id)]))
+
+    @q.trace
     def get_field_for_element(table, attribute, name=None):
         field_id = get_or_insert('field', field_type=element_field_type,
                                  table_name=table, attribute_name=attribute)
         return odb.update('field', field_id,
                           name=name or table + '.' + attribute)
 
+    @q.trace
     def get_field_for_section(name, description=None, concept_id=None):
         return get_or_insert('field', field_type=section_field_type,
                              name=name, description=description or name,
                              concept_id=concept_id)
 
+    @q.trace
     def get_field_for_concept(concept_id, name=None, description=None):
         name = name or db.get('name', 'concept_name', concept_id=concept_id)
         return get_or_insert('field', field_type=concept_field_type,
                              name=name, description=description or name,
                              concept_id=concept_id)
 
+    @q.trace
     def add_field_to_form(form_id, field_id, parent_form_field_id=None,
                           field_number=None, sort_weight=1):
         return odb.insert('form_field', form_id=form_id, field_id=field_id,
                           parent_form_field=parent_form_field_id,
                           field_number=field_number, sort_weight=sort_weight)
 
-    def set_concept_name(concept_id, locale, concept_name):
-        concept_name_id = get_or_insert('concept_name',
-                                        concept_id=concept_id, locale=locale)
-        return odb.update('concept_name', concept_name_id,
-                          name=concept_name, locale_preferred=1)
+    @q.trace
+    def set_concept_name(concept_id, name, locale):
+        if name:
+            concept_name_id = get_or_insert(
+                'concept_name', concept_id=concept_id, locale=locale)
+            return odb.update('concept_name', concept_name_id,
+                              name=name, locale_preferred=1)
 
-    def apply_chart(rows):
+    @q.trace
+    def put_coded_concept(concept_id, name, locale):
+        put_concept(concept_id, name, locale, coded_datatype, obs_class)
+
+    @q.trace
+    def put_answer_concept(concept_id, name, locale):
+        put_concept(concept_id, name, locale, answer_datatype, obs_class)
+
+    @q.trace
+    def set_concept_answers(concept_id, answer_concept_ids):
+        db.execute(
+            'delete from concept_answer where concept_id = %s', concept_id)
+        for i, answer_concept_id in enumerate(answer_concept_ids):
+            odb.insert('concept_answer', concept_id=concept_id,
+                       answer_concept=answer_concept_id, sort_weight=i)
+
+    @q.trace
+    def put_concept(concept_id, name, locale, datatype_id, class_id):
+        update_or_insert('concept', concept_id,
+                         datatype_id=datatype_id, class_id=class_id, retired=0)
+        set_concept_name(concept_id, name, locale)
+
+    @q.trace
+    def apply_chart(rows, form_id):
         """Applies the chart definition given rows from the chart tab."""
         section = None
         grid_rows = []
         for row in rows:
             section = row['section'] or section
-            if section == 'grid' and row['concept']:
-                grid_rows.append((int(row['concept']), row['label']))
-        apply_grid(grid_rows)
+            concept_id = validate_concept_id(row['concept'])
+            label = row['label']
+            if section == 'grid' and concept_id:
+                grid_rows.append((concept_id, label))
+        apply_grid(grid_rows, form_id)
 
+    @q.trace
     def clear_form(form_id):
-        db.force('delete from form_field where form_id = %s', form_id)
+        # Clear out the references to form_field_id so deletion can proceed.
+        db.execute('update form_field set parent_form_field = null'
+                   ' where form_id = %s', form_id)
+        db.execute('delete from form_field where form_id = %s', form_id)
 
-    def apply_grid(grid_rows):
+    @q.trace
+    def validate_type(type):
+        type = type.strip().lower()
+        if not type:
+            return None, None
+        elif type in datatypes_by_type:
+            return type, datatypes_by_type[type]
+        else:
+            return 'n/a', None
+
+    @q.trace
+    def validate_concept_id(concept_id):
+        try:
+            return int(concept_id.strip())
+        except ValueError:
+            return ''
+
+    @q.trace
+    def apply_grid(grid_rows, form_id):
         """
         Applies the desired selection and sequence of grid rows by making
-        changes to the chart form.  The OpenMRS data model consists of:
-          - 'form' table: each row is a form (we only edit the CHART_UUID form)
+        changes to the given chart form.  The OpenMRS data model consists of:
+          - 'form' table: each row is a form
           - 'form_field' table: puts fields in forms and determines their order
           - 'field' table: each row is a field (usually linked to a concept)
         """
-        form_id = db.get('form_id', 'form', uuid=CHART_UUID)
         clear_form(form_id)
 
         # Add a single section under which we put all the fields (to satisfy
@@ -155,13 +240,26 @@ def apply(tabs):
         section_id = add_field_to_form(form_id, field_id, field_number=1)
 
         # Add the fields to the section, setting the appropriate concept names.
+        # Concepts must already exist (we can't create them here, because we
+        # don't know what data type they should have).
         for i, (concept_id, label) in enumerate(grid_rows):
-            field_id = get_field_for_concept(concept_id, label)
-            add_field_to_form(form_id, field_id, section_id, i + 1)
-            set_concept_name(concept_id, LOCALE, label)
+            if db.get('concept_id', concept_id=concept_id):
+                set_concept_name(concept_id, label, LOCALE)
+                field_id = get_field_for_concept(concept_id, label)
+                add_field_to_form(form_id, field_id, section_id, i + 1)
 
-    def apply_form(rows):
-        form_id = db.get('form_id', 'form', uuid=FORM_UUID)
+    @q.trace
+    def apply_form(rows, form_id):
+        """
+        Applies the desired selection and sequence of grid rows by making
+        changes to the given form.  The OpenMRS data model consists of:
+          - 'form' table: each row is a form
+          - 'form_field' table: puts fields in forms and determines their order
+          - 'field' table: each row is a field (usually linked to a concept)
+          - 'concept' table: each row is a concept with a datatype and class
+          - 'concept_answer' table: links answer concepts to parent concepts
+          - 'concept_name' table: provides localized names for each concept
+        """
         clear_form(form_id)
 
         # Add default fields
@@ -177,6 +275,8 @@ def apply(tabs):
 
         section_id = None
         last_type = None
+        select_concept_id, select_answer_ids = None, []
+
         for i, row in enumerate(rows):
             if row['section']:
                 fn += 1
@@ -185,40 +285,51 @@ def apply(tabs):
                 last_type = None
                 continue
 
-            if row['type'] in ['yes_no', 'number', 'text', 'select_one']:
-                if last_type == 'select_multiple':
+            type, datatype = validate_type(row['type'])
+            concept_id = validate_concept_id(row['concept'])
+            label = row['label']
+            option_concept_id = validate_concept_id(row['option concept'])
+            option_label = row['option label']
+
+            if type:
+                if type == 'select_multiple':
+                    fn += 1
+                    label = row['label']
+                    field_id = get_field_for_section(label + '[binary]', label)
+                    section_id = add_field_to_form(form_id, field_id, None, fn)
+                elif last_type == 'select_multiple':
                     fn += 1
                     field_id = get_field_for_section('[invisible]')
                     section_id = add_field_to_form(form_id, field_id, None, fn)
 
-                field_id = get_field_for_concept(row['concept'], row['label'])
-                add_field_to_form(form_id, field_id, section_id, sort_weight=i)
-                set_concept_name(row['concept'], LOCALE, row['label'])
+                if (concept_id and
+                    type in ['number', 'text', 'yes_no', 'select_one']):
+                    put_concept(concept_id, label, LOCALE, datatype, obs_class)
+                    if type == 'yes_no':
+                        set_concept_answers(concept_id, [1067, 1066, 1065])
+                    field_id = get_field_for_concept(concept_id, label)
+                    add_field_to_form(form_id, field_id, section_id, None, i)
+                    select_concept_id, select_answer_ids = concept_id, []
 
-            # TODO: set answers to concepts for yes_no, select_one
+            last_type = type or last_type
 
-            if row['type'] == 'select_multiple':
-                fn += 1
-                field_id = get_field_for_section(
-                    row['label'] + '[binary]', row['label'])
-                section_id = add_field_to_form(form_id, field_id, None, fn)
+            if option_concept_id:
+                if last_type == 'select_one':
+                    put_answer_concept(option_concept_id, option_label, LOCALE)
+                    select_answer_ids += [option_concept_id]
+                    set_concept_answers(select_concept_id, select_answer_ids)
 
-            last_type = row['type'] or last_type
+                if last_type == 'select_multiple':
+                    put_coded_concept(option_concept_id, option_label, LOCALE)
+                    set_concept_answers(option_concept_id, [1066, 1065])
+                    field_id = get_field_for_concept(
+                        option_concept_id, option_label)
+                    add_field_to_form(form_id, field_id, section_id, None, i)
 
-            if last_type == 'select_one' and row['option concept']:
-                concept_id = row['option concept']
-                set_concept_name(concept_id, LOCALE, row['option label'])
-
-            if last_type == 'select_multiple' and row['option concept']:
-                concept_id = row['option concept']
-                field_id = get_field_for_concept(concept_id, row['option label'])
-                add_field_to_form(form_id, field_id, section_id, sort_weight=i)
-                set_concept_name(concept_id, LOCALE, row['option label'])
-
-    if 'chart' in tabs:
-        apply_chart(tabs['chart'])
     if 'form' in tabs:
-        apply_form(tabs['form'])
+        apply_form(tabs['form'], db.get('form_id', uuid=FORM_UUID))
+    if 'chart' in tabs:
+        apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
     db.commit()
 
 
