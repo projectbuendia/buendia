@@ -3,6 +3,7 @@
 import csv
 import MySQLdb
 import os
+import re
 import sys
 import uuid
 
@@ -153,6 +154,19 @@ def apply(tabs):
             return odb.update('concept_name', concept_name_id,
                               name=name, locale_preferred=1)
 
+    def set_concept_numeric(concept_id, (normal_low, normal_high),
+                            (noncritical_low, noncritical_high),
+                            (absolute_low, absolute_high), units, precise=1):
+        db.execute('delete from concept_numeric'
+                   ' where concept_id = %s', concept_id)
+        db.execute('insert into concept_numeric'
+                   ' (concept_id, low_normal, hi_normal, low_critical,'
+                   ' hi_critical, low_absolute, hi_absolute, units, precise)'
+                   ' values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                   concept_id, normal_low, normal_high, noncritical_low,
+                   noncritical_high, absolute_low, absolute_high,
+                   units, precise)
+
     def put_coded_concept(concept_id, name, locale):
         put_concept(concept_id, name, locale, coded_datatype, obs_class)
 
@@ -203,6 +217,15 @@ def apply(tabs):
             return int(concept_id.strip())
         except ValueError:
             return ''
+
+    def validate_range(range):
+        try:
+            low, high = re.split(r'\.\.+', range or '', 1)
+            low = low.strip() and float(low) or None
+            high = high.strip() and float(high) or None
+            return low, high
+        except ValueError:
+            return None, None
 
     def apply_grid(grid_rows, form_id):
         """
@@ -286,6 +309,13 @@ def apply(tabs):
                     put_concept(concept_id, label, LOCALE, datatype, obs_class)
                     if type == 'yes_no':
                         set_concept_answers(concept_id, [1067, 1066, 1065])
+                    if datatype == numeric_datatype:
+                        set_concept_numeric(
+                            concept_id,
+                            validate_range(row.get('normal range')),
+                            validate_range(row.get('noncritical range')),
+                            validate_range(row.get('absolute range')),
+                            row.get('units'))
                     field_id = get_field_for_concept(concept_id, label)
                     add_field_to_form(form_id, field_id, section_id, None, i)
                     select_concept_id, select_answer_ids = concept_id, []
