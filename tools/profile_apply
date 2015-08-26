@@ -5,14 +5,12 @@ import MySQLdb
 import os
 import sys
 import uuid
-import q
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
 FORM_UUID = '736b90ee-fda6-4438-a6ed-71acd36381f3'
 LOCALE = 'en_GB_client'
 
 class Database:
-    @q.trace
     def __init__(self, database, user, password):
         self.db = MySQLdb.connect(db=database, user=user, passwd=password)
         cursor = self.db.cursor()
@@ -24,19 +22,16 @@ class Database:
         cursor.close()
         self.commit = self.db.commit
 
-    @q.trace
     def iter(self, query, *params):
         cursor = self.db.cursor()
         cursor.execute(query, params)
         return iter(cursor)
 
-    @q.trace
     def execute(self, query, *params):
         cursor = self.db.cursor()
         cursor.execute(query, params)
         cursor.close()
 
-    @q.trace
     def get(self, field, table=None, **constraints):
         table = table or field.endswith('_id') and field[:-3]
         items = constraints.items()
@@ -47,7 +42,6 @@ class Database:
             return row[0]
 
 class OpenmrsDatabase:
-    @q.trace
     def __init__(self, db, username):
         self.db = db
         self.user_id = db.get('user_id', 'users', username=username)
@@ -59,7 +53,6 @@ class OpenmrsDatabase:
                                    for row in self.db.iter('describe ' + table)]
         return self.columns[table]
 
-    @q.trace
     def insert(self, table, **kwargs):
         new_uuid = uuid.uuid4()
         columns = kwargs.keys() + ['uuid', 'creator', 'date_created']
@@ -71,7 +64,6 @@ class OpenmrsDatabase:
         if table + '_id' in self.get_columns(table):
             return self.db.get(table + '_id', uuid=new_uuid)
 
-    @q.trace
     def update(self, table, id, **kwargs):
         pairs = [column + ' = %s' for column in kwargs.keys()]
         values = kwargs.values()
@@ -83,7 +75,6 @@ class OpenmrsDatabase:
             (table, ', '.join(pairs), table + '_id'), *(values + [id]))
         return id
 
-@q.trace
 def get_db(database):
     pipe = os.popen("bash -c '. /usr/share/buendia/utils.sh; "
                     "echo $OPENMRS_MYSQL_USER; echo $OPENMRS_MYSQL_PASSWORD'")
@@ -91,7 +82,6 @@ def get_db(database):
     password = pipe.readline().strip() or 'openmrs'
     return Database(database, user, password)
 
-@q.trace
 def read_csv(filename, tab=None):
     """Returns a dictionary mapping tab names to lists of row dictionaries."""
     infile = open(filename)
@@ -101,7 +91,6 @@ def read_csv(filename, tab=None):
         tabs.setdefault(tab, []).append(row)
     return tabs
 
-@q.trace
 def apply(tabs):
     db = get_db('openmrs')
     odb = OpenmrsDatabase(db, 'buendia_admin')
@@ -125,45 +114,38 @@ def apply(tabs):
     # classes for observations; "Finding" is by far the most commonly used.
     obs_class = db.get('concept_class_id', name='Finding')
 
-    @q.trace
     def get_or_insert(table, **values):
         return (db.get(table + '_id', **values) or odb.insert(table, **values))
 
-    @q.trace
     def update_or_insert(table, id, **values):
         if db.get(table + '_id', **{table + '_id': id}):
             odb.update(table, id, **values)
         else:
             odb.insert(table, **dict(values.items() + [(table + '_id', id)]))
 
-    @q.trace
     def get_field_for_element(table, attribute, name=None):
         field_id = get_or_insert('field', field_type=element_field_type,
                                  table_name=table, attribute_name=attribute)
         return odb.update('field', field_id,
                           name=name or table + '.' + attribute)
 
-    @q.trace
     def get_field_for_section(name, description=None, concept_id=None):
         return get_or_insert('field', field_type=section_field_type,
                              name=name, description=description or name,
                              concept_id=concept_id)
 
-    @q.trace
     def get_field_for_concept(concept_id, name=None, description=None):
         name = name or db.get('name', 'concept_name', concept_id=concept_id)
         return get_or_insert('field', field_type=concept_field_type,
                              name=name, description=description or name,
                              concept_id=concept_id)
 
-    @q.trace
     def add_field_to_form(form_id, field_id, parent_form_field_id=None,
                           field_number=None, sort_weight=1):
         return odb.insert('form_field', form_id=form_id, field_id=field_id,
                           parent_form_field=parent_form_field_id,
                           field_number=field_number, sort_weight=sort_weight)
 
-    @q.trace
     def set_concept_name(concept_id, name, locale):
         if name:
             concept_name_id = get_or_insert(
@@ -171,15 +153,12 @@ def apply(tabs):
             return odb.update('concept_name', concept_name_id,
                               name=name, locale_preferred=1)
 
-    @q.trace
     def put_coded_concept(concept_id, name, locale):
         put_concept(concept_id, name, locale, coded_datatype, obs_class)
 
-    @q.trace
     def put_answer_concept(concept_id, name, locale):
         put_concept(concept_id, name, locale, answer_datatype, obs_class)
 
-    @q.trace
     def set_concept_answers(concept_id, answer_concept_ids):
         db.execute(
             'delete from concept_answer where concept_id = %s', concept_id)
@@ -187,13 +166,11 @@ def apply(tabs):
             odb.insert('concept_answer', concept_id=concept_id,
                        answer_concept=answer_concept_id, sort_weight=i)
 
-    @q.trace
     def put_concept(concept_id, name, locale, datatype_id, class_id):
         update_or_insert('concept', concept_id,
                          datatype_id=datatype_id, class_id=class_id, retired=0)
         set_concept_name(concept_id, name, locale)
 
-    @q.trace
     def apply_chart(rows, form_id):
         """Applies the chart definition given rows from the chart tab."""
         section = None
@@ -206,14 +183,12 @@ def apply(tabs):
                 grid_rows.append((concept_id, label))
         apply_grid(grid_rows, form_id)
 
-    @q.trace
     def clear_form(form_id):
         # Clear out the references to form_field_id so deletion can proceed.
         db.execute('update form_field set parent_form_field = null'
                    ' where form_id = %s', form_id)
         db.execute('delete from form_field where form_id = %s', form_id)
 
-    @q.trace
     def validate_type(type):
         type = type.strip().lower()
         if not type:
@@ -223,14 +198,12 @@ def apply(tabs):
         else:
             return 'n/a', None
 
-    @q.trace
     def validate_concept_id(concept_id):
         try:
             return int(concept_id.strip())
         except ValueError:
             return ''
 
-    @q.trace
     def apply_grid(grid_rows, form_id):
         """
         Applies the desired selection and sequence of grid rows by making
@@ -255,7 +228,6 @@ def apply(tabs):
                 field_id = get_field_for_concept(concept_id, label)
                 add_field_to_form(form_id, field_id, section_id, i + 1)
 
-    @q.trace
     def apply_form(rows, form_id):
         """
         Applies the desired selection and sequence of grid rows by making
