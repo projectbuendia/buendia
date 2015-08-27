@@ -199,7 +199,7 @@ def apply(tabs):
         grid_rows = []
         for row in rows:
             section = row['section'] or section
-            concept_id = validate_concept_id(row['concept'])
+            concept_id = validate_int(row['concept'])
             label = row['label']
             if section == 'grid' and concept_id:
                 grid_rows.append((concept_id, label))
@@ -220,11 +220,11 @@ def apply(tabs):
         else:
             return 'n/a', None
 
-    def validate_concept_id(concept_id):
+    def validate_int(text):
         try:
-            return int(concept_id.strip())
+            return int(text)
         except ValueError:
-            return ''
+            return None
 
     def validate_range(range):
         try:
@@ -322,9 +322,9 @@ def apply(tabs):
                 continue
 
             type, datatype = validate_type(row['type'])
-            concept_id = validate_concept_id(row['concept'])
+            concept_id = validate_int(row['concept'])
             label = row['label']
-            option_concept_id = validate_concept_id(row['option concept'])
+            option_concept_id = validate_int(row['option concept'])
             option_label = row['option label']
 
             if type:
@@ -351,7 +351,8 @@ def apply(tabs):
                             validate_range(row.get('absolute range')),
                             row.get('units'))
                     field_id = get_field_for_concept(concept_id, label)
-                    add_field_to_form(form_id, field_id, section_id, None, i)
+                    add_field_to_form(form_id, field_id, section_id, None, i,
+                                      validate_int(row.get('required')) or 0)
                     select_concept_id, select_answer_ids = concept_id, []
 
             last_type = type or last_type
@@ -367,7 +368,8 @@ def apply(tabs):
                     set_concept_answers(option_concept_id, [1066, 1065])
                     field_id = get_field_for_concept(
                         option_concept_id, option_label)
-                    add_field_to_form(form_id, field_id, section_id, None, i)
+                    add_field_to_form(form_id, field_id, section_id, None, i,
+                                      validate_int(row.get('required')) or 0)
 
     if 'form' in tabs:
         apply_forms(tabs['form'])
