@@ -188,7 +188,7 @@ def apply(tabs):
 
     def apply_charts(rows):
         chart_layout = get_or_insert(
-            'encounter_type', name='buendia.chart_layout',
+            'encounter_type', name='buendia-chart_layout',
             description='Buendia: patient chart layout definition')
         for chart_rows in split_by_title(rows):
             put_chart(chart_rows)
@@ -277,7 +277,7 @@ def apply(tabs):
         adult_return = db.get('encounter_type_id', name='ADULTRETURN')
 
         title = rows[0]['title']
-        uuid = 'buendia.form.' + re.sub('[\W_]+', '_', title.lower()).strip('_')
+        uuid = 'buendia-form-' + re.sub('[\W_]+', '_', title.lower()).strip('_')
         form_id = db.get('form_id', uuid=uuid)
         if not form_id:
             form_id = odb.insert('form', name=title, version='1',
