@@ -98,7 +98,7 @@ public class DbUtil {
                 // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for
                 // arbitrary string IDs unrelated to RFC 4122.  Therefore, to prevent
                 // collisions, UUIDs specific to this module are prefixed "buendia.".
-                "buendia.order_executed",
+                "buendia.concept.order_executed",
                 "N/A",
                 "Finding");
     }

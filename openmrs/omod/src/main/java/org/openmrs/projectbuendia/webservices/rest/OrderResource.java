@@ -72,7 +72,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     static final User CREATOR = new User(1);  // fake value
     static final RequestLogger logger = RequestLogger.LOGGER;
     static Log log = LogFactory.getLog(OrderResource.class);
-    static final String FREE_TEXT_ORDER_UUID = "buendia.free_text_order";
+    static final String FREE_TEXT_ORDER_UUID = "buendia.concept.free_text_order";
 
     final PatientService patientService;
     final OrderService orderService;
