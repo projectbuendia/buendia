@@ -8,7 +8,6 @@ import sys
 import uuid
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
-FORM_UUID = '736b90ee-fda6-4438-a6ed-71acd36381f3'
 LOCALE = 'en_GB_client'
 
 class Database:
@@ -55,15 +54,16 @@ class OpenmrsDatabase:
         return self.columns[table]
 
     def insert(self, table, **kwargs):
-        new_uuid = uuid.uuid4()
-        columns = kwargs.keys() + ['uuid', 'creator', 'date_created']
-        values = kwargs.values() + [new_uuid, self.user_id]
+        kwargs.setdefault('creator', self.user_id)
+        kwargs.setdefault('uuid', uuid.uuid4())
+        columns = kwargs.keys() + ['date_created']
+        values = kwargs.values()
         placeholders = ['%s'] * len(values) + ['now()']
         self.db.execute(
             'insert into %s (%s) values (%s)' %
             (table, ', '.join(columns), ', '.join(placeholders)), *values)
         if table + '_id' in self.get_columns(table):
-            return self.db.get(table + '_id', uuid=new_uuid)
+            return self.db.get(table + '_id', uuid=kwargs['uuid'])
 
     def update(self, table, id, **kwargs):
         pairs = [column + ' = %s' for column in kwargs.keys()]
@@ -142,10 +142,11 @@ def apply(tabs):
                              concept_id=concept_id)
 
     def add_field_to_form(form_id, field_id, parent_form_field_id=None,
-                          field_number=None, sort_weight=1):
+                          field_number=None, sort_weight=1, required=0):
         return odb.insert('form_field', form_id=form_id, field_id=field_id,
                           parent_form_field=parent_form_field_id,
-                          field_number=field_number, sort_weight=sort_weight)
+                          field_number=field_number, sort_weight=sort_weight,
+                          required=required)
 
     def set_concept_name(concept_id, name, locale):
         if name:
@@ -184,6 +185,13 @@ def apply(tabs):
         update_or_insert('concept', concept_id,
                          datatype_id=datatype_id, class_id=class_id, retired=0)
         set_concept_name(concept_id, name, locale)
+
+    def apply_charts(rows):
+        chart_layout = get_or_insert(
+            'encounter_type', name='buendia.chart_layout',
+            description='Buendia: patient chart layout definition')
+        for chart_rows in split_by_title(rows):
+            put_chart(chart_rows)
 
     def apply_chart(rows, form_id):
         """Applies the chart definition given rows from the chart tab."""
@@ -250,6 +258,32 @@ def apply(tabs):
                 set_concept_name(concept_id, label, LOCALE)
                 field_id = get_field_for_concept(concept_id, label)
                 add_field_to_form(form_id, field_id, section_id, i + 1)
+
+    def split_by_title(rows):
+        row_numbers = []
+        for i in range(len(rows)):
+            if rows[i].get('title'):
+                row_numbers.append(i)
+        row_numbers.append(len(rows))
+        for start, stop in zip(row_numbers[:-1], row_numbers[1:]):
+            yield rows[start:stop]
+
+    def apply_forms(rows):
+        db.execute('update form set published = 0')
+        for form_rows in split_by_title(rows):
+            put_form(form_rows)
+
+    def put_form(rows):
+        adult_return = db.get('encounter_type_id', name='ADULTRETURN')
+
+        title = rows[0]['title']
+        uuid = 'buendia.form.' + re.sub('[\W_]+', '_', title.lower()).strip('_')
+        form_id = db.get('form_id', uuid=uuid)
+        if not form_id:
+            form_id = odb.insert('form', name=title, version='1',
+                                 encounter_type=adult_return, uuid=uuid)
+        apply_form(rows, form_id)
+        db.execute('update form set published = 1 where form_id = %s', form_id)
 
     def apply_form(rows, form_id):
         """
@@ -336,7 +370,7 @@ def apply(tabs):
                     add_field_to_form(form_id, field_id, section_id, None, i)
 
     if 'form' in tabs:
-        apply_form(tabs['form'], db.get('form_id', uuid=FORM_UUID))
+        apply_forms(tabs['form'])
     if 'chart' in tabs:
         apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
     db.commit()
