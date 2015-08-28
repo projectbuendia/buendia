@@ -473,13 +473,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 LocationService locationService = Context.getLocationService();
                 Location location = locationService.getLocation(
                     Integer.valueOf(assignedLocation));
-
-                SimpleObject locationJson = new SimpleObject();
-                locationJson.add(UUID, location.getUuid());
-                if (location.getParentLocation() != null) {
-                    locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
+                if (location != null) {
+                    SimpleObject locationJson = new SimpleObject();
+                    locationJson.add(UUID, location.getUuid());
+                    if (location.getParentLocation() != null) {
+                        locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
+                    }
+                    jsonForm.add(ASSIGNED_LOCATION, locationJson);
                 }
-                jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
         }
         return jsonForm;

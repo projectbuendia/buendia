@@ -92,6 +92,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     protected void populateJsonProperties(
             Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.add("name", form.getName());
+        json.add("id", form.getFormId());
+        json.add("version", form.getVersion());
         Date dateChanged = form.getDateChanged();
         json.add("date_created", form.getDateCreated());
         json.add("version", form.getVersion());
@@ -185,7 +187,13 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         // TODO/bug: Fix verbose mode. Currently produces the error:
         // "No bind node for bindName _3._bleeding_sites".
         // No query parameters supported - just give all the forms
-        return formService.getAllForms(false);
+        List<Form> forms = new ArrayList<>();
+        for (Form form : formService.getAllForms()) {
+            if (form.getPublished()) {
+                forms.add(form);
+            }
+        }
+        return forms;
     }
 
     // Visible for testing
