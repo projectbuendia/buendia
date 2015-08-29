@@ -261,17 +261,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        // Partial string query for searches.
-        String query = requestContext.getParameter("q");
-
-        // If set, also search on uuid. By default uuid is skipped.
-        boolean searchUuid = (requestContext.getParameter("searchUuid") != null);
-
-        // Retrieve all patients and filter the list based on the query.
-        List<Patient> filteredPatients = filterPatients(
-            query, searchUuid, patientService.getAllPatients());
-
-        return getSimpleObjectWithResults(filteredPatients);
+        List<Patient> patients = new ArrayList<>();
+        String patientId = requestContext.getParameter("id");  // single patient by ID; overrides "q"
+        if (patientId != null) {
+            List<PatientIdentifierType> idTypes = new ArrayList<>();
+            idTypes.add(DbUtil.getMsfIdentifierType());
+            patients = patientService.getPatients(null, patientId, idTypes, true);
+        } else {
+            String nameQuery = requestContext.getParameter("q");
+            patients = filterPatients(nameQuery, patientService.getAllPatients());
+        }
+        return getSimpleObjectWithResults(patients);
     }
 
     @Override
@@ -300,40 +300,18 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return Arrays.asList(Representation.DEFAULT);
     }
 
-    private List<Patient> filterPatients(
-            String query, boolean searchUuid, List<Patient> allPatients) {
+    private List<Patient> filterPatients(String query, List<Patient> allPatients) {
         List<Patient> filteredPatients = new ArrayList<>();
 
-        // Filter patients by id, name, and MSF id. Don't use patientService.getPatients() for
+        // Filter patients by name. Don't use patientService.getPatients() for
         // this, as the behavior does not match the expected behavior from the API docs.
         PatientIdentifierType msfIdentifierType = DbUtil.getMsfIdentifierType();
         for (Patient patient : allPatients) {
-            boolean match = false;
-
-            // First check the patient's full name.
             for (PersonName name : patient.getNames()) {
                 if (StringUtils.containsIgnoreCase(name.getFullName(), query)) {
-                    match = true;
+                    filteredPatients.add(patient);
                     break;
                 }
-            }
-
-            // Short-circuit on name match.
-            if (match) {
-                filteredPatients.add(patient);
-                continue;
-            }
-
-            // Next check the patient's MSF id.
-            for (PatientIdentifier identifier : patient.getPatientIdentifiers(msfIdentifierType)) {
-                if (StringUtils.containsIgnoreCase(identifier.getIdentifier(), query)) {
-                    match = true;
-                    break;
-                }
-            }
-
-            if (match || (searchUuid && StringUtils.containsIgnoreCase(patient.getUuid(), query))) {
-                filteredPatients.add(patient);
             }
         }
 
