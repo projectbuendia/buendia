@@ -6,8 +6,10 @@ import os
 import re
 import sys
 import uuid
+import q
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
+FORM_XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
 LOCALE = 'en_GB_client'
 
 class Database:
@@ -22,6 +24,7 @@ class Database:
         cursor.close()
         self.commit = self.db.commit
 
+    @q.trace
     def iter(self, query, *params):
         cursor = self.db.cursor()
         cursor.execute(query, params)
@@ -32,6 +35,7 @@ class Database:
         cursor.execute(query, params)
         cursor.close()
 
+    @q.trace
     def get(self, field, table=None, **constraints):
         table = table or field.endswith('_id') and field[:-3]
         items = constraints.items()
@@ -53,18 +57,27 @@ class OpenmrsDatabase:
                                    for row in self.db.iter('describe ' + table)]
         return self.columns[table]
 
+    @q.trace
     def insert(self, table, **kwargs):
-        kwargs.setdefault('creator', self.user_id)
-        kwargs.setdefault('uuid', uuid.uuid4())
-        columns = kwargs.keys() + ['date_created']
+        if 'creator' in self.get_columns(table):
+            kwargs.setdefault('creator', self.user_id)
+        if 'uuid' in self.get_columns(table):
+            kwargs.setdefault('uuid', uuid.uuid4())
+
+        columns = kwargs.keys()
         values = kwargs.values()
-        placeholders = ['%s'] * len(values) + ['now()']
+        placeholders = ['%s'] * len(values)
+        if 'date_created' in self.get_columns(table):
+            columns += ['date_created']
+            placeholders += ['now()']
+
         self.db.execute(
             'insert into %s (%s) values (%s)' %
             (table, ', '.join(columns), ', '.join(placeholders)), *values)
         if table + '_id' in self.get_columns(table):
             return self.db.get(table + '_id', uuid=kwargs['uuid'])
 
+    @q.trace
     def update(self, table, id, **kwargs):
         pairs = [column + ' = %s' for column in kwargs.keys()]
         values = kwargs.values()
@@ -148,12 +161,23 @@ def apply(tabs):
                           field_number=field_number, sort_weight=sort_weight,
                           required=required)
 
+    @q.trace
     def set_concept_name(concept_id, name, locale):
         if name:
             concept_name_id = get_or_insert(
                 'concept_name', concept_id=concept_id, locale=locale)
-            return odb.update('concept_name', concept_name_id,
-                              name=name, locale_preferred=1)
+            odb.update('concept_name', concept_name_id,
+                       name=name, locale_preferred=1,
+                       concept_name_type='FULLY_SPECIFIED')
+            # Adjust any other names to ensure there are no duplicates.
+            dup = 1
+            for (id, dup_name) in db.iter(
+                'select concept_name_id, name '
+                'from concept_name where name like %s', name + '%'):
+                if id != concept_name_id and dup_name.split(' (#')[0] == name:
+                    dup += 1
+                    odb.update('concept_name', id, name=name + ' (#%d)' % dup)
+            return concept_name_id
 
     def set_concept_numeric(concept_id, (normal_low, normal_high),
                             (noncritical_low, noncritical_high),
@@ -181,7 +205,15 @@ def apply(tabs):
             odb.insert('concept_answer', concept_id=concept_id,
                        answer_concept=answer_concept_id, sort_weight=i)
 
-    def put_concept(concept_id, name, locale, datatype_id, class_id):
+    def put_concept(concept_id, name, locale, new_datatype_id, class_id):
+        datatype_id = db.get('datatype_id', 'concept', concept_id=concept_id)
+        if new_datatype_id != datatype_id:
+            old_type = db.get('name', 'concept_datatype',
+                              concept_datatype_id=datatype_id)
+            new_type = db.get('name', 'concept_datatype',
+                              concept_datatype_id=new_datatype_id)
+            raise ValueError("Concept %d: cannot change type from %s to %s" %
+                             (concept_id, old_type, new_type))
         update_or_insert('concept', concept_id,
                          datatype_id=datatype_id, class_id=class_id, retired=0)
         set_concept_name(concept_id, name, locale)
@@ -283,7 +315,16 @@ def apply(tabs):
             form_id = odb.insert('form', name=title, version='1',
                                  encounter_type=adult_return, uuid=uuid)
         apply_form(rows, form_id)
+        init_form_xslt(form_id)
         db.execute('update form set published = 1 where form_id = %s', form_id)
+
+    def init_form_xslt(form_id):
+        name = db.get('name', 'form', form_id=form_id) + '.xFormXslt'
+        resource_id = get_or_insert('form_resource',
+            form_id=form_id, name=name, value_reference=FORM_XSLT_UUID)
+        odb.update('form_resource', resource_id,
+                   datatype='org.openmrs.customdatatype.datatype.LongFreeTextDatatype',
+                   preferred_handler='org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler')
 
     def apply_form(rows, form_id):
         """
