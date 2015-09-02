@@ -6,7 +6,6 @@ import os
 import re
 import sys
 import uuid
-import q
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
 FORM_XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
@@ -24,7 +23,6 @@ class Database:
         cursor.close()
         self.commit = self.db.commit
 
-    @q.trace
     def iter(self, query, *params):
         cursor = self.db.cursor()
         cursor.execute(query, params)
@@ -35,7 +33,6 @@ class Database:
         cursor.execute(query, params)
         cursor.close()
 
-    @q.trace
     def get(self, field, table=None, **constraints):
         table = table or field.endswith('_id') and field[:-3]
         items = constraints.items()
@@ -57,7 +54,6 @@ class OpenmrsDatabase:
                                    for row in self.db.iter('describe ' + table)]
         return self.columns[table]
 
-    @q.trace
     def insert(self, table, **kwargs):
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
@@ -77,7 +73,6 @@ class OpenmrsDatabase:
         if table + '_id' in self.get_columns(table):
             return self.db.get(table + '_id', uuid=kwargs['uuid'])
 
-    @q.trace
     def update(self, table, id, **kwargs):
         pairs = [column + ' = %s' for column in kwargs.keys()]
         values = kwargs.values()
@@ -161,7 +156,6 @@ def apply(tabs):
                           field_number=field_number, sort_weight=sort_weight,
                           required=required)
 
-    @q.trace
     def set_concept_name(concept_id, name, locale):
         if name:
             concept_name_id = get_or_insert(
