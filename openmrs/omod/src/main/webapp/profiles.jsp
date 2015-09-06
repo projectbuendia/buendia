@@ -15,6 +15,14 @@
 
 <h3>Project Buendia profiles</h3>
 
+<c:if test="${not authorized}">
+  <div class="section error message">
+    You don't have the necessary privileges to manage profiles.
+    Please log in as a user authorized to
+    <b>Manage Concepts</b> and <b>Manage Forms</b>.
+  </div>
+</c:if>
+
 <c:if test="${not empty param.failure}">
   <div class="section error message">
     The profile <span class="filename">${fn:escapeXml(param.filename)}</span>

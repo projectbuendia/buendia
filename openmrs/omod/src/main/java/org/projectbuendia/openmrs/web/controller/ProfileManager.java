@@ -46,6 +46,11 @@ public class ProfileManager {
     final String APPLY_CMD = "buendia-profile-apply";
     static Log log = LogFactory.getLog(ProfileManager.class);
 
+    public static boolean authorized() {
+        return Context.hasPrivilege("Manage Concepts") &&
+                Context.hasPrivilege("Manage Forms");
+     }
+
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
         model.addAttribute("user", Context.getAuthenticatedUser());
@@ -53,10 +58,15 @@ public class ProfileManager {
         model.addAttribute("currentProfile",
                 Context.getAdministrationService().getGlobalProperty(
                         GlobalProperties.CURRENT_PROFILE));
+        model.addAttribute("authorized", authorized());
     }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.POST)
     public View post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
+        if (!authorized()) {
+            return new RedirectView("profiles.form");
+        }
+
         if (request instanceof MultipartHttpServletRequest) {
             addProfile((MultipartHttpServletRequest) request, model);
         } else {
