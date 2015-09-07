@@ -8,8 +8,15 @@ import sys
 import uuid
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
-FORM_XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
 LOCALE = 'en_GB_client'
+
+# This is a modified copy of the "OpenMRS FormEntry Form HL7 Translation" XSLT
+# file, with encounter_datetime changed from a "hl7Date" to an "hl7Timestamp".
+# To record the date and time (not just the date) of submitted observations,
+# we have to add this as a form resource to every form.
+XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
+XSLT_DATATYPE = 'org.openmrs.customdatatype.datatype.LongFreeTextDatatype'
+XSLT_HANDLER = 'org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler'
 
 class Database:
     def __init__(self, database, user, password):
@@ -34,12 +41,18 @@ class Database:
         cursor.close()
 
     def get(self, field, table=None, **constraints):
-        table = table or field.endswith('_id') and field[:-3]
-        items = constraints.items()
-        condition = ' and '.join(key + ' = %s' for (key, value) in items)
+        """Gets a single value from the row matching the given constraints.
+
+        The table is inferred if the primary key column (named table + '_id')
+        is the one and only constraint or the requested field."""
+        keys = constraints.keys()
+        table = (table or
+            (len(keys) == 1 and keys[0].endswith('_id') and keys[0][:-3]) or
+            (field.endswith('_id') and field[:-3]))
+        condition = ' and '.join(key + ' = %s' for key in keys)
         for row in self.iter(
             'select %s from %s where %s' % (field, table, condition),
-            *(value for (key, value) in items)):
+            *(constraints[key] for key in keys)):
             return row[0]
 
 class OpenmrsDatabase:
@@ -49,12 +62,14 @@ class OpenmrsDatabase:
         self.columns = {}
 
     def get_columns(self, table):
+        """Gets a list of the columns in a given table."""
         if table not in self.columns:
-            self.columns[table] = [row[0]
-                                   for row in self.db.iter('describe ' + table)]
+            self.columns[table] = [
+                row[0] for row in self.db.iter('describe ' + table)]
         return self.columns[table]
 
     def insert(self, table, **kwargs):
+        """Inserts a row, creating a UUID and filling in metadata if needed."""
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
         if 'uuid' in self.get_columns(table):
@@ -74,6 +89,7 @@ class OpenmrsDatabase:
             return self.db.get(table + '_id', uuid=kwargs['uuid'])
 
     def update(self, table, id, **kwargs):
+        """Updates a row, filling in metadata if needed."""
         pairs = [column + ' = %s' for column in kwargs.keys()]
         values = kwargs.values()
         if 'changed_by' in self.get_columns(table):
@@ -131,6 +147,9 @@ def apply(tabs):
             odb.update(table, id, **values)
         else:
             odb.insert(table, **dict(values.items() + [(table + '_id', id)]))
+
+    def get_datatype_name(datatype_id):
+        return db.get('name', concept_datatype_id=datatype_id)
 
     def get_field_for_element(table, attribute, name=None):
         field_id = get_or_insert('field', field_type=element_field_type,
@@ -190,9 +209,13 @@ def apply(tabs):
         put_concept(concept_id, name, locale, coded_datatype, obs_class)
 
     def put_answer_concept(concept_id, name, locale):
-        put_concept(concept_id, name, locale, answer_datatype, obs_class)
+        # If the concept already exists, preserve its current datatype.
+        put_concept(concept_id, name, locale,
+            db.get('datatype_id', concept_id=concept_id) or answer_datatype,
+            obs_class)
 
     def set_concept_answers(concept_id, answer_concept_ids):
+        """Replaces the list of answers for a concept with the given list."""
         db.execute(
             'delete from concept_answer where concept_id = %s', concept_id)
         for i, answer_concept_id in enumerate(answer_concept_ids):
@@ -200,16 +223,15 @@ def apply(tabs):
                        answer_concept=answer_concept_id, sort_weight=i)
 
     def put_concept(concept_id, name, locale, new_datatype_id, class_id):
-        datatype_id = db.get('datatype_id', 'concept', concept_id=concept_id)
-        if new_datatype_id != datatype_id:
-            old_type = db.get('name', 'concept_datatype',
-                              concept_datatype_id=datatype_id)
-            new_type = db.get('name', 'concept_datatype',
-                              concept_datatype_id=new_datatype_id)
+        """Creates or updates a concept with the given name, type, and class."""
+        datatype_id = db.get('datatype_id', concept_id=concept_id)
+        # Changing the datatype of an existing concept is illegal in OpenMRS.
+        if datatype_id and new_datatype_id != datatype_id:
             raise ValueError("Concept %d: cannot change type from %s to %s" %
-                             (concept_id, old_type, new_type))
-        update_or_insert('concept', concept_id,
-                         datatype_id=datatype_id, class_id=class_id, retired=0)
+                             (concept_id, get_datatype_name(datatype_id),
+                              get_datatype_name(new_datatype_id)))
+        update_or_insert('concept', concept_id, datatype_id=new_datatype_id,
+                         class_id=class_id, retired=0)
         set_concept_name(concept_id, name, locale)
 
     def apply_charts(rows):
@@ -232,9 +254,9 @@ def apply(tabs):
         apply_grid(grid_rows, form_id)
 
     def clear_form(form_id):
-        # Clear out the references to form_field_id so deletion can proceed.
+        """Removes all the form_fields from the given form."""
         db.execute('update form_field set parent_form_field = null'
-                   ' where form_id = %s', form_id)
+                   ' where form_id = %s', form_id)  # remove foreign keys
         db.execute('delete from form_field where form_id = %s', form_id)
 
     def validate_type(type):
@@ -313,12 +335,12 @@ def apply(tabs):
         db.execute('update form set published = 1 where form_id = %s', form_id)
 
     def init_form_xslt(form_id):
+        """Adds our custom XSLT as a form resource to a specified form."""
         name = db.get('name', 'form', form_id=form_id) + '.xFormXslt'
         resource_id = get_or_insert('form_resource',
-            form_id=form_id, name=name, value_reference=FORM_XSLT_UUID)
-        odb.update('form_resource', resource_id,
-                   datatype='org.openmrs.customdatatype.datatype.LongFreeTextDatatype',
-                   preferred_handler='org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler')
+            form_id=form_id, name=name, value_reference=XSLT_UUID)
+        odb.update('form_resource', resource_id, datatype=XSLT_DATATYPE,
+                   preferred_handler=XSLT_HANDLER)
 
     def apply_form(rows, form_id):
         """
@@ -364,11 +386,17 @@ def apply(tabs):
 
             if type:
                 if type == 'select_multiple':
+                    # To make a group of toggle buttons, we have to create a
+                    # section with "[binary]" in its name that contains a coded
+                    # yes/no field for each button.
                     fn += 1
                     label = row['label']
                     field_id = get_field_for_section(label + '[binary]', label)
                     section_id = add_field_to_form(form_id, field_id, None, fn)
                 elif last_type == 'select_multiple':
+                    # Fields after the end of a toggle group don't belong in
+                    # the section, so put them in a new section, using
+                    # "[invisible]" in its name to hide the section heading.
                     fn += 1
                     field_id = get_field_for_section('[invisible]')
                     section_id = add_field_to_form(form_id, field_id, None, fn)
@@ -377,6 +405,7 @@ def apply(tabs):
                     type in ['number', 'text', 'yes_no', 'select_one']):
                     put_concept(concept_id, label, LOCALE, datatype, obs_class)
                     if type == 'yes_no':
+                        # Answers are: unknown (1067), no (1066), or yes (1065)
                         set_concept_answers(concept_id, [1067, 1066, 1065])
                     if datatype == numeric_datatype:
                         set_concept_numeric(
@@ -400,6 +429,10 @@ def apply(tabs):
 
                 if last_type == 'select_multiple':
                     put_coded_concept(option_concept_id, option_label, LOCALE)
+                    # Answers for a toggle button are: no (1066) or yes (1065)
+                    # NOTE: org.odk.collect.android.widgets2.selectone.
+                    # BinarySelectOneWidget requires one of the answers to
+                    # be concept 1065 or have the string "Yes".
                     set_concept_answers(option_concept_id, [1066, 1065])
                     field_id = get_field_for_concept(
                         option_concept_id, option_label)
