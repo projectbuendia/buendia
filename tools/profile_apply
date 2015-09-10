@@ -73,7 +73,9 @@ class OpenmrsDatabase:
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
         if 'uuid' in self.get_columns(table):
-            kwargs.setdefault('uuid', uuid.uuid4())
+            generated_uuid = (table == 'concept' and
+                (str(kwargs['concept_id']) + 'A'*36)[:36] or uuid.uuid4())
+            kwargs.setdefault('uuid', generated_uuid)
 
         columns = kwargs.keys()
         values = kwargs.values()
