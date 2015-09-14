@@ -47,22 +47,24 @@ import java.util.Map;
 
 /**
  * Rest API for patients.
- *
+ * <p/>
  * <p>Expected behavior:
  * <ul>
  * <li>GET /patient returns all patients ({@link #getAll(RequestContext)})
  * <li>GET /patient?q=[query] returns patients whose name or ID contains the query string
- *     ({@link #search(RequestContext)})
+ * ({@link #search(RequestContext)})
  * <li>GET /patient/[UUID] returns a single patient ({@link #retrieve(String, RequestContext)})
  * <li>POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
- * <li>POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject, RequestContext)})
+ * <li>POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject,
+ * RequestContext)})
  * </ul>
- *
+ * <p/>
  * <p>Each operation handles Patient resources in the following JSON form:
- *
+ * <p/>
  * <pre>
  * {
- *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for creation
+ *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
+ *   creation
  *   "id": "567", // required unique id specified by user
  *   "gender": "F", // required as "M" or "F", unfortunately
  *   "birthdate": "1990-02-17", // required, but can be estimated
@@ -74,7 +76,7 @@ import java.util.Map;
  * },
  * </pre>
  * (Results may also contain deprecated fields other than those described above.)
- *
+ * <p/>
  * <p>If an error occurs, the response will contain the following:
  * <pre>
  * {
@@ -108,15 +110,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String PARENT_UUID = "parent_uuid";
 
     private static Log log = LogFactory.getLog(PatientResource.class);
-    private final PatientService patientService;
     private static final Object createPatientLock = new Object();
+    private final PatientService patientService;
 
     public PatientResource() {
         patientService = Context.getPatientService();
     }
 
-    @Override
-    public SimpleObject getAll(RequestContext context) throws ResponseException {
+    @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
             SimpleObject result = getAllInner();
@@ -133,10 +134,52 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return getSimpleObjectWithResults(patients);
     }
 
-    private String validateGender(String value) {
-        if (value.equals("F") || value.equals("M")) return value;
-        throw new InvalidObjectDataException(
-                "Gender should be specified as \"F\" or \"M\"");
+    private SimpleObject getSimpleObjectWithResults(List<Patient> patients) {
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Patient patient : patients) {
+            jsonResults.add(patientToJson(patient));
+        }
+        SimpleObject list = new SimpleObject();
+        list.add("results", jsonResults);
+        return list;
+    }
+
+    protected static SimpleObject patientToJson(Patient patient) {
+        SimpleObject jsonForm = new SimpleObject();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if (patient != null) {
+            jsonForm.add(UUID, patient.getUuid());
+            PatientIdentifier patientIdentifier =
+                patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
+            if (patientIdentifier != null) {
+                jsonForm.add(ID, patientIdentifier.getIdentifier());
+            }
+            jsonForm.add(GENDER, patient.getGender());
+            if (patient.getBirthdate() != null) {
+                jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
+            }
+            jsonForm.add(GIVEN_NAME, patient.getGivenName());
+            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+
+            // TODO: refactor so we have a single assigned location with a uuid,
+            // and we walk up the tree to get extra information for the patient.
+            String assignedLocation = DbUtil.getPersonAttributeValue(
+                patient, DbUtil.getAssignedLocationAttributeType());
+            if (assignedLocation != null) {
+                LocationService locationService = Context.getLocationService();
+                Location location = locationService.getLocation(
+                    Integer.valueOf(assignedLocation));
+                if (location != null) {
+                    SimpleObject locationJson = new SimpleObject();
+                    locationJson.add(UUID, location.getUuid());
+                    if (location.getParentLocation() != null) {
+                        locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
+                    }
+                    jsonForm.add(ASSIGNED_LOCATION, locationJson);
+                }
+            }
+        }
+        return jsonForm;
     }
 
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
@@ -160,11 +203,11 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         String id = (String) json.get(ID);
         List<PatientIdentifierType> identifierTypes =
-                Arrays.asList(DbUtil.getMsfIdentifierType());
+            Arrays.asList(DbUtil.getMsfIdentifierType());
         Patient patient = null;
         synchronized (createPatientLock) {
             List<Patient> existing = patientService.getPatients(
-                    null, id, identifierTypes, true /* exact identifier match */);
+                null, id, identifierTypes, true /* exact identifier match */);
             if (!existing.isEmpty()) {
                 patient = existing.get(0);
                 String given = patient.getGivenName();
@@ -173,8 +216,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 family = (family == null) ? "" : family;
                 String name = (given + " " + family).trim();
                 throw new InvalidObjectDataException(String.format(
-                        "Another patient (%s) already has the ID \"%s\"",
-                        name.isEmpty() ? "with no name" : "named " + name, id));
+                    "Another patient (%s) already has the ID \"%s\"",
+                    name.isEmpty() ? "with no name" : "named " + name, id));
             }
 
             patient = jsonToPatient(json);
@@ -182,9 +225,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         // Observation for first symptom date
         ObservationsHandler.addEncounter(
-                (List) json.get("observations"), null,
-                patient, patient.getDateCreated(), "Initial triage",
-                "ADULTINITIAL", LocationResource.TRIAGE_UUID);
+            (List) json.get("observations"), null,
+            patient, patient.getDateCreated(), "Initial triage",
+            "ADULTINITIAL", LocationResource.TRIAGE_UUID);
         return patientToJson(patient);
     }
 
@@ -240,15 +283,25 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return patient;
     }
 
-    @Override
-    public String getUri(Object instance) {
+    private static void setLocation(Patient patient, String locationUuid) {
+        // Apply the given assigned location to a patient, if locationUuid is not null.
+        if (locationUuid == null) return;
+
+        Location location = Context.getLocationService().getLocationByUuid(locationUuid);
+        if (location != null) {
+            DbUtil.setPersonAttributeValue(patient,
+                DbUtil.getAssignedLocationAttributeType(),
+                Integer.toString(location.getId()));
+        }
+    }
+
+    @Override public String getUri(Object instance) {
         Patient patient = (Patient) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + patient.getUuid();
     }
 
-    @Override
-    public SimpleObject search(RequestContext context) throws ResponseException {
+    @Override public SimpleObject search(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "search");
             SimpleObject result = searchInner(context);
@@ -262,7 +315,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
         List<Patient> patients = new ArrayList<>();
-        String patientId = requestContext.getParameter("id");  // single patient by ID; overrides "q"
+        String patientId = requestContext.getParameter("id");  // single patient by ID; overrides
+        // "q"
         if (patientId != null) {
             List<PatientIdentifierType> idTypes = new ArrayList<>();
             idTypes.add(DbUtil.getMsfIdentifierType());
@@ -272,32 +326,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patients = filterPatients(nameQuery, patientService.getAllPatients());
         }
         return getSimpleObjectWithResults(patients);
-    }
-
-    @Override
-    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "retrieve", uuid);
-            Object result = retrieveInner(uuid);
-            logger.reply(context, this, "retrieve", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "retrieve", e);
-            throw e;
-        }
-    }
-
-    private Object retrieveInner(String uuid) throws ResponseException {
-        Patient patient = patientService.getPatientByUuid(uuid);
-        if (patient == null) {
-            throw new ObjectNotFoundException();
-        }
-        return patientToJson(patient);
-    }
-
-    @Override
-    public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
     }
 
     private List<Patient> filterPatients(String query, List<Patient> allPatients) {
@@ -318,18 +346,33 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return filteredPatients;
     }
 
-    private SimpleObject getSimpleObjectWithResults(List<Patient> patients) {
-        List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Patient patient : patients) {
-            jsonResults.add(patientToJson(patient));
+    @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "retrieve", uuid);
+            Object result = retrieveInner(uuid);
+            logger.reply(context, this, "retrieve", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "retrieve", e);
+            throw e;
         }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+    }
+
+    private Object retrieveInner(String uuid) throws ResponseException {
+        Patient patient = patientService.getPatientByUuid(uuid);
+        if (patient == null) {
+            throw new ObjectNotFoundException();
+        }
+        return patientToJson(patient);
+    }
+
+    @Override public List<Representation> getAvailableRepresentations() {
+        return Arrays.asList(Representation.DEFAULT);
     }
 
     @Override
-    public Object update(String uuid, SimpleObject simpleObject, RequestContext context) throws ResponseException {
+    public Object update(String uuid, SimpleObject simpleObject, RequestContext context) throws
+        ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + simpleObject);
             Object result = updateInner(uuid, simpleObject);
@@ -345,12 +388,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
      * Receives a SimpleObject that is parsed from the Gson serialization of a client-side
      * Patient bean.  It has the following semantics:
      * <ul>
-     *     <li>Any field set overwrites the current content
-     *     <li>Any field with a key but value == null deletes the current content
-     *     <li>Any field whose key is not present leaves the current content unchanged
-     *     <li>Subfields of location and age are not merged; instead the whole item is replaced
-     *     <li>If the client requests a change that is illegal, that is an error. Really the
-     *         whole call should fail, but for now there may be partial updates
+     * <li>Any field set overwrites the current content
+     * <li>Any field with a key but value == null deletes the current content
+     * <li>Any field whose key is not present leaves the current content unchanged
+     * <li>Subfields of location and age are not merged; instead the whole item is replaced
+     * <li>If the client requests a change that is illegal, that is an error. Really the
+     * whole call should fail, but for now there may be partial updates
      * </ul>
      */
     private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
@@ -371,7 +414,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         for (Map.Entry<String, Object> entry : edits.entrySet()) {
             PersonName oldName, newName;
             switch (entry.getKey()) {
-
                 // ==== JSON keys that update attributes of the Patient entity.
 
                 case FAMILY_NAME:
@@ -412,55 +454,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return changedPatient;
     }
 
-    private static void setLocation(Patient patient, String locationUuid) {
-        // Apply the given assigned location to a patient, if locationUuid is not null.
-        if (locationUuid == null) {
-            return;
-        }
-
-        Location location = Context.getLocationService().getLocationByUuid(locationUuid);
-        if (location != null) {
-            DbUtil.setPersonAttributeValue(patient,
-                    DbUtil.getAssignedLocationAttributeType(),
-                    Integer.toString(location.getId()));
-        }
-    }
-
-    protected static SimpleObject patientToJson(Patient patient) {
-        SimpleObject jsonForm = new SimpleObject();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        if (patient != null) {
-            jsonForm.add(UUID, patient.getUuid());
-            PatientIdentifier patientIdentifier =
-                    patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
-            if (patientIdentifier != null) {
-                jsonForm.add(ID, patientIdentifier.getIdentifier());
-            }
-            jsonForm.add(GENDER, patient.getGender());
-            if (patient.getBirthdate() != null) {
-                jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
-            }
-            jsonForm.add(GIVEN_NAME, patient.getGivenName());
-            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
-
-            // TODO: refactor so we have a single assigned location with a uuid,
-            // and we walk up the tree to get extra information for the patient.
-            String assignedLocation = DbUtil.getPersonAttributeValue(
-                    patient, DbUtil.getAssignedLocationAttributeType());
-            if (assignedLocation != null) {
-                LocationService locationService = Context.getLocationService();
-                Location location = locationService.getLocation(
-                    Integer.valueOf(assignedLocation));
-                if (location != null) {
-                    SimpleObject locationJson = new SimpleObject();
-                    locationJson.add(UUID, location.getUuid());
-                    if (location.getParentLocation() != null) {
-                        locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
-                    }
-                    jsonForm.add(ASSIGNED_LOCATION, locationJson);
-                }
-            }
-        }
-        return jsonForm;
+    private String validateGender(String value) {
+        if (value.equals("F") || value.equals("M")) return value;
+        throw new InvalidObjectDataException(
+            "Gender should be specified as \"F\" or \"M\"");
     }
 }

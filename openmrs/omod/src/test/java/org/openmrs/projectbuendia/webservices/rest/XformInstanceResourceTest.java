@@ -10,15 +10,14 @@
 // specific language governing permissions and limitations under the License.
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.junit.Test;
+import org.openmrs.module.webservices.rest.SimpleObject;
+
 import static org.junit.Assert.assertEquals;
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.readResourceAsString;
 
-import org.junit.Test;
-import org.openmrs.module.webservices.rest.SimpleObject;
-
 public class XformInstanceResourceTest {
-
     @Test
     public void addForm() throws Exception {
         String input = readResourceAsString(getClass(), "original-instance-add.xml");
@@ -43,7 +42,7 @@ public class XformInstanceResourceTest {
         String actual = XformInstanceResource.completeXform(post);
         assertXmlEqual(expected, actual);
     }
-    
+
     @Test
     public void moveGroupsIntoObs() throws Exception {
         String input = readResourceAsString(getClass(), "original-grouped.xml");
@@ -55,7 +54,7 @@ public class XformInstanceResourceTest {
         String actual = XformInstanceResource.completeXform(post);
         assertXmlEqual(expected, actual);
     }
-    
+
     @Test
     public void workAroundClientIssue_beforeFix() {
         String input = "20141120T092547.373Z";

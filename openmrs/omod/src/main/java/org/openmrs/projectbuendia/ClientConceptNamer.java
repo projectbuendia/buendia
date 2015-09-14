@@ -25,20 +25,17 @@ import java.util.Locale;
  * http://github.com/projectbuendia/buendia/wiki/... TODO: Fill in URL.
  */
 public class ClientConceptNamer {
-
-    private static Log log = LogFactory.getLog(ClientConceptNamer.class);
-
     public static final String VARIANT = "client";
     public static final String CLIENT_REGION = "GB";
     public static final Locale DEFAULT_CLIENT = new Locale.Builder()
-            .setLanguage("en")
-            .setRegion(CLIENT_REGION)
-            .setVariant(VARIANT)
-            .build();
+        .setLanguage("en")
+        .setRegion(CLIENT_REGION)
+        .setVariant(VARIANT)
+        .build();
     public static final Locale DEFAULT = new Locale.Builder()
-            .setLanguage("en")
-            .build();
-
+        .setLanguage("en")
+        .build();
+    private static Log log = LogFactory.getLog(ClientConceptNamer.class);
     private final Locale locale;
 
     public ClientConceptNamer(Locale locale) {
@@ -53,21 +50,20 @@ public class ClientConceptNamer {
      * first with and then without the "_client" variant.  For example, if the
      * locale is "es_419", the following locales will be tried, in order:
      * <ol>
-     *     <li>es_419_client
-     *     <li>es_419
-     *     <li>es
-     *     <li>en_GB_client
-     *     <li>en
+     * <li>es_419_client
+     * <li>es_419
+     * <li>es
+     * <li>en_GB_client
+     * <li>en
      * </ol>
-     *
+     * <p/>
      * If the configured locale is "fr", the sequence will be:
      * <ol>
-     *     <li>fr_GB_client
-     *     <li>fr
-     *     <li>en_GB_client
-     *     <li>en
+     * <li>fr_GB_client
+     * <li>fr
+     * <li>en_GB_client
+     * <li>en
      * </ol>
-     *
      * @param concept the concept to get a name for
      * @return a String for the client with the best match we can get for that locale
      */
@@ -84,37 +80,28 @@ public class ClientConceptNamer {
         // If we already have a client extension, try it, before falling back to English.
         // Don't use the client fallback logic.
         String name = getPreferredStringInLocaleOrNull(concept, builder.build());
-        if (name != null) {
-            return name;
-        }
+        if (name != null) return name;
 
         // try specifically what was requested. This might try the client variant again, never mind.
         name = getPreferredStringInLocaleOrNull(concept, locale);
-        if (name != null) {
-            return name;
-        }
+        if (name != null) return name;
 
         // If the requested had a country/region, try it without the region
         if ("".equals(locale.getCountry())) {
             name = getPreferredStringInLocaleOrNull(concept, new Locale(locale.getLanguage()));
-            if (name != null) {
-                return name;
-            }
+            if (name != null) return name;
         }
 
         // By the time we reach here the locale asked for has failed. Try our two defaults.
         name = getPreferredStringInLocaleOrNull(concept, DEFAULT_CLIENT);
-        if (name != null) {
-            return name;
-        }
+        if (name != null) return name;
         name = getPreferredStringInLocaleOrNull(concept, DEFAULT);
-        if (name != null) {
-            return name;
-        }
+        if (name != null) return name;
         // fail over to anything we can get
         ConceptName defaultName = concept.getName();
         if (defaultName == null) {
-            log.error("No name found for concept: uuid=" + concept.getUuid() + ", id=" + concept.getId());
+            log.error("No name found for concept: uuid=" + concept.getUuid()
+                + ", id=" + concept.getId());
             return "[Concept " + concept.getId() + "]";
         }
         return defaultName.getName();

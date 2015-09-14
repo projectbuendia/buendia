@@ -60,7 +60,7 @@ public class Logger {
             message = "" + message;
             String elapsed = "" + (end.getTime() - start.getTime()) + " ms";
             log(end, "<- " + key + " (\u001b[36m" + elapsed + "\u001b[0m)"
-                    + (message.isEmpty() ? "" : ": " + message));
+                + (message.isEmpty() ? "" : ": " + message));
         }
     }
 }

@@ -12,15 +12,13 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServletRequest;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
 
 /** Logs REST API requests in detail, with timings, to a directory of log files. */
 public class RequestLogger {
@@ -37,6 +35,32 @@ public class RequestLogger {
         this.dir = dir;
     }
 
+    public void request(RequestContext context, Object obj, String method) {
+        request(context, obj, method, null);
+    }
+
+    /** Emits a "start" line for an incoming request. */
+    public void request(RequestContext context, Object obj, String method, Object input) {
+        request(context, obj.getClass().getName() + "." + method,
+            input == null ? "" : "(" + input + ")");
+    }
+
+    /** Emits a "start" line for an incoming request. */
+    protected void request(RequestContext context, String key, String message) {
+        try {
+            HttpServletRequest request = context.getRequest();
+            String filename = request.getRemoteAddr();
+            start(filename, key, "\u001b[33m" + request.getMethod() + " "
+                + request.getRequestURI() + "\u001b[0m " + message);
+        } catch (Exception e) {
+        }
+    }
+
+    /** Emits a "start" line for the given key to the given log. */
+    protected void start(String filename, String key, String message) {
+        getLogger(filename).start(key, message);
+    }
+
     /** Gets or creates the Logger for a given filename. */
     protected Logger getLogger(String filename) {
         if (!loggers.containsKey(filename)) {
@@ -45,9 +69,20 @@ public class RequestLogger {
         return loggers.get(filename);
     }
 
-    /** Emits a "start" line for the given key to the given log. */
-    protected void start(String filename, String key, String message) {
-        getLogger(filename).start(key, message);
+    /** Emits an "end" line for a successful reply. */
+    public void reply(RequestContext context, Object obj, String method, Object result) {
+        reply(context, obj.getClass().getName() + "." + method,
+            result == null ? "" : "" + result);
+    }
+
+    /** Emits an "end" line for a successful reply. */
+    protected void reply(RequestContext context, String key, String message) {
+        try {
+            HttpServletRequest request = context.getRequest();
+            String filename = request.getRemoteAddr();
+            end(filename, key, message);
+        } catch (Exception e) {
+        }
     }
 
     /**
@@ -58,23 +93,9 @@ public class RequestLogger {
         getLogger(filename).end(key, message);
     }
 
-    /** Emits a "start" line for an incoming request. */
-    protected void request(RequestContext context, String key, String message) {
-        try {
-            HttpServletRequest request = context.getRequest();
-            String filename = request.getRemoteAddr();
-            start(filename, key, "\u001b[33m" + request.getMethod() + " "
-                    + request.getRequestURI() + "\u001b[0m " + message);
-        } catch (Exception e) { }
-    }
-
-    /** Emits an "end" line for a successful reply. */
-    protected void reply(RequestContext context, String key, String message) {
-        try {
-            HttpServletRequest request = context.getRequest();
-            String filename = request.getRemoteAddr();
-            end(filename, key, message);
-        } catch (Exception e) { }
+    /** Emits an "end" line when an exception occurs. */
+    public void error(RequestContext context, Object obj, String method, Exception e) {
+        error(context, obj.getClass().getName() + "." + method, e);
     }
 
     /** Emits an "end" line when an exception occurs. */
@@ -83,28 +104,8 @@ public class RequestLogger {
             HttpServletRequest request = context.getRequest();
             String filename = request.getRemoteAddr();
             end(filename, key, ExceptionUtils.getMessage(error) + ":\n"
-                    + ExceptionUtils.getStackTrace(error));
-        } catch (Exception e) { }
-    }
-
-    /** Emits a "start" line for an incoming request. */
-    public void request(RequestContext context, Object obj, String method, Object input) {
-        request(context, obj.getClass().getName() + "." + method,
-                input == null ? "" : "(" + input + ")");
-    }
-
-    public void request(RequestContext context, Object obj, String method) {
-        request(context, obj, method, null);
-    }
-
-    /** Emits an "end" line for a successful reply. */
-    public void reply(RequestContext context, Object obj, String method, Object result) {
-        reply(context, obj.getClass().getName() + "." + method,
-                result == null ? "" : "" + result);
-    }
-
-    /** Emits an "end" line when an exception occurs. */
-    public void error(RequestContext context, Object obj, String method, Exception e) {
-        error(context, obj.getClass().getName() + "." + method, e);
+                + ExceptionUtils.getStackTrace(error));
+        } catch (Exception e) {
+        }
     }
 }

@@ -28,16 +28,13 @@ import java.util.List;
 
 /** XForm rendering customizations for Buendia. */
 public class BuendiaXformCustomizer extends XformCustomizer {
-
     final ClientConceptNamer namer = new ClientConceptNamer(Context.getLocale());
 
-    @Override
-    public String getLabel(Concept c) {
+    @Override public String getLabel(Concept c) {
         return namer.getClientName(c);
     }
 
-    @Override
-    public List<Location> getEncounterLocations() {
+    @Override public List<Location> getEncounterLocations() {
         Location root = Context.getLocationService().getLocationByUuid(LocationResource.ROOT_UUID);
 
         ArrayList<Location> result = new ArrayList<>();
@@ -49,13 +46,11 @@ public class BuendiaXformCustomizer extends XformCustomizer {
         return result;
     }
 
-    @Override
-    public String getLabel(Location location) {
+    @Override public String getLabel(Location location) {
         return location.getName();
     }
 
-    @Override
-    public String getLabel(Provider provider) {
+    @Override public String getLabel(Provider provider) {
         String name = provider.getName();
         if (name == null) {
             Person person = provider.getPerson();
@@ -64,8 +59,7 @@ public class BuendiaXformCustomizer extends XformCustomizer {
         return name;
     }
 
-    @Override
-    public String getAppearanceAttribute(FormField formField) {
+    @Override public String getAppearanceAttribute(FormField formField) {
         Field field = formField.getField();
         FieldType fieldType = field.getFieldType();
         if (fieldType.getFieldTypeId().equals(FormConstants.FIELD_TYPE_SECTION)) {
@@ -89,8 +83,7 @@ public class BuendiaXformCustomizer extends XformCustomizer {
         return null;
     }
 
-    @Override
-    public Integer getRows(Concept concept) {
+    @Override public Integer getRows(Concept concept) {
         // Once you have 2, the carriage return is shown, so it will expand to more line.
         return 2;
     }

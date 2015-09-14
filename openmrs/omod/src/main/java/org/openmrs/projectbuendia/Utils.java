@@ -11,40 +11,35 @@
 
 package org.openmrs.projectbuendia;
 
-import org.openmrs.Concept;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
 import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
-    private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     /** ISO 8601 format for a complete date and time in UTC. */
     public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    static {
-        FORMAT.setTimeZone(UTC);
-    }
     /** A SimpleDateFormat that formats as "yyyy-MM-dd". */
     public static final DateFormat YYYYMMDD_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    /** A SimpleDateFormat that formats a date and time so it will be auto-parsed in a spreadsheet. */
+    /** A SimpleDateFormat that formats a date and time so it will be auto-parsed in a
+     * spreadsheet. */
     public static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    static {
-        SPREADSHEET_FORMAT.setTimeZone(UTC);
-    }
-
     /**
      * Compares two objects that may each be null, Integer, or String.  null sorts
      * before everything; all Integers sort before all Strings; Integers sort
      * according to numeric value; Strings sort according to string value.
      */
     public static Comparator<Object> nullIntStrComparator = new Comparator<Object>() {
-        @Override
-        public int compare(Object a, Object b) {
+        @Override public int compare(Object a, Object b) {
             if (a instanceof Integer && b instanceof Integer) {
                 return (Integer) a - (Integer) b;
             }
@@ -52,60 +47,40 @@ public class Utils {
                 return ((String) a).compareTo((String) b);
             }
             return (a == null ? 0 : a instanceof Integer ? 1 : 2)
-                    - (b == null ? 0 : b instanceof Integer ? 1 : 2);
+                - (b == null ? 0 : b instanceof Integer ? 1 : 2);
         }
     };
-
     /**
      * Compares two lists, each of whose elements is a null, Integer, or String,
      * lexicographically by element, just like Python does.
      */
-    public static Comparator<List<Object>> nullIntStrListComparator = new Comparator<List<Object>>() {
-        @Override
-        public int compare(List<Object> a, List<Object> b) {
+    public static Comparator<List<Object>> nullIntStrListComparator = new
+        Comparator<List<Object>>() {
+        @Override public int compare(List<Object> a, List<Object> b) {
             for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
                 int result = nullIntStrComparator.compare(a.get(i), b.get(i));
-                if (result != 0) {
-                    return result;
-                }
+                if (result != 0) return result;
             }
             return a.size() - b.size();
         }
     };
-
+    private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     // Note: Use of \L here assumes a string that is already NFC-normalized.
     private static final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
-
     /**
      * Compares two strings in a way that sorts alphabetic parts in alphabetic
      * order and numeric parts in numeric order, while guaranteeing that:
-     *   - compare(s, t) == 0 if and only if s.equals(t).
-     *   - compare(s, s + t) < 0 for any strings s and t.
-     *   - compare(s + x, s + y) == Integer.compare(x, y) for all integers x, y
-     *     and strings s that do not end in a digit.
-     *   - compare(s + t, s + u) == compare(s, t) for all strings s and strings
-     *     t, u that consist entirely of Unicode letters.
+     * - compare(s, t) == 0 if and only if s.equals(t).
+     * - compare(s, s + t) < 0 for any strings s and t.
+     * - compare(s + x, s + y) == Integer.compare(x, y) for all integers x, y
+     * and strings s that do not end in a digit.
+     * - compare(s + t, s + u) == compare(s, t) for all strings s and strings
+     * t, u that consist entirely of Unicode letters.
      * For example, the strings ["b1", "a11a", "a11", "a2", "a2b", "a2a", "a1"]
      * have the sort order ["a1", "a2", "a2a", "a2b", "a11", "a11a", "b1"].
      */
     public static Comparator<String> alphanumericComparator = new Comparator<String>() {
-        /**
-         * Breaks a string into a list of Integers (from sequences of ASCII digits)
-         * and Strings (from sequences of letters).  Other characters are ignored.
-         */
-        private List<Object> getParts(String str) {
-            Matcher matcher = NUMBER_OR_WORD_PATTERN.matcher(str);
-            List<Object> parts = new ArrayList<>();
-            while (matcher.find()) {
-                String part = matcher.group();
-                String intPart = matcher.group(1);
-                parts.add(intPart != null ? Integer.valueOf(intPart) : part);
-            }
-            return parts;
-        }
-
-        @Override
-        public int compare(String a, String b) {
+        @Override public int compare(String a, String b) {
             String aNormalized = Normalizer.normalize(a == null ? "" : a, Normalizer.Form.NFC);
             String bNormalized = Normalizer.normalize(b == null ? "" : b, Normalizer.Form.NFC);
             List<Object> aParts = getParts(aNormalized);
@@ -124,7 +99,30 @@ public class Utils {
             bParts.add(b);
             return nullIntStrListComparator.compare(aParts, bParts);
         }
+
+        /**
+         * Breaks a string into a list of Integers (from sequences of ASCII digits)
+         * and Strings (from sequences of letters).  Other characters are ignored.
+         */
+        private List<Object> getParts(String str) {
+            Matcher matcher = NUMBER_OR_WORD_PATTERN.matcher(str);
+            List<Object> parts = new ArrayList<>();
+            while (matcher.find()) {
+                String part = matcher.group();
+                String intPart = matcher.group(1);
+                parts.add(intPart != null ? Integer.valueOf(intPart) : part);
+            }
+            return parts;
+        }
     };
+
+    static {
+        FORMAT.setTimeZone(UTC);
+    }
+
+    static {
+        SPREADSHEET_FORMAT.setTimeZone(UTC);
+    }
 
     /**
      * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
@@ -153,7 +151,7 @@ public class Utils {
             return YYYYMMDD_FORMAT.parse(text);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(String.format(
-                    "The %s field should be in yyyy-MM-dd format", fieldName));
+                "The %s field should be in yyyy-MM-dd format", fieldName));
         }
     }
 }

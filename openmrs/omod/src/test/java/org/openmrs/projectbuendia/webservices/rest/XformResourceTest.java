@@ -11,13 +11,12 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.junit.Test;
+
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.readResourceAsString;
 
-import org.junit.Test;
-
 public class XformResourceTest {
-
     @Test
     public void convertToOdkCollect() throws Exception {
         String input = readResourceAsString(getClass(), "sample-original-form1.xml");

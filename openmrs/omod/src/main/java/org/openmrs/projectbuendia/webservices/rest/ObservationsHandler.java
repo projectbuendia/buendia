@@ -13,7 +13,13 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.*;
+import org.openmrs.Concept;
+import org.openmrs.Encounter;
+import org.openmrs.EncounterType;
+import org.openmrs.Location;
+import org.openmrs.Obs;
+import org.openmrs.Order;
+import org.openmrs.Patient;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
@@ -54,18 +60,18 @@ public class ObservationsHandler {
 
     /**
      * Adds a new encounter with the given observations and orders.
-     *
-     * @param observations a list of observations
-     * @param orderUuids a list of order UUIDs
-     * @param patient the patient for whom to add the encounter
-     * @param encounterTime the time of the encounter
-     * @param changeMessage a message to be recorded with the observation
+     * @param observations      a list of observations
+     * @param orderUuids        a list of order UUIDs
+     * @param patient           the patient for whom to add the encounter
+     * @param encounterTime     the time of the encounter
+     * @param changeMessage     a message to be recorded with the observation
      * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
-     * @param locationUuid the UUID of the location where the encounter happened
+     * @param locationUuid      the UUID of the location where the encounter happened
      */
     public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
-            Date encounterTime, String changeMessage, String encounterTypeName,
-            String locationUuid) {
+                                         Date encounterTime, String changeMessage, String
+                                             encounterTypeName,
+                                         String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = Utils.fixEncounterDateTime(encounterTime);
@@ -112,7 +118,7 @@ public class ObservationsHandler {
     }
 
     static Obs jsonObservationToObs(Object jsonObservation, Patient patient,
-                             Date encounterTime, Location location) {
+                                    Date encounterTime, Location location) {
         Map observationObject = (Map) jsonObservation;
         String questionUuid = (String) observationObject.get(QUESTION_UUID);
         ConceptService conceptService = Context.getConceptService();
@@ -153,7 +159,8 @@ public class ObservationsHandler {
         return obs;
     }
 
-    static Obs orderUuidToObs(String orderUuid, Patient patient, Date encounterTime, Location location) {
+    static Obs orderUuidToObs(String orderUuid, Patient patient, Date encounterTime, Location
+        location) {
         Order order = Context.getOrderService().getOrderByUuid(orderUuid);
         if (order == null) {
             log.warn("Order not found: " + orderUuid);

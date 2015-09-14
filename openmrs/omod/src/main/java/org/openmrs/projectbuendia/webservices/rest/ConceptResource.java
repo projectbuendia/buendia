@@ -38,15 +38,14 @@ import java.util.Set;
 /**
  * REST collection of all the concepts that are present in at least one of the
  * charts returned by {@link ChartResource}.
- *
  * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/concept",
     supportedClass = Concept.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ConceptResource extends AbstractReadOnlyResource<Concept> {
-
     /** A map from HL7 type abbreviations to short names used in JSON output. */
     private static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
+
     static {
         HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED, "coded");
         HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
@@ -70,11 +69,10 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
 
     /**
      * Retrieves a single concept with the given UUID.
-     *
-     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      * @param context the request context; specify the URL query parameter
-     *     "locales=[comma-separated list]" to get localized concept names for
-     *     specific locales; otherwise, all available locales will be returned.
+     *                "locales=[comma-separated list]" to get localized concept names for
+     *                specific locales; otherwise, all available locales will be returned.
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      */
     @Override
     protected Concept retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
@@ -84,14 +82,12 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     /**
      * Returns all concepts present in at least one of the charts returned by
      * {@link ChartResource} (there is no support for searching or filtering).
-     *
-     * @see AbstractReadOnlyResource#search(RequestContext)
      * @param context the request context; specify the URL query parameter
-     *     "locales=[comma-separated list]" to get localized concept names for
-     *     specific locales; otherwise, all available locales will be returned.
+     *                "locales=[comma-separated list]" to get localized concept names for
+     *                specific locales; otherwise, all available locales will be returned.
+     * @see AbstractReadOnlyResource#search(RequestContext)
      */
-    @Override
-    protected Iterable<Concept> searchImpl(RequestContext context, long snapshotTime) {
+    @Override protected Iterable<Concept> searchImpl(RequestContext context, long snapshotTime) {
         // Retrieves all the concepts that the client needs to know about
         // (the concepts within all the charts served by ChartResource).
         Set<Concept> ret = new HashSet<>();
@@ -99,9 +95,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
             for (FormField formField : chart.getFormFields()) {
                 Field field = formField.getField();
                 Concept fieldConcept = field.getConcept();
-                if (fieldConcept == null) {
-                    continue;
-                }
+                if (fieldConcept == null) continue;
                 ret.add(fieldConcept);
                 for (ConceptAnswer answer : fieldConcept.getAnswers(false)) {
                     ret.add(answer.getAnswerConcept());
@@ -114,44 +108,42 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     /**
      * Adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>"xform_id": the ID used to identify the concept in an xform
-     *         (not the concept's UUID)
-     *     <li>"type": one of the following type names, indicating the concept
-     *         datatype as defined by OpenMRS:
-     *         <ul>
-     *             <li>coded
-     *             <li>text
-     *             <li>numeric
-     *             <li>datetime
-     *             <li>date
-     *             <li>none
-     *         </ul>
-     *     <li>names: a {@link Map} of locales to concept names.  If locales
-     *         are specified in the "locales" URL query parameter, only those
-     *         locales will appear; otherwise all allowed locales will appear.
+     * <li>"xform_id": the ID used to identify the concept in an xform
+     * (not the concept's UUID)
+     * <li>"type": one of the following type names, indicating the concept
+     * datatype as defined by OpenMRS:
+     * <ul>
+     * <li>coded
+     * <li>text
+     * <li>numeric
+     * <li>datetime
+     * <li>date
+     * <li>none
      * </ul>
-     *
+     * <li>names: a {@link Map} of locales to concept names.  If locales
+     * are specified in the "locales" URL query parameter, only those
+     * locales will appear; otherwise all allowed locales will appear.
+     * </ul>
      * @param context the request context; specify the URL query parameter
-     *     "locales=[comma-separated list]" to get localized concept names for
-     *     specific locales; otherwise, all available locales will be returned.
+     *                "locales=[comma-separated list]" to get localized concept names for
+     *                specific locales; otherwise, all available locales will be returned.
      */
-    @Override
-    protected void populateJsonProperties(
-            Concept concept, RequestContext context, SimpleObject json, long snapshotTime) {
-       // TODO: Cache this in the request context?
-       List<Locale> locales = getLocalesForRequest(context);
-       String jsonType = HL7_TYPE_NAMES.get(concept.getDatatype().getHl7Abbreviation());
-       if (jsonType == null) {
-           throw new ConfigurationException("Concept %s has unmapped HL7 data type %s",
-                   concept.getName().getName(), concept.getDatatype().getHl7Abbreviation());
-       }
-       json.put("xform_id", concept.getId());
-       json.put("type", jsonType);
-       Map<String, String> names = new HashMap<>();
-       for (Locale locale : locales) {
-           names.put(locale.toString(), namer.getClientName(concept));
-       }
-       json.put("names", names);
+    @Override protected void populateJsonProperties(
+        Concept concept, RequestContext context, SimpleObject json, long snapshotTime) {
+        // TODO: Cache this in the request context?
+        List<Locale> locales = getLocalesForRequest(context);
+        String jsonType = HL7_TYPE_NAMES.get(concept.getDatatype().getHl7Abbreviation());
+        if (jsonType == null) {
+            throw new ConfigurationException("Concept %s has unmapped HL7 data type %s",
+                concept.getName().getName(), concept.getDatatype().getHl7Abbreviation());
+        }
+        json.put("xform_id", concept.getId());
+        json.put("type", jsonType);
+        Map<String, String> names = new HashMap<>();
+        for (Locale locale : locales) {
+            names.put(locale.toString(), namer.getClientName(concept));
+        }
+        json.put("names", names);
     }
 
     private List<Locale> getLocalesForRequest(RequestContext context) {

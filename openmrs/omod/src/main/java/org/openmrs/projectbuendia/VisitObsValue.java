@@ -64,7 +64,8 @@ public class VisitObsValue {
             case HL7Constants.HL7_DATETIME:
                 return visitor.visitDateTime(obs.getValueDatetime());
             default:
-                throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type + " for concept " + concept);
+                throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type + " for "
+                    + "concept " + concept);
         }
     }
 }

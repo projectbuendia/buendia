@@ -32,13 +32,11 @@ import java.util.TreeSet;
 /**
  * REST resource for charts. These are stored as OpenMRS forms, but that's
  * primarily to allow for ease of maintenance (OpenMRS provides an editing UI).
- *
  * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/chart",
-        supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+    supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
-
     private static final String GROUPS = "groups";
     private static final String VERSION = "version";
     private static final String CONCEPTS = "concepts";
@@ -52,51 +50,47 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
 
     /**
      * Retrieves a single form with the given UUID.
-     *
-     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      * @param context the request context; specify the URL query parameter
-     *     "?v=full" to get a list of the groups and concepts in the form.
+     *                "?v=full" to get a list of the groups and concepts in the form.
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      */
-    @Override
-    public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime)
-            throws ResponseException {
+    @Override public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime)
+        throws ResponseException {
         return formService.getFormByUuid(uuid);
     }
 
     /**
      * Adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>"version": the version number (e.g. 0.2.3) of the form
+     * <li>"version": the version number (e.g. 0.2.3) of the form
      * </ul>
-     *
+     * <p/>
      * <p>If details are requested with the URL query parameter "?v=full",
      * also adds the following fields to the {@link SimpleObject}:
      * <ul>
      * <li>"groups": a {@link List} of {@link SimpleObject}s, each containing:
-     *   <ul>
-     *   <li>"uuid": the UUID for the concept representing the group (note: when
-     *       defining groups in OpenMRS for charts returned by this endpoint,
-     *       each group MUST be represented by a concept or this will fail)
-     *   <li>"concepts": a {@link List} of UUIDs of the concepts in the group
-     *   </ul>
+     * <ul>
+     * <li>"uuid": the UUID for the concept representing the group (note: when
+     * defining groups in OpenMRS for charts returned by this endpoint,
+     * each group MUST be represented by a concept or this will fail)
+     * <li>"concepts": a {@link List} of UUIDs of the concepts in the group
      * </ul>
-     *
+     * </ul>
      * @param context the request context; specify the URL query parameter
-     *     "?v=full" to get a list of the groups and concepts in the form.
+     *                "?v=full" to get a list of the groups and concepts in the form.
      */
     @Override
-    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json, long snapshotTime) {
+    protected void populateJsonProperties(Form form, RequestContext context, SimpleObject json,
+                                          long snapshotTime) {
         json.put(VERSION, form.getVersion());
-        if (context.getRepresentation() != Representation.FULL) {
-            return;
-        }
+        if (context.getRepresentation() != Representation.FULL) return;
         List<SimpleObject> groups = new ArrayList<>();
         TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
         for (FormField groupField : formStructure.get(0)) {
             Concept groupConcept = groupField.getField().getConcept();
             if (groupConcept == null) {
                 throw new ConfigurationException("Chart %s has non-concept top-level field %s",
-                        form.getUuid(), groupField.getField().getName());
+                    form.getUuid(), groupField.getField().getName());
             }
             SimpleObject group = new SimpleObject();
             group.put("uuid", groupConcept.getUuid());
@@ -105,7 +99,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
                 Concept fieldConcept = fieldInGroup.getField().getConcept();
                 if (fieldConcept == null) {
                     throw new ConfigurationException("Chart %s has non-concept subfield %s",
-                            form.getUuid(), fieldInGroup.getField().getName());
+                        form.getUuid(), fieldInGroup.getField().getName());
                 }
                 groupFieldConceptIds.add(fieldConcept.getUuid());
             }
@@ -117,21 +111,19 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
 
     /**
      * Returns all charts (there is no support for searching or filtering).
-     *
-     * @see AbstractReadOnlyResource#search(RequestContext)
      * @param context the request context; specify the URL query parameter
-     *     "?v=full" to get a list of the groups and concepts in each form.
+     *                "?v=full" to get a list of the groups and concepts in each form.
+     * @see AbstractReadOnlyResource#search(RequestContext)
      */
-    @Override
-    protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
+    @Override protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
         return getCharts(formService);
     }
 
     public static List<Form> getCharts(FormService formService) {
         List<Form> charts = new ArrayList<>();
         String[] uuids = Context.getAdministrationService()
-                .getGlobalProperty(GlobalProperties.CHART_UUIDS)
-                .split(",");
+            .getGlobalProperty(GlobalProperties.CHART_UUIDS)
+            .split(",");
         for (String uuid : uuids) {
             Form form = formService.getFormByUuid(uuid);
             if (form == null) {

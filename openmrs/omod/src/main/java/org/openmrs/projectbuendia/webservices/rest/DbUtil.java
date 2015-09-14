@@ -11,11 +11,24 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.openmrs.*;
-import org.openmrs.api.*;
+import org.openmrs.Concept;
+import org.openmrs.ConceptClass;
+import org.openmrs.ConceptName;
+import org.openmrs.Location;
+import org.openmrs.OrderType;
+import org.openmrs.Patient;
+import org.openmrs.PatientIdentifierType;
+import org.openmrs.Person;
+import org.openmrs.PersonAttribute;
+import org.openmrs.PersonAttributeType;
+import org.openmrs.api.ConceptService;
+import org.openmrs.api.LocationService;
+import org.openmrs.api.OrderService;
+import org.openmrs.api.PatientService;
+import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 
-import java.util.*;
+import java.util.Locale;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtil {
@@ -24,13 +37,13 @@ public class DbUtil {
 
     // OpenMRS object UUIDs
     public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID =
-            "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
+        "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
     public static PatientIdentifierType getMsfIdentifierType() {
         PatientService service = Context.getPatientService();
         PatientIdentifierType identifierType =
-                service.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
+            service.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
         if (identifierType == null) {
             identifierType = new PatientIdentifierType();
             identifierType.setName(MSF_IDENTIFIER);
@@ -39,26 +52,6 @@ public class DbUtil {
             service.savePatientIdentifierType(identifierType);
         }
         return identifierType;
-    }
-
-    /** Gets or creates a Concept with a given UUID and name. */
-    public static Concept getConcept(String name, String uuid, String typeName, String className) {
-        ConceptService conceptService = Context.getConceptService();
-        Concept concept = conceptService.getConceptByUuid(uuid);
-        if (concept == null) {
-            concept = new Concept();
-            concept.setUuid(uuid);
-            concept.setShortName(new ConceptName(name, new Locale("en")));
-            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
-            concept.setConceptClass(conceptService.getConceptClassByName(className));
-            conceptService.saveConcept(concept);
-        }
-        return concept;
-    }
-
-    public static ConceptClass getConceptClass(String name) {
-        ConceptService conceptService = Context.getConceptService();
-        return conceptService.getConceptClassByName(name);
     }
 
     public static OrderType getDrugOrderType() {
@@ -73,6 +66,11 @@ public class DbUtil {
             orderService.saveOrderType(orderType);
         }
         return orderType;
+    }
+
+    public static ConceptClass getConceptClass(String name) {
+        ConceptService conceptService = Context.getConceptService();
+        return conceptService.getConceptClassByName(name);
     }
 
     public static OrderType getMiscOrderType() {
@@ -94,13 +92,34 @@ public class DbUtil {
     // which "order executed" is observed for the appropriate order.
     public static Concept getOrderExecutedConcept() {
         return DbUtil.getConcept(
-                "Order executed",
-                // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for
-                // arbitrary string IDs unrelated to RFC 4122.  Therefore, to prevent
-                // collisions, UUIDs specific to this module are prefixed "buendia-".
-                "buendia-concept-order_executed",
-                "N/A",
-                "Finding");
+            "Order executed",
+            // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for
+            // arbitrary string IDs unrelated to RFC 4122.  Therefore, to prevent
+            // collisions, UUIDs specific to this module are prefixed "buendia-".
+            "buendia-concept-order_executed",
+            "N/A",
+            "Finding");
+    }
+
+    /** Gets or creates a Concept with a given UUID and name. */
+    public static Concept getConcept(String name, String uuid, String typeName, String className) {
+        ConceptService conceptService = Context.getConceptService();
+        Concept concept = conceptService.getConceptByUuid(uuid);
+        if (concept == null) {
+            concept = new Concept();
+            concept.setUuid(uuid);
+            concept.setShortName(new ConceptName(name, new Locale("en")));
+            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
+            concept.setConceptClass(conceptService.getConceptClassByName(className));
+            conceptService.saveConcept(concept);
+        }
+        return concept;
+    }
+
+    /** Gets the attribute type for the patient's assigned location. */
+    public static PersonAttributeType getAssignedLocationAttributeType() {
+        return getPersonAttributeType(
+            ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_location");
     }
 
     /** Gets or creates a PersonAttributeType with a given UUID and name. */
@@ -119,12 +138,6 @@ public class DbUtil {
         return personAttributeType;
     }
 
-    /** Gets the attribute type for the patient's assigned location. */
-    public static PersonAttributeType getAssignedLocationAttributeType() {
-        return getPersonAttributeType(
-                ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_location");
-    }
-
     /** Gets the value of an attribute on a person. */
     public static String getPersonAttributeValue(Person person, PersonAttributeType attrType) {
         PersonAttribute attribute = person.getAttribute(attrType);
@@ -133,7 +146,7 @@ public class DbUtil {
 
     /** Sets an attribute on a person. */
     public static void setPersonAttributeValue(
-            Patient patient, PersonAttributeType attrType, String value) {
+        Patient patient, PersonAttributeType attrType, String value) {
         PersonService personService = Context.getPersonService();
         PersonAttribute attribute = patient.getAttribute(attrType);
         if (attribute == null) {

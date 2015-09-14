@@ -12,11 +12,10 @@
 package org.openmrs.projectbuendia;
 
 import org.junit.Test;
-import org.openmrs.Concept;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
 
 public class UtilsTest {
     @Test

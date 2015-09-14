@@ -43,16 +43,16 @@ import java.util.List;
 /**
  * Resource for users (note that users are stored as Providers, Persons, and Users, but only
  * Providers will be returned by List calls).
- *
+ * <p/>
  * <p>Expected behavior:
  * <ul>
  * <li>GET /user returns all users ({@link #getAll(RequestContext)})
  * <li>GET /user/[UUID] returns a single user ({@link #retrieve(String, RequestContext)})
  * <li>GET /user?q=[QUERY] returns users whose full name contains the query string
- *     ({@link #search(RequestContext)})
+ * ({@link #search(RequestContext)})
  * <li>POST /user creates a new user ({@link #create(SimpleObject, RequestContext)})
  * </ul>
- *
+ * <p/>
  * <p>All GET operations return User resources in the following JSON form:
  * <pre>
  * {
@@ -62,7 +62,7 @@ import java.util.List;
  *   family_name: "Smith"
  * }
  * </pre>
- *
+ * <p/>
  * <p>User creation expects a slightly different format:
  * <pre>
  * {
@@ -72,7 +72,7 @@ import java.util.List;
  *   family_name: "Smith"
  * }
  * </pre>
- *
+ * <p/>
  * <p>If an error occurs, the response will contain the following:
  * <pre>
  * {
@@ -84,7 +84,8 @@ import java.util.List;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider
+    .class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class UserResource implements Listable, Searchable, Retrievable, Creatable {
     // JSON property names
     private static final String USER_ID = "user_id";
@@ -121,8 +122,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     }
 
     /** Returns all Providers. */
-    @Override
-    public SimpleObject getAll(RequestContext context) throws ResponseException {
+    @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
             SimpleObject result = getAllInner();
@@ -139,7 +139,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         List<Provider> providers;
         // Returning providers is not a thread-safe operation as it may add the guest user
         // to the database, which is not idempotent.
-        synchronized(this) {
+        synchronized (this) {
             providers = providerService.getAllProviders(false); // omit retired
             addGuestIfNotPresent(providers);
         }
@@ -159,11 +159,11 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
 
         if (!guestFound) {
-                SimpleObject guestDetails = new SimpleObject();
-                guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
-                guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
-                guestDetails.put(USER_NAME, GUEST_USER_NAME);
-                guestDetails.put(PASSWORD, GUEST_PASSWORD);
+            SimpleObject guestDetails = new SimpleObject();
+            guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
+            guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
+            guestDetails.put(USER_NAME, GUEST_USER_NAME);
+            guestDetails.put(PASSWORD, GUEST_PASSWORD);
             synchronized (guestAddLock) {
                 // Fetch again to avoid duplication in case another thread has
                 // added Guest User, but use the UserService for the check to
@@ -173,6 +173,82 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
                     providers.add(createFromSimpleObject(guestDetails));
                 }
             }
+        }
+    }
+
+    /**
+     * Converts a list of Providers into a SimpleObject in the form
+     * {"results": [...]} with an array of SimpleObjects, one for each Provider.
+     */
+    private SimpleObject getSimpleObjectWithResults(List<Provider> providers) {
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Provider provider : providers) {
+            jsonResults.add(providerToJson(provider));
+        }
+        SimpleObject list = new SimpleObject();
+        list.add("results", jsonResults);
+        return list;
+    }
+
+    /** Adds a new Provider (with associated User and Person). */
+    private Provider createFromSimpleObject(SimpleObject simpleObject) {
+        checkRequiredFields(simpleObject, REQUIRED_FIELDS);
+
+        // TODO: Localize full name construction
+        String fullName = simpleObject.get(GIVEN_NAME) + " " + simpleObject.get(FAMILY_NAME);
+
+        Person person = new Person();
+        PersonName personName = new PersonName();
+        personName.setGivenName((String) simpleObject.get(GIVEN_NAME));
+        personName.setFamilyName((String) simpleObject.get(FAMILY_NAME));
+        person.addName(personName);
+        person.setGender(UNKNOWN);  // This is required, even though it serves no purpose here.
+        personService.savePerson(person);
+
+        User user = new User();
+        user.setPerson(person);
+        user.setName(fullName);
+        user.setUsername((String) simpleObject.get(USER_NAME));
+        userService.saveUser(user, (String) simpleObject.get(PASSWORD));
+
+        Provider provider = new Provider();
+        provider.setPerson(person);
+        provider.setName(fullName);
+        providerService.saveProvider(provider);
+
+        log.info("Created user " + fullName);
+
+        return provider;
+    }
+
+    /** Builds a SimpleObject describing the given Provider. */
+    private SimpleObject providerToJson(Provider provider) {
+        SimpleObject jsonForm = new SimpleObject();
+        if (provider != null) {
+            jsonForm.add(USER_ID, provider.getUuid());
+            jsonForm.add(FULL_NAME, provider.getName());
+
+            Person person = provider.getPerson();
+            if (person != null) {
+                jsonForm.add(GIVEN_NAME, person.getGivenName());
+                jsonForm.add(FAMILY_NAME, person.getFamilyName());
+            }
+        }
+        return jsonForm;
+    }
+
+    /** Throws an exception if the given SimpleObject is missing any required fields. */
+    private void checkRequiredFields(SimpleObject simpleObject, String[] requiredFields) {
+        List<String> missingFields = new ArrayList<>();
+        for (String requiredField : requiredFields) {
+            if (!simpleObject.containsKey(requiredField)) {
+                missingFields.add(requiredField);
+            }
+        }
+
+        if (!missingFields.isEmpty()) {
+            throw new InvalidObjectDataException(
+                "JSON object lacks required fields: " + StringUtils.join(missingFields, ","));
         }
     }
 
@@ -194,47 +270,14 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return providerToJson(createFromSimpleObject(simpleObject));
     }
 
-    /** Adds a new Provider (with associated User and Person). */
-    private Provider createFromSimpleObject(SimpleObject simpleObject) {
-        checkRequiredFields(simpleObject, REQUIRED_FIELDS);
-
-        // TODO: Localize full name construction
-        String fullName = simpleObject.get(GIVEN_NAME) + " " + simpleObject.get(FAMILY_NAME);
-
-        Person person = new Person();
-        PersonName personName = new PersonName();
-        personName.setGivenName((String)simpleObject.get(GIVEN_NAME));
-        personName.setFamilyName((String)simpleObject.get(FAMILY_NAME));
-        person.addName(personName);
-        person.setGender(UNKNOWN);  // This is required, even though it serves no purpose here.
-        personService.savePerson(person);
-
-        User user = new User();
-        user.setPerson(person);
-        user.setName(fullName);
-        user.setUsername((String)simpleObject.get(USER_NAME));
-        userService.saveUser(user, (String)simpleObject.get(PASSWORD));
-
-        Provider provider = new Provider();
-        provider.setPerson(person);
-        provider.setName(fullName);
-        providerService.saveProvider(provider);
-
-        log.info("Created user " + fullName);
-
-        return provider;
-    }
-
-    @Override
-    public String getUri(Object instance) {
+    @Override public String getUri(Object instance) {
         Patient patient = (Patient) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + patient.getUuid();
     }
 
     /** Returns a specific Provider. */
-    @Override
-    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+    @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
             Object result = retrieveInner(uuid);
@@ -254,14 +297,12 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return providerToJson(provider);
     }
 
-    @Override
-    public List<Representation> getAvailableRepresentations() {
+    @Override public List<Representation> getAvailableRepresentations() {
         return Arrays.asList(Representation.DEFAULT);
     }
 
     /** Searches for Providers whose names contain the 'q' parameter. */
-    @Override
-    public SimpleObject search(RequestContext context) throws ResponseException {
+    @Override public SimpleObject search(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "search");
             SimpleObject result = searchInner(context);
@@ -290,50 +331,5 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
         addGuestIfNotPresent(filteredProviders);
         return getSimpleObjectWithResults(filteredProviders);
-    }
-
-    /** Throws an exception if the given SimpleObject is missing any required fields. */
-    private void checkRequiredFields(SimpleObject simpleObject, String[] requiredFields) {
-        List<String> missingFields = new ArrayList<>();
-        for (String requiredField : requiredFields) {
-            if (!simpleObject.containsKey(requiredField)) {
-                missingFields.add(requiredField);
-            }
-        }
-
-        if (!missingFields.isEmpty()) {
-            throw new InvalidObjectDataException(
-                    "JSON object lacks required fields: " + StringUtils.join(missingFields, ","));
-        }
-    }
-
-    /**
-     * Converts a list of Providers into a SimpleObject in the form
-     * {"results": [...]} with an array of SimpleObjects, one for each Provider.
-     */
-    private SimpleObject getSimpleObjectWithResults(List<Provider> providers) {
-        List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Provider provider : providers) {
-            jsonResults.add(providerToJson(provider));
-        }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
-    }
-
-    /** Builds a SimpleObject describing the given Provider. */
-    private SimpleObject providerToJson(Provider provider) {
-        SimpleObject jsonForm = new SimpleObject();
-        if (provider != null) {
-            jsonForm.add(USER_ID, provider.getUuid());
-            jsonForm.add(FULL_NAME, provider.getName());
-
-            Person person = provider.getPerson();
-            if (person != null) {
-                jsonForm.add(GIVEN_NAME, person.getGivenName());
-                jsonForm.add(FAMILY_NAME, person.getFamilyName());
-            }
-        }
-        return jsonForm;
     }
 }

@@ -35,11 +35,12 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import javax.annotation.Nullable;
 
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrowNS;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
@@ -48,13 +49,11 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementItera
 /**
  * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
  * org.openmrs as otherwise the resource annotation isn't picked up.
- *
  * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform",
-        supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+    supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformResource extends AbstractReadOnlyResource<Form> {
-
     private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
     private static final String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
 
@@ -73,24 +72,22 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     /**
      * Adds the following fields to the {@link SimpleObject}:
      * <ul>
-     *     <li>name: display name of the form
-     *     <li>date_created: the date the form was created, as ms since epoch
-     *     <li>version: the version number of the form (e.g. 0.2.1)
-     *     <li>date_changed: the date the form was last modified, as ms since epoch;
-     *         for forms that contain a provider field, this date will also be
-     *         updated whenever the set of providers on the server changes
+     * <li>name: display name of the form
+     * <li>date_created: the date the form was created, as ms since epoch
+     * <li>version: the version number of the form (e.g. 0.2.1)
+     * <li>date_changed: the date the form was last modified, as ms since epoch;
+     * for forms that contain a provider field, this date will also be
+     * updated whenever the set of providers on the server changes
      * </ul>
-     *
+     * <p/>
      * If the query parameter "?v=full" is present, also adds the "xml" field
      * containing the XML of the form model definition.
-     *
-     * @param context the request context; specify "v=full" in the URL params
-     *     to include the XML for the form model in the response
+     * @param context      the request context; specify "v=full" in the URL params
+     *                     to include the XML for the form model in the response
      * @param snapshotTime ignored
      */
-    @Override
-    protected void populateJsonProperties(
-            Form form, RequestContext context, SimpleObject json, long snapshotTime) {
+    @Override protected void populateJsonProperties(
+        Form form, RequestContext context, SimpleObject json, long snapshotTime) {
         json.add("name", form.getName());
         json.add("id", form.getFormId());
         json.add("version", form.getVersion());
@@ -102,7 +99,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
             try {
                 // TODO: Use description instead of name?
                 FormData formData = BuendiaXformBuilderEx.buildXform(
-                        form, new BuendiaXformCustomizer());
+                    form, new BuendiaXformCustomizer());
                 String xml = convertToOdkCollect(formData.xml, form.getName());
                 includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);
@@ -118,8 +115,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
             for (FormField formField : form.getFormFields()) {
                 Field field = formField.getField();
                 if (FormConstants.FIELD_TYPE_DATABASE.equals(
-                        field.getFieldType().getFieldTypeId())
-                        && "encounter".equals(field.getTableName())) {
+                    field.getFieldType().getFieldTypeId())
+                    && "encounter".equals(field.getTableName())) {
                     includesProviders = true;
                 }
                 dateChanged = maxDate(dateChanged, dateChanged(formField));
@@ -134,76 +131,12 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Returns the actual last modification time of an OpenMRS object.
-     * Because OpenMRS doesn't set the modification time upon initial
-     * creation (sigh) we have to check both dateChanged and dateCreated.
-     */
-    private Date dateChanged(BaseOpenmrsMetadata d) {
-        Date dateChanged = d.getDateChanged();
-        if (dateChanged != null) {
-            return dateChanged;
-        }
-        return d.getDateCreated();
-    }
-
-    /** Returns the later of two nullable dates. */
-    private Date maxDate(@Nullable Date d1, @Nullable Date d2) {
-        if (d1 == null) {
-            return d2;
-        }
-        if (d2 == null) {
-            return d1;
-        }
-        return d1.before(d2) ? d2 : d1;
-    }
-
-    /**
-     * Retrieves a single xform with the given UUID.  See
-     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
-     * for details on the context and snapshotTime arguments.
-     *
-     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     * @param context unused here
-     * @param snapshotTime unused here
-     */
-    @Override
-    protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
-        return formService.getFormByUuid(uuid);
-    }
-
-    /**
-     * Returns all xforms (there is no support for query parameters).  See
-     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
-     * for details on the context and snapshotTime arguments.
-     *
-     * @see AbstractReadOnlyResource#search(RequestContext)
-     * @param context unused here
-     * @param snapshotTime unused here
-     * Note: because of a bug in parsing form definitions, "v=full" is currently
-     * broken for this function
-     */
-    @Override
-    protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
-        // TODO/bug: Fix verbose mode. Currently produces the error:
-        // "No bind node for bindName _3._bleeding_sites".
-        // No query parameters supported - just give all the forms
-        List<Form> forms = new ArrayList<>();
-        for (Form form : formService.getAllForms()) {
-            if (form.getPublished()) {
-                forms.add(form);
-            }
-        }
-        return forms;
-    }
-
-    // Visible for testing
-    /**
      * Converts a vanilla Xform into one that ODK Collect is happy to work with.
      * This requires:
      * <ul>
-     *   <li>Changing the namespace of the the root element to http://www.w3.org/1999/xhtml
-     *   <li>Wrapping the model element in an HTML head element, with a title child element
-     *   <li>Wrapping remaining elements in an HTML body element
+     * <li>Changing the namespace of the the root element to http://www.w3.org/1999/xhtml
+     * <li>Wrapping the model element in an HTML head element, with a title child element
+     * <li>Wrapping remaining elements in an HTML body element
      * </ul>
      */
     static String convertToOdkCollect(String xml, String title) throws IOException, SAXException {
@@ -249,7 +182,6 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         return XformsUtil.doc2String(doc);
     }
 
-    // VisibleForTesting
     /**
      * Removes the relationship nodes added (unconditionally) by xforms. If
      * XFRM-189 is fixed, this method can go away.
@@ -261,19 +193,18 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         removeBinding(doc, "patient_relative.relationship");
 
         for (Element relative : toElementIterable(doc
-                .getElementsByTagNameNS("", "patient_relative"))) {
+            .getElementsByTagNameNS("", "patient_relative"))) {
             removeNode(relative);
         }
 
         // Remove every parent of a label element with a text of
         // "RELATIONSHIPS". (Easiest way to find the ones added...)
         for (Element label : toElementIterable(doc
-                .getElementsByTagNameNS(XFORMS_NAMESPACE, "label"))) {
+            .getElementsByTagNameNS(XFORMS_NAMESPACE, "label"))) {
             Element parent = (Element) label.getParentNode();
             if (XFORMS_NAMESPACE.equals(parent.getNamespaceURI())
-                    && parent.getLocalName().equals("group")
-                    && "RELATIONSHIPS".equals(label.getTextContent())) {
-
+                && parent.getLocalName().equals("group")
+                && "RELATIONSHIPS".equals(label.getTextContent())) {
                 removeNode(parent);
                 // We don't need to find other labels now, especially if they
                 // may already have been removed.
@@ -283,13 +214,70 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         return XformsUtil.doc2String(doc);
     }
 
+    /** Returns the later of two nullable dates. */
+    private Date maxDate(@Nullable Date d1, @Nullable Date d2) {
+        if (d1 == null) return d2;
+        if (d2 == null) return d1;
+        return d1.before(d2) ? d2 : d1;
+    }
+
+    /**
+     * Returns the actual last modification time of an OpenMRS object.
+     * Because OpenMRS doesn't set the modification time upon initial
+     * creation (sigh) we have to check both dateChanged and dateCreated.
+     */
+    private Date dateChanged(BaseOpenmrsMetadata d) {
+        Date dateChanged = d.getDateChanged();
+        if (dateChanged != null) return dateChanged;
+        return d.getDateCreated();
+    }
+
+    // Visible for testing
+
     private static void removeBinding(Document doc, String id) {
         for (Element binding : toElementIterable(
-                doc.getElementsByTagNameNS(XFORMS_NAMESPACE, "bind"))) {
+            doc.getElementsByTagNameNS(XFORMS_NAMESPACE, "bind"))) {
             if (binding.getAttribute("id").equals(id)) {
                 removeNode(binding);
                 return;
             }
         }
+    }
+
+    // VisibleForTesting
+
+    /**
+     * Retrieves a single xform with the given UUID.  See
+     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
+     * for details on the context and snapshotTime arguments.
+     * @param context      unused here
+     * @param snapshotTime unused here
+     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
+     */
+    @Override protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
+        return formService.getFormByUuid(uuid);
+    }
+
+    /**
+     * Returns all xforms (there is no support for query parameters).  See
+     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
+     * for details on the context and snapshotTime arguments.
+     * @param context      unused here
+     * @param snapshotTime unused here
+     *                     Note: because of a bug in parsing form definitions, "v=full" is currently
+     *                     broken for this function
+     * @see AbstractReadOnlyResource#search(RequestContext)
+     */
+    @Override protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
+        // TODO/bug: Fix verbose mode. Currently produces the error:
+        // "No bind node for bindName _3._bleeding_sites".
+        // No query parameters supported - just give all the forms
+        List<Form> forms = new ArrayList<>();
+        for (Form form : formService.getAllForms()) {
+            if (form.getPublished()) {
+                forms.add(form);
+            }
+        }
+        return forms;
     }
 }

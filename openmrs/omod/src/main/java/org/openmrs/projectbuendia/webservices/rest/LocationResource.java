@@ -41,18 +41,19 @@ import java.util.Set;
 
 /**
  * REST API for locations (places where patients can be located).
- *
+ * <p/>
  * <p>Expected behavior:
  * <ul>
  * <li>GET /location returns all locations ({@link #getAll(RequestContext)})
  * <li>GET /location/[UUID] returns a single location ({@link #retrieve(String, RequestContext)})
  * <li>POST /location adds a location ({@link #create(SimpleObject, RequestContext)}
- * <li>POST /location/[UUID] updates a location ({@link #update(String, SimpleObject, RequestContext)})
+ * <li>POST /location/[UUID] updates a location ({@link #update(String, SimpleObject,
+ * RequestContext)})
  * <li>DELETE /location/[UUID] deletes a location ({@link #delete(String, String, RequestContext)})
  * </ul>
- *
+ * <p/>
  * <p>Each operation accepts and returns locations in the following JSON form:
- *
+ * <p/>
  * <pre>
  * {
  *   "uuid": “12345678-1234-1234-1234-123456789abc",
@@ -63,7 +64,7 @@ import java.util.Set;
  *   "parent_uuid": “87654321-4321-4321-4321-cba9876543210"  // parent location
  * }
  * </pre>
- *
+ * <p/>
  * <p>If an error occurs, the response will be in the form:
  * <pre>
  * {
@@ -78,14 +79,13 @@ import java.util.Set;
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location",
     supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class LocationResource implements
-        Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
-
+    Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
     // Known locations.
     // The root location.
     public static final String ROOT_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
+    public static final String TRIAGE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
     // TODO/generalize: The facility name should not be hardcoded here.
     private static final String ROOT_NAME = "Facility Kailahun";
-    public static final String TRIAGE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
     // The hard-coded zones. These are (name, UUID) pairs, and are children of
     // the root location.  TODO/generalize: Consider generalizing these zones
     // as well.  They may be common in infectious disease deployments but don't
@@ -163,7 +163,8 @@ public class LocationResource implements
         }
         Location parent = locationService.getLocationByUuid(parentUuid);
         if (parent == null) {
-            throw new InvalidObjectDataException("No parent location found with UUID " + parentUuid);
+            throw new InvalidObjectDataException("No parent location found with UUID " +
+                parentUuid);
         }
         Location location = new Location();
         updateNames(request, location);
@@ -184,14 +185,13 @@ public class LocationResource implements
         Location duplicate = locationService.getLocation(name);
         if (duplicate != null) {
             throw new InvalidObjectDataException(
-                    String.format("Another location already has the name \"%s\"", name));
+                String.format("Another location already has the name \"%s\"", name));
         }
         location.setName(name);
         location.setDescription(name);
     }
 
-    @Override
-    public SimpleObject getAll(RequestContext context) throws ResponseException {
+    @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
             SimpleObject result = getAllInner();
@@ -203,28 +203,33 @@ public class LocationResource implements
         }
     }
 
-    private SimpleObject getAllInner() throws ResponseException {
-        ArrayList<SimpleObject> jsonResults = new ArrayList<>();
-        // A new fetch is needed to sort out the hibernate cache.
-        Location root = locationService.getLocationByUuid(ROOT_UUID);
-        if (root == null) {
-            throw new IllegalStateException(
-                "Top-level location not found, expected UUID: " + ROOT_UUID);
+    @Override public SimpleObject search(RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "search");
+            SimpleObject result = searchInner(context);
+            logger.reply(context, this, "search", null);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "search", e);
+            throw e;
         }
-        addRecursively(root, jsonResults);
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
     }
 
-    private void addRecursively(Location location, ArrayList<SimpleObject> results) {
-        if (location.isRetired()) {
-            return;
+    @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "retrieve", uuid);
+            Object result = retrieveInner(uuid);
+            logger.reply(context, this, "retrieve", result);
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "retrieve", e);
+            throw e;
         }
-        results.add(locationToJson(location));
-        for (Location child : location.getChildLocations()) {
-            addRecursively(child, results);
-        }
+    }
+
+    private Object retrieveInner(String uuid) throws ResponseException {
+        Location location = locationService.getLocationByUuid(uuid);
+        return location == null ? null : locationToJson(location);
     }
 
     private SimpleObject locationToJson(Location location) {
@@ -243,50 +248,12 @@ public class LocationResource implements
         return result;
     }
 
-    @Override
-    public SimpleObject search(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "search");
-            SimpleObject result = searchInner(context);
-            logger.reply(context, this, "search", null);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "search", e);
-            throw e;
-        }
-    }
-
-
-    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        return getAll(requestContext);
-    }
-    @Override
-    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "retrieve", uuid);
-            Object result = retrieveInner(uuid);
-            logger.reply(context, this, "retrieve", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "retrieve", e);
-            throw e;
-        }
-    }
-
-    private Object retrieveInner(String uuid) throws ResponseException {
-        Location location = locationService.getLocationByUuid(uuid);
-        return location == null ? null : locationToJson(location);
-    }
-
-    @Override
-    public List<Representation> getAvailableRepresentations() {
+    @Override public List<Representation> getAvailableRepresentations() {
         return Arrays.asList(Representation.DEFAULT);
     }
 
-
-    @Override
-    public Object update(String uuid, SimpleObject request, RequestContext context)
-            throws ResponseException {
+    @Override public Object update(String uuid, SimpleObject request, RequestContext context)
+        throws ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + request);
             Object result = updateInner(uuid, request);
@@ -308,16 +275,14 @@ public class LocationResource implements
         return locationToJson(location);
     }
 
-    @Override
-    public String getUri(Object instance) {
+    @Override public String getUri(Object instance) {
         Location location = (Location) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + location.getUuid();
     }
 
-    @Override
-    public void delete(String uuid, String reason, RequestContext context)
-            throws ResponseException {
+    @Override public void delete(String uuid, String reason, RequestContext context)
+        throws ResponseException {
         try {
             logger.request(context, this, "update", uuid + ", " + reason);
             deleteInner(uuid);
@@ -328,6 +293,32 @@ public class LocationResource implements
         }
     }
 
+    private SimpleObject getAllInner() throws ResponseException {
+        ArrayList<SimpleObject> jsonResults = new ArrayList<>();
+        // A new fetch is needed to sort out the hibernate cache.
+        Location root = locationService.getLocationByUuid(ROOT_UUID);
+        if (root == null) {
+            throw new IllegalStateException(
+                "Top-level location not found, expected UUID: " + ROOT_UUID);
+        }
+        addRecursively(root, jsonResults);
+        SimpleObject list = new SimpleObject();
+        list.add("results", jsonResults);
+        return list;
+    }
+
+    private void addRecursively(Location location, ArrayList<SimpleObject> results) {
+        if (location.isRetired()) return;
+        results.add(locationToJson(location));
+        for (Location child : location.getChildLocations()) {
+            addRecursively(child, results);
+        }
+    }
+
+    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
+        return getAll(requestContext);
+    }
+
     private void deleteInner(String uuid) throws ResponseException {
         if (ROOT_UUID.equals(uuid)) {
             throw new InvalidObjectDataException("Cannot delete the root location");
@@ -335,7 +326,7 @@ public class LocationResource implements
         for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
             if (nameAndUuid[1].equals(uuid)) {
                 throw new InvalidObjectDataException(
-                        "Cannot delete the zone \"" + nameAndUuid[0] + "\"");
+                    "Cannot delete the zone \"" + nameAndUuid[0] + "\"");
             }
         }
         Location location = locationService.getLocationByUuid(uuid);
@@ -357,9 +348,9 @@ public class LocationResource implements
             for (PersonAttribute attribute : attributes) {
                 if (attribute.getValue().equals(location.getUuid())) {
                     throw new InvalidObjectDataException(
-                            String.format("Cannot delete the location \"%s\""
-                                    + " because it has patients assigned to it",
-                                    location.getDisplayString()));
+                        String.format("Cannot delete the location \"%s\""
+                                + " because it has patients assigned to it",
+                            location.getDisplayString()));
                 }
             }
         }
