@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import csv
+import json
 import MySQLdb
 import os
 import re
@@ -159,10 +160,9 @@ def apply(tabs):
         return odb.update('field', field_id,
                           name=name or table + '.' + attribute)
 
-    def get_field_for_section(name, description=None, concept_id=None):
+    def get_field_for_section(name, description=None):
         return get_or_insert('field', field_type=section_field_type,
-                             name=name, description=description or name,
-                             concept_id=concept_id)
+                             name=name, description=description or name)
 
     def get_field_for_concept(concept_id, name=None, description=None):
         name = name or db.get('name', 'concept_name', concept_id=concept_id)
@@ -175,7 +175,7 @@ def apply(tabs):
         return odb.insert('form_field', form_id=form_id, field_id=field_id,
                           parent_form_field=parent_form_field_id,
                           field_number=field_number, sort_weight=sort_weight,
-                          required=required)
+                          required=required and 1 or 0)
 
     def set_concept_name(concept_id, name, locale):
         if name:
@@ -246,20 +246,27 @@ def apply(tabs):
     def apply_chart(rows, form_id):
         """Applies the chart definition given rows from the chart tab."""
         section = None
-        grid_rows = []
+        sections = []
+        section_rows = []
         for row in rows:
-            section = row['section'] or section
-            concept_id = validate_int(row['concept'])
-            label = row['label']
-            if section == 'grid' and concept_id:
-                grid_rows.append((concept_id, label))
-        apply_grid(grid_rows, form_id)
+            if row['section'].strip():
+                if section and section_rows:
+                    sections.append((section, section_rows))
+                section, section_rows = row['section'].strip(), []
+            if validate_str(row['type']) and validate_ints(row['concept']):
+                section_rows.append(row)
+        if section and section_rows:
+            sections.append((section, section_rows))
+        apply_chart_sections(sections, form_id)
 
     def clear_form(form_id):
         """Removes all the form_fields from the given form."""
         db.execute('update form_field set parent_form_field = null'
                    ' where form_id = %s', form_id)  # remove foreign keys
         db.execute('delete from form_field where form_id = %s', form_id)
+
+    def validate_str(text):
+        return (text or '').strip()
 
     def validate_type(type):
         type = type.strip().lower()
@@ -276,6 +283,14 @@ def apply(tabs):
         except ValueError:
             return None
 
+    def validate_ints(text):
+        return filter(lambda x: x, [validate_int(n) for n in text.split(',')])
+
+    def validate_boolean(text):
+        # Treat "no", "none", "nil", "false", "0" etc. as false; otherwise true.
+        word = str(text or '').split(' ')[0].lower()
+        return re.match('[a-z1-9]', word) and word[0] not in 'nf' and 1 or 0
+
     def validate_range(range):
         try:
             low, high = re.split(r'\.\.+', range or '', 1)
@@ -285,29 +300,52 @@ def apply(tabs):
         except ValueError:
             return None, None
 
-    def apply_grid(grid_rows, form_id):
+    def apply_chart_sections(sections, form_id):
         """
-        Applies the desired selection and sequence of grid rows by making
-        changes to the given chart form.  The OpenMRS data model consists of:
+        Rewrites the given chart form to contain the specified sections with
+        the specified selection and sequence of grid rows.  Details
+        The OpenMRS data model consists of:
           - 'form' table: each row is a form
           - 'form_field' table: puts fields in forms and determines their order
           - 'field' table: each row is a field (usually linked to a concept)
         """
         clear_form(form_id)
 
-        # Add a single section under which we put all the fields (to satisfy
-        # the client's assumption that all fields are grouped under sections).
-        field_id = get_field_for_section('All', concept_id=1163)
-        section_id = add_field_to_form(form_id, field_id, field_number=1)
+        for section, rows in sections:
+            # Add a section (we reuse this concept ID for all sections).
+            field_id = get_field_for_section(section)
+            section_id = add_field_to_form(form_id, field_id, field_number=1)
 
-        # Add the fields to the section, setting the appropriate concept names.
-        # Concepts must already exist (we can't create them here, because we
-        # don't know what data type they should have).
-        for i, (concept_id, label) in enumerate(grid_rows):
-            if db.get('concept_id', concept_id=concept_id):
-                set_concept_name(concept_id, label, LOCALE)
-                field_id = get_field_for_concept(concept_id, label)
-                add_field_to_form(form_id, field_id, section_id, i + 1)
+            # Add the fields to the section with the specified names.  Concepts
+            # must already exist (we can't create them here, because we don't
+            # know what data type they should have).  For charts, the "type"
+            # column in the CSV gives the rendering type, not the data type.
+            for i, row in enumerate(rows):
+                label = row.get('label', '')
+                concept_ids = validate_ints(row.get('concept'))
+                for concept_id in concept_ids:
+                    if not db.get('concept_id', concept_id=concept_id):
+                        raise ValueError(
+                            'Concept %d not found in the existing dictionary'
+                            'or any form in this profile' % concept_id)
+
+                # Copy everything, but omit 'concept' as we have 'concepts'
+                # and omit 'required' because there's a DB column for that.
+                required = validate_boolean(row.get('required'))
+                config = dict([(normalize_name(key), value.strip())
+                               for key, value in row.items()],
+                              concepts=concept_ids,
+                              type=validate_str(row['type']))
+                for key in config.keys():
+                    if key in ['concept', 'required'] or config[key] == '':
+                        del config[key]
+
+                # Put the first concept ID in the 'concept_id' column;
+                # serialize all the rest of the details in the description.
+                field_id = get_field_for_concept(
+                        concept_ids[0], label, description=json.dumps(config))
+                add_field_to_form(form_id, field_id, section_id,
+                                  field_number=i + 1, required=required)
 
     def split_by_title(rows):
         row_numbers = []
@@ -323,11 +361,14 @@ def apply(tabs):
         for form_rows in split_by_title(rows):
             put_form(form_rows)
 
+    def normalize_name(name):
+        return re.sub('[\W_]+', '_', name.lower()).strip('_')
+
     def put_form(rows):
         adult_return = db.get('encounter_type_id', name='ADULTRETURN')
 
         title = rows[0]['title']
-        uuid = 'buendia-form-' + re.sub('[\W_]+', '_', title.lower()).strip('_')
+        uuid = 'buendia-form-' + normalize_name(title)
         form_id = db.get('form_id', uuid=uuid)
         if not form_id:
             form_id = odb.insert('form', name=title, version='1',
@@ -418,7 +459,7 @@ def apply(tabs):
                             row.get('units'))
                     field_id = get_field_for_concept(concept_id, label)
                     add_field_to_form(form_id, field_id, section_id, None, i,
-                                      validate_int(row.get('required')) or 0)
+                                      validate_boolean(row.get('required')))
                     select_concept_id, select_answer_ids = concept_id, []
 
             last_type = type or last_type
@@ -439,7 +480,7 @@ def apply(tabs):
                     field_id = get_field_for_concept(
                         option_concept_id, option_label)
                     add_field_to_form(form_id, field_id, section_id, None, i,
-                                      validate_int(row.get('required')) or 0)
+                                      validate_boolean(row.get('required')))
 
     if 'form' in tabs:
         apply_forms(tabs['form'])
