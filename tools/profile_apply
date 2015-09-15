@@ -311,16 +311,16 @@ def apply(tabs):
         """
         clear_form(form_id)
 
-        for section, rows in sections:
-            # Add a section (we reuse this concept ID for all sections).
-            field_id = get_field_for_section(section)
-            section_id = add_field_to_form(form_id, field_id, field_number=1)
+        for i, (section, rows) in enumerate(sections):
+            field_id = get_field_for_section(section, description=json.dumps(
+                {'type': section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'}))
+            section_id = add_field_to_form(form_id, field_id, None, i + 1)
 
             # Add the fields to the section with the specified names.  Concepts
             # must already exist (we can't create them here, because we don't
             # know what data type they should have).  For charts, the "type"
             # column in the CSV gives the rendering type, not the data type.
-            for i, row in enumerate(rows):
+            for j, row in enumerate(rows):
                 label = row.get('label', '')
                 concept_ids = validate_ints(row.get('concept'))
                 for concept_id in concept_ids:
@@ -345,7 +345,7 @@ def apply(tabs):
                 field_id = get_field_for_concept(
                         concept_ids[0], label, description=json.dumps(config))
                 add_field_to_form(form_id, field_id, section_id,
-                                  field_number=i + 1, required=required)
+                                  field_number=j + 1, required=required)
 
     def split_by_title(rows):
         row_numbers = []
