@@ -222,9 +222,10 @@ public class BuendiaXformBuilderEx {
                             Element grandChildElement = childElement.getElement(j);
                             String value = grandChildElement.getAttributeValue(null,
                                 ATTRIBUTE_OPENMRS_CONCEPT);
-                            if (StringUtils.isNotBlank(value))
-                                BuendiaXformBuilder.addConceptMapAttributes(grandChildElement,
-                                    value);
+                            if (StringUtils.isNotBlank(value)) {
+                                BuendiaXformBuilder.addConceptMapAttributes(
+                                    grandChildElement, value);
+                            }
                         }
                     }
                 }
@@ -359,7 +360,6 @@ public class BuendiaXformBuilderEx {
                 if (appearanceAttribute != null) {
                     fieldUiNode.setAttribute(null, ATTRIBUTE_APPEARANCE, appearanceAttribute);
                 }
-
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_DATABASE) {
                 fieldUiNode = addDatabaseElementUiNode(name, formField, parentUiNode);
             } else {
@@ -421,7 +421,6 @@ public class BuendiaXformBuilderEx {
                         (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" :
                             ATTRIBUTE_MESSAGE),
                         "value should be between " + lower + " and " + upper + " inclusive");
-
                 } else {
                     bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower);
                     bindNode.setAttribute(null,
@@ -454,17 +453,18 @@ public class BuendiaXformBuilderEx {
                 && answer.getAnswerDrug() != null) {
                 conceptName = answer.getAnswerDrug().getName();
 
-                if (multiplSel)
+                if (multiplSel) {
                     conceptValue = FormUtil.getXmlToken(conceptName);
-                else {
+                } else {
                     conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale) +
                         "^" + FormUtil.drugToString(answer.getAnswerDrug());
                 }
             } else {
-                if (multiplSel)
+                if (multiplSel) {
                     conceptValue = FormUtil.getXmlToken(conceptName);
-                else
+                } else {
                     conceptValue = FormUtil.conceptToString(answer.getAnswerConcept(), locale);
+                }
             }
 
             Element itemNode = addSelectOption(controlNode, conceptName, conceptValue);
@@ -576,7 +576,6 @@ public class BuendiaXformBuilderEx {
 
     /**
      * Builds a UI control node for a table field.
-     *
      * @return - the created UI control node.
      */
     private Element addDatabaseElementUiNode(String bindName, FormField formField, Element
@@ -621,7 +620,6 @@ public class BuendiaXformBuilderEx {
 
     /**
      * Populates a UI control node with providers.
-     *
      * @param controlNode - the UI control node.
      */
     private void populateProviders(Element controlNode) {
@@ -634,7 +632,6 @@ public class BuendiaXformBuilderEx {
 
     /**
      * Populates a UI control node with locations.
-     *
      * @param controlNode - the UI control node.
      */
     private void populateLocations(Element controlNode) {

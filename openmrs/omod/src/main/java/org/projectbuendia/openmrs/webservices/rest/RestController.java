@@ -33,8 +33,10 @@ public class RestController extends MainResourceController {
         log.warn("Created ProjectBuendia RestController");
     }
 
-    /** @see org.openmrs.module.webservices.rest.web.v1_0.controller
-     * .BaseRestController#getNamespace() */
+    /**
+     * @see org.openmrs.module.webservices.rest.web.v1_0.controller
+     * .BaseRestController#getNamespace()
+     */
     @Override public String getNamespace() {
         return REST_VERSION_1_AND_NAMESPACE;
     }

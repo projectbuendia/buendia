@@ -1,26 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE sqldiff PUBLIC "-//OpenMRS//DTD OpenMRS SQL Diff Config 1.0//EN" "http://resources.openmrs.org/doctype/sqldiff-1.0.dtd">
+<!DOCTYPE sqldiff PUBLIC "-//OpenMRS//DTD OpenMRS SQL Diff Config 1.0//EN"
+    "http://resources.openmrs.org/doctype/sqldiff-1.0.dtd">
 
 <sqldiff version="1.0">
-	<help>
-		USE:
-			The diffs are ordered by data model version number.
-			The script can be run in a top down fashion and is
-			expected to not fail or overwrite old data
-		
-		EXPECT:
-			- "use business-database-name;" was called prior to
-			   calling this script
-	</help>
+  <help>
+    USE:
+    The diffs are ordered by data model version number.
+    The script can be run in a top down fashion and is
+    expected to not fail or overwrite old data
 
-<!-- 
-	<diff>
-		<version>1.0-SNAPSHOT</version>
-		<author>jonskeet@google.com</author>
-		<date></date>
-		<description></description>
-		<sql></sql>
-	</diff>
- -->
-	
+    EXPECT:
+    - "use business-database-name;" was called prior to
+    calling this script
+  </help>
+
+  <!--
+      <diff>
+          <version>1.0-SNAPSHOT</version>
+          <author>jonskeet@google.com</author>
+          <date></date>
+          <description></description>
+          <sql></sql>
+      </diff>
+   -->
+
 </sqldiff>

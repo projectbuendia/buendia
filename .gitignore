@@ -27,6 +27,7 @@ proguard/
 # https://intellij-support.jetbrains.com/entries/23393067.
 .idea/*
 !.idea/inspectionProfiles
+*/.idea/*
 
 # User-specific configurations
 *.iml

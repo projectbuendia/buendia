@@ -81,15 +81,12 @@ import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_TRUE;
  */
 public final class BuendiaXformBuilder {
     private static final String ATTRIBUTE_PRELOAD = "jr:preload";
-
     private static final String ATTRIBUTE_PRELOAD_PARAMS = "jr:preloadParams";
-
     private static final String PRELOAD_PATIENT = "patient";
 
     /**
      * Methods replaces the conceptId with a concept source name and source code.
-     *
-     * @param element the element with the openmrs_concept attribute
+     * @param element            the element with the openmrs_concept attribute
      * @param conceptValueString the value of the openmrs_concept attribute
      */
     public static void addConceptMapAttributes(Element element, String conceptValueString) {
@@ -105,9 +102,10 @@ public final class BuendiaXformBuilder {
                     if (preferredSource != null) {
                         for (ConceptMap map : concept.getConceptMappings()) {
                             ConceptReferenceTerm term = map.getConceptReferenceTerm();
-                            if (OpenmrsUtil.nullSafeEquals(preferredSource, term.getConceptSource
-                                ())) {
-                                element.setAttribute(null, ATTRIBUTE_OPENMRS_CONCEPT,
+                            if (OpenmrsUtil.nullSafeEquals(
+                                preferredSource, term.getConceptSource())) {
+                                element.setAttribute(
+                                    null, ATTRIBUTE_OPENMRS_CONCEPT,
                                     term.getConceptSource().getName() + ":" + term.getCode());
                                 return;
                             }
@@ -123,10 +121,9 @@ public final class BuendiaXformBuilder {
     /**
      * Parses an openmrs template and builds the bindings in the model plus UI controls for openmrs
      * table field questions.
-     *
      * @param modelElement - the model element to add bindings to.
-     * @param formNode the form node.
-     * @param bindings - a hash table to populate with the built bindings.
+     * @param formNode     the form node.
+     * @param bindings     - a hash table to populate with the built bindings.
      */
     public static void parseTemplate(Element modelElement, Element formNode, Element formChild,
                                      Map<String, Element> bindings,
@@ -135,16 +132,16 @@ public final class BuendiaXformBuilder {
         level++;
         int numOfEntries = formChild.getChildCount();
         for (int i = 0; i < numOfEntries; i++) {
-            if (formChild.isText(i))
-                continue; //Ignore all text.
+            if (formChild.isText(i)) continue; // Ignore all text.
 
             Element child = formChild.getElement(i);
             //These two attributes are a must for all nodes to be filled with values.
             //eg openmrs_concept="1740^ARV REGIMEN^99DCT" openmrs_datatype="CWE"
             if (child.getAttributeValue(null, ATTRIBUTE_OPENMRS_DATATYPE) == null
-                && child.getAttributeValue(null, ATTRIBUTE_OPENMRS_CONCEPT) != null)
+                && child.getAttributeValue(null, ATTRIBUTE_OPENMRS_CONCEPT) != null) {
                 continue; //These could be like options for multiple select, which take true or
-                // false value.
+            }
+            // false value.
 
             String name = child.getName();
 
@@ -160,27 +157,29 @@ public final class BuendiaXformBuilder {
             if ((child.getAttributeValue(null, ATTRIBUTE_OPENMRS_CONCEPT) != null && level > 1
             /*!child.getName().equals(NODE_OBS)*/)
                 || (child.getAttributeValue(null, ATTRIBUTE_OPENMRS_ATTRIBUTE) != null && child
-                .getAttributeValue(null,
+                .getAttributeValue(
+                    null,
                     ATTRIBUTE_OPENMRS_TABLE) != null)) {
                 if (!name.equalsIgnoreCase(NODE_PROBLEM_LIST)) {
-                    Element bindNode = createBindNode(modelElement, child, bindings, problemList,
-                        problemListItems);
+                    Element bindNode = createBindNode(
+                        modelElement, child, bindings, problemList, problemListItems);
 
-                    if (isMultSelectNode(child))
+                    if (isMultSelectNode(child)) {
                         addMultipleSelectXformValueNode(child);
+                    }
 
                     if (isTableFieldNode(child)) {
                         setTableFieldDataType(name, bindNode);
                         setTableFieldBindingAttributes(name, bindNode);
                         setTableFieldDefaultValue(name, formNode);
 
-                        if ("identifier".equalsIgnoreCase(child.getAttributeValue(null,
-                            ATTRIBUTE_OPENMRS_ATTRIBUTE))
-                            && "patient_identifier".equalsIgnoreCase(child.getAttributeValue(null,
-                            ATTRIBUTE_OPENMRS_TABLE))) {
+                        if ("identifier".equalsIgnoreCase(
+                                child.getAttributeValue(null, ATTRIBUTE_OPENMRS_ATTRIBUTE))
+                            && "patient_identifier".equalsIgnoreCase(
+                                child.getAttributeValue(null, ATTRIBUTE_OPENMRS_TABLE))) {
                             bindNode.setAttribute(null, ATTRIBUTE_PRELOAD, PRELOAD_PATIENT);
-                            bindNode.setAttribute(null, ATTRIBUTE_PRELOAD_PARAMS,
-                                "patientIdentifier");
+                            bindNode.setAttribute(
+                                null, ATTRIBUTE_PRELOAD_PARAMS, "patientIdentifier");
                         }
                     }
                 }
@@ -214,14 +213,13 @@ public final class BuendiaXformBuilder {
                     setNodeValue(child, "'today()'"); //Set encounter date defaulting to today
             }
             */
-            parseTemplate(modelElement, formNode, child, bindings, problemList, problemListItems,
-                level);
+            parseTemplate(
+                modelElement, formNode, child, bindings, problemList, problemListItems, level);
         }
     }
 
     /**
      * Converts an xml document to a string.
-     *
      * @param doc - the document.
      * @return the xml string in in the document.
      */
@@ -251,10 +249,9 @@ public final class BuendiaXformBuilder {
 
     /**
      * Sets the value of a child node in a parent node.
-     *
      * @param parentNode - the node to add a child to.
-     * @param name - the name of the node whose value to set.
-     * @param value - the value to set.
+     * @param name       - the name of the node whose value to set.
+     * @param value      - the value to set.
      * @return - true if the node with the name was found, else false.
      */
     private static boolean setNodeValue(Element parentNode, String name, String value) {
@@ -266,13 +263,13 @@ public final class BuendiaXformBuilder {
 
     /**
      * Sets the text value of a node.
-     *
-     * @param node - the node whose value to set.
+     * @param node  - the node whose value to set.
      * @param value - the value to set.
      */
     private static void setNodeValue(Element node, String value) {
-        if (value == null)
+        if (value == null) {
             value = "";
+        }
 
         for (int i = 0; i < node.getChildCount(); i++) {
             if (node.isText(i)) {
@@ -287,23 +284,19 @@ public final class BuendiaXformBuilder {
 
     /**
      * Gets a child element of a parent node with a given name.
-     *
      * @param parent - the parent element
-     * @param name - the name of the child.
+     * @param name   - the name of the child.
      * @return - the child element.
      */
     private static Element getElement(Element parent, String name) {
         for (int i = 0; i < parent.getChildCount(); i++) {
-            if (parent.getType(i) != Element.ELEMENT)
-                continue;
+            if (parent.getType(i) != Element.ELEMENT) continue;
 
             Element child = (Element) parent.getChild(i);
-            if (child.getName().equalsIgnoreCase(name))
-                return child;
+            if (child.getName().equalsIgnoreCase(name)) return child;
 
             child = getElement(child, name);
-            if (child != null)
-                return child;
+            if (child != null) return child;
         }
 
         return null;
@@ -311,16 +304,14 @@ public final class BuendiaXformBuilder {
 
     /**
      * Creates a model binding node.
-     *
      * @param modelElement - the model node to add the binding to.
-     * @param node - the node whose binding to create.
-     * @param bindings - a hashtable of node bindings keyed by their names.
+     * @param node         - the node whose binding to create.
+     * @param bindings     - a hashtable of node bindings keyed by their names.
      * @return - the created binding node.
      */
-    private static Element createBindNode(Element modelElement, Element node, Map<String,
-        Element> bindings,
-                                          Map<String, String> problemList, Map<String, String>
-                                              problemListItems) {
+    private static Element createBindNode(
+        Element modelElement, Element node, Map<String, Element> bindings,
+        Map<String, String> problemList, Map<String, String> problemListItems) {
         Element bindNode = modelElement.createElement(NAMESPACE_XFORMS, null);
         bindNode.setName(NODE_BIND);
         String parentName = ((Element) node.getParent()).getName();
@@ -330,10 +321,11 @@ public final class BuendiaXformBuilder {
             binding = parentName + "_" + binding;
             problemListItems.put(binding, parentName);
         } else {
-            if (!(parentName.equalsIgnoreCase("obs") || parentName.equalsIgnoreCase("patient")
-                || parentName.equalsIgnoreCase("encounter") || parentName.equalsIgnoreCase
-                ("problem_list") || parentName
-                .equalsIgnoreCase("orders"))) {
+            if (!(parentName.equalsIgnoreCase("obs")
+                || parentName.equalsIgnoreCase("patient")
+                || parentName.equalsIgnoreCase("encounter")
+                || parentName.equalsIgnoreCase("problem_list")
+                || parentName.equalsIgnoreCase("orders"))) {
                 //binding = parentName + "_" + binding;
                 //TODO Need to investigate why the above commented out code brings the no data
                 // node found error in the form designer
@@ -354,17 +346,18 @@ public final class BuendiaXformBuilder {
         //Check if this is an item of a problem list.
         if (problemList.containsKey(parentName)) {
             if (problemListItems.containsValue(name)) {
-                throw new IllegalStateException("Original code would use repeatSharedKids here, "
-                    + "despite it being null");
+                throw new IllegalStateException(
+                    "Original code would use repeatSharedKids here, despite it being null");
             }
             problemListItems.put(name, parentName);
         }
 
         bindNode.setAttribute(null, ATTRIBUTE_NODESET, nodeset);
 
-        if (!((Element) ((Element) node.getParent()).getParent()).getName().equals
-            (NODE_PROBLEM_LIST))
+        if (!((Element) ((Element) node.getParent()).getParent())
+            .getName().equals(NODE_PROBLEM_LIST)) {
             modelElement.addChild(Element.ELEMENT, bindNode);
+        }
 
         //store the binding node with the key being its id attribute.
         bindings.put(binding, bindNode);
@@ -376,7 +369,6 @@ public final class BuendiaXformBuilder {
      * Adds a node to hold the xforms value for a multiple select node. The value is a space
      * delimited list of selected answers, which will later on be used to fill the true or false
      * values as expected by openmrs multiple select questions.
-     *
      * @param node - the multiple select node to add the value node to.
      */
     private static void addMultipleSelectXformValueNode(Element node) {
@@ -389,44 +381,43 @@ public final class BuendiaXformBuilder {
 
     /**
      * Set data types for the openmrs fixed table fields.
-     *
-     * @param name - the name of the question node.
+     * @param name     - the name of the question node.
      * @param bindNode - the binding node whose type attribute we are to set.
      */
     private static void setTableFieldDataType(String name, Element bindNode) {
         if (name.equalsIgnoreCase(NODE_ENCOUNTER_ENCOUNTER_DATETIME)) {
-            bindNode.setAttribute(null, ATTRIBUTE_TYPE, XformsUtil.encounterDateIncludesTime() ?
-                DATA_TYPE_DATETIME
-                : DATA_TYPE_DATE);
+            bindNode.setAttribute(
+                null, ATTRIBUTE_TYPE,
+                XformsUtil.encounterDateIncludesTime() ? DATA_TYPE_DATETIME : DATA_TYPE_DATE);
             bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". <= today()");
-            bindNode.setAttribute(null, (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" :
-                    ATTRIBUTE_MESSAGE),
+            bindNode.setAttribute(
+                null,
+                (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE),
                 "Encounter date cannot be after today");
-        } else if (name.equalsIgnoreCase(NODE_ENCOUNTER_LOCATION_ID))
+        } else if (name.equalsIgnoreCase(NODE_ENCOUNTER_LOCATION_ID)) {
             bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_INT);
-        else if (name.equalsIgnoreCase(NODE_ENCOUNTER_PROVIDER_ID))
+        } else if (name.equalsIgnoreCase(NODE_ENCOUNTER_PROVIDER_ID)) {
             bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_INT);
-        else if (name.equalsIgnoreCase(NODE_PATIENT_PATIENT_ID))
+        } else if (name.equalsIgnoreCase(NODE_PATIENT_PATIENT_ID)) {
             bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_INT);
-        else
+        } else {
             bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_TEXT);
-
+        }
     }
 
     /**
      * Set required and readonly attributes for the openmrs fixed table fields.
-     *
-     * @param name - the name of the question node.
+     * @param name     - the name of the question node.
      * @param bindNode - the binding node whose required and readonly attributes we are to set.
      */
     private static void setTableFieldBindingAttributes(String name, Element bindNode) {
-        if (name.equalsIgnoreCase(NODE_ENCOUNTER_ENCOUNTER_DATETIME))
+        if (name.equalsIgnoreCase(NODE_ENCOUNTER_ENCOUNTER_DATETIME)) {
             bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
-        else if (name.equalsIgnoreCase(NODE_ENCOUNTER_LOCATION_ID))
+        } else if (name.equalsIgnoreCase(NODE_ENCOUNTER_LOCATION_ID)) {
             bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
-        else if (name.equalsIgnoreCase(NODE_ENCOUNTER_PROVIDER_ID))
+        } else if (name.equalsIgnoreCase(NODE_ENCOUNTER_PROVIDER_ID)) {
             bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
-        else if (name.equalsIgnoreCase(NODE_PATIENT_PATIENT_ID)) {
+        } else if (name.equalsIgnoreCase(NODE_PATIENT_PATIENT_ID)) {
             bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
             //bindNode.setAttribute(null, ATTRIBUTE_READONLY, XPATH_VALUE_TRUE);
             //bindNode.setAttribute(null, ATTRIBUTE_LOCKED, XPATH_VALUE_TRUE);
@@ -458,11 +449,11 @@ public final class BuendiaXformBuilder {
 
         if (name.equalsIgnoreCase(NODE_PATIENT_BIRTH_DATE)) {
             bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_DATE);
-
             bindNode.setAttribute(null, ATTRIBUTE_PRELOAD, PRELOAD_PATIENT);
             bindNode.setAttribute(null, ATTRIBUTE_PRELOAD_PARAMS, "birthDate");
-        } else if (name.equalsIgnoreCase(NODE_PATIENT_BIRTH_DATE_ESTIMATED))
+        } else if (name.equalsIgnoreCase(NODE_PATIENT_BIRTH_DATE_ESTIMATED)) {
             bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_BOOLEAN);
+        }
 
         //peloaders
         if (name.equalsIgnoreCase(NODE_PATIENT_FAMILY_NAME)) {
@@ -483,26 +474,25 @@ public final class BuendiaXformBuilder {
     private static void setTableFieldDefaultValue(String name, Element formElement) {
         Integer formId = Integer.valueOf(formElement.getAttributeValue(null, ATTRIBUTE_ID));
         String val = getFieldDefaultValue(name, formId, true);
-        if (val != null)
+        if (val != null) {
             setNodeValue(formElement, name, val);
+        }
     }
 
-    private static String getFieldDefaultValue(String name, Integer formId, boolean
-        forAllPatients) {
+    private static String getFieldDefaultValue(
+        String name, Integer formId, boolean forAllPatients) {
         XformsService xformsService = Context.getService(XformsService.class);
         String val = xformsService.getFieldDefaultValue(formId, name);
         if (val == null) {
             val = xformsService.getFieldDefaultValue(formId, name.replace('_', ' '));
-            if (val == null)
-                return null;
+            if (val == null) return null;
         }
 
-        if (!val.contains("$!{"))
+        if (!val.contains("$!{")) {
             return val;
-        else if (!forAllPatients) {
+        } else if (!forAllPatients) {
             Integer id = getDefaultValueId(val);
-            if (id != null)
-                return id.toString();
+            if (id != null) return id.toString();
         }
 
         return null;
@@ -510,13 +500,10 @@ public final class BuendiaXformBuilder {
 
     private static Integer getDefaultValueId(String val) {
         int pos1 = val.indexOf('(');
-        if (pos1 == -1)
-            return null;
+        if (pos1 == -1) return null;
         int pos2 = val.indexOf(')');
-        if (pos2 == -1)
-            return null;
-        if ((pos2 - pos1) < 2)
-            return null;
+        if (pos2 == -1) return null;
+        if ((pos2 - pos1) < 2) return null;
 
         String id = val.substring(pos1 + 1, pos2);
         try {
@@ -531,43 +518,35 @@ public final class BuendiaXformBuilder {
      * Check whether a node is an openmrs table field node These are the ones with the attributes:
      * openmrs_table and openmrs_attribute e.g. patient_unique_number
      * openmrs_table="PATIENT_IDENTIFIER" openmrs_attribute="IDENTIFIER"
-     *
      * @param node - the node to check.
      * @return - true if it is, else false.
      */
     private static boolean isTableFieldNode(Element node) {
         return (node.getAttributeValue(null, ATTRIBUTE_OPENMRS_ATTRIBUTE) != null && node
-            .getAttributeValue(null,
-                ATTRIBUTE_OPENMRS_TABLE) != null);
-
+            .getAttributeValue(null, ATTRIBUTE_OPENMRS_TABLE) != null);
     }
 
     /**
      * Checks whether a node is multiple select or not.
-     *
      * @param child - the node to check.k
      * @return - true if multiple select, else false.
      */
     private static boolean isMultSelectNode(Element child) {
         return (child.getAttributeValue(null, ATTRIBUTE_MULTIPLE) != null && child
-            .getAttributeValue(null,
-                ATTRIBUTE_MULTIPLE).equals("1"));
+            .getAttributeValue(null, ATTRIBUTE_MULTIPLE).equals("1"));
     }
 
     /**
      * Check if a given node as an openmrs value node.
-     *
      * @param node - the node to check.
      * @return - true if it has, else false.
      */
     private static boolean hasValueNode(Element node) {
         for (int i = 0; i < node.getChildCount(); i++) {
-            if (node.isText(i))
-                continue;
+            if (node.isText(i)) continue;
 
             Element child = node.getElement(i);
-            if (child.getName().equalsIgnoreCase(NODE_VALUE))
-                return true;
+            if (child.getName().equalsIgnoreCase(NODE_VALUE)) return true;
         }
 
         return false;
@@ -575,22 +554,21 @@ public final class BuendiaXformBuilder {
 
     /**
      * Gets the value of the nodeset attribute, for a given node, used for xform bindings.
-     *
      * @param node - the node.
      * @return - the value of the nodeset attribite.
      */
     private static String getNodesetAttValue(Element node) {
-        if (hasValueNode(node))
+        if (hasValueNode(node)) {
             return getNodePath(node) + "/value";
-        else if (isMultSelectNode(node))
+        } else if (isMultSelectNode(node)) {
             return getNodePath(node) + "/xforms_value";
-        else
+        } else {
             return getNodePath(node);
+        }
     }
 
     /**
      * Gets the path of a node from the instance node.
-     *
      * @param node - the node whose path to get.
      * @return - the complete path from the instance node.
      */
@@ -599,10 +577,11 @@ public final class BuendiaXformBuilder {
         Element parent = (Element) node.getParent();
         while (parent != null && !parent.getName().equalsIgnoreCase(NODE_INSTANCE)) {
             path = parent.getName() + NODE_SEPARATOR + path;
-            if (parent.getParent() != null && parent.getParent() instanceof Element)
+            if (parent.getParent() != null && parent.getParent() instanceof Element) {
                 parent = (Element) parent.getParent();
-            else
+            } else {
                 parent = null;
+            }
         }
         return NODE_SEPARATOR + path;
     }

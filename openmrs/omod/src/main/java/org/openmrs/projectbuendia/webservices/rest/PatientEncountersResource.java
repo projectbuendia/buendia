@@ -137,6 +137,62 @@ public class PatientEncountersResource
     }
 
     /**
+     * Converts an encounter to its JSON representation, filling in observation data.
+     * @param encounter an encounter instance
+     * @return a SimpleObject representing the encounter, ready to be serialized to JSON
+     */
+    private SimpleObject encounterToJson(Encounter encounter) {
+        SimpleObject encounterJson = new SimpleObject();
+        // TODO: Check what format this ends up in.
+        encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
+        SimpleObject observations = new SimpleObject();
+        List<String> orderUuids = new ArrayList<>();
+        for (Obs obs : encounter.getObs()) {
+            // TODO/simplify: Move this .put() call outside the loop.
+            encounterJson.put("uuid", encounter.getUuid());
+            Concept concept = obs.getConcept();
+            if (concept != null &&
+                concept.getUuid().equals(DbUtil.getOrderExecutedConcept().getUuid())) {
+                orderUuids.add(obs.getOrder().getUuid());
+                continue;
+            }
+            observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
+                obs, new VisitObsValue.ObsValueVisitor<String>() {
+                    @Override public String visitCoded(Concept value) {
+                        return value.getUuid();
+                    }
+
+                    @Override public String visitNumeric(Double value) {
+                        return String.valueOf(value);
+                    }
+
+                    @Override public String visitBoolean(Boolean value) {
+                        return String.valueOf(value);
+                    }
+
+                    @Override public String visitText(String value) {
+                        return value;
+                    }
+
+                    @Override public String visitDate(Date value) {
+                        return Utils.YYYYMMDD_FORMAT.format(value);
+                    }
+
+                    @Override public String visitDateTime(Date value) {
+                        return Utils.toIso8601(value);
+                    }
+                }));
+        }
+        if (!observations.isEmpty()) {
+            encounterJson.put("observations", observations);
+        }
+        if (!orderUuids.isEmpty()) {
+            encounterJson.put("order_uuids", orderUuids);
+        }
+        return encounterJson;
+    }
+
+    /**
      * Retrieves the patient with a given UUID.  The retrieved record will
      * be filled in with the patient's encounter and observation data by
      * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
@@ -244,61 +300,5 @@ public class PatientEncountersResource
             }
         }
         return filtered;
-    }
-
-    /**
-     * Converts an encounter to its JSON representation, filling in observation data.
-     * @param encounter an encounter instance
-     * @return a SimpleObject representing the encounter, ready to be serialized to JSON
-     */
-    private SimpleObject encounterToJson(Encounter encounter) {
-        SimpleObject encounterJson = new SimpleObject();
-        // TODO: Check what format this ends up in.
-        encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
-        SimpleObject observations = new SimpleObject();
-        List<String> orderUuids = new ArrayList<>();
-        for (Obs obs : encounter.getObs()) {
-            // TODO/simplify: Move this .put() call outside the loop.
-            encounterJson.put("uuid", encounter.getUuid());
-            Concept concept = obs.getConcept();
-            if (concept != null &&
-                concept.getUuid().equals(DbUtil.getOrderExecutedConcept().getUuid())) {
-                orderUuids.add(obs.getOrder().getUuid());
-                continue;
-            }
-            observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
-                obs, new VisitObsValue.ObsValueVisitor<String>() {
-                    @Override public String visitCoded(Concept value) {
-                        return value.getUuid();
-                    }
-
-                    @Override public String visitNumeric(Double value) {
-                        return String.valueOf(value);
-                    }
-
-                    @Override public String visitBoolean(Boolean value) {
-                        return String.valueOf(value);
-                    }
-
-                    @Override public String visitText(String value) {
-                        return value;
-                    }
-
-                    @Override public String visitDate(Date value) {
-                        return Utils.YYYYMMDD_FORMAT.format(value);
-                    }
-
-                    @Override public String visitDateTime(Date value) {
-                        return Utils.toIso8601(value);
-                    }
-                }));
-        }
-        if (!observations.isEmpty()) {
-            encounterJson.put("observations", observations);
-        }
-        if (!orderUuids.isEmpty()) {
-            encounterJson.put("order_uuids", orderUuids);
-        }
-        return encounterJson;
     }
 }

@@ -30,8 +30,10 @@ public class Utils {
     public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     /** A SimpleDateFormat that formats as "yyyy-MM-dd". */
     public static final DateFormat YYYYMMDD_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    /** A SimpleDateFormat that formats a date and time so it will be auto-parsed in a
-     * spreadsheet. */
+    /**
+     * A SimpleDateFormat that formats a date and time so it will be auto-parsed in a
+     * spreadsheet.
+     */
     public static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     /**
      * Compares two objects that may each be null, Integer, or String.  null sorts
@@ -56,14 +58,14 @@ public class Utils {
      */
     public static Comparator<List<Object>> nullIntStrListComparator = new
         Comparator<List<Object>>() {
-        @Override public int compare(List<Object> a, List<Object> b) {
-            for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
-                int result = nullIntStrComparator.compare(a.get(i), b.get(i));
-                if (result != 0) return result;
+            @Override public int compare(List<Object> a, List<Object> b) {
+                for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
+                    int result = nullIntStrComparator.compare(a.get(i), b.get(i));
+                    if (result != 0) return result;
+                }
+                return a.size() - b.size();
             }
-            return a.size() - b.size();
-        }
-    };
+        };
     private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     // Note: Use of \L here assumes a string that is already NFC-normalized.
     private static final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");

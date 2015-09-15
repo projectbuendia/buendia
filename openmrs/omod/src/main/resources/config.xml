@@ -21,10 +21,12 @@
   <description>
     ${project.parent.description}
   </description>
-  <updateURL>https://modules.openmrs.org/modules/download/${project.parent.artifactId}/update.rdf</updateURL>
+  <updateURL>https://modules.openmrs.org/modules/download/${project.parent.artifactId}/update.rdf
+  </updateURL>
   <require_version>${openMRSVersion}</require_version>
   <require_modules>
-    <require_module version="${webservicesRestVersion}">org.openmrs.module.webservices.rest</require_module>
+    <require_module version="${webservicesRestVersion}">org.openmrs.module.webservices.rest
+    </require_module>
     <require_module version="${xformsVersion}">org.openmrs.module.xforms</require_module>
   </require_modules>
   <!-- / Module Properties -->
@@ -33,14 +35,17 @@
   <globalProperty>
     <property>projectbuendia.chartUuids</property>
     <defaultValue></defaultValue>
-    <description>UUIDs of forms listed as charts by the REST endpoint. (Comma-separated.)</description>
+    <description>UUIDs of forms listed as charts by the REST endpoint. (Comma-separated.)
+    </description>
   </globalProperty>
   <globalProperty>
     <property>projectbuendia.currentProfile</property>
     <defaultValue></defaultValue>
     <description>
-      Name of the currently active profile, which defines the forms and UI customizations for the Buendia app.
-      This should be the name of a file in /usr/share/buendia/profiles (including the .csv extension).
+      Name of the currently active profile, which defines the forms and UI customizations for the
+      Buendia app.
+      This should be the name of a file in /usr/share/buendia/profiles (including the .csv
+      extension).
     </description>
   </globalProperty>
 

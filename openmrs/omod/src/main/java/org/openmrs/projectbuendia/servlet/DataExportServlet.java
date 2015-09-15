@@ -275,6 +275,5 @@ public class DataExportServlet extends HttpServlet {
         public int size() {
             return concepts.length;
         }
-
     }
 }

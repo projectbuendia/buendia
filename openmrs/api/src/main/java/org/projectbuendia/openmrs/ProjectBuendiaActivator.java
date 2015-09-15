@@ -17,7 +17,6 @@ import org.openmrs.module.ModuleActivator;
 
 /** Logic that is run every time this module is either started or stopped. */
 public class ProjectBuendiaActivator implements ModuleActivator {
-
     protected Log log = LogFactory.getLog(getClass());
 
     public void willRefreshContext() {

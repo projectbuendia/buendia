@@ -10,37 +10,40 @@ under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
 OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 specific language governing permissions and limitations under the License.
 -->
-<form xmlns:xd="http://schemas.microsoft.com/office/infopath/2003"
-	xmlns:openmrs="formentry.infopath_server_url cannot be empty/moduleServlet/formentry/forms/schema/4-1"
-	id="4" name="Weight observation" version="1"
-	uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc">
-	<header>
-		<enterer>1^</enterer>
-		<date_entered>2014-11-15</date_entered>
-		<session />
-		<uid />
-	</header>
-	<encounter>
-		<encounter.encounter_datetime
-			openmrs_table="encounter" openmrs_attribute="encounter_datetime">2014-11-13T00:00:00+00:00</encounter.encounter_datetime>
-		<encounter.location_id openmrs_table="encounter"
-			openmrs_attribute="location_id">1</encounter.location_id>
-		<encounter.provider_id openmrs_table="encounter"
-			openmrs_attribute="provider_id" provider_id_type="PROVIDER.ID">1</encounter.provider_id>
-	</encounter>
-	<obs openmrs_concept="1238^MEDICAL RECORD OBSERVATIONS^99DCT"
-		openmrs_datatype="ZZ">
-		<weight_kg openmrs_concept="5089^WEIGHT (KG)^99DCT"
-			openmrs_datatype="NM">
-			<date xmlns:n0="http://www.w3.org/2001/XMLSchema-instance"
-				n0:nil="true" />
-			<time xmlns:n1="http://www.w3.org/2001/XMLSchema-instance"
-				n1:nil="true" />
-			<value xmlns:n2="http://www.w3.org/2001/XMLSchema-instance"
-				n2:nil="true">175.0</value>
-		</weight_kg>
-	</obs>
-	<patient>
-		<patient.patient_id>10</patient.patient_id>
-	</patient>
+<form
+    name="Weight observation" id="4" uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc"
+    version="1">
+  <header>
+    <enterer>1^</enterer>
+    <date_entered>2014-11-15</date_entered>
+    <session/>
+    <uid/>
+  </header>
+  <encounter>
+    <encounter.encounter_datetime
+        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T00:00:00+00:00
+    </encounter.encounter_datetime>
+    <encounter.location_id openmrs_attribute="location_id"
+                           openmrs_table="encounter">1
+    </encounter.location_id>
+    <encounter.provider_id openmrs_attribute="provider_id"
+                           openmrs_table="encounter" provider_id_type="PROVIDER.ID">1
+    </encounter.provider_id>
+  </encounter>
+  <obs openmrs_concept="1238^MEDICAL RECORD OBSERVATIONS^99DCT"
+       openmrs_datatype="ZZ">
+    <weight_kg openmrs_concept="5089^WEIGHT (KG)^99DCT"
+               openmrs_datatype="NM">
+      <date xmlns:n0="http://www.w3.org/2001/XMLSchema-instance"
+            n0:nil="true"/>
+      <time xmlns:n1="http://www.w3.org/2001/XMLSchema-instance"
+            n1:nil="true"/>
+      <value xmlns:n2="http://www.w3.org/2001/XMLSchema-instance"
+             n2:nil="true">175.0
+      </value>
+    </weight_kg>
+  </obs>
+  <patient>
+    <patient.patient_id>10</patient.patient_id>
+  </patient>
 </form>

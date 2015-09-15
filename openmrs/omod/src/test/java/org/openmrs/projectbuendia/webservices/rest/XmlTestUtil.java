@@ -74,5 +74,4 @@ public class XmlTestUtil {
         transformer.transform(source, result);
         return outStream.toString();
     }
-
 }
