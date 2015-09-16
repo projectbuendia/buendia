@@ -142,6 +142,13 @@ def apply(tabs):
     # classes for observations; "Finding" is by far the most commonly used.
     obs_class = db.get('concept_class_id', name='Finding')
 
+    def main():  # main entry point, invoked at the end of this block
+        if 'form' in tabs:
+            apply_forms(tabs['form'])
+        if 'chart' in tabs:
+            apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
+        db.commit()
+
     def get_or_insert(table, **values):
         return (db.get(table + '_id', **values) or odb.insert(table, **values))
 
@@ -265,46 +272,11 @@ def apply(tabs):
                    ' where form_id = %s', form_id)  # remove foreign keys
         db.execute('delete from form_field where form_id = %s', form_id)
 
-    def validate_str(text):
-        return (text or '').strip()
-
-    def validate_type(type):
-        type = type.strip().lower()
-        if not type:
-            return None, None
-        elif type in datatypes_by_type:
-            return type, datatypes_by_type[type]
-        else:
-            return 'n/a', None
-
-    def validate_int(text):
-        try:
-            return int(text)
-        except ValueError:
-            return None
-
-    def validate_ints(text):
-        return filter(lambda x: x, [validate_int(n) for n in text.split(',')])
-
-    def validate_boolean(text):
-        # Treat "no", "none", "nil", "false", "0" etc. as false; otherwise true.
-        word = str(text or '').split(' ')[0].lower()
-        return re.match('[a-z1-9]', word) and word[0] not in 'nf' and 1 or 0
-
-    def validate_range(range):
-        try:
-            low, high = re.split(r'\.\.+', range or '', 1)
-            low = low.strip() and float(low) or None
-            high = high.strip() and float(high) or None
-            return low, high
-        except ValueError:
-            return None, None
-
     def apply_chart_sections(sections, form_id):
         """
         Rewrites the given chart form to contain the specified sections with
-        the specified selection and sequence of grid rows.  Details
-        The OpenMRS data model consists of:
+        the specified selection and sequence of grid rows.  The OpenMRS data
+        model consists of:
           - 'form' table: each row is a form
           - 'form_field' table: puts fields in forms and determines their order
           - 'field' table: each row is a field (usually linked to a concept)
@@ -312,8 +284,9 @@ def apply(tabs):
         clear_form(form_id)
 
         for i, (section, rows) in enumerate(sections):
-            field_id = get_field_for_section(section, description=json.dumps(
-                {'type': section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'}))
+            section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
+            field_id = get_field_for_section(
+                section, description=json.dumps({'type': section_type}))
             section_id = add_field_to_form(form_id, field_id, None, i + 1)
 
             # Add the fields to the section with the specified names.  Concepts
@@ -323,6 +296,8 @@ def apply(tabs):
             for j, row in enumerate(rows):
                 label = row.get('label', '')
                 concept_ids = validate_ints(row.get('concept'))
+                if section_type == 'GRID_SECTION' and len(concept_ids) != 1:
+                    raise ValueError('Grid rows must have exactly 1 concept ID')
                 for concept_id in concept_ids:
                     if not db.get('concept_id', concept_id=concept_id):
                         raise ValueError(
@@ -333,7 +308,7 @@ def apply(tabs):
                 # and omit 'required' because there's a DB column for that.
                 required = validate_boolean(row.get('required'))
                 config = dict([(normalize_name(key), value.strip())
-                               for key, value in row.items()],
+                               for key, value in row.items() if key],
                               concepts=concept_ids,
                               type=validate_str(row['type']))
                 for key in config.keys():
@@ -482,11 +457,42 @@ def apply(tabs):
                     add_field_to_form(form_id, field_id, section_id, None, i,
                                       validate_boolean(row.get('required')))
 
-    if 'form' in tabs:
-        apply_forms(tabs['form'])
-    if 'chart' in tabs:
-        apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
-    db.commit()
+    def validate_str(text):
+        return (text or '').strip()
+
+    def validate_type(type):
+        type = type.strip().lower()
+        if not type:
+            return None, None
+        elif type in datatypes_by_type:
+            return type, datatypes_by_type[type]
+        else:
+            return 'n/a', None
+
+    def validate_int(text):
+        try:
+            return int(text)
+        except ValueError:
+            return None
+
+    def validate_ints(text):
+        return filter(lambda x: x, [validate_int(n) for n in text.split(',')])
+
+    def validate_boolean(text):
+        # Treat "no", "none", "nil", "false", "0" etc. as false; otherwise true.
+        word = str(text or '').split(' ')[0].lower()
+        return re.match('[a-z1-9]', word) and word[0] not in 'nf' and 1 or 0
+
+    def validate_range(range):
+        try:
+            low, high = re.split(r'\.\.+', range or '', 1)
+            low = low.strip() and float(low) or None
+            high = high.strip() and float(high) or None
+            return low, high
+        except ValueError:
+            return None, None
+
+    main()
 
 
 if __name__ == '__main__':

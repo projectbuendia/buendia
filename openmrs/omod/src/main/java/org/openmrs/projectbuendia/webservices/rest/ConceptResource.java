@@ -47,7 +47,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     private static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
 
     static {
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_BOOLEAN, "boolean");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_BOOLEAN, "coded");
         HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED, "coded");
         HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
         HL7_TYPE_NAMES.put(HL7Constants.HL7_TEXT, "text");

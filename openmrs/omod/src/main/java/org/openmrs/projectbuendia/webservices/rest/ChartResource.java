@@ -91,7 +91,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
                 Field itemField = itemFormField.getField();
                 Map<String, Object> item = parseFieldDescription(itemField);
                 item.put("label", itemField.getName());
-                item.put("concepts", getConceptUuids(item.get("concept"), itemField));
+                item.put("concepts", getConceptUuids(item.get("concepts"), itemField));
                 item.remove("concept");
                 items.add(item);
             }
