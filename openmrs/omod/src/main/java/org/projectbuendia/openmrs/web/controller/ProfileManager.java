@@ -33,6 +33,10 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -48,8 +52,18 @@ public class ProfileManager {
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
+        List<FileInfo> files = new ArrayList<>();
+        for (File file : PROFILE_DIR.listFiles()) {
+            files.add(new FileInfo(file));
+        }
+        Collections.sort(files, new Comparator<FileInfo>() {
+            public int compare(FileInfo a, FileInfo b) {
+                return -a.modified.compareTo(b.modified);
+            }
+        });
+
         model.addAttribute("user", Context.getAuthenticatedUser());
-        model.addAttribute("profiles", PROFILE_DIR.listFiles());
+        model.addAttribute("profiles", files);
         model.addAttribute("currentProfile",
             Context.getAdministrationService().getGlobalProperty(
                 GlobalProperties.CURRENT_PROFILE));
@@ -198,5 +212,17 @@ public class ProfileManager {
     void setCurrentProfile(String name) {
         Context.getAdministrationService().setGlobalProperty(
             GlobalProperties.CURRENT_PROFILE, name);
+    }
+
+    private class FileInfo {
+        String name;
+        Long size;
+        Date modified;
+
+        public FileInfo(File file) {
+            name = file.getName();
+            size = file.length();
+            modified = new Date(file.lastModified());
+        }
     }
 }

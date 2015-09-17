@@ -1,6 +1,7 @@
 <%@ include file="/WEB-INF/template/include.jsp"%>
 <%@ include file="/WEB-INF/template/header.jsp"%>
 <%@ include file="template/localHeader.jsp"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <style>
   .section { margin: 2em 0; }
   div.message { padding: 1em; background: #ffe; border: 1px solid #aa5; }
@@ -68,7 +69,7 @@
           <c:forEach var="file" items="${profiles}" varStatus="loop">
             <option value="${fn:escapeXml(file.name)}" class="filename"
                     ${file.name == currentProfile ? 'selected' : ''}>
-              ${fn:escapeXml(file.name)}
+              <fmt:formatDate value="${file.modified}" pattern="YYYY-MM-dd HH:mm"/>   <fmt:formatNumber value="${file.size}" pattern="########0"/>   ${fn:escapeXml(file.name)}
             </option>
           </c:forEach>
         </select>
