@@ -10,7 +10,7 @@
   .selected { font-weight: bold; }
   .none { color: #999; }
   .filename { font-family: monospace; font-size: 16px; }
-  select { vertical-align: top; width: 20em; }
+  select { vertical-align: top; width: 50em; }
   input { font-size: 16px; }
 </style>
 
@@ -66,16 +66,18 @@
       <form method="post">
         Select a profile:
         <select name="profile" size="${fn:length(profiles) < 3 ? 3 : fn:length(profiles)}">
-          <c:forEach var="file" items="${profiles}" varStatus="loop">
+          <c:forEach var="file" items="${profiles}">
+            <fmt:formatDate value="${file.modified}" pattern="MMM dd, HH:mm" var="formattedDate"/>
+            <c:set var="formattedLine" value="${formattedDate} | ${fn:escapeXml(file.formattedName)} | ${file.formattedSize}"/>
             <option value="${fn:escapeXml(file.name)}" class="filename"
                     ${file.name == currentProfile ? 'selected' : ''}>
-              <fmt:formatDate value="${file.modified}" pattern="YYYY-MM-dd HH:mm"/>   <fmt:formatNumber value="${file.size}" pattern="########0"/>   ${fn:escapeXml(file.name)}
+              ${fn:replace(formattedLine, ' ', '&nbsp;')}
             </option>
           </c:forEach>
         </select>
         <input type="submit" name="op" value="Apply">
         <input type="submit" name="op" value="Download">
-        <input type="submit" name="op" value="Delete">
+        <input type="submit" name="op" value="Delete" onclick="prompt('Delete this profile?')">
       </form>
     </c:otherwise>
   </c:choose>

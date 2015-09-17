@@ -214,7 +214,7 @@ public class ProfileManager {
             GlobalProperties.CURRENT_PROFILE, name);
     }
 
-    private class FileInfo {
+    public class FileInfo {
         String name;
         Long size;
         Date modified;
@@ -224,5 +224,17 @@ public class ProfileManager {
             size = file.length();
             modified = new Date(file.lastModified());
         }
+
+        public String getName() {
+            return name;
+        }
+        public String getFormattedName() {
+            return (name + "                              ").substring(0, 30);
+        }
+        public Long getSize() { return size; }
+        public String getFormattedSize() {
+            return String.format("%7d", size);
+        }
+        public Date getModified() { return modified; }
     }
 }
