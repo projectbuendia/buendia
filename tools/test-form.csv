@@ -1,0 +1,27 @@
+tab,title,section,type,required,concept,label,option concept,option label,normal,subcritical,absolute,format,caption format,css class,css style,script,notes
+form,[test] Form,Section 1,,,,,,,,,,,,,,,
+,,,number,,999005088,[test] Temperature (°C),,,36...37.5,36...39,30...50,,,,,,fractional number (with special characters in name)
+,,,number,,999005242,[test] Respiratory rate (bpm),,,18...40,15...60,0...90,,,,,,integer
+,,,number,,999005092,[test] SpO₂ oxygen sat (%),,,95...100,,0...100,,,,,,integer (with special characters in name)
+,,,number,,999005085,"[test] Blood pressure, systolic",,,,,,,,,,,number (part of a multi-value format)
+,,,number,,999005086,"[test] Blood pressure, diastolic",,,,,,,,,,,number (part of a multi-value format)
+,,Section 2,,,, ,,,,,,,,,,,
+,,,number,,999005089,[test] Weight (kg),,,,,0...250,,,,,,graphable quantity
+,,,number,,999005090,[test] Height (cm),,,,,10...272,,,,,,for testing weight-for-height calculation
+,,,select_one,,999112989,[test] Shock,999001107,0. [test] None,,,,,,,,,single selection (intensity scale)
+,,,,,,,999001498,1. [test] Mild,,,,,,,,,
+,,,,,,,999001499,2. [test] Moderate,,,,,,,,,
+,,,,,,,999001500,3. [test] Severe,,,,,,,,,
+,,,select_one,,999162643,[test] Consciousness (AVPU),999160282,A. [test] Alert,,,,,,,,,single selection (displayed as a code)
+,,,,,,,999162645,V. [test] Responds to voice,,,,,,,,,
+,,,,,,,999162644,P. [test] Responds to pain,,,,,,,,,
+,,,,,,,999159508,U. [test] Unresponsive,,,,,,,,,
+,,,select_multiple,,,[test] Other symptoms,999143264,[test] Cough,,,,,,,,,multiple selection
+,,,,,,,999115127,[test] Anaemia,,,,,,,,,
+,,,,,,,999000140,[test] Scabies,,,,,,,,,
+,,,,,,,999139438,[test] Gingivitis,,,,,,,,,
+,,,yes_no,,999138862,[test] Hiccups,,,,,,,,,,,boolean
+,,,yes_no,,999139084,[test] Headache,,,,,,,,,,,
+,,,yes_no,,999158843,[test] Sore throat,,,,,,,,,,,
+,,,yes_no,,999139059,[test] Heartburn,,,,,,,,,,,
+,,,text,,999162169,[test] Notes,,,,,,,,,,,long text
