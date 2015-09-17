@@ -1,9 +1,14 @@
 # Buendia server (OpenMRS module)
 
-Follow these instructions to get your system set up to do Buendia server development.
-See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more details about the app.
+This repository contains the Buendia OpenMRS module,
+which works with OpenMRS Platform 1.10.x.
+See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more details about the project and about the Buendia app that accesses the API provided by this module.
 
-## Prerequisites
+## Developer setup
+
+Follow the instructions below to get your system set up to do Buendia server development.
+
+### Prerequisites
 
 ##### JDK 7 (note OpenMRS does not work with JDK 8!)
   * If `java -version` does not report version 1.7.x, install JDK 7:
@@ -30,7 +35,7 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
   * Download the Community Edition at https://www.jetbrains.com/idea/download/ and follow the [setup instructions](https://www.jetbrains.com/idea/help/basics-and-installation.html#d1847332e131).
 
 
-## Building and running the server
+### Building and running the server
 
 1.  Get the Buendia server source code:
 
@@ -57,7 +62,7 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
 
 After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.
 
-## IntelliJ IDEA project setup
+### IntelliJ IDEA project setup
 
 1.  In the "Welcome" dialog, click **Import Project** and select the `openmrs/pom.xml` file inside your `buendia` repo.  As you proceed through the import wizard:
       * Turn on **Search for projects recursively** and **Import Maven projects automatically**.
@@ -72,7 +77,7 @@ Most of the interesting code resides in [openmrs/omod/src/main/java/org/openmrs/
 When you want to test your module, use `tools/openmrs_build` and `tools/openmrs_run` from a Terminal within IntelliJ IDEA or any command shell.  You can also do `tools/openmrs_build -DskipTests` to build without running tests (use with care).
 
 
-## Debugging the server
+### Debugging the server
 
 If you start the OpenMRS server from the shell with `tools/openmrs_run`, it will run with remote debugging enabled so that you can debug the running server from within IntelliJ IDEA.  To set this up:
 
