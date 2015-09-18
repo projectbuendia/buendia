@@ -348,6 +348,8 @@ def apply(tabs):
         if not form_id:
             form_id = odb.insert('form', name=title, version='1',
                                  encounter_type=adult_return, uuid=uuid)
+        else:
+            odb.update('form', form_id, name=title)
         apply_form(rows, form_id)
         init_form_xslt(form_id)
         db.execute('update form set published = 1 where form_id = %s', form_id)
