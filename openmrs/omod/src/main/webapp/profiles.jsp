@@ -10,6 +10,7 @@
   .selected { font-weight: bold; }
   .none { color: #999; }
   .filename { font-family: monospace; font-size: 16px; }
+  .profile-select { white-space: nowrap; }
   select { vertical-align: top; width: 50em; }
   input { font-size: 16px; }
 </style>
@@ -57,32 +58,6 @@
   </c:choose>
 </div>
 
-<div class="section profile-select">
-  <c:choose>
-    <c:when test="${empty profiles}">
-      No profiles are available.
-    </c:when>
-    <c:otherwise>
-      <form method="post">
-        Select a profile:
-        <select name="profile" size="${fn:length(profiles) < 3 ? 3 : fn:length(profiles)}">
-          <c:forEach var="file" items="${profiles}">
-            <fmt:formatDate value="${file.modified}" pattern="MMM dd, HH:mm" var="formattedDate"/>
-            <c:set var="formattedLine" value="${formattedDate} | ${fn:escapeXml(file.formattedName)} | ${file.formattedSize}"/>
-            <option value="${fn:escapeXml(file.name)}" class="filename"
-                    ${file.name == currentProfile ? 'selected' : ''}>
-              ${fn:replace(formattedLine, ' ', '&nbsp;')}
-            </option>
-          </c:forEach>
-        </select>
-        <input type="submit" name="op" value="Apply">
-        <input type="submit" name="op" value="Download">
-        <input type="submit" name="op" value="Delete" onclick="prompt('Delete this profile?')">
-      </form>
-    </c:otherwise>
-  </c:choose>
-</div>
-
 <div class="section profile-upload">
   <form method="post" enctype="multipart/form-data" id="upload">
     Add a profile:&nbsp;
@@ -93,5 +68,34 @@
     </span>
   </form>
 </div>
+
+<div class="section profile-select">
+  <c:choose>
+    <c:when test="${empty profiles}">
+      No profiles are available.
+    </c:when>
+    <c:otherwise>
+      <form method="post">
+        Select a profile:
+        <select name="profile" id="profile-select" size="${fn:length(profiles) < 3 ? 3 : fn:length(profiles)}">
+          <c:forEach var="file" items="${profiles}">
+            <fmt:formatDate value="${file.modified}" pattern="MMM dd, HH:mm" var="formattedDate"/>
+            <c:set var="formattedLine" value="${formattedDate} | ${fn:escapeXml(file.formattedName)} | ${file.formattedSize}"/>
+            <option value="${fn:escapeXml(file.name)}" class="filename"
+                    ${file.name == currentProfile ? 'selected' : ''}>
+              ${fn:replace(formattedLine, ' ', '&nbsp;')}
+            </option>
+          </c:forEach>
+        </select>
+        &nbsp;&nbsp;&nbsp;
+        <input type="submit" name="op" value="Apply">
+        <input type="submit" name="op" value="Download">
+        <input type="submit" name="op" value="Delete"
+            onclick="s = document.getElementsByTagName('select')[0]; return confirm('Delete ' + s.options[s.selectedIndex].value + '?')">
+      </form>
+    </c:otherwise>
+  </c:choose>
+</div>
+
 
 <%@ include file="/WEB-INF/template/footer.jsp"%>

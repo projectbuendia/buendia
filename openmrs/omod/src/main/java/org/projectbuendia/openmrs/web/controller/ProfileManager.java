@@ -113,17 +113,18 @@ public class ProfileManager {
                 File tempFile = File.createTempFile("profile", null);
                 mpf.transferTo(tempFile);
                 if (execute(VALIDATE_CMD, tempFile, lines)) {
-                    String filename = sanitizeName(mpf.getOriginalFilename());
+                    String baseFilename = sanitizeName(mpf.getOriginalFilename());
+                    String filename = baseFilename;
                     File newFile = new File(PROFILE_DIR, filename);
-                    model.addAttribute("filename", filename);
-                    if (newFile.exists()) {
-                        model.addAttribute("failure", "add");
-                        model.addAttribute("output", "A profile named " + filename + " already "
-                            + "exists.");
-                    } else {
-                        FileUtils.moveFile(tempFile, newFile);
-                        model.addAttribute("success", "add");
+                    int version = 1;
+                    while (newFile.exists()) {
+                        version += 1;
+                        filename = baseFilename.replaceFirst("(\\.[^.]*)?$", "-v" + version + "$1");
+                        newFile = new File(PROFILE_DIR, filename);
                     }
+                    model.addAttribute("filename", filename);
+                    FileUtils.moveFile(tempFile, newFile);
+                    model.addAttribute("success", "add");
                 } else {
                     model.addAttribute("failure", "add");
                     model.addAttribute("filename", mpf.getOriginalFilename());
