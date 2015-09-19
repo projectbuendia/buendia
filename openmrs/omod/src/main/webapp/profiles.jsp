@@ -18,9 +18,10 @@
 <h3>Project Buendia profiles</h3>
 
 <c:if test="${not authorized}">
+  <c:set var="disabledIfUnauthorized" value="disabled"/>
   <div class="section error message">
     You don't have the necessary privileges to manage profiles.
-    Please log in as a user authorized to
+    Please <a href="/openmrs/login.html">log in</a> as a user authorized to
     <b>Manage Concepts</b> and <b>Manage Forms</b>.
   </div>
 </c:if>
@@ -62,9 +63,11 @@
   <form method="post" enctype="multipart/form-data" id="upload">
     Add a profile:&nbsp;
     <span style="position:relative">
-      <input type="submit" value="Upload a CSV file" style="position: absolute;">
+      <input type="submit" value="Upload a CSV file" style="position: absolute;"
+          ${not authorized ? "disabled" : ""}>
       <input name="file" type="file" style="position: absolute; opacity: 0;"
-             onchange="document.getElementById('upload').submit()">
+          onchange="document.getElementById('upload').submit()"
+          ${not authorized ? "disabled" : ""}>
     </span>
   </form>
 </div>
@@ -77,7 +80,8 @@
     <c:otherwise>
       <form method="post">
         Select a profile:
-        <select name="profile" id="profile-select" size="${fn:length(profiles) < 3 ? 3 : fn:length(profiles)}">
+        <select name="profile" id="profile-select" ${not authorized ? "disabled" : ""}
+            size="${fn:length(profiles) < 3 ? 3 : fn:length(profiles)}">
           <c:forEach var="file" items="${profiles}">
             <fmt:formatDate value="${file.modified}" pattern="MMM dd, HH:mm" var="formattedDate"/>
             <c:set var="formattedLine" value="${formattedDate} | ${fn:escapeXml(file.formattedName)} | ${file.formattedSize}"/>
@@ -88,9 +92,9 @@
           </c:forEach>
         </select>
         &nbsp;&nbsp;&nbsp;
-        <input type="submit" name="op" value="Apply">
-        <input type="submit" name="op" value="Download">
-        <input type="submit" name="op" value="Delete"
+        <input type="submit" name="op" value="Apply" ${not authorized ? "disabled" : ""}>
+        <input type="submit" name="op" value="Download" ${not authorized ? "disabled" : ""}>
+        <input type="submit" name="op" value="Delete" ${not authorized ? "disabled" : ""}
             onclick="s = document.getElementsByTagName('select')[0]; return confirm('Delete ' + s.options[s.selectedIndex].value + '?')">
       </form>
     </c:otherwise>
