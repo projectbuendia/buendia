@@ -38,6 +38,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -104,6 +106,43 @@ public class ProfileManager {
         return new RedirectView("profiles.form");  // reload this page with a GET request
     }
 
+    /** Chooses a filename based on the given name, with a "-vN" suffix appended for uniqueness. */
+    String getNextVersionedFilename(String name) {
+        // Separate the name into a sanitized base name and an extension.
+        name = sanitizeName(name);
+        String ext = "";
+        int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            ext = name.substring(dot);
+            name = name.substring(0, dot);
+        }
+
+        // Find the highest version number among all existing files named like "name-vN.ext".
+        // If "name.ext" exists, it counts as version 1.
+        String prefix = name + "-v";
+        int highestVersion = 0;
+        for (File file : PROFILE_DIR.listFiles()) {
+            int version = 0;
+            String n = file.getName();
+            if (n.equals(name + ext)) {
+                version = 1;
+            } else if (n.startsWith(prefix) && n.endsWith(ext)) {
+                try {
+                    version = Integer.parseInt(
+                        n.substring(prefix.length(), n.length() - ext.length()));
+                } catch (NumberFormatException e) { }
+            }
+            highestVersion = Math.max(version, highestVersion);
+        }
+
+        // Generate a unique new name, adding the next higher version number if necessary.
+        if (highestVersion == 0) {
+            return name + ext;
+        } else {
+            return prefix + (highestVersion + 1) + ext;
+        }
+    }
+
     /** Handles an uploaded profile. */
     void addProfile(MultipartHttpServletRequest request, ModelMap model) {
         List<String> lines = new ArrayList<>();
@@ -113,15 +152,8 @@ public class ProfileManager {
                 File tempFile = File.createTempFile("profile", null);
                 mpf.transferTo(tempFile);
                 if (execute(VALIDATE_CMD, tempFile, lines)) {
-                    String baseFilename = sanitizeName(mpf.getOriginalFilename());
-                    String filename = baseFilename;
+                    String filename = getNextVersionedFilename(mpf.getOriginalFilename());
                     File newFile = new File(PROFILE_DIR, filename);
-                    int version = 1;
-                    while (newFile.exists()) {
-                        version += 1;
-                        filename = baseFilename.replaceFirst("(\\.[^.]*)?$", "-v" + version + "$1");
-                        newFile = new File(PROFILE_DIR, filename);
-                    }
                     model.addAttribute("filename", filename);
                     FileUtils.moveFile(tempFile, newFile);
                     model.addAttribute("success", "add");

@@ -21,7 +21,7 @@
   <c:set var="disabledIfUnauthorized" value="disabled"/>
   <div class="section error message">
     You don't have the necessary privileges to manage profiles.
-    Please <a href="/openmrs/login.html">log in</a> as a user authorized to
+    Please <a href="/openmrs/login.htm">log in</a> as a user authorized to
     <b>Manage Concepts</b> and <b>Manage Forms</b>.
   </div>
 </c:if>
