@@ -66,7 +66,7 @@ public class Utils {
                 return a.size() - b.size();
             }
         };
-    private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
+    public static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     // Note: Use of \L here assumes a string that is already NFC-normalized.
     private static final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
     /**
@@ -120,9 +120,7 @@ public class Utils {
 
     static {
         FORMAT.setTimeZone(UTC);
-    }
-
-    static {
+        YYYYMMDD_FORMAT.setTimeZone(UTC);
         SPREADSHEET_FORMAT.setTimeZone(UTC);
     }
 
@@ -147,8 +145,8 @@ public class Utils {
         return FORMAT.format(dateTime);
     }
 
-    /** Parses a yyyy-MM-dd date or throws InvalidObjectDataException. */
-    public static Date parseDate(String text, String fieldName) {
+    /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
+    public static Date parseLocalDate(String text, String fieldName) {
         try {
             return YYYYMMDD_FORMAT.parse(text);
         } catch (ParseException e) {

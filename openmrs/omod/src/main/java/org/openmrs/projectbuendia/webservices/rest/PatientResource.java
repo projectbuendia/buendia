@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Rest API for patients.
@@ -148,6 +149,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        dateFormat.setTimeZone(Utils.UTC);
         if (patient != null) {
             jsonForm.add(UUID, patient.getUuid());
             PatientIdentifier patientIdentifier =
@@ -288,7 +290,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.setGender(normalizeSex(sex));
 
         if (json.containsKey(BIRTHDATE)) {
-            patient.setBirthdate(Utils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
+            patient.setBirthdate(Utils.parseLocalDate((String) json.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
@@ -481,11 +483,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
-                    // TODO: This treats birthdate as an instant in time (a java Date), but the
-                    // birthdate is transmitted over the wire as a local date (yyyy-mm-dd).
-                    // We should store the local date, i.e. convert the incoming dates to datetimes
-                    // at midnight UTC, and format the outgoing datetimes in UTC as yyyy-mm-dd.
-                    patient.setBirthdate(Utils.parseDate((String) entry.getValue(), BIRTHDATE));
+                    patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
                 case GENDER:
