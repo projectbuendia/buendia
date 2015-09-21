@@ -481,6 +481,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     setLocation(patient, (String) assignedLocation.get(UUID));
                     break;
                 case BIRTHDATE:
+                    // TODO: This treats birthdate as an instant in time (a java Date), but the
+                    // birthdate is transmitted over the wire as a local date (yyyy-mm-dd).
+                    // We should store the local date, i.e. convert the incoming dates to datetimes
+                    // at midnight UTC, and format the outgoing datetimes in UTC as yyyy-mm-dd.
                     patient.setBirthdate(Utils.parseDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
