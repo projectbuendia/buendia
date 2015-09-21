@@ -491,7 +491,11 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case ID:
-                    PatientIdentifier identifier = new PatientIdentifier();
+                    PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
+                    if (identifier != null) {
+                        patient.removeIdentifier(identifier);
+                    }
+                    identifier = new PatientIdentifier();
                     identifier.setCreator(patient.getCreator());
                     identifier.setDateCreated(patient.getDateCreated());
                     // TODO/generalize: Instead of getting the root location by a hardcoded
