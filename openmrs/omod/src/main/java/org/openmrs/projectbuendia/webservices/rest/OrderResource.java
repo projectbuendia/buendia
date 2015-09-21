@@ -68,8 +68,8 @@ import java.util.Set;
  *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
  *   creation
  *   "instructions": "Paracetamol 2 tablets 3x/day",
- *   "start": 1438711253000,
- *   "stop": 1438714253000  // optionally present
+ *   "start_millis": 1438711253000,
+ *   "stop_millis": 1438714253000  // optionally present
  * }
  * </pre>
  * (Results may also contain deprecated fields other than those described above.)
@@ -166,11 +166,11 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
             }
             Date start = order.getScheduledDate();
             if (start != null) {
-                json.add("start", start.getTime());
+                json.add("start_millis", start.getTime());
             }
             Date stop = order.getAutoExpireDate();
             if (stop != null) {
-                json.add("stop", stop.getTime());
+                json.add("stop_millis", stop.getTime());
             }
         }
         return json;
@@ -236,9 +236,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         if (instructions == null || instructions.isEmpty()) {
             throw new IllegalArgumentException("Required key 'instructions' is missing or empty");
         }
-        Long startMillis = (Long) json.get("start");
+        Long startMillis = (Long) json.get("start_millis");
         Date startDate = startMillis == null ? new Date() : new Date(startMillis);
-        Long stopMillis = (Long) json.get("stop");
+        Long stopMillis = (Long) json.get("stop_millis");
         Date stopDate = stopMillis == null ? null : new Date(stopMillis);
 
         Order order = new Order();  // an excellent band

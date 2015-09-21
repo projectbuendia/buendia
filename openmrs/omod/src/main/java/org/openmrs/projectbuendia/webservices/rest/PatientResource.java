@@ -102,7 +102,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     // JSON property names
     private static final String ID = "id";
     private static final String UUID = "uuid";
-    private static final String GENDER = "gender";
+    private static final String SEX = "sex";
+    private static final String GENDER = "gender";  // deprecated, for backward compatibility only
     private static final String BIRTHDATE = "birthdate";
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
@@ -154,12 +155,19 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             if (patientIdentifier != null) {
                 jsonForm.add(ID, patientIdentifier.getIdentifier());
             }
-            jsonForm.add(GENDER, patient.getGender());
+            jsonForm.add(GENDER, patient.getGender()); // for backward compatibility
+            jsonForm.add(SEX, patient.getGender());
             if (patient.getBirthdate() != null) {
                 jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
             }
-            jsonForm.add(GIVEN_NAME, patient.getGivenName());
-            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+            String givenName = patient.getGivenName();
+            if (!givenName.equals(MISSING_NAME)) {
+                jsonForm.add(GIVEN_NAME, patient.getGivenName());
+            }
+            String familyName = patient.getFamilyName();
+            if (!familyName.equals(MISSING_NAME)) {
+                jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+            }
 
             // TODO: refactor so we have a single assigned location with a uuid,
             // and we walk up the tree to get extra information for the patient.
@@ -194,30 +202,44 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
+    private String getFullName(Patient patient) {
+        String given = patient.getGivenName();
+        given = given.equals(MISSING_NAME) ? "" : given;
+        String family = patient.getFamilyName();
+        family = family.equals(MISSING_NAME) ? "" : family;
+        return (given + " " + family).trim();
+    }
+
     private Object createInner(SimpleObject json) throws ResponseException {
         // We really want this to use XForms, but let's have a simple default
         // implementation for early testing
 
-        if (!json.containsKey(ID)) {
-            throw new InvalidObjectDataException("Patient ID is required but not specified");
-        }
-        String id = (String) json.get(ID);
-        List<PatientIdentifierType> identifierTypes =
-            Arrays.asList(DbUtil.getMsfIdentifierType());
         Patient patient = null;
         synchronized (createPatientLock) {
-            List<Patient> existing = patientService.getPatients(
-                null, id, identifierTypes, true /* exact identifier match */);
-            if (!existing.isEmpty()) {
-                patient = existing.get(0);
-                String given = patient.getGivenName();
-                given = (given == null) ? "" : given;
-                String family = patient.getFamilyName();
-                family = (family == null) ? "" : family;
-                String name = (given + " " + family).trim();
-                throw new InvalidObjectDataException(String.format(
-                    "Another patient (%s) already has the ID \"%s\"",
-                    name.isEmpty() ? "with no name" : "named " + name, id));
+            String id = (String) json.get(ID);
+            if (id != null) {
+                List<PatientIdentifierType> identifierTypes =
+                    Arrays.asList(DbUtil.getMsfIdentifierType());
+                List<Patient> existing = patientService.getPatients(
+                    null, id, identifierTypes, true /* exact identifier match */);
+                if (!existing.isEmpty()) {
+                    Patient idMatch = existing.get(0);
+                    String name = getFullName(idMatch);
+                    throw new InvalidObjectDataException(
+                        String.format(
+                            "Another patient (%s) already has the ID \"%s\"",
+                            name.isEmpty() ? "with no name" : "named " + name, id));
+                }
+            }
+            String uuid = (String) json.get(UUID);
+            if (uuid != null) {
+                Patient uuidMatch = patientService.getPatientByUuid(uuid);
+                if (uuidMatch != null) {
+                    String name = getFullName(uuidMatch);
+                    throw new InvalidObjectDataException(String.format(
+                        "Another patient (%s) already has the UUID \"%s\"",
+                        name.isEmpty() ? "with no name" : "named " + name, uuid));
+                }
             }
 
             patient = jsonToPatient(json);
@@ -231,52 +253,82 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         return patientToJson(patient);
     }
 
+    private static String normalizeSex(String sex) {
+        if (sex == null) {
+            return "U";
+        } else if (sex.trim().matches("^[FfMmOoUu]")) {
+            return sex.trim().substring(0, 1).toUpperCase();  // F, M, O, and U are valid
+        } else {
+            return "U";
+        }
+    }
+
+    /** OpenMRS refuses to store empty names, so we use "." to represent a missing name. */
+    private static final String MISSING_NAME = ".";
+
+    /** Normalizes a name to something OpenMRS will accept. */
+    private static String normalizeName(String name) {
+        name = (name == null) ? "" : name.trim();
+        return name.isEmpty() ? MISSING_NAME : name;
+    }
+
     protected static Patient jsonToPatient(SimpleObject json) {
         Patient patient = new Patient();
         // TODO: do this properly from authentication
         patient.setCreator(CREATOR);
         patient.setDateCreated(new Date());
 
-        if (json.containsKey(GENDER)) {
-            patient.setGender((String) json.get(GENDER));
+        if (json.containsKey(UUID)) {
+            patient.setUuid((String) json.get(UUID));
         }
+
+        String sex = json.get(SEX) == null ? (String) json.get(SEX) : (String) json.get(GENDER);
+        // OpenMRS calls it "gender"; we use it for physical sex (as other implementations do).
+        patient.setGender(normalizeSex(sex));
+
         if (json.containsKey(BIRTHDATE)) {
-            patient.setBirthdate(
-                Utils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
+            patient.setBirthdate(Utils.parseDate((String) json.get(BIRTHDATE), BIRTHDATE));
         }
 
         PersonName pn = new PersonName();
-        if (json.containsKey(GIVEN_NAME)) {
-            pn.setGivenName((String) json.get(GIVEN_NAME));
-        }
-        if (json.containsKey(FAMILY_NAME)) {
-            pn.setFamilyName((String) json.get(FAMILY_NAME));
-        }
-
+        pn.setGivenName(normalizeName((String) json.get(GIVEN_NAME)));
+        pn.setFamilyName(normalizeName((String) json.get(FAMILY_NAME)));
         pn.setCreator(patient.getCreator());
         pn.setDateCreated(patient.getDateCreated());
         patient.addName(pn);
 
+        // OpenMRS requires that every patient have a preferred identifier.  If no MSF identifier
+        // is specified, we use a timestamp as a stand-in unique identifier.
+        PatientIdentifier identifier = new PatientIdentifier();
+        identifier.setCreator(patient.getCreator());
+        identifier.setDateCreated(patient.getDateCreated());
+        // TODO/generalize: Instead of getting the root location by a hardcoded
+        // name (almost certainly an inappropriate name), change the helper
+        // function to DbUtil.getRootLocation().
+        identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
         if (json.containsKey(ID)) {
-            PatientIdentifier identifier = new PatientIdentifier();
-            identifier.setCreator(patient.getCreator());
-            identifier.setDateCreated(patient.getDateCreated());
             identifier.setIdentifier((String) json.get(ID));
-            // TODO/generalize: Instead of getting the root location by a hardcoded
-            // name (almost certainly an inappropriate name), change the helper
-            // function to DbUtil.getRootLocation().
-            identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
             identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
-            identifier.setPreferred(true);
-            patient.addIdentifier(identifier);
+        } else {
+            identifier.setIdentifier("" + new Date().getTime());
+            identifier.setIdentifierType(DbUtil.getTimestampIdentifierType());
         }
+        identifier.setPreferred(true);
+        patient.addIdentifier(identifier);
 
         // Set assigned location last, as doing so saves the patient, which could fail
         // if performed in the middle of patient creation.
         if (json.containsKey(ASSIGNED_LOCATION)) {
-            Map assignedLocation = (Map) json.get(ASSIGNED_LOCATION);
-            if (assignedLocation != null) {
-                setLocation(patient, (String) assignedLocation.get(UUID));
+            String assignedLocationUuid = null;
+            Object assignedLocation = json.get(ASSIGNED_LOCATION);
+            if (assignedLocation instanceof String) {
+                assignedLocationUuid = (String) assignedLocation;
+            }
+            if (assignedLocation instanceof Map) {
+                assignedLocationUuid = (String) ((Map) assignedLocation).get(UUID);
+            }
+            if (assignedLocationUuid != null) {
+                setLocation(patient, assignedLocationUuid);
             }
         }
 

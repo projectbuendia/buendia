@@ -34,24 +34,34 @@ import java.util.Locale;
 public class DbUtil {
     // OpenMRS object names
     public static final String MSF_IDENTIFIER = "MSF";
+    public static final String TIMESTAMP_IDENTIFIER = "Timestamp";
 
     // OpenMRS object UUIDs
     public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID =
         "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
-    public static PatientIdentifierType getMsfIdentifierType() {
+    public static PatientIdentifierType getIdentifierType(String name, String description) {
         PatientService service = Context.getPatientService();
         PatientIdentifierType identifierType =
-            service.getPatientIdentifierTypeByName(MSF_IDENTIFIER);
+            service.getPatientIdentifierTypeByName(name);
         if (identifierType == null) {
             identifierType = new PatientIdentifierType();
-            identifierType.setName(MSF_IDENTIFIER);
-            identifierType.setDescription("MSF patient identifier");
-            identifierType.setFormatDescription("[facility code].[patient number]");
+            identifierType.setName(name);
+            identifierType.setDescription(description);
             service.savePatientIdentifierType(identifierType);
         }
         return identifierType;
+    }
+
+    /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
+    public static PatientIdentifierType getMsfIdentifierType() {
+        return getIdentifierType(MSF_IDENTIFIER, "MSF patient identifier");
+    }
+
+    /** Gets or creates the PatientIdentifierType for timestamps (used for patients with no MSF ID). */
+    public static PatientIdentifierType getTimestampIdentifierType() {
+        return getIdentifierType(TIMESTAMP_IDENTIFIER, "Timestamp-based patient identifier");
     }
 
     public static OrderType getDrugOrderType() {
