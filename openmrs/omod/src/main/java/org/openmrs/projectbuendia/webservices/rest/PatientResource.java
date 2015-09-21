@@ -457,17 +457,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             throw new ObjectNotFoundException();
         }
 
-        if (applyEdits(patient, simpleObject)) {
-            patientService.savePatient(patient);
-        }
+        applyEdits(patient, simpleObject);
         return patientToJson(patient);
     }
 
     /** Applies edits to a Patient.  Returns true if any changes were made. */
-    protected boolean applyEdits(Patient patient, SimpleObject edits) {
+    protected void applyEdits(Patient patient, SimpleObject edits) {
         boolean changedPatient = false;
         String newGivenName = null;
         String newFamilyName = null;
+        String newId = null;
         for (Map.Entry<String, Object> entry : edits.entrySet()) {
             switch (entry.getKey()) {
                 // ==== JSON keys that update attributes of the Patient entity.
@@ -491,28 +490,47 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case ID:
-                    PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
-                    if (identifier != null) {
-                        patient.removeIdentifier(identifier);
-                    }
-                    identifier = new PatientIdentifier();
-                    identifier.setCreator(patient.getCreator());
-                    identifier.setDateCreated(patient.getDateCreated());
-                    // TODO/generalize: Instead of getting the root location by a hardcoded
-                    // name (almost certainly an inappropriate name), change the helper
-                    // function to DbUtil.getRootLocation().
-                    identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
-                    identifier.setIdentifier((String) entry.getValue());
-                    identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
-                    identifier.setPreferred(true);
-                    patient.addIdentifier(identifier);
-                    changedPatient = true;
+                    newId = (String) entry.getValue();
                     break;
-
                 default:
                     log.warn("Property is nonexistent or not updatable; ignoring: " + entry);
                     break;
             }
+        }
+
+        PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
+        if (newId != null && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
+            synchronized (createPatientLock) {
+                List<PatientIdentifierType> identifierTypes =
+                    Arrays.asList(DbUtil.getMsfIdentifierType());
+                List<Patient> existing = patientService.getPatients(
+                    null, newId, identifierTypes, true /* exact identifier match */);
+                if (!existing.isEmpty()) {
+                    Patient idMatch = existing.get(0);
+                    String name = getFullName(idMatch);
+                    throw new InvalidObjectDataException(
+                        String.format(
+                            "Another patient (%s) already has the ID \"%s\"",
+                            name.isEmpty() ? "with no name" : "named " + name, newId));
+                }
+
+                if (identifier != null) {
+                    patient.removeIdentifier(identifier);
+                }
+                identifier = new PatientIdentifier();
+                identifier.setCreator(patient.getCreator());
+                identifier.setDateCreated(patient.getDateCreated());
+                // TODO/generalize: Instead of getting the root location by a hardcoded
+                // name (almost certainly an inappropriate name), change the helper
+                // function to DbUtil.getRootLocation().
+                identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
+                identifier.setIdentifier(newId);
+                identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
+                identifier.setPreferred(true);
+                patient.addIdentifier(identifier);
+                patientService.savePatient(patient);
+            }
+            changedPatient = true;
         }
         if (newGivenName != null || newFamilyName != null) {
             PersonName oldName = patient.getPersonName();
@@ -528,6 +546,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 changedPatient = true;
             }
         }
-        return changedPatient;
+        if (changedPatient) {
+            patientService.savePatient(patient);
+        }
     }
 }
