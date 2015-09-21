@@ -282,7 +282,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patient.setUuid((String) json.get(UUID));
         }
 
-        String sex = json.get(SEX) == null ? (String) json.get(SEX) : (String) json.get(GENDER);
+        String sex = (String) json.get(SEX);
+        sex = sex == null ? (String) json.get(GENDER) : null;
         // OpenMRS calls it "gender"; we use it for physical sex (as other implementations do).
         patient.setGender(normalizeSex(sex));
 
@@ -463,28 +464,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     /** Applies edits to a Patient.  Returns true if any changes were made. */
     protected boolean applyEdits(Patient patient, SimpleObject edits) {
         boolean changedPatient = false;
+        String newGivenName = null;
+        String newFamilyName = null;
         for (Map.Entry<String, Object> entry : edits.entrySet()) {
-            PersonName oldName, newName;
             switch (entry.getKey()) {
                 // ==== JSON keys that update attributes of the Patient entity.
 
                 case FAMILY_NAME:
-                    oldName = patient.getPersonName();
-                    newName = new PersonName();
-                    newName.setFamilyName((String) entry.getValue());
-                    newName.setGivenName(oldName.getGivenName());
-                    patient.addName(newName);
-                    oldName.setVoided(true);
-                    changedPatient = true;
+                    newFamilyName = (String) entry.getValue();
                     break;
                 case GIVEN_NAME:
-                    oldName = patient.getPersonName();
-                    newName = new PersonName();
-                    newName.setGivenName((String) entry.getValue());
-                    newName.setFamilyName(oldName.getFamilyName());
-                    patient.addName(newName);
-                    oldName.setVoided(true);
-                    changedPatient = true;
+                    newGivenName = (String) entry.getValue();
                     break;
                 case ASSIGNED_LOCATION:
                     Map assignedLocation = (Map) entry.getValue();
@@ -495,20 +485,43 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     changedPatient = true;
                     break;
                 case GENDER:
-                    patient.setGender(validateGender((String) entry.getValue()));
+                    patient.setGender(normalizeSex((String) entry.getValue()));
                     changedPatient = true;
                     break;
+                case ID:
+                    PatientIdentifier identifier = new PatientIdentifier();
+                    identifier.setCreator(patient.getCreator());
+                    identifier.setDateCreated(patient.getDateCreated());
+                    // TODO/generalize: Instead of getting the root location by a hardcoded
+                    // name (almost certainly an inappropriate name), change the helper
+                    // function to DbUtil.getRootLocation().
+                    identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
+                    identifier.setIdentifier((String) entry.getValue());
+                    identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
+                    identifier.setPreferred(true);
+                    patient.addIdentifier(identifier);
+                    changedPatient = true;
+                    break;
+
                 default:
                     log.warn("Property is nonexistent or not updatable; ignoring: " + entry);
                     break;
             }
         }
+        if (newGivenName != null || newFamilyName != null) {
+            PersonName oldName = patient.getPersonName();
+            if (!normalizeName(newGivenName).equals(oldName.getGivenName())
+                || !normalizeName(newFamilyName).equals(oldName.getFamilyName())) {
+                PersonName newName = new PersonName();
+                newName.setGivenName(
+                    newGivenName != null ? normalizeName(newGivenName) : oldName.getGivenName());
+                newName.setFamilyName(
+                    newFamilyName != null ? normalizeName(newFamilyName) : oldName.getFamilyName());
+                patient.addName(newName);
+                oldName.setVoided(true);
+                changedPatient = true;
+            }
+        }
         return changedPatient;
-    }
-
-    private String validateGender(String value) {
-        if (value.equals("F") || value.equals("M")) return value;
-        throw new InvalidObjectDataException(
-            "Gender should be specified as \"F\" or \"M\"");
     }
 }
