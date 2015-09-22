@@ -26,4 +26,4 @@ fi
 
 root_url=${root_url%/}
 
-(curl -s -X GET $root_url/ws/rest/v1/projectbuendia/patient -u "$username:$password" | sed -e 's/},{/}\n{/g' -e 's/^{"results":\[//' -e 's/}]}$/}/'; echo) | grep uuid
+(curl -s -X GET $root_url/ws/rest/v1/projectbuendia/patients -u "$username:$password" | sed -e 's/},{/}\n{/g' -e 's/^{"results":\[//' -e 's/}]}$/}/'; echo) | grep uuid
