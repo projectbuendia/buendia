@@ -28,13 +28,17 @@ import java.util.regex.Pattern;
 public class Utils {
     /** ISO 8601 format for a complete date and time in UTC. */
     public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-    /** A SimpleDateFormat that formats as "yyyy-MM-dd". */
-    public static final DateFormat YYYYMMDD_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    /**
-     * A SimpleDateFormat that formats a date and time so it will be auto-parsed in a
-     * spreadsheet.
-     */
+    /** A SimpleDateFormat that formats as "yyyy-MM-dd" in UTC. */
+    public static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    /** A SimpleDateFormat that formats a date and time to be auto-parsed in a spreadsheet. */
     public static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
+    static {
+        FORMAT.setTimeZone(UTC);
+        YYYYMMDD_UTC_FORMAT.setTimeZone(UTC);
+        SPREADSHEET_FORMAT.setTimeZone(UTC);
+    }
+
     /**
      * Compares two objects that may each be null, Integer, or String.  null sorts
      * before everything; all Integers sort before all Strings; Integers sort
@@ -66,7 +70,6 @@ public class Utils {
                 return a.size() - b.size();
             }
         };
-    public static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     // Note: Use of \L here assumes a string that is already NFC-normalized.
     private static final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
     /**
@@ -118,12 +121,6 @@ public class Utils {
         }
     };
 
-    static {
-        FORMAT.setTimeZone(UTC);
-        YYYYMMDD_FORMAT.setTimeZone(UTC);
-        SPREADSHEET_FORMAT.setTimeZone(UTC);
-    }
-
     /**
      * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
      * The OpenMRS core is not designed for a client-server setup -- it will
@@ -148,7 +145,7 @@ public class Utils {
     /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
     public static Date parseLocalDate(String text, String fieldName) {
         try {
-            return YYYYMMDD_FORMAT.parse(text);
+            return YYYYMMDD_UTC_FORMAT.parse(text);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(String.format(
                 "The %s field should be in yyyy-MM-dd format", fieldName));

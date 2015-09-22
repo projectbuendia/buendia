@@ -76,7 +76,7 @@ import java.util.Set;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/location",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/locations",
     supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class LocationResource implements
     Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {

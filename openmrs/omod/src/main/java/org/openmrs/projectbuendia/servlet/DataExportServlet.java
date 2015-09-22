@@ -138,7 +138,7 @@ public class DataExportServlet extends HttpServlet {
             for (Encounter encounter : encounters) {
                 values[0] = patient.getUuid();
                 values[1] = patient.getPatientIdentifier("MSF");
-                values[2] = Utils.YYYYMMDD_FORMAT.format(patient.getBirthdate());
+                values[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
                 values[3] = encounter.getUuid();
                 values[4] = encounter.getEncounterDatetime().getTime();
                 values[5] = Utils.toIso8601(encounter.getEncounterDatetime());
@@ -209,7 +209,7 @@ public class DataExportServlet extends HttpServlet {
                             if (d == null) {
                                 value = "";
                             } else {
-                                value = Utils.YYYYMMDD_FORMAT.format(d);
+                                value = Utils.YYYYMMDD_UTC_FORMAT.format(d);
                             }
                             values[valueColumn] = value;
                             values[valueColumn + 1] = value;

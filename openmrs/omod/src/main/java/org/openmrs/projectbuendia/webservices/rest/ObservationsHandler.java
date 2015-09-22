@@ -140,7 +140,7 @@ public class ObservationsHandler {
             obs.setValueCoded(answerConcept);
         } else if (answerDate != null) {
             try {
-                obs.setValueDate(Utils.YYYYMMDD_FORMAT.parse(answerDate));
+                obs.setValueDate(Utils.YYYYMMDD_UTC_FORMAT.parse(answerDate));
             } catch (ParseException e) {
                 log.warn("Invalid date answer: " + answerDate);
                 return null;

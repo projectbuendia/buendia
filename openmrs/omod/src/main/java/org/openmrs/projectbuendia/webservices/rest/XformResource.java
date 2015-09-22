@@ -51,7 +51,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementItera
  * org.openmrs as otherwise the resource annotation isn't picked up.
  * @see AbstractReadOnlyResource
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xform",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforms",
     supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformResource extends AbstractReadOnlyResource<Form> {
     private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";

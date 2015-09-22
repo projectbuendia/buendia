@@ -23,6 +23,7 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
@@ -40,14 +41,14 @@ import java.util.List;
  */
 // TODO: Merge with PatientResource and let clients use a query parameter to
 // indicate whether encounter data should be included with each returned patient.
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patientencounters",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/encounters",
     supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class PatientEncountersResource
+public class EncounterResource
     extends AbstractReadOnlyResource<Patient> implements Creatable {
     private final PatientService patientService;
     private final EncounterService encounterService;
 
-    public PatientEncountersResource() {
+    public EncounterResource() {
         super("patient", Representation.DEFAULT);
         patientService = Context.getPatientService();
         encounterService = Context.getEncounterService();
@@ -63,7 +64,18 @@ public class PatientEncountersResource
      * @see AbstractReadOnlyResource#search(RequestContext)
      */
     @Override public List<Patient> searchImpl(RequestContext context, long snapshotTime) {
-        return patientService.getAllPatients();
+        String patientUuid = context.getParameter("patient_uuid");
+        if (patientUuid != null) {
+            Patient patient = patientService.getPatientByUuid(patientUuid);
+            if (patient == null) {
+                throw new ObjectNotFoundException();
+            }
+            List<Patient> patients = new ArrayList<>();
+            patients.add(patient);
+            return patients;
+        } else {
+            return patientService.getAllPatients();
+        }
     }
 
     /**
@@ -143,42 +155,43 @@ public class PatientEncountersResource
      */
     private SimpleObject encounterToJson(Encounter encounter) {
         SimpleObject encounterJson = new SimpleObject();
-        // TODO: Check what format this ends up in.
+
         encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
+        encounterJson.put("uuid", encounter.getUuid());
+
         SimpleObject observations = new SimpleObject();
         List<String> orderUuids = new ArrayList<>();
         for (Obs obs : encounter.getObs()) {
-            // TODO/simplify: Move this .put() call outside the loop.
-            encounterJson.put("uuid", encounter.getUuid());
             Concept concept = obs.getConcept();
             if (concept != null &&
                 concept.getUuid().equals(DbUtil.getOrderExecutedConcept().getUuid())) {
                 orderUuids.add(obs.getOrder().getUuid());
                 continue;
             }
+
             observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
-                obs, new VisitObsValue.ObsValueVisitor<String>() {
-                    @Override public String visitCoded(Concept value) {
+                obs, new VisitObsValue.ObsValueVisitor<Object>() {
+                    @Override public Object visitCoded(Concept value) {
                         return value.getUuid();
                     }
 
-                    @Override public String visitNumeric(Double value) {
-                        return String.valueOf(value);
+                    @Override public Object visitNumeric(Double value) {
+                        return "" + value;
                     }
 
-                    @Override public String visitBoolean(Boolean value) {
-                        return String.valueOf(value);
+                    @Override public Object visitBoolean(Boolean value) {
+                        return "" + value;
                     }
 
-                    @Override public String visitText(String value) {
+                    @Override public Object visitText(String value) {
                         return value;
                     }
 
-                    @Override public String visitDate(Date value) {
-                        return Utils.YYYYMMDD_FORMAT.format(value);
+                    @Override public Object visitDate(Date value) {
+                        return Utils.YYYYMMDD_UTC_FORMAT.format(value);
                     }
 
-                    @Override public String visitDateTime(Date value) {
+                    @Override public Object visitDateTime(Date value) {
                         return Utils.toIso8601(value);
                     }
                 }));

@@ -90,7 +90,7 @@ import java.util.TimeZone;
  * </pre>
  */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patient",
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patients",
     supportedClass = Patient.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

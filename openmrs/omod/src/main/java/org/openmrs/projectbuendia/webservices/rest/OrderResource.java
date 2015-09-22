@@ -86,7 +86,7 @@ import java.util.Set;
  * </pre>
  */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/order",
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/orders",
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

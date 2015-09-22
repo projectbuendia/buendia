@@ -84,7 +84,7 @@ import java.util.List;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/user", supportedClass = Provider
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/users", supportedClass = Provider
     .class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class UserResource implements Listable, Searchable, Retrievable, Creatable {
     // JSON property names

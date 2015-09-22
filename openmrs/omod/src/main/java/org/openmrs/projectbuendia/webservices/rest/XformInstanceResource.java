@@ -76,7 +76,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
  * </pre>
  */
 // TODO: Still not really sure what supportedClass to use here... can we omit it?
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstance",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstances",
     supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
     static final RequestLogger logger = RequestLogger.LOGGER;
