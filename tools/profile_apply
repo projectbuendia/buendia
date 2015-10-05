@@ -1,0 +1,501 @@
+#!/usr/bin/env python
+
+import csv
+import json
+import MySQLdb
+import os
+import re
+import sys
+import uuid
+
+CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
+LOCALE = 'en_GB_client'
+
+# This is a modified copy of the "OpenMRS FormEntry Form HL7 Translation" XSLT
+# file, with encounter_datetime changed from a "hl7Date" to an "hl7Timestamp".
+# To record the date and time (not just the date) of submitted observations,
+# we have to add this as a form resource to every form.
+XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
+XSLT_DATATYPE = 'org.openmrs.customdatatype.datatype.LongFreeTextDatatype'
+XSLT_HANDLER = 'org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler'
+
+class Database:
+    def __init__(self, database, user, password):
+        self.db = MySQLdb.connect(db=database, user=user, passwd=password)
+        cursor = self.db.cursor()
+        cursor.execute('set character_set_client = utf8;')
+        cursor.execute('set character_set_server = utf8;')
+        cursor.execute('set character_set_connection = utf8;')
+        cursor.execute('set character_set_results = utf8;')
+        cursor.execute('set character_set_database = utf8;')
+        cursor.close()
+        self.commit = self.db.commit
+
+    def iter(self, query, *params):
+        cursor = self.db.cursor()
+        cursor.execute(query, params)
+        return iter(cursor)
+
+    def execute(self, query, *params):
+        cursor = self.db.cursor()
+        cursor.execute(query, params)
+        cursor.close()
+
+    def get(self, field, table=None, **constraints):
+        """Gets a single value from the row matching the given constraints.
+
+        The table is inferred if the primary key column (named table + '_id')
+        is the one and only constraint or the requested field."""
+        keys = constraints.keys()
+        table = (table or
+            (len(keys) == 1 and keys[0].endswith('_id') and keys[0][:-3]) or
+            (field.endswith('_id') and field[:-3]))
+        condition = ' and '.join(key + ' = %s' for key in keys)
+        for row in self.iter(
+            'select %s from %s where %s' % (field, table, condition),
+            *(constraints[key] for key in keys)):
+            return row[0]
+
+class OpenmrsDatabase:
+    def __init__(self, db, username):
+        self.db = db
+        self.user_id = db.get('user_id', 'users', username=username)
+        self.columns = {}
+
+    def get_columns(self, table):
+        """Gets a list of the columns in a given table."""
+        if table not in self.columns:
+            self.columns[table] = [
+                row[0] for row in self.db.iter('describe ' + table)]
+        return self.columns[table]
+
+    def insert(self, table, **kwargs):
+        """Inserts a row, creating a UUID and filling in metadata if needed."""
+        if 'creator' in self.get_columns(table):
+            kwargs.setdefault('creator', self.user_id)
+        if 'uuid' in self.get_columns(table):
+            generated_uuid = (table == 'concept' and
+                (str(kwargs['concept_id']) + 'A'*36)[:36] or uuid.uuid4())
+            kwargs.setdefault('uuid', generated_uuid)
+
+        columns = kwargs.keys()
+        values = kwargs.values()
+        placeholders = ['%s'] * len(values)
+        if 'date_created' in self.get_columns(table):
+            columns += ['date_created']
+            placeholders += ['now()']
+
+        self.db.execute(
+            'insert into %s (%s) values (%s)' %
+            (table, ', '.join(columns), ', '.join(placeholders)), *values)
+        if table + '_id' in self.get_columns(table):
+            return self.db.get(table + '_id', uuid=kwargs['uuid'])
+
+    def update(self, table, id, **kwargs):
+        """Updates a row, filling in metadata if needed."""
+        pairs = [column + ' = %s' for column in kwargs.keys()]
+        values = kwargs.values()
+        if 'changed_by' in self.get_columns(table):
+            pairs += ['changed_by = %s', 'date_changed = now()']
+            values += [self.user_id]
+        self.db.execute(
+            'update %s set %s where %s = %%s' %
+            (table, ', '.join(pairs), table + '_id'), *(values + [id]))
+        return id
+
+def get_db(database):
+    pipe = os.popen("bash -c '. /usr/share/buendia/utils.sh; "
+                    "echo $OPENMRS_MYSQL_USER; echo $OPENMRS_MYSQL_PASSWORD'")
+    user = pipe.readline().strip() or 'openmrs_user'
+    password = pipe.readline().strip() or 'openmrs'
+    return Database(database, user, password)
+
+def read_csv(filename, tab=None):
+    """Returns a dictionary mapping tab names to lists of row dictionaries."""
+    infile = open(filename)
+    tabs = {}
+    for row in csv.DictReader(infile):
+        tab = row['tab'] or tab
+        tabs.setdefault(tab, []).append(row)
+    return tabs
+
+def apply(tabs):
+    db = get_db('openmrs')
+    odb = OpenmrsDatabase(db, 'buendia_admin')
+    concept_field_type = db.get('field_type_id', name='Concept')
+    element_field_type = db.get('field_type_id', name='Database element')
+    section_field_type = db.get('field_type_id', name='Section')
+
+    coded_datatype = db.get('concept_datatype_id', name='Coded')
+    numeric_datatype = db.get('concept_datatype_id', name='Numeric')
+    text_datatype = db.get('concept_datatype_id', name='Text')
+    answer_datatype = db.get('concept_datatype_id', name='N/A')
+    datatypes_by_type = {
+        'yes_no': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
+        'select_one': coded_datatype,
+        'select_multiple': coded_datatype,  # no (1066) or yes (1065)
+        'number': numeric_datatype,
+        'text': text_datatype,
+    }
+
+    # "Finding", "Symptom", and "Symptom/Finding" all seem like reasonable
+    # classes for observations; "Finding" is by far the most commonly used.
+    obs_class = db.get('concept_class_id', name='Finding')
+
+    def main():  # main entry point, invoked at the end of this block
+        if 'form' in tabs:
+            apply_forms(tabs['form'])
+        if 'chart' in tabs:
+            apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
+        db.commit()
+
+    def get_or_insert(table, **values):
+        return (db.get(table + '_id', **values) or odb.insert(table, **values))
+
+    def update_or_insert(table, id, **values):
+        if db.get(table + '_id', **{table + '_id': id}):
+            odb.update(table, id, **values)
+        else:
+            odb.insert(table, **dict(values.items() + [(table + '_id', id)]))
+
+    def get_datatype_name(datatype_id):
+        return db.get('name', concept_datatype_id=datatype_id)
+
+    def get_field_for_element(table, attribute, name=None):
+        field_id = get_or_insert('field', field_type=element_field_type,
+                                 table_name=table, attribute_name=attribute)
+        return odb.update('field', field_id,
+                          name=name or table + '.' + attribute)
+
+    def get_field_for_section(name, description=None):
+        return get_or_insert('field', field_type=section_field_type,
+                             name=name, description=description or name)
+
+    def get_field_for_concept(concept_id, name=None, description=None):
+        name = name or db.get('name', 'concept_name', concept_id=concept_id)
+        return get_or_insert('field', field_type=concept_field_type,
+                             name=name, description=description or name,
+                             concept_id=concept_id)
+
+    def add_field_to_form(form_id, field_id, parent_form_field_id=None,
+                          field_number=None, sort_weight=1, required=0):
+        return odb.insert('form_field', form_id=form_id, field_id=field_id,
+                          parent_form_field=parent_form_field_id,
+                          field_number=field_number, sort_weight=sort_weight,
+                          required=required and 1 or 0)
+
+    def set_concept_name(concept_id, name, locale):
+        if name:
+            concept_name_id = get_or_insert(
+                'concept_name', concept_id=concept_id, locale=locale)
+            odb.update('concept_name', concept_name_id,
+                       name=name, locale_preferred=1,
+                       concept_name_type='FULLY_SPECIFIED')
+            # Adjust any other names to ensure there are no duplicates.
+            dup = 1
+            for (id, dup_name) in db.iter(
+                'select concept_name_id, name '
+                'from concept_name where name like %s', name + '%'):
+                if id != concept_name_id and dup_name.split(' (#')[0] == name:
+                    dup += 1
+                    odb.update('concept_name', id, name=name + ' (#%d)' % dup)
+            return concept_name_id
+
+    def set_concept_numeric(concept_id, (normal_low, normal_high),
+                            (noncritical_low, noncritical_high),
+                            (absolute_low, absolute_high), units, precise=1):
+        db.execute('delete from concept_numeric'
+                   ' where concept_id = %s', concept_id)
+        db.execute('insert into concept_numeric'
+                   ' (concept_id, low_normal, hi_normal, low_critical,'
+                   ' hi_critical, low_absolute, hi_absolute, units, precise)'
+                   ' values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                   concept_id, normal_low, normal_high, noncritical_low,
+                   noncritical_high, absolute_low, absolute_high,
+                   units, precise)
+
+    def put_coded_concept(concept_id, name, locale):
+        put_concept(concept_id, name, locale, coded_datatype, obs_class)
+
+    def put_answer_concept(concept_id, name, locale):
+        # If the concept already exists, preserve its current datatype.
+        put_concept(concept_id, name, locale,
+            db.get('datatype_id', concept_id=concept_id) or answer_datatype,
+            obs_class)
+
+    def set_concept_answers(concept_id, answer_concept_ids):
+        """Replaces the list of answers for a concept with the given list."""
+        db.execute(
+            'delete from concept_answer where concept_id = %s', concept_id)
+        for i, answer_concept_id in enumerate(answer_concept_ids):
+            odb.insert('concept_answer', concept_id=concept_id,
+                       answer_concept=answer_concept_id, sort_weight=i)
+
+    def put_concept(concept_id, name, locale, new_datatype_id, class_id):
+        """Creates or updates a concept with the given name, type, and class."""
+        datatype_id = db.get('datatype_id', concept_id=concept_id)
+        # Changing the datatype of an existing concept is illegal in OpenMRS.
+        if datatype_id and new_datatype_id != datatype_id:
+            raise ValueError("Concept %d: cannot change type from %s to %s" %
+                             (concept_id, get_datatype_name(datatype_id),
+                              get_datatype_name(new_datatype_id)))
+        update_or_insert('concept', concept_id, datatype_id=new_datatype_id,
+                         class_id=class_id, retired=0)
+        set_concept_name(concept_id, name, locale)
+
+    def apply_charts(rows):
+        chart_layout = get_or_insert(
+            'encounter_type', name='buendia-chart_layout',
+            description='Buendia: patient chart layout definition')
+        for chart_rows in split_by_title(rows):
+            put_chart(chart_rows)
+
+    def apply_chart(rows, form_id):
+        """Applies the chart definition given rows from the chart tab."""
+        section = None
+        sections = []
+        section_rows = []
+        for row in rows:
+            if row['section'].strip():
+                if section and section_rows:
+                    sections.append((section, section_rows))
+                section, section_rows = row['section'].strip(), []
+            if validate_str(row['type']) and validate_ints(row['concept']):
+                section_rows.append(row)
+        if section and section_rows:
+            sections.append((section, section_rows))
+        apply_chart_sections(sections, form_id)
+
+    def clear_form(form_id):
+        """Removes all the form_fields from the given form."""
+        db.execute('update form_field set parent_form_field = null'
+                   ' where form_id = %s', form_id)  # remove foreign keys
+        db.execute('delete from form_field where form_id = %s', form_id)
+
+    def apply_chart_sections(sections, form_id):
+        """
+        Rewrites the given chart form to contain the specified sections with
+        the specified selection and sequence of grid rows.  The OpenMRS data
+        model consists of:
+          - 'form' table: each row is a form
+          - 'form_field' table: puts fields in forms and determines their order
+          - 'field' table: each row is a field (usually linked to a concept)
+        """
+        clear_form(form_id)
+
+        for i, (section, rows) in enumerate(sections):
+            section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
+            field_id = get_field_for_section(
+                section, description=json.dumps({'type': section_type}))
+            section_id = add_field_to_form(form_id, field_id, None, i + 1)
+
+            # Add the fields to the section with the specified names.  Concepts
+            # must already exist (we can't create them here, because we don't
+            # know what data type they should have).  For charts, the "type"
+            # column in the CSV gives the rendering type, not the data type.
+            for j, row in enumerate(rows):
+                label = row.get('label', '')
+                concept_ids = validate_ints(row.get('concept'))
+                if section_type == 'GRID_SECTION' and len(concept_ids) != 1:
+                    raise ValueError('Grid rows must have exactly 1 concept ID')
+                for concept_id in concept_ids:
+                    if not db.get('concept_id', concept_id=concept_id):
+                        raise ValueError(
+                            'Concept %d not found in the existing dictionary'
+                            'or any form in this profile' % concept_id)
+
+                # Copy everything, but omit 'concept' as we have 'concepts'
+                # and omit 'required' because there's a DB column for that.
+                required = validate_boolean(row.get('required'))
+                config = dict([(normalize_name(key), value.strip())
+                               for key, value in row.items() if key],
+                              concepts=concept_ids,
+                              type=validate_str(row['type']))
+                for key in config.keys():
+                    if key in ['concept', 'required'] or config[key] == '':
+                        del config[key]
+
+                # Put the first concept ID in the 'concept_id' column;
+                # serialize all the rest of the details in the description.
+                field_id = get_field_for_concept(
+                        concept_ids[0], label, description=json.dumps(config))
+                add_field_to_form(form_id, field_id, section_id,
+                                  field_number=j + 1, required=required)
+
+    def split_by_title(rows):
+        row_numbers = []
+        for i in range(len(rows)):
+            if rows[i].get('title'):
+                row_numbers.append(i)
+        row_numbers.append(len(rows))
+        for start, stop in zip(row_numbers[:-1], row_numbers[1:]):
+            yield rows[start:stop]
+
+    def apply_forms(rows):
+        db.execute('update form set published = 0')
+        for form_rows in split_by_title(rows):
+            put_form(form_rows)
+
+    def normalize_name(name):
+        return re.sub('[\W_]+', '_', name.lower()).strip('_')
+
+    def put_form(rows):
+        adult_return = db.get('encounter_type_id', name='ADULTRETURN')
+
+        title = rows[0]['title']
+        uuid = 'buendia-form-' + normalize_name(title)
+        form_id = db.get('form_id', uuid=uuid)
+        if not form_id:
+            form_id = odb.insert('form', name=title, version='1',
+                                 encounter_type=adult_return, uuid=uuid)
+        else:
+            odb.update('form', form_id, name=title)
+        apply_form(rows, form_id)
+        init_form_xslt(form_id)
+        db.execute('update form set published = 1 where form_id = %s', form_id)
+
+    def init_form_xslt(form_id):
+        """Adds our custom XSLT as a form resource to a specified form."""
+        name = db.get('name', 'form', form_id=form_id) + '.xFormXslt'
+        resource_id = get_or_insert('form_resource',
+            form_id=form_id, name=name, value_reference=XSLT_UUID)
+        odb.update('form_resource', resource_id, datatype=XSLT_DATATYPE,
+                   preferred_handler=XSLT_HANDLER)
+
+    def apply_form(rows, form_id):
+        """
+        Applies the desired selection and sequence of grid rows by making
+        changes to the given form.  The OpenMRS data model consists of:
+          - 'form' table: each row is a form
+          - 'form_field' table: puts fields in forms and determines their order
+          - 'field' table: each row is a field (usually linked to a concept)
+          - 'concept' table: each row is a concept with a datatype and class
+          - 'concept_answer' table: links answer concepts to parent concepts
+          - 'concept_name' table: provides localized names for each concept
+        """
+        clear_form(form_id)
+
+        # Add default fields
+        fn = 1
+        field_id = get_field_for_section('ENCOUNTER', 'Encounter')
+        section_id = add_field_to_form(form_id, field_id, None, fn)
+        field_id = get_field_for_element('encounter', 'encounter_datetime')
+        add_field_to_form(form_id, field_id, section_id, sort_weight=1)
+        field_id = get_field_for_element('encounter', 'location_id')
+        add_field_to_form(form_id, field_id, section_id, sort_weight=2)
+        field_id = get_field_for_element('encounter', 'provider_id')
+        add_field_to_form(form_id, field_id, section_id, sort_weight=3)
+
+        section_id = None
+        last_type = None
+        select_concept_id, select_answer_ids = None, []
+
+        for i, row in enumerate(rows):
+            if row['section']:
+                fn += 1
+                field_id = get_field_for_section(row['section'])
+                section_id = add_field_to_form(form_id, field_id, None, fn)
+                last_type = None
+                continue
+
+            type, datatype = validate_type(row['type'])
+            concept_id = validate_int(row['concept'])
+            label = row['label']
+            option_concept_id = validate_int(row['option concept'])
+            option_label = row['option label']
+
+            if type:
+                if type == 'select_multiple':
+                    # To make a group of toggle buttons, we have to create a
+                    # section with "[binary]" in its name that contains a coded
+                    # yes/no field for each button.
+                    fn += 1
+                    label = row['label']
+                    field_id = get_field_for_section(label + '[binary]', label)
+                    section_id = add_field_to_form(form_id, field_id, None, fn)
+                elif last_type == 'select_multiple':
+                    # Fields after the end of a toggle group don't belong in
+                    # the section, so put them in a new section, using
+                    # "[invisible]" in its name to hide the section heading.
+                    fn += 1
+                    field_id = get_field_for_section('[invisible]')
+                    section_id = add_field_to_form(form_id, field_id, None, fn)
+
+                if (concept_id and
+                    type in ['number', 'text', 'yes_no', 'select_one']):
+                    put_concept(concept_id, label, LOCALE, datatype, obs_class)
+                    if type == 'yes_no':
+                        # Answers are: unknown (1067), no (1066), or yes (1065)
+                        set_concept_answers(concept_id, [1067, 1066, 1065])
+                    if datatype == numeric_datatype:
+                        set_concept_numeric(
+                            concept_id,
+                            validate_range(row.get('normal range')),
+                            validate_range(row.get('noncritical range')),
+                            validate_range(row.get('absolute range')),
+                            row.get('units'))
+                    field_id = get_field_for_concept(concept_id, label)
+                    add_field_to_form(form_id, field_id, section_id, None, i,
+                                      validate_boolean(row.get('required')))
+                    select_concept_id, select_answer_ids = concept_id, []
+
+            last_type = type or last_type
+
+            if option_concept_id:
+                if last_type == 'select_one':
+                    put_answer_concept(option_concept_id, option_label, LOCALE)
+                    select_answer_ids += [option_concept_id]
+                    set_concept_answers(select_concept_id, select_answer_ids)
+
+                if last_type == 'select_multiple':
+                    put_coded_concept(option_concept_id, option_label, LOCALE)
+                    # Answers for a toggle button are: no (1066) or yes (1065)
+                    # NOTE: org.odk.collect.android.widgets2.selectone.
+                    # BinarySelectOneWidget requires one of the answers to
+                    # be concept 1065 or have the string "Yes".
+                    set_concept_answers(option_concept_id, [1066, 1065])
+                    field_id = get_field_for_concept(
+                        option_concept_id, option_label)
+                    add_field_to_form(form_id, field_id, section_id, None, i,
+                                      validate_boolean(row.get('required')))
+
+    def validate_str(text):
+        return (text or '').strip()
+
+    def validate_type(type):
+        type = type.strip().lower()
+        if not type:
+            return None, None
+        elif type in datatypes_by_type:
+            return type, datatypes_by_type[type]
+        else:
+            return 'n/a', None
+
+    def validate_int(text):
+        try:
+            return int(text)
+        except ValueError:
+            return None
+
+    def validate_ints(text):
+        return filter(lambda x: x, [validate_int(n) for n in text.split(',')])
+
+    def validate_boolean(text):
+        # Treat "no", "none", "nil", "false", "0" etc. as false; otherwise true.
+        word = str(text or '').split(' ')[0].lower()
+        return re.match('[a-z1-9]', word) and word[0] not in 'nf' and 1 or 0
+
+    def validate_range(range):
+        try:
+            low, high = re.split(r'\.\.+', range or '', 1)
+            low = low.strip() and float(low) or None
+            high = high.strip() and float(high) or None
+            return low, high
+        except ValueError:
+            return None, None
+
+    main()
+
+
+if __name__ == '__main__':
+    apply(read_csv(sys.argv[1]))

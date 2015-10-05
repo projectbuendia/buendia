@@ -1,0 +1,105 @@
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# Sets up a local OpenMRS server with a MySQL database, for development.
+
+set -e
+SITE_SQL_DIR=packages/buendia-db-init/data/usr/share/buendia/db
+SERVER_ID=server
+OPENMRS_PLATFORM_VERSION=1.10.2  # db-snapshot data is compatible with 1.10.x
+if [ "$1" = "-f" ]; then
+    force_flag="-f"
+    shift
+fi
+site="$1"
+site_sql="$SITE_SQL_DIR/site-$site.sql"
+cd $(dirname $0)
+cd ..  # go to the root of the Buendia repository
+
+if [ "$1" = "-h" -o -z "$site" ]; then
+    echo "Usage: $0 [-f] <site-id>"
+    echo
+    echo 'Installs the OpenMRS platform, configures it to use MySQL, sets up'
+    echo 'the MySQL user openmrs_user with the password "openmrs", and'
+    echo 'initializes the MySQL database from the contents of the db-snapshot'
+    echo 'directory.  By default, this will refuse to overwrite the MySQL'
+    echo 'database named "openmrs" if it already exists; specify -f to wipe'
+    echo 'and replace the existing database.'
+    echo
+    echo 'You must specify a site ID corresponding to a SQL file in:'
+    echo "    $SITE_SQL_DIR"
+    echo 'For example, use "openmrs_setup dev" to load site-dev.sql.'
+    echo
+    exit 1
+fi
+
+if [ ! -f "$site_sql" ]; then
+    echo "$site_sql not found."
+    echo
+    echo 'You must specify a site ID corresponding to a SQL file in:'
+    echo "    $SITE_SQL_DIR"
+    echo 'For example, use "openmrs_setup dev" to load site-dev.sql.'
+    echo
+    exit 1
+fi
+
+# Set up the OpenMRS platform if needed.
+server_dir=$HOME/openmrs/$SERVER_ID
+if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
+    mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+    echo
+    echo "Installing OpenMRS platform $OPENMRS_PLATFORM_VERSION..."
+    mvn openmrs-sdk:setup-platform \
+        -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION
+fi
+
+# Create the openmrs_user account in MySQL.
+echo "Enter the MySQL root password, or just hit Enter if there is no password."
+mysql -uroot -p <<< "
+    grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
+    grant file on *.* to openmrs_user@localhost;
+    flush privileges;
+"
+echo 'Added MySQL user "openmrs_user" with password "openmrs".'
+
+# Configure OpenMRS to use the openmrs_user MySQL account.
+cat <<EOF >$server_dir/openmrs-runtime.properties
+connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
+connection.username=openmrs_user
+connection.password=openmrs
+auto_update_database=true
+module.allow_web_admin=true
+EOF
+echo 'Configured OpenMRS to use the MySQL user openmrs_user@localhost.'
+
+# Get the latest database snapshot.
+git submodule update --init db-snapshot
+zip -qj /tmp/init.$$.zip db-snapshot/*
+trap 'rm -f /tmp/init.$$.zip' EXIT
+
+# Load the snapshot into the MySQL database.
+export MYSQL_USER=openmrs_user
+export MYSQL_PASSWORD=openmrs
+echo
+tools/openmrs_load $force_flag openmrs /tmp/init.$$.zip
+
+# Apply the selected site configuration.
+echo
+echo "Loading $site_sql..."
+mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" openmrs < $site_sql
+echo
+
+# Set up the OpenMRS account for Buendia.
+tools/openmrs_account_setup buendia buendia
+
+echo
+echo "Database initialization complete (site ID: $site)."

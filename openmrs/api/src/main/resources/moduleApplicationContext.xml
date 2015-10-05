@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+  		    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+  <!-- Add here beans related to the API context -->
+
+
+  <!-- Services accessible via Context.getService() -->
+  <bean parent="serviceContext">
+    <property name="moduleService">
+      <list>
+        <value>org.projectbuendia.openmrs.api.ProjectBuendiaService</value>
+        <bean
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+          <property name="transactionManager">
+            <ref bean="transactionManager"/>
+          </property>
+          <property name="target">
+            <bean class="org.projectbuendia.openmrs.api.impl.ProjectBuendiaServiceImpl">
+              <property name="dao">
+                <bean
+                    class="org.projectbuendia.openmrs.api.db.hibernate.HibernateProjectBuendiaDAO">
+                  <property name="sessionFactory">
+                    <ref bean="sessionFactory"/>
+                  </property>
+                </bean>
+              </property>
+            </bean>
+          </property>
+          <property name="preInterceptors">
+            <ref bean="serviceInterceptors"/>
+          </property>
+          <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource"/>
+          </property>
+        </bean>
+      </list>
+    </property>
+  </bean>
+
+</beans>

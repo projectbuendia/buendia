@@ -31,8 +31,8 @@ new_vars=$(set | cut -f1 -d=)  # collect ths list of new variables
 
 old_list=$(echo . $old_vars .)
 for var in $new_vars; do
-    if ! [[ "$old_list" =~ " $var " ]]; then
-        eval "echo $var=\$"$var  # print only the variables not in old_vars
+    if ! [[ "$old_list" =~ " $var " ]]; then  # print only vars not in old_vars
+        eval "echo $var=\\\"\$"$var\\\"
     fi
 done
 '

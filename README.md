@@ -5,7 +5,7 @@ The main repository for Project Buendia. See the
 
  - **client**: Android client app (from the projectbuendia/client repo).
  - **devices**: Scripts for setting up server devices.
- - **projectbuendia.openmrs**: OpenMRS module that provides the server API.
+ - **openmrs**: OpenMRS module that provides the server API.
  - **packages**: Subdirectories for each .deb package built from this repo.
  - **tools**: Data management and server administration utilities.
 

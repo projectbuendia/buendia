@@ -47,7 +47,12 @@ $mysqldump --tab=$tmpdir --single-transaction --default-character-set=utf8 --opt
 
 # Construct a SQL file that will load the data quickly.
 cd $tmpdir
-echo '/*!40014 SET SESSION FOREIGN_KEY_CHECKS=0 */;' > $tmpsql
+echo 'set character_set_client = utf8;' >> $tmpsql
+echo 'set character_set_server = utf8;' >> $tmpsql
+echo 'set character_set_connection = utf8;' >> $tmpsql
+echo 'set character_set_results = utf8;' >> $tmpsql
+echo 'set character_set_database = utf8;' >> $tmpsql
+echo '/*!40014 SET SESSION FOREIGN_KEY_CHECKS=0 */;' >> $tmpsql
 echo "select 'Creating tables...' as ' ';" >> $tmpsql
 shopt -s nullglob
 for i in *.sql; do

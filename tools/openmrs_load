@@ -52,18 +52,17 @@ mysql="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD"
 if $mysql -e '' $db 2>/dev/null; then
     if [ "$force" = yes ]; then
         echo "Wiping existing database $db..."
-        $mysql -s -e 'show tables;' $db 2>/dev/null | sed -e 's/^/; set session foreign_key_checks=0; drop table /' | $mysql $db
+        $mysql -s -e "drop database $db"
     else
         echo "Database $db already exists!  To wipe and replace it, use -f."
         exit 1
     fi
+fi
+if $mysql -s -e "create database $db charset utf8" 2>/dev/null; then
+    echo 'Created a new empty database.'
 else
-    if $mysql -s -e "create database $db" 2>/dev/null; then
-        echo 'Created a new empty database.'
-    else
-        echo "Failed to create database $db."
-        exit 1
-    fi
+    echo "Failed to create database $db."
+    exit 1
 fi
 
 # Unpack the zip file in the temporary directory.

@@ -12,79 +12,15 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-# This is the UUID for the user account used for all Buendia API requests.
-# If there is no row with this uuid in the users table, one will be added.
-USER_UUID=129a5d04-3bd7-4e9d-8b82-dac5109cd1db
-
-# If a person or person_name need to be added, they are added with these UUIDs.
-PERSON_UUID=a0e512fd-a6e0-11e4-b418-040ccecfdba4
-PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
-
-# Provide a randomly generated password for the buendia user.
+# Provide a randomly generated password for the Buendia user, if necessary.
 generated=/usr/share/buendia/site/20-server
-if [ ! -e $generated ]; then
+if [ ! -e $generated -o -z "$SERVER_OPENMRS_PASSWORD" ]; then
     echo "SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)" > $generated
     . /usr/share/buendia/utils.sh  # reload settings
 fi
 
-# Ensure MySQL is running.
+# Set up the Buendia user account.
 service mysql start
-MYSQL="mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs"
-
-# If there is no user account with the expected UUID, add one.
-if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1; then
-    echo "Creating user $SERVER_OPENMRS_USER..."
-    salt=$(xxd -l 64 -p /dev/urandom | tr -d '\n')
-    $MYSQL <<< "
-        set @admin_id = (select user_id from users where system_id = 'admin');
-
-        insert ignore into person (date_created, creator, uuid)
-            values (now(), @admin_id, '$PERSON_UUID');
-
-        set @person_id :=
-            (select person_id from person where uuid = '$PERSON_UUID');
-
-        insert ignore into person_name (preferred, given_name, family_name,
-                                        date_created, creator, person_id, uuid)
-            values (1, 'Buendia', 'Client',
-                    now(), @admin_id, @person_id, '$PERSON_NAME_UUID');
-
-        insert into users (username, password,
-                           salt, date_created, creator, person_id, uuid)
-            values ('$SERVER_OPENMRS_USER',
-                    sha2('$SERVER_OPENMRS_USER$salt', 512),
-                    '$salt', now(), @admin_id, @person_id, '$USER_UUID');
-
-        set @user_id := last_insert_id();
-
-        insert into user_role (user_id, role)
-        values (@user_id, 'Authenticated'),
-               (@user_id, 'Clinician'),
-               (@user_id, 'Data Assistant'),
-               (@user_id, 'Data Manager'),
-               (@user_id, 'Provider'),
-               (@user_id, 'System Developer');
-    "
-fi
-
-# Check if the username and password are already correctly set.
-if $MYSQL <<< "
-    select count(*) from users
-        where uuid='$USER_UUID' and username='$SERVER_OPENMRS_USER' and
-        password = sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512);
-" | grep -q 1; then
-    echo "Server username and password unchanged."
-    exit 0
-fi
-
-# Set the username and password for the Android client, using fresh salt.
-echo "Setting server username and password..."
-salt=$(xxd -p -l 64 /dev/urandom | tr -d '\n')
-$MYSQL <<< "
-    update users set
-        salt='$salt', username='$SERVER_OPENMRS_USER',
-        password=sha2(concat('$SERVER_OPENMRS_PASSWORD', salt), 512)
-        where uuid='$USER_UUID';
-"
-
-echo "Successfully set up Buendia API user account in OpenMRS."
+export MYSQL_USER="$OPENMRS_MYSQL_USER"
+export MYSQL_PASSWORD="$OPENMRS_MYSQL_PASSWORD"
+buendia-openmrs-account-setup "$SERVER_OPENMRS_USER" "$SERVER_OPENMRS_PASSWORD"
