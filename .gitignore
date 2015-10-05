@@ -29,6 +29,9 @@ proguard/
 !.idea/inspectionProfiles
 */.idea/*
 
+# Mac stuff
+.DS_Store
+
 # User-specific configurations
 *.iml
 .classpath
