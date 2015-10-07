@@ -85,7 +85,7 @@ public class LocationResource implements
     public static final String ROOT_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
     public static final String TRIAGE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
     // TODO/generalize: The facility name should not be hardcoded here.
-    private static final String ROOT_NAME = "Facility Kailahun";
+    private static final String ROOT_NAME = "ROOT LOCATION";
     // The hard-coded zones. These are (name, UUID) pairs, and are children of
     // the root location.  TODO/generalize: Consider generalizing these zones
     // as well.  They may be common in infectious disease deployments but don't
