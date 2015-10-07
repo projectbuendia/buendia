@@ -23,11 +23,11 @@ UPDATE global_property SET property_value = 'en, en_GB_client'
 -- Make sure camp and zone locations are present.
 -- ON DUPLICATE IGNORE is safe as there is a unique index on uuid.
 INSERT INTO location (name, creator, date_created, uuid) VALUES
-    ('Chad', @admin_id, NOW(), 'c149ee48-bcda-4661-a3bf-d98847dfd18c')
+    ('ROOT LOCATION', @admin_id, NOW(), '3449f5fe-8e6b-4250-bcaa-fca5df28ddbf')
     ON DUPLICATE KEY UPDATE uuid = uuid;
 
 SELECT @emc_id := location_id FROM location
-    WHERE uuid = 'c149ee48-bcda-4661-a3bf-d98847dfd18c';
+    WHERE uuid = '3449f5fe-8e6b-4250-bcaa-fca5df28ddbf';
 
 INSERT INTO location (name, creator, date_created, uuid, parent_location) VALUES
     ('Bokoro ITFC', @admin_id, NOW(), '69890fb4-49bb-4c14-a834-b1dead6a34df', @emc_id),
