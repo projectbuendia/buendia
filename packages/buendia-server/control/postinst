@@ -17,6 +17,11 @@ case $1 in
         # Apply settings
         buendia-reconfigure server
 
+        # Make sure the profiles directory exists and is writeable by the tomcat7 group
+        mkdir -p /usr/share/buendia/profiles
+        chgrp tomcat7 /usr/share/buendia/profiles
+        chmod g+w /usr/share/buendia/profiles
+
         # Make the warmup script run once on startup
         update-rc.d buendia-server defaults
 
