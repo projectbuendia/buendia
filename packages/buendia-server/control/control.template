@@ -2,6 +2,6 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Pre-Depends: buendia-utils
-Depends: buendia-db (=${PACKAGE_VERSION}), buendia-monitoring, buendia-openmrs, cron-daemon
+Depends: buendia-db (=${PACKAGE_VERSION}), buendia-monitoring, buendia-openmrs, cron-daemon, python-mysqldb
 Description: Buendia API server (an OpenMRS module)
 Maintainer: projectbuendia.org
