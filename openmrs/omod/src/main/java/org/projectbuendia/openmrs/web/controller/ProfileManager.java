@@ -145,6 +145,9 @@ public class ProfileManager {
     }
 
     /** Handles an uploaded profile. */
+    // TODO: Give some error message if the profile is not uploaded correctly
+    //       (When tomcat7 didn't have permission to PROFILES_DIR it was failing
+    //        without showing any error message to the user)
     void addProfile(MultipartHttpServletRequest request, ModelMap model) {
         List<String> lines = new ArrayList<>();
         MultipartFile mpf = request.getFile("file");
