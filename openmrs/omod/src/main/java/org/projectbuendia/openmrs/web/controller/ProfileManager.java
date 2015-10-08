@@ -53,19 +53,6 @@ public class ProfileManager {
     final String VALIDATE_CMD = "buendia-profile-validate";
     final String APPLY_CMD = "buendia-profile-apply";
 
-    public ProfileManager() {
-        createProfileDirectoryIfNecessary();
-    }
-
-    private void createProfileDirectoryIfNecessary() {
-        if(!PROFILE_DIR.exists()) {
-            if(!PROFILE_DIR.mkdirs()) {
-                throw new ConfigurationException(String.format("Error creating profile dir %s. "
-                    + "Check its write permissions.", PROFILE_DIR.getAbsolutePath()));
-            }
-        }
-    }
-
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
         List<FileInfo> files = new ArrayList<>();
