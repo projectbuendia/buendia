@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.api.context.Context;
+import org.openmrs.projectbuendia.webservices.rest.ConfigurationException;
 import org.openmrs.projectbuendia.webservices.rest.GlobalProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -33,13 +34,10 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -55,7 +53,7 @@ public class ProfileManager {
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
         List<FileInfo> files = new ArrayList<>();
-        for (File file : PROFILE_DIR.listFiles()) {
+        for (File file : getProfileDir().listFiles()) {
             files.add(new FileInfo(file));
         }
         Collections.sort(files, new Comparator<FileInfo>() {
@@ -89,7 +87,7 @@ public class ProfileManager {
             String filename = request.getParameter("profile");
             String op = request.getParameter("op");
             if (filename != null) {
-                File file = new File(PROFILE_DIR, filename);
+                File file = new File(getProfileDir(), filename);
                 if (file.isFile()) {
                     model.addAttribute("filename", filename);
                     if ("Apply".equals(op)) {
@@ -121,7 +119,7 @@ public class ProfileManager {
         // If "name.ext" exists, it counts as version 1.
         String prefix = name + "-v";
         int highestVersion = 0;
-        for (File file : PROFILE_DIR.listFiles()) {
+        for (File file : getProfileDir().listFiles()) {
             int version = 0;
             String n = file.getName();
             if (n.equals(name + ext)) {
@@ -153,7 +151,7 @@ public class ProfileManager {
                 mpf.transferTo(tempFile);
                 if (execute(VALIDATE_CMD, tempFile, lines)) {
                     String filename = getNextVersionedFilename(mpf.getOriginalFilename());
-                    File newFile = new File(PROFILE_DIR, filename);
+                    File newFile = new File(getProfileDir(), filename);
                     model.addAttribute("filename", filename);
                     FileUtils.moveFile(tempFile, newFile);
                     model.addAttribute("success", "add");
@@ -269,5 +267,16 @@ public class ProfileManager {
             return String.format("%7d", size);
         }
         public Date getModified() { return modified; }
+    }
+
+    private File getProfileDir() {
+        if(!PROFILE_DIR.exists()) {
+            if(!PROFILE_DIR.mkdirs()) {
+                throw new ConfigurationException(String.format("Error creating profile dir %s. "
+                    + "Check its write permissions.", PROFILE_DIR.getAbsolutePath()));
+            }
+        }
+
+        return PROFILE_DIR;
     }
 }
