@@ -53,19 +53,6 @@ public class ProfileManager {
     final String VALIDATE_CMD = "buendia-profile-validate";
     final String APPLY_CMD = "buendia-profile-apply";
 
-    public ProfileManager() {
-        createProfileDirectoryIfNecessary();
-    }
-
-    private void createProfileDirectoryIfNecessary() {
-        if(!PROFILE_DIR.exists()) {
-            if(!PROFILE_DIR.mkdirs()) {
-                throw new ConfigurationException(String.format("Error creating profile dir %s. "
-                    + "Check its write permissions.", PROFILE_DIR.getAbsolutePath()));
-            }
-        }
-    }
-
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
         List<FileInfo> files = new ArrayList<>();
@@ -158,6 +145,9 @@ public class ProfileManager {
     }
 
     /** Handles an uploaded profile. */
+    // TODO: Give some error message if the profile is not uploaded correctly
+    //       (When tomcat7 didn't have permission to PROFILES_DIR it was failing
+    //        without showing any error message to the user)
     void addProfile(MultipartHttpServletRequest request, ModelMap model) {
         List<String> lines = new ArrayList<>();
         MultipartFile mpf = request.getFile("file");

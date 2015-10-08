@@ -1,6 +1,0 @@
-Package: ${PACKAGE_NAME}
-Version: ${PACKAGE_VERSION}
-Architecture: all
-Pre-Depends: buendia-db-init (<=${PACKAGE_VERSION}) | buendia-db-init (>>${PACKAGE_VERSION}), buendia-db-migrate, buendia-utils
-Description: Install MySQLdb Python module
-Maintainer: projectbuendia.org
