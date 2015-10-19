@@ -31,12 +31,14 @@ import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.resource.api.Deletable;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -51,46 +53,43 @@ import java.util.Set;
 
 /**
  * Rest API for orders.
- * <p/>
- * <p>Expected behavior:
+ *
  * <ul>
- * <li>GET /order?patient=[UUID] returns all orders for a patient ({@link #search(RequestContext)})
- * <li>GET /order/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
- * <li>POST /order?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
- * RequestContext)}
- * <li>POST /order/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
+ *     <li>GET /orders returns all orders for all patients
+ *     <li>GET /orders?patient=[UUID] returns all orders for a particular patient
+ *     <li>GET /orders/[UUID] returns a single order
+ *     <li>POST /orders creates an order
+ *     <li>POST /orders/[UUID] updates an order
+ *     <li>DELETE /orders/[UUID] deletes an order
  * </ul>
- * <p/>
- * <p>Each operation handles Order resources in the following JSON form:
- * <p/>
+ *
+ * Orders are accepted and returned in the following form:
  * <pre>
  * {
- *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
- *   creation
- *   "instructions": "Paracetamol 2 tablets 3x/day",
- *   "start_millis": 1438711253000,
- *   "stop_millis": 1438714253000  // optionally present
+ *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c",  // optional when creating
+ *   "patient_uuid": "7b859fc0-446e-40cf-a8bf-fb6a11926fb9",  // ignored when updating, required when creating
+ *   "instructions": "Paracetamol 2 tablets 3x/day",  // optional when updating
+ *   "start_millis": 1438711253000,  // optional when updating, required when creating
+ *   "stop_millis": 1438714253000  // optional when updating or creating, update with null to clear
  * }
  * </pre>
- * (Results may also contain deprecated fields other than those described above.)
- * <p/>
- * <p>If an error occurs, the response will contain the following:
- * <pre>
- * {
- *   "error": {
- *     "message": "[error message]",
- *     "code": "[breakpoint]",
- *     "detail": "[stack trace]"
- *   }
- * }
- * </pre>
+ *
+ * The orders returned by this API are an abstraction over chains of orders in the OpenMRS API.
+ * In OpenMRS, orders cannot be edited; changes can only be recorded by creating a new order with
+ * action "REVISE" with a previousOrder pointer referring to the original order; furthermore
+ * revisions are forbidden for any order whose expiry date has passed.  Needless to say, this is
+ * completely unworkable as the basis for a UI because it prevents users from correcting mistakes
+ * and from extending an order just after it has expired.
+ *
+ * Thus, each order returned or accepted by this API corresponds to a chain of orders in OpenMRS;
+ * we use the UUID of the first order in the chain as a stable identifier that survives edits.
  */
 @Resource(
     name = RestController.REST_VERSION_1_AND_NAMESPACE + "/orders",
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
+public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
     static final User CREATOR = new User(1);  // fake value
     static final RequestLogger logger = RequestLogger.LOGGER;
     static Log log = LogFactory.getLog(OrderResource.class);
@@ -123,7 +122,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     private SimpleObject getAllInner() throws ResponseException {
-        return getSimpleObjectWithResults(getAllOrders());
+        return getSimpleObjectWithResults(getLatestVersions(getAllOrders()));
     }
 
     SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
@@ -136,29 +135,79 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return json;
     }
 
+    /** Finds the UUID of the first order in the chain containing the given order. */
+    public String getOriginalUuid(Order order) {
+        Order prev = order.getPreviousOrder();
+        while (prev != null) {
+            order = prev;
+            prev = order.getPreviousOrder();
+        }
+        return order.getUuid();
+    }
+
+    /** Finds the last order in the chain containing the given order. */
+    public Order getLatestVersion(Order order) {
+        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
+        Map<String, String> nextOrderUuids = new HashMap<>();
+        for (Order o : orderService.getAllOrdersByPatient(order.getPatient())) {
+            Order prev = o.getPreviousOrder();
+            if (prev != null) {
+                nextOrderUuids.put(prev.getUuid(), o.getUuid());
+            }
+        }
+
+        // Walk forward until the end of the chain.
+        String uuid = order.getUuid();
+        String nextUuid = nextOrderUuids.get(uuid);
+        while (nextUuid != null) {
+            uuid = nextUuid;
+            nextUuid = nextOrderUuids.get(uuid);
+        }
+        return orderService.getOrderByUuid(uuid);
+    }
+
+    /** Gets all orders for all patients. */
     public Collection<Order> getAllOrders() {
-        Map<String, Order> orders = new HashMap<>();
-        Set<String> previousOrderUuids = new HashSet<>();
+        List<Order> orders = new ArrayList<>();
         for (Encounter encounter : encounterService.getEncounters(
             null, null, null, null, null, null, null, null, null, false)) {
             for (Order order : encounter.getOrders()) {
-                orders.put(order.getUuid(), order);
-                if (order.getPreviousOrder() != null) {
-                    previousOrderUuids.add(order.getPreviousOrder().getUuid());
+                if (!order.isVoided()) {
+                    orders.add(order);
                 }
             }
         }
-        for (String uuid : previousOrderUuids) {
-            orders.remove(uuid);
+        return orders;
+    }
+
+    /** Returns a new collection containing only the last order in each chain. */
+    public Collection<Order> getLatestVersions(Collection<Order> orders) {
+        Set<String> previousOrderUuids = new HashSet<>();
+        for (Order order : orders) {
+            Order previousOrder = order.getPreviousOrder();
+            if (previousOrder != null) {
+                previousOrderUuids.add(previousOrder.getUuid());
+            }
         }
-        return orders.values();
+        List<Order> results = new ArrayList<>();
+        for (Order order : orders) {
+            if (!previousOrderUuids.contains(order.getUuid())) {
+                results.add(order);
+            }
+        }
+        return results;
     }
 
     /** Serializes an order to JSON. */
-    protected static SimpleObject orderToJson(Order order) {
+    protected SimpleObject orderToJson(Order order) {
         SimpleObject json = new SimpleObject();
         if (order != null) {
-            json.add("uuid", order.getUuid());
+            // OpenMRS forces creation of a new order UUID on any edit, even a change in the
+            // starting or stopping time.  To retain an order's relationship to its previous
+            // executions is kept intact), we return only the last order in any given chain, while
+            // using the UUID of the first order in the chain as a stable identifier for the order.
+            json.add("uuid", getOriginalUuid(order));
+
             json.add("patient_uuid", order.getPatient().getUuid());
             String instructions = order.getInstructions();
             if (instructions != null) {
@@ -179,7 +228,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     @Override public SimpleObject search(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
-            SimpleObject result = searchInner(getPatient(context));
+            SimpleObject result = searchInner(getPatientParam(context));
             logger.reply(context, this, "getAll", result);
             return result;
         } catch (Exception e) {
@@ -189,12 +238,12 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     SimpleObject searchInner(Patient patient) throws ResponseException {
-        return getSimpleObjectWithResults(patient == null ?
-            getAllOrders() :
-            orderService.getAllOrdersByPatient(patient));
+        Collection<Order> orders = patient == null ? getAllOrders() :
+            orderService.getAllOrdersByPatient(patient);
+        return getSimpleObjectWithResults(getLatestVersions(orders));
     }
 
-    Patient getPatient(RequestContext context) {
+    Patient getPatientParam(RequestContext context) {
         String patientUuid = context.getParameter("patient");
         if (patientUuid == null) return null;
         Patient patient = patientService.getPatientByUuid(patientUuid);
@@ -236,9 +285,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         if (instructions == null || instructions.isEmpty()) {
             throw new IllegalArgumentException("Required key 'instructions' is missing or empty");
         }
-        Long startMillis = (Long) json.get("start_millis");
+        Long startMillis = Utils.asLong(json.get("start_millis"));
         Date startDate = startMillis == null ? new Date() : new Date(startMillis);
-        Long stopMillis = (Long) json.get("stop_millis");
+        Long stopMillis = Utils.asLong(json.get("stop_millis"));
         Date stopDate = stopMillis == null ? null : new Date(stopMillis);
 
         Order order = new Order();  // an excellent band
@@ -298,10 +347,10 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
     Object retrieveInner(String uuid) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
-        if (order == null) {
+        if (order == null || order.isVoided()) {
             throw new ObjectNotFoundException();
         }
-        return orderToJson(order);
+        return orderToJson(getLatestVersion(order));
     }
 
     @Override public List<Representation> getAvailableRepresentations() {
@@ -339,6 +388,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
             throw new ObjectNotFoundException();
         }
 
+        // Only the last order in the chain can be revised.
+        order = getLatestVersion(order);
+
         Order revisedOrder = reviseOrder(order, simpleObject);
         if (revisedOrder != null) {
             orderService.saveOrder(revisedOrder, null);
@@ -350,17 +402,29 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     /** Revises an order.  Returns null if no changes were made. */
     protected Order reviseOrder(Order order, SimpleObject edits) {
         Order newOrder = order.cloneForRevision();
-        boolean changed = false;
 
+        boolean changed = false;
         for (String key : edits.keySet()) {
             Object value = edits.get(key);
             switch (key) {
-                case "stop":
+                case "start_millis":
+                    if (value == null) {
+                        newOrder.setScheduledDate(null);
+                        changed = true;
+                    } else if (value instanceof Long || value instanceof Integer) {
+                        newOrder.setScheduledDate(new Date(Utils.asLong(value)));
+                        changed = true;
+                    } else {
+                        log.warn("Key '" + key + "' has value of invalid type: " + value);
+                    }
+                    break;
+
+                case "stop_millis":
                     if (value == null) {
                         newOrder.setAutoExpireDate(null);
                         changed = true;
-                    } else if (value instanceof Integer) {
-                        newOrder.setAutoExpireDate(new Date((Integer) value));
+                    } else if (value instanceof Long || value instanceof Integer) {
+                        newOrder.setAutoExpireDate(new Date(Utils.asLong(value)));
                         changed = true;
                     } else {
                         log.warn("Key '" + key + "' has value of invalid type: " + value);
@@ -383,11 +447,36 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
 
         if (!changed) return null;
-        Date now = new Date();
-        newOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-        newOrder.setScheduledDate(now);
-        newOrder.setEncounter(createEncounter(order.getPatient(), now));
+        newOrder.setEncounter(createEncounter(order.getPatient(), new Date()));
         newOrder.setOrderer(getProvider());
+
+        // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore
+        // we have to store revisions as NEW orders and not as REVISE orders.
+        newOrder.setAction(Order.Action.NEW);
+
         return newOrder;
+    }
+
+    @Override public void delete(String uuid, String reason, RequestContext context) throws ResponseException {
+        try {
+            logger.request(context, this, "delete", uuid);
+            deleteInner(uuid);
+            logger.reply(context, this, "delete", "returned");
+        } catch (Exception e) {
+            logger.error(context, this, "delete", e);
+            throw e;
+        }
+    }
+
+    void deleteInner(String uuid) throws ResponseException {
+        Order order = orderService.getOrderByUuid(uuid);
+        if (order == null) {
+            throw new ObjectNotFoundException();
+        }
+
+        // Starting from the end of the chain, walk backward and void every order in the chain.
+        for (order = getLatestVersion(order); order != null; order = order.getPreviousOrder()) {
+            orderService.voidOrder(order, "deleted via REST API");
+        }
     }
 }
