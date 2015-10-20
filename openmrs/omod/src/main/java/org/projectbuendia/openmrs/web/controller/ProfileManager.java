@@ -49,7 +49,7 @@ import javax.servlet.http.HttpServletResponse;
 @Controller
 public class ProfileManager {
     static Log log = LogFactory.getLog(ProfileManager.class);
-    final File PROFILE_DIR = new File("/usr/share/buendia/profiles");
+    final File PROFILE_DIR = new File("/usr/local/opt/buendia/profiles");
     final String VALIDATE_CMD = "buendia-profile-validate";
     final String APPLY_CMD = "buendia-profile-apply";
 
