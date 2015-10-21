@@ -43,6 +43,6 @@ $(PACKAGE): tests control/* $(DATA_FILES) $(EXTRA_DATA)
 	$(TOOLS)/mkdeb $@ control $(DATA) $(EXTRA_DATA)
 
 # Site packages can just declare a need for this file and it will be made.
-$(EXTRA_DATA)/usr/share/buendia/site/id:
+$(EXTRA_DATA)/usr/local/opt/buendia/site/id:
 	mkdir -p $$(dirname $@)
 	name=$(PACKAGE_NAME); echo "SITE_ID=$${name#buendia-site-}" > $@

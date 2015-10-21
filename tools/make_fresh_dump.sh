@@ -35,7 +35,7 @@ fi
 
 # Dump the database on SRC_HOST.
 cat <<EOF | ssh -p $SRC_PORT $SRC bash
-. /usr/share/buendia/utils.sh
+. /usr/local/opt/buendia/utils.sh
 export MYSQL_USER=root MYSQL_PASSWORD=\$MYSQL_ROOT_PASSWORD
 buendia-mysql-dump $SRC_DATABASE dump.zip
 EOF
@@ -51,7 +51,7 @@ SRC_HOST= SRC_PORT= SRC_USER= SRC_DATABASE= SRC=
 
 # Load the dump into the scratch area.
 cat <<EOF | ssh -p $WORK_PORT $WORK bash
-. /usr/share/buendia/utils.sh
+. /usr/local/opt/buendia/utils.sh
 export MYSQL_USER=root MYSQL_PASSWORD=\$MYSQL_ROOT_PASSWORD
 buendia-mysql-load -f $WORK_DATABASE dump.zip
 EOF
@@ -60,13 +60,13 @@ EOF
 # back in a starting state.
 scp -P $WORK_PORT clear_server.sql $WORK:
 cat <<EOF | ssh -p $WORK_PORT $WORK bash
-. /usr/share/buendia/utils.sh
+. /usr/local/opt/buendia/utils.sh
 mysql -uroot -p\$MYSQL_ROOT_PASSWORD $WORK_DATABASE < clear_server.sql
 EOF
 
 # Dump the cleaned database.
 cat <<EOF | ssh -p $WORK_PORT $WORK bash
-. /usr/share/buendia/utils.sh
+. /usr/local/opt/buendia/utils.sh
 export MYSQL_USER=root MYSQL_PASSWORD=\$MYSQL_ROOT_PASSWORD
 buendia-mysql-dump $WORK_DATABASE clean-dump.zip
 EOF

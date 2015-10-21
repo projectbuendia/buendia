@@ -11,7 +11,7 @@
 # specific language governing permissions and limitations under the License.
 
 # Print as much status information as possible, rather than quitting on error.
-. /usr/share/buendia/utils.sh; set +e
+. /usr/local/opt/buendia/utils.sh; set +e
 
 if [ "$1" = "-a" ]; then
     all=1
@@ -35,7 +35,7 @@ case "$UPDATE_AUTOUPDATE" in
     *) echo "UPDATE_AUTOUPDATE is currently enabled." ;;
 esac
 
-packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/* | sort))
+packages=$(echo $(sed -e 's/#.*//' /usr/local/opt/buendia/packages.list.d/* | sort))
 echo -e "Keeping updated:\n    $packages" | fmt -w 79 -c -t
 
 if [ -n "$all" ]; then
@@ -57,8 +57,8 @@ if [ -n "$all" ]; then
         echo -e '\n---- ifconfig wlan0'
         ifconfig wlan0
 
-        echo -e '\n---- ls -l /usr/share/buendia/site'
-        ls -l /usr/share/buendia/site
+        echo -e '\n---- ls -l /usr/local/opt/buendia/site'
+        ls -l /usr/local/opt/buendia/site
 
         echo -e '\n---- netstat -ln'
         netstat -ln
@@ -92,4 +92,3 @@ if [ -n "$all" ]; then
         ps -e -w -w -o pid,ppid,time,start,rss,pmem,pcpu,command --sort -pmem | grep -F "$(echo $procs | tr ' ' '\n')"
     ) 2>&1
 fi
-

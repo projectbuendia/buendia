@@ -12,7 +12,7 @@
 
 verb=$1
 original=$2
-replacement=${3-/usr/share/buendia/diversions$original}
+replacement=${3-/usr/local/opt/buendia/diversions$original}
 package=${4-$DPKG_MAINTSCRIPT_PACKAGE}
 
 if [ "$original" = "" ]; then
@@ -24,7 +24,7 @@ if [ "$original" = "" ]; then
     echo "  - <original> is the absolute path to the original file to divert;"
     echo "    it will be moved aside and replaced by a symlink."
     echo "  - <replacement> is the path to a file provided by your package;"
-    echo "    optional, defaults to /usr/share/buendia/diversions/<original>."
+    echo "    optional, defaults to /usr/local/opt/buendia/diversions/<original>."
     echo "  - <package> is the name of your package (the package performing"
     echo "    the diversion); optional, defaults to \$DPKG_MAINTSCRIPT_PACKAGE."
     exit 1

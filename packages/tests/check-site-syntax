@@ -11,7 +11,7 @@
 # specific language governing permissions and limitations under the License.
 
 result=0
-for file in data/usr/share/buendia/site/*; do
+for file in data/usr/local/opt/buendia/site/*; do
     if [ -e $file ]; then
         if [ -x $file ]; then
             echo "$file should not be executable.  Please chmod a-x all files in site/ before building."

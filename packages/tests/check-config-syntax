@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-for config in data/usr/share/buendia/config.d/*; do
+for config in data/usr/local/opt/buendia/config.d/*; do
     base=$(basename "$config")
     if [ -e $config -a "$base" != README ]; then
         if [ ! -x $config ]; then

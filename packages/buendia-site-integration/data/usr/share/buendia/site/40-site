@@ -15,9 +15,9 @@ MONITORING_LIMITS='
 500000 /var/backups/buendia/backup*
 1000000 /var/backups/buendia
 
-100000 /usr/share/buendia/packages
+100000 /usr/local/opt/buendia/packages
 
-100000 /usr/share/buendia/openmrs/openmrs.log /usr/share/buendia/openmrs/formentry /usr/share/buendia/openmrs/xforms
+100000 /usr/local/opt/buendia/openmrs/openmrs.log /usr/local/opt/buendia/openmrs/formentry /usr/local/opt/buendia/openmrs/xforms
 '
 
 PKGSERVER_URL=http://integration.projectbuendia.org:9001

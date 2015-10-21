@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
@@ -18,9 +18,9 @@ case $1 in
         buendia-reconfigure server
 
         # Make sure the profiles directory exists and is writeable by the tomcat7 group
-        mkdir -p /usr/share/buendia/profiles
-        chgrp tomcat7 /usr/share/buendia/profiles
-        chmod g+w /usr/share/buendia/profiles
+        mkdir -p /usr/local/opt/buendia/profiles
+        chgrp tomcat7 /usr/local/opt/buendia/profiles
+        chmod g+w /usr/local/opt/buendia/profiles
 
         # Make the warmup script run once on startup
         update-rc.d buendia-server defaults

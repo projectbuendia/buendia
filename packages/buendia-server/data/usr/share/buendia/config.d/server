@@ -10,13 +10,13 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 # Provide a randomly generated password for the Buendia user, if necessary.
-generated=/usr/share/buendia/site/20-server
+generated=/usr/local/opt/buendia/site/20-server
 if [ ! -e $generated -o -z "$SERVER_OPENMRS_PASSWORD" ]; then
     echo "SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)" > $generated
-    . /usr/share/buendia/utils.sh  # reload settings
+    . /usr/local/opt/buendia/utils.sh  # reload settings
 fi
 
 # Set up the Buendia user account.

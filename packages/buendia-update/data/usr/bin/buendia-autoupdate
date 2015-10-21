@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 if [ "$1" = "-h" ]; then
     echo "Usage: $0 [-u <seconds>]"
@@ -24,7 +24,7 @@ if [ "$1" = "-h" ]; then
     echo "changed in the local repository since the last run."
     echo
     echo "Performs the update only if UPDATE_AUTOUPDATE is set to 1 in"
-    echo "/usr/share/buendia/site."
+    echo "/usr/local/opt/buendia/site."
     echo
     echo "Specify -u <n> to perform the update only if the machine has been"
     echo "up for at least <n> seconds.  Use this option to avoid running"
@@ -47,8 +47,8 @@ if ! bool $UPDATE_AUTOUPDATE; then
 fi
 
 # Tracks the last successfully completed update triggered by this script.
-success=/usr/share/buendia/autoupdate.success
-packages=/usr/share/buendia/packages
+success=/usr/local/opt/buendia/autoupdate.success
+packages=/usr/local/opt/buendia/packages
 
 # To keep from locking the package cache too often, skip out if we can
 # determine that there are no reachable servers with updates available.

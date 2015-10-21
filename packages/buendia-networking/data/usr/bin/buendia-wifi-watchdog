@@ -19,7 +19,7 @@
 # fallen off the wifi network, and kicks wpa_supplicant to make it rejoin.
 
 set -e
-. /usr/share/buendia/utils.sh
+. /usr/local/opt/buendia/utils.sh
 
 # If a software update is in progress, we don't want to interfere with it.
 exec 9> /var/run/lock/buendia-update

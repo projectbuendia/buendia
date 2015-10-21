@@ -4,7 +4,7 @@
 # that directory is maintained in the buendia-monitoring package.  With
 # buendia-dashboard installed, however, buendia-distill will frequently
 # empty out /var/log/large/requests -- it processes the request logs, writes
-# out the distilled log information to /usr/share/buendia/distilled, then
+# out the distilled log information to /usr/local/opt/buendia/distilled, then
 # moves the log files away to prevent them from being processed twice.
 # The original logs are placed in /var/log/requests so that they remain
 # available for a while; we need logrotate to clean up /var/log/requests

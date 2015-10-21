@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 name=$(basename $0)
 source="$1"
 
@@ -25,9 +25,9 @@ if [ "$1" = "-h" -o "$source" = "" ]; then
     echo
     echo "A bundle file is a zip file containing:"
     echo "  - .deb or .apk files, which will be placed at"
-    echo "    /usr/share/buendia/packages and served by the package server"
+    echo "    /usr/local/opt/buendia/packages and served by the package server"
     echo "  - settings files with names of the form NN-anything (where NN is"
-    echo "    a number), which will be copied into /usr/share/buendia/site"
+    echo "    a number), which will be copied into /usr/local/opt/buendia/site"
     echo "  - a file named commands.sh, which will be executed as a bash"
     echo "    script by root with the unpacked bundle as the current directory"
     echo
@@ -67,11 +67,11 @@ function adjust_filename() {
 }
 
 # Create temporary directories for mounting and extraction. $pkgdir should be
-# located on the same filesystem as /usr/share/buendia/packages so that any
+# located on the same filesystem as /usr/local/opt/buendia/packages so that any
 # packages dropped there can be moved into the repo instantaneously.
 name=$(basename $0)
 exdir=/tmp/$name.ex.$$
-pkgdir=/usr/share/buendia/packages.import.$$
+pkgdir=/usr/local/opt/buendia/packages.import.$$
 rm -rf $exdir $pkgdir
 mkdir -p $exdir $pkgdir
 
@@ -143,7 +143,7 @@ if [ -n "$unpacked" ]; then
             buendia-led red on || true
             buendia-led yellow on || true
             s=s; [ "$count" == 1 ] && s= || true
-            if mv $pkgdir/* /usr/share/buendia/packages; then
+            if mv $pkgdir/* /usr/local/opt/buendia/packages; then
                 echo "Imported $count package$s."
             else
                 echo "Error trying to import $count package$s; continuing."
@@ -152,7 +152,7 @@ if [ -n "$unpacked" ]; then
             # Regenerate indexes.
             buendia-pkgserver-index-debs || true
             buendia-pkgserver-index-apks || true
-            chmod -R a+rX /usr/share/buendia/packages || true
+            chmod -R a+rX /usr/local/opt/buendia/packages || true
         fi
 
         # Copy over site settings files.
@@ -161,7 +161,7 @@ if [ -n "$unpacked" ]; then
                 # Installing update: red and yellow
                 buendia-led red on || true
                 buendia-led yellow on || true
-                target=/usr/share/buendia/site/"$file"
+                target=/usr/local/opt/buendia/site/"$file"
                 if cp "$file" "$target"; then
                     echo "Installed $target."
                 else
@@ -183,7 +183,7 @@ if [ -n "$unpacked" ]; then
         cd "$source"
         if [ -n "$settings_changed" ]; then
             echo "Settings changed.  Files:"
-            ls -l /usr/share/buendia/site
+            ls -l /usr/local/opt/buendia/site
             echo "Applying new settings:"
             buendia-settings || true
             # Applying changes: red and yellow
@@ -205,4 +205,3 @@ if [ -n "$unpacked" ]; then
 else
     echo "No bundles found."
 fi
-

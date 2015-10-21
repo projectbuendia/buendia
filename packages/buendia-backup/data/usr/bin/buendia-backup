@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 export MYSQL_USER=$OPENMRS_MYSQL_USER
 export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 name=$(basename $0)
@@ -94,12 +94,12 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 echo "Saving Buendia configuration..."
 tar cfz "$new_dir/buendia.tar.gz" \
-    /usr/share/buendia \
-    --exclude /usr/share/buendia/config.d \
-    --exclude /usr/share/buendia/db \
-    --exclude /usr/share/buendia/diversions \
-    --exclude /usr/share/buendia/openmrs/modules \
-    --exclude /usr/share/buendia/packages
+    /usr/local/opt/buendia \
+    --exclude /usr/local/opt/buendia/config.d \
+    --exclude /usr/local/opt/buendia/db \
+    --exclude /usr/local/opt/buendia/diversions \
+    --exclude /usr/local/opt/buendia/openmrs/modules \
+    --exclude /usr/local/opt/buendia/packages
 ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.

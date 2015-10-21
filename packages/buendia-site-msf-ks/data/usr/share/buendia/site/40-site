@@ -15,9 +15,9 @@ MONITORING_LIMITS='
 50000 /var/backups/buendia/backup*
 100000 /var/backups/buendia
 
-100000 /usr/share/buendia/packages
+100000 /usr/local/opt/buendia/packages
 
-20000 /usr/share/buendia/openmrs/openmrs.log /usr/share/buendia/openmrs/formentry /usr/share/buendia/openmrs/xforms
+20000 /usr/local/opt/buendia/openmrs/openmrs.log /usr/local/opt/buendia/openmrs/formentry /usr/local/opt/buendia/openmrs/xforms
 '
 
 # Join and provide DHCP/DNS to the buendia wifi network.
@@ -27,4 +27,3 @@ NETWORKING_DHCP_DNS_SERVER=1
 
 # Keep the Edison up to date.
 UPDATE_AUTOUPDATE=1
-

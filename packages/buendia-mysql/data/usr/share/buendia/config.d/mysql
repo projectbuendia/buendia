@@ -10,13 +10,13 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 # Provide a randomly generated MySQL root password.
-generated=/usr/share/buendia/site/20-mysql
+generated=/usr/local/opt/buendia/site/20-mysql
 if [ ! -e $generated ]; then
     echo "MYSQL_ROOT_PASSWORD=$(buendia-mkpass)" > $generated
-    . /usr/share/buendia/utils.sh  # reload settings
+    . /usr/local/opt/buendia/utils.sh  # reload settings
 fi
 
 # Check if MySQL is already configured with the desired root password.

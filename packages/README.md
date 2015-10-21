@@ -23,21 +23,21 @@ for details.
 If your package adjusts the configuration of another package,
 use `buendia-divert` to move the original configuration file aside.
 Your package should provide the alternate configuration file at
-`/usr/share/buendia/diversions/`*original-path* and call `buendia-divert`
+`/usr/local/opt/buendia/diversions/`*original-path* and call `buendia-divert`
 on the original configuration file in both `postinst` and `prerm`.
 See [`buendia-sshd/control`](buendia-sshd/control) for an example.
 
 If your package uses site-specific settings, they should be defined
-as shell variables in a file in `/usr/share/buendia/site`
-and your package must provide a config script in `/usr/share/buendia/config.d`
+as shell variables in a file in `/usr/local/opt/buendia/site`
+and your package must provide a config script in `/usr/local/opt/buendia/config.d`
 that reads the settings and applies them to the actual service or application
 (e.g. by editing its configuration files and restarting the service).
-Default values should be placed in `/usr/share/buendia/site/10-[name]`;
-these can be overriden by higher-numbered files (for more about settings
-files, see buendia-utils/data/usr/share/buendia/site/README).
+Default values should be placed in `/usr/local/opt/buendia/site/10-[name]`;
+these can be overridden by higher-numbered files (for more about settings
+files, see buendia-utils/data/usr/local/opt/buendia/site/README).
 
 The shell variables and config script should be named after the package;
 for example, a package named `buendia-foo` should have variables with
 names like `FOO_USER` and `FOO_PASSWORD`, default settings in
-/usr/share/buendia/site/10-foo, and a config script at
-`/usr/share/buendia/config.d/foo`.
+/usr/local/opt/buendia/site/10-foo, and a config script at
+`/usr/local/opt/buendia/config.d/foo`.

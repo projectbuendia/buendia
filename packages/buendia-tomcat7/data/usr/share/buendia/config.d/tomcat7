@@ -10,13 +10,13 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 # Provide a randomly generated Tomcat admin password.
-generated=/usr/share/buendia/site/20-tomcat7
+generated=/usr/local/opt/buendia/site/20-tomcat7
 if [ ! -e $generated ]; then
     echo "TOMCAT7_ADMIN_PASSWORD=$(buendia-mkpass)" > $generated
-    . /usr/share/buendia/utils.sh  # reload settings
+    . /usr/local/opt/buendia/utils.sh  # reload settings
 fi
 
 # Apply the settings to the Tomcat configuration.
@@ -26,4 +26,4 @@ unindent <<< "
         <user username='admin' password='$TOMCAT7_ADMIN_PASSWORD'
             roles='manager-gui' />
     </tomcat-users>
-" | create /usr/share/buendia/diversions/etc/tomcat7/tomcat-users.xml
+" | create /usr/local/opt/buendia/diversions/etc/tomcat7/tomcat-users.xml

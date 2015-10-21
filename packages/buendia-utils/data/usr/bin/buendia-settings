@@ -11,7 +11,7 @@
 # specific language governing permissions and limitations under the License.
 
 # Prints out all the settings.  The settings are determined by the files
-# in /usr/share/buendia/site, which are evaluated in order.  Files that
+# in /usr/local/opt/buendia/site, which are evaluated in order.  Files that
 # come later in the order (higher number) can override settings that were
 # set earlier in the order.  This script evaluates all the files and then
 # prints out the final values of all the variables.
@@ -26,7 +26,7 @@ old_vars=$(set | cut -f1 -d=)  # run once
 
 old_vars=$(set | cut -f1 -d=)  # collect the list of old variables
 
-for file in /usr/share/buendia/site/*; do [ -f $file ] && . $file || true; done
+for file in /usr/local/opt/buendia/site/*; do [ -f $file ] && . $file || true; done
 new_vars=$(set | cut -f1 -d=)  # collect ths list of new variables
 
 old_list=$(echo . $old_vars .)

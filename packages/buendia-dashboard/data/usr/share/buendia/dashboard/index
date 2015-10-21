@@ -14,7 +14,7 @@ tail -5 /var/log/buendia/buendia-warmup.log | grep -q Success && updown=SERVING 
 
 uptime=$(uptime | sed -e 's/.* up//' -e 's/, *[0-9][0-9]* *user.*//')
 
-cd /usr/share/buendia/counts
+cd /usr/local/opt/buendia/counts
 latest=$(ls -t *.count | head -1)
 cdot='&#xb7;'
 if [ -f "$latest" ]; then

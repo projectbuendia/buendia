@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
@@ -47,8 +47,8 @@ case $1 in
         fi
 
         # Point tomcat7 at our openmrs directory.
-        chown -R tomcat7:root /usr/share/buendia/openmrs
-        ln -sf /usr/share/buendia/openmrs /usr/share/tomcat7/.OpenMRS
+        chown -R tomcat7:root /usr/local/opt/buendia/openmrs
+        ln -sf /usr/local/opt/buendia/openmrs /usr/share/tomcat7/.OpenMRS
 
         # Bring tomcat7 back up.
         service tomcat7 start

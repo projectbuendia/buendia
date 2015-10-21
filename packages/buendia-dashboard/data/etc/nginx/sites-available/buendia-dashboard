@@ -2,13 +2,13 @@ server {
     listen 80;
     listen 9999;
     server_name _;
-    root /usr/share/buendia/dashboard;
+    root /usr/local/opt/buendia/dashboard;
     index index;
 
     location /index {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME index;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/index;
+        fastcgi_param SCRIPT_FILENAME /usr/local/opt/buendia/dashboard/index;
         fastcgi_param REQUEST_METHOD $request_method;
         fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;
@@ -16,7 +16,7 @@ server {
     location /client {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME client;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/client;
+        fastcgi_param SCRIPT_FILENAME /usr/local/opt/buendia/dashboard/client;
         fastcgi_param REQUEST_METHOD $request_method;
         fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;
@@ -24,7 +24,7 @@ server {
     location /status {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME status;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/status;
+        fastcgi_param SCRIPT_FILENAME /usr/local/opt/buendia/dashboard/status;
         fastcgi_param REQUEST_METHOD $request_method;
         fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;
@@ -32,7 +32,7 @@ server {
     location /reboot {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME reboot;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/reboot;
+        fastcgi_param SCRIPT_FILENAME /usr/local/opt/buendia/dashboard/reboot;
         fastcgi_param REQUEST_METHOD $request_method;
         fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;
@@ -40,7 +40,7 @@ server {
     location /clock {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME clock;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/clock;
+        fastcgi_param SCRIPT_FILENAME /usr/local/opt/buendia/dashboard/clock;
         fastcgi_param REQUEST_METHOD $request_method;
         fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;

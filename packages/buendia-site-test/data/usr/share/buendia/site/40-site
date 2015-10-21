@@ -13,7 +13,7 @@ MONITORING_LIMITS='
 50000 /var/backups/buendia/backup*
 100000 /var/backups/buendia
 
-100000 /usr/share/buendia/packages
+100000 /usr/local/opt/buendia/packages
 '
 
 # Creates the buendia-test wifi network and provides DHCP/DNS.
