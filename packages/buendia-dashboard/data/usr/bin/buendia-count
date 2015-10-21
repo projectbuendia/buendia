@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-. /usr/share/buendia/utils.sh
+. /usr/local/opt/buendia/utils.sh
 
 out_dir="$1"
 if [ -z "$out_dir" ]; then

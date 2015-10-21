@@ -13,10 +13,10 @@
 import sys, os, subprocess, json
 
 def get_setting(name, default=None):
-    """Get the value for a Buendia setting from /usr/share/buendia/site."""
+    """Get the value for a Buendia setting from /usr/local/opt/buendia/site."""
     try:
         value = subprocess.check_output("""
-            /bin/bash -c 'source /usr/share/buendia/utils.sh; echo -n "$%s"'
+            /bin/bash -c 'source /usr/local/opt/buendia/utils.sh; echo -n "$%s"'
         """ % name, shell=True)
     except subprocess.CalledProcessError:
         return default
@@ -71,5 +71,4 @@ if __name__ == '__main__':
         print("Requires $PKGSERVER_URL to be set to the base url.")
         exit(1)
     # Create the index of the default location for buendia packages
-    create_index('/usr/share/buendia/packages', base_url)
-
+    create_index('/usr/local/opt/buendia/packages', base_url)

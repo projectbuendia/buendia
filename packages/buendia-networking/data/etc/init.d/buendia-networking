@@ -18,7 +18,7 @@
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
 # Short-Description: Applies the Buendia network configuration.
-# Description: Configures networking according to the settings in /usr/share/buendia/site.
+# Description: Configures networking according to the settings in /usr/local/opt/buendia/site.
 ### END INIT INFO
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin

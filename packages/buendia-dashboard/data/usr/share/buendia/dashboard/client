@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-cd /usr/share/buendia/packages
+cd /usr/local/opt/buendia/packages
 latest=$(ls -t buendia-client*.apk | head -1)
 
 cat <<EOF

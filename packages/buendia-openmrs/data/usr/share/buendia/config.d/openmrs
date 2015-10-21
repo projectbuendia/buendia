@@ -10,14 +10,14 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
-properties=/usr/share/buendia/openmrs/openmrs-runtime.properties
+set -e; . /usr/local/opt/buendia/utils.sh
+properties=/usr/local/opt/buendia/openmrs/openmrs-runtime.properties
 
 # Provide a randomly generated password for openmrs_user.
-generated=/usr/share/buendia/site/20-openmrs
+generated=/usr/local/opt/buendia/site/20-openmrs
 if [ ! -e $generated ]; then
     echo "OPENMRS_MYSQL_PASSWORD=$(buendia-mkpass)" > $generated
-    . /usr/share/buendia/utils.sh  # reload settings
+    . /usr/local/opt/buendia/utils.sh  # reload settings
 fi
 
 # Check if the MySQL server is already configured with this user and password.

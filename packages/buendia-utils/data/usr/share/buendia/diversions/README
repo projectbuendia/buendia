@@ -1,5 +1,5 @@
 # Diversions of existing files owned by other packages go in this directory.
 # If the file to replaced is at $path, then its replacement should be at
-# /usr/share/buendia/diversions/$path.  For example, if a package wants to
-# replace /etc/motd, it should include /usr/share/buendia/diversions/etc/motd
+# /usr/local/opt/buendia/diversions/$path.  For example, if a package wants to
+# replace /etc/motd, it should include /usr/local/opt/buendia/diversions/etc/motd
 # and invoke "buendia-divert $1 /etc/motd" in its postinst and prerm scripts.

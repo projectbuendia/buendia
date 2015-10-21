@@ -1,11 +1,11 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-*/10 * * * * root /usr/bin/buendia-distill /var/log/large/requests /usr/share/buendia/distilled /var/log/requests
+*/10 * * * * root /usr/bin/buendia-distill /var/log/large/requests /usr/local/opt/buendia/distilled /var/log/requests
 
-*/10 * * * * root /usr/bin/buendia-count /usr/share/buendia/counts
+*/10 * * * * root /usr/bin/buendia-count /usr/local/opt/buendia/counts
 
-5,25,45 * * * * root cd /usr/share/buendia; zip -r dashboard/stats.zip counts distilled
+5,25,45 * * * * root cd /usr/local/opt/buendia; zip -r dashboard/stats.zip counts distilled
 
 # logrotate regularly runs once a day, but we need to run it more often on
 # the /var/log/requests directory as the request logs can grow quickly.

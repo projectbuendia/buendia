@@ -1,6 +1,6 @@
 # Configuration scripts for each package go in this directory.  The job
-# of configuration scripts is to apply the settings in /usr/share/buendia/site
+# of configuration scripts is to apply the settings in /usr/local/opt/buendia/site
 # to the rest of the system.  For example, if the buendia-foo package has a
-# web page with a colour that is configured by the FOO_COLOR setting, the
-# package should provide a script at /usr/share/buendia/config.d/foo that reads
-# the FOO_COLOR setting and updates the web page to have the desired colour.
+# web page with a color that is configured by the FOO_COLOR setting, the
+# package should provide a script at /usr/local/opt/buendia/config.d/foo that reads
+# the FOO_COLOR setting and updates the web page to have the desired color.

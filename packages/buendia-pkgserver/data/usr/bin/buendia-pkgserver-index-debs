@@ -17,11 +17,11 @@ if [ "$1" = "-h" ]; then
     echo
     echo "Creates or updates the Release and Package indexes for the pool"
     echo "of .deb files located at the given directory.  If unspecified,"
-    echo "the repository directory defaults to /usr/share/buendia/packages."
+    echo "the repository directory defaults to /usr/local/opt/buendia/packages."
     exit 1
 fi
 
-repo=${1:-/usr/share/buendia/packages}
+repo=${1:-/usr/local/opt/buendia/packages}
 
 tmp=$repo.new.$$
 rm -rf $tmp

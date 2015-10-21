@@ -10,13 +10,13 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 case $1 in
     configure)
         cat <<EOF | buendia-enter-yocto
-        if [ -d /debian/usr/share/buendia/systemd ]; then
-            cp /debian/usr/share/buendia/systemd/* /lib/systemd/system
+        if [ -d /debian/usr/local/opt/buendia/systemd ]; then
+            cp /debian/usr/local/opt/buendia/systemd/* /lib/systemd/system
             systemctl enable reboot-check.timer
             systemctl start reboot-check.timer
         fi

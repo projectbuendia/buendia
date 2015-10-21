@@ -66,8 +66,8 @@ echo $flashed
 rm -rf /tmp/debian
 mkdir /tmp/debian
 if [ -n "$site_id" ]; then
-    mkdir -p /tmp/debian/usr/share/buendia/site
-    echo "SITE_ID=$site_id" > /tmp/debian/usr/share/buendia/site/id
+    mkdir -p /tmp/debian/usr/local/opt/buendia/site
+    echo "SITE_ID=$site_id" > /tmp/debian/usr/local/opt/buendia/site/id
 fi
 if [ -n "$repo_url" ]; then
     mkdir -p /tmp/debian/etc/apt/sources.list.d

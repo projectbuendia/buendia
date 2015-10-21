@@ -44,7 +44,7 @@
     <description>
       Name of the currently active profile, which defines the forms and UI customizations for the
       Buendia app.
-      This should be the name of a file in /usr/share/buendia/profiles (including the .csv
+      This should be the name of a file in /usr/local/opt/buendia/profiles (including the .csv
       extension).
     </description>
   </globalProperty>
@@ -87,4 +87,3 @@
   </servlet>
 
 </module>
-

@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 
 # Update the /etc/hosts file with mappings for this machine's IP addresses.
 buendia-update-hosts
@@ -72,7 +72,7 @@ if $(bool $NETWORKING_DHCP_DNS_SERVER); then
     buendia-enter-yocto <<< "ifconfig wlan0 up $NETWORKING_IP_ADDRESS"
 
     # Enable dnsmasq now, and also for future boots.  dnsmasq.conf is
-    # managed in /usr/share/buendia/diversions, so we only need to turn it on.
+    # managed in /usr/local/opt/buendia/diversions, so we only need to turn it on.
     service dnsmasq restart
     update-rc.d dnsmasq enable
 

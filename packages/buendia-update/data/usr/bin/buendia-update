@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+set -e; . /usr/local/opt/buendia/utils.sh
 name=$(basename $0)
 
 if [ "$1" = "-h" ]; then
@@ -50,7 +50,7 @@ apt-get -V -y -f install || true
 if [ -n "$1" ]; then
     packages=$*
 else
-    packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
+    packages=$(echo $(sed -e 's/#.*//' /usr/local/opt/buendia/packages.list.d/*))
 fi
 echo
 echo "--- Updating packages: $packages"

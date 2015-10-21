@@ -9,10 +9,10 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-# Buendia shell scripts should all do ". /usr/share/buendia/utils.sh"
+# Buendia shell scripts should all do ". /usr/local/opt/buendia/utils.sh"
 
 # Read all the settings.
-for file in /usr/share/buendia/site/*; do [ -f $file ] && . $file || true; done
+for file in /usr/local/opt/buendia/site/*; do [ -f $file ] && . $file || true; done
 
 # Writes stdin to a file, creating any parent directories as needed.
 function create() {
@@ -39,4 +39,4 @@ function service_if_exists() {
 }
 
 # A handy shortcut, just for typing convenience.
-usb=usr/share/buendia
+usb=usr/local/opt/buendia
