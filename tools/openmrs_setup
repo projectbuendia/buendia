@@ -82,7 +82,6 @@ elif [[ "$OS" == 'Darwin' ]]; then
 fi
 profiles_dir="$buendia_dir/profiles"
 
-
 # Create directories and copy scripts
 sudo mkdir -p $profiles_dir
 sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
@@ -98,7 +97,6 @@ fi
 
 # Set permissions
 sudo chmod -R 777 $buendia_dir
-
 
 # Configure OpenMRS to use the openmrs_user MySQL account.
 cat <<EOF >$server_dir/openmrs-runtime.properties
