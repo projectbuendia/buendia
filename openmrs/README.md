@@ -34,7 +34,7 @@ Follow the instructions below to get your system set up to do Buendia server dev
 ##### Python and python-mysqldb
 You might already have python pre-installed on your OS. If so you only need to add the mysql connector.
 * Linux: `sudo apt-get install python python-mysqldb`
-* Mac OS: There are different ways of installing mysql connector. Please refer to this [stack overflow page](http://stackoverflow.com/questions/16182294/installing-mysql-python-on-mac-os-x)
+* Mac OS: There are different ways of installing mysql connector. Please refer to this [Page](https://dev.mysql.com/doc/connector-python/en/)
 
 ##### IntelliJ IDEA
   * Download the Community Edition at https://www.jetbrains.com/idea/download/ and follow the [setup instructions](https://www.jetbrains.com/idea/help/basics-and-installation.html#d1847332e131).
