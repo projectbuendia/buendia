@@ -48,15 +48,12 @@ public class ProfileManager {
     private final String APPLY_CMD = "buendia-profile-apply";
     private File profileDir;
 
+    /** This is executed every time a request is made and determines the profileDir to be used. */
     @ModelAttribute
-    public void getInitializedMyObject() {
+    public void getProfileDir() {
         Properties config = Context.getRuntimeProperties();
-        String configProfileDir = config.getProperty("profile_manager.profile_dir");
-        if(configProfileDir != null){
-            profileDir = new File(configProfileDir);
-        } else {
-            profileDir = new File(PROFILE_DIR_PATH);
-        }
+        String configProfileDir = config.getProperty("profile_manager.profile_dir", PROFILE_DIR_PATH);
+        profileDir = new File(configProfileDir);
     }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
@@ -65,7 +62,7 @@ public class ProfileManager {
         model.addAttribute("currentProfile", currentProfile);
         model.addAttribute("authorized", authorized());
         model = queryParamsToModelAttr(request, model);
-        if(!profileDir.exists()){
+        if (!profileDir.exists()) {
             model.addAttribute("success", false);
             model.addAttribute("message", "The Profile Manager directory does not exist. It must reside on " +
                     "/usr/share/buendia/profiles or on a directory specified in openmrs-runtime.properties " +
@@ -75,7 +72,8 @@ public class ProfileManager {
         }
     }
 
-    private ModelMap queryParamsToModelAttr(HttpServletRequest request, ModelMap model){
+    /** This method sends data to jsp in a more consistent way. */
+    private ModelMap queryParamsToModelAttr(HttpServletRequest request, ModelMap model) {
         Map params = request.getParameterMap();
         Iterator paramIterator = params.entrySet().iterator();
         while (paramIterator.hasNext()) {
@@ -90,8 +88,8 @@ public class ProfileManager {
     private List<FileInfo> listProfiles() {
         List<FileInfo> files = new ArrayList<>();
         File[] profiles = profileDir.listFiles();
-        if(profiles != null) {
-            for (File file : profileDir.listFiles()) {
+        if (profiles != null) {
+            for (File file : profiles) {
                 files.add(new FileInfo(file));
             }
             Collections.sort(files, new Comparator<FileInfo>() {
@@ -186,7 +184,7 @@ public class ProfileManager {
                 mpf.transferTo(tempFile);
                 boolean exResult = execute(VALIDATE_CMD, tempFile, lines);
                 if (exResult) {
-                    filename = getNextVersionedFilename(mpf.getOriginalFilename());
+                    filename = getNextVersionedFilename(filename);
                     File newFile = new File(profileDir, filename);
                     FileUtils.moveFile(tempFile, newFile);
                     model.addAttribute("success", true);
