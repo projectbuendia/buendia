@@ -83,6 +83,7 @@ profiles_dir="$buendia_dir/profiles"
 
 # TODO: remove the need for sudo
 # Create directories and copy scripts
+echo "Please, enter your sudo password to create buendia directories and scripts:"
 sudo mkdir -p $profiles_dir
 sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
 sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/utils.sh"
@@ -90,7 +91,7 @@ sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/
 # In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this a mac friendly url.
 # TODO: review this after system wide path related changes.
 if [[ "$OS" == 'Darwin' ]]; then
-    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply > "$bin_dir/buendia-profile-apply"
+    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply > sudo "$bin_dir/buendia-profile-apply"
 else
     sudo cp -p tools/profile_apply "$bin_dir/buendia-profile-apply"
 fi
