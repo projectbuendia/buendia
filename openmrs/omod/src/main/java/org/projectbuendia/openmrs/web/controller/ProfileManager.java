@@ -33,8 +33,15 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -58,7 +65,7 @@ public class ProfileManager {
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
-        String currentProfile = Context.getAdministrationService().getGlobalProperty(GlobalProperties.CURRENT_PROFILE);
+        String currentProfile = getCurrentProfile();
         model.addAttribute("currentProfile", currentProfile);
         model.addAttribute("authorized", authorized());
         model = queryParamsToModelAttr(request, model);
@@ -103,7 +110,7 @@ public class ProfileManager {
 
     public static boolean authorized() {
         return Context.hasPrivilege("Manage Concepts") &&
-                Context.hasPrivilege("Manage Forms");
+            Context.hasPrivilege("Manage Forms");
     }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.POST)
@@ -158,7 +165,7 @@ public class ProfileManager {
             } else if (n.startsWith(prefix) && n.endsWith(ext)) {
                 try {
                     version = Integer.parseInt(
-                            n.substring(prefix.length(), n.length() - ext.length()));
+                        n.substring(prefix.length(), n.length() - ext.length()));
                 } catch (NumberFormatException e) { }
             }
             highestVersion = Math.max(version, highestVersion);
@@ -225,10 +232,10 @@ public class ProfileManager {
     private void downloadProfile(File file, HttpServletResponse response) {
         response.setContentType("application/octet-stream");
         response.setHeader(
-                "Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
+            "Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
         try {
             response.getOutputStream().write(
-                    Files.readAllBytes(Paths.get(file.getAbsolutePath())));
+                Files.readAllBytes(Paths.get(file.getAbsolutePath())));
         } catch (IOException e) {
             log.error("Error downloading profile: " + file.getName(), e);
         }
@@ -259,7 +266,7 @@ public class ProfileManager {
         try {
             Process proc = pb.start();
             BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(proc.getInputStream()));
+                new InputStreamReader(proc.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
@@ -282,13 +289,13 @@ public class ProfileManager {
     /** Gets the global property for the name of the current profile. */
     private String getCurrentProfile() {
         return Context.getAdministrationService().getGlobalProperty(
-                GlobalProperties.CURRENT_PROFILE);
+            GlobalProperties.CURRENT_PROFILE);
     }
 
     /** Sets the global property for the name of the current profile. */
     private void setCurrentProfile(String name) {
         Context.getAdministrationService().setGlobalProperty(
-                GlobalProperties.CURRENT_PROFILE, name);
+            GlobalProperties.CURRENT_PROFILE, name);
     }
 
     public class FileInfo {
