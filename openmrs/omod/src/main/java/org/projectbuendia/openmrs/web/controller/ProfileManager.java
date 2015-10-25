@@ -16,10 +16,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.api.context.Context;
-import org.openmrs.projectbuendia.webservices.rest.ConfigurationException;
 import org.openmrs.projectbuendia.webservices.rest.GlobalProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,13 +34,14 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -48,29 +49,63 @@ import javax.servlet.http.HttpServletResponse;
 /** The controller for the profile management page. */
 @Controller
 public class ProfileManager {
-    static Log log = LogFactory.getLog(ProfileManager.class);
-    final File PROFILE_DIR = new File("/usr/share/buendia/profiles");
-    final String VALIDATE_CMD = "buendia-profile-validate";
-    final String APPLY_CMD = "buendia-profile-apply";
+    protected static Log log = LogFactory.getLog(ProfileManager.class);
+    private final String PROFILE_DIR_PATH = "/usr/share/buendia/profiles";
+    private final String VALIDATE_CMD = "buendia-profile-validate";
+    private final String APPLY_CMD = "buendia-profile-apply";
+    private File profileDir;
+
+    /** This is executed every time a request is made and determines the profileDir to be used. */
+    @ModelAttribute
+    public void getProfileDir() {
+        Properties config = Context.getRuntimeProperties();
+        String configProfileDir = config.getProperty("profile_manager.profile_dir", PROFILE_DIR_PATH);
+        profileDir = new File(configProfileDir);
+    }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
-        List<FileInfo> files = new ArrayList<>();
-        for (File file : PROFILE_DIR.listFiles()) {
-            files.add(new FileInfo(file));
-        }
-        Collections.sort(files, new Comparator<FileInfo>() {
-            public int compare(FileInfo a, FileInfo b) {
-                return -a.modified.compareTo(b.modified);
-            }
-        });
-
-        model.addAttribute("user", Context.getAuthenticatedUser());
-        model.addAttribute("profiles", files);
-        model.addAttribute("currentProfile",
-            Context.getAdministrationService().getGlobalProperty(
-                GlobalProperties.CURRENT_PROFILE));
+        String currentProfile = getCurrentProfile();
+        model.addAttribute("currentProfile", currentProfile);
         model.addAttribute("authorized", authorized());
+        model = queryParamsToModelAttr(request, model);
+        if (!profileDir.exists()) {
+            model.addAttribute("success", false);
+            model.addAttribute("message", "The Profile Manager directory does not exist. It must reside on " +
+                    "/usr/share/buendia/profiles or on a directory specified in openmrs-runtime.properties " +
+                    "file under profile_manager.profile_dir directive.");
+        } else {
+            model.addAttribute("profiles", listProfiles());
+        }
+    }
+
+    /** This method sends data to jsp in a more consistent way. */
+    private ModelMap queryParamsToModelAttr(HttpServletRequest request, ModelMap model) {
+        Map params = request.getParameterMap();
+        Iterator paramIterator = params.entrySet().iterator();
+        while (paramIterator.hasNext()) {
+            Entry param = (Entry) paramIterator.next();
+            String key = (String) param.getKey();
+            String[] value = (String[]) param.getValue();
+            model.addAttribute(key, value[0]);
+        }
+        return model;
+    }
+
+    private List<FileInfo> listProfiles() {
+        List<FileInfo> files = new ArrayList<>();
+        File[] profiles = profileDir.listFiles();
+        if (profiles != null) {
+            for (File file : profiles) {
+                files.add(new FileInfo(file));
+            }
+            Collections.sort(files, new Comparator<FileInfo>() {
+                public int compare(FileInfo a, FileInfo b) {
+                    return -a.modified.compareTo(b.modified);
+                }
+            });
+        }
+        return files;
     }
 
     public static boolean authorized() {
@@ -90,7 +125,7 @@ public class ProfileManager {
             String filename = request.getParameter("profile");
             String op = request.getParameter("op");
             if (filename != null) {
-                File file = new File(PROFILE_DIR, filename);
+                File file = new File(profileDir, filename);
                 if (file.isFile()) {
                     model.addAttribute("filename", filename);
                     if ("Apply".equals(op)) {
@@ -108,7 +143,7 @@ public class ProfileManager {
     }
 
     /** Chooses a filename based on the given name, with a "-vN" suffix appended for uniqueness. */
-    String getNextVersionedFilename(String name) {
+    private String getNextVersionedFilename(String name) {
         // Separate the name into a sanitized base name and an extension.
         name = sanitizeName(name);
         String ext = "";
@@ -122,7 +157,7 @@ public class ProfileManager {
         // If "name.ext" exists, it counts as version 1.
         String prefix = name + "-v";
         int highestVersion = 0;
-        for (File file : PROFILE_DIR.listFiles()) {
+        for (File file : profileDir.listFiles()) {
             int version = 0;
             String n = file.getName();
             if (n.equals(name + ext)) {
@@ -145,47 +180,56 @@ public class ProfileManager {
     }
 
     /** Handles an uploaded profile. */
-    // TODO: Give some error message if the profile is not uploaded correctly
-    //       (When tomcat7 didn't have permission to PROFILES_DIR it was failing
-    //        without showing any error message to the user)
-    void addProfile(MultipartHttpServletRequest request, ModelMap model) {
+    private void addProfile(MultipartHttpServletRequest request, ModelMap model) {
         List<String> lines = new ArrayList<>();
         MultipartFile mpf = request.getFile("file");
         if (mpf != null) {
+            String message = "";
+            String filename = mpf.getOriginalFilename();
             try {
                 File tempFile = File.createTempFile("profile", null);
                 mpf.transferTo(tempFile);
-                if (execute(VALIDATE_CMD, tempFile, lines)) {
-                    String filename = getNextVersionedFilename(mpf.getOriginalFilename());
-                    File newFile = new File(PROFILE_DIR, filename);
-                    model.addAttribute("filename", filename);
+                boolean exResult = execute(VALIDATE_CMD, tempFile, lines);
+                if (exResult) {
+                    filename = getNextVersionedFilename(filename);
+                    File newFile = new File(profileDir, filename);
                     FileUtils.moveFile(tempFile, newFile);
-                    model.addAttribute("success", "add");
+                    model.addAttribute("success", true);
+                    message = "Success adding profile: ";
                 } else {
-                    model.addAttribute("failure", "add");
-                    model.addAttribute("filename", mpf.getOriginalFilename());
-                    model.addAttribute("output", StringUtils.join(lines, "\n"));
+                    model.addAttribute("success", false);
+                    message = "Error adding profile: ";
                 }
             } catch (Exception e) {
+                model.addAttribute("success", false);
+                message = "Problem saving uploaded profile: ";
+                lines.add(e.getMessage());
                 log.error("Problem saving uploaded profile", e);
+            } finally {
+                model.addAttribute("operation", "add");
+                model.addAttribute("message", message + filename);
+                model.addAttribute("filename", filename);
+                model.addAttribute("output", StringUtils.join(lines, "\n"));
             }
         }
     }
 
     /** Applies a profile to the OpenMRS database. */
-    void applyProfile(File file, ModelMap model) {
+    private void applyProfile(File file, ModelMap model) {
         List<String> lines = new ArrayList<>();
         if (execute(APPLY_CMD, file, lines)) {
             setCurrentProfile(file.getName());
-            model.addAttribute("success", "apply");
+            model.addAttribute("success", true);
+            model.addAttribute("message", "Success applying profile: " + file.getName());
         } else {
-            model.addAttribute("failure", "apply");
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Error applying profile: " + file.getName());
             model.addAttribute("output", StringUtils.join(lines, "\n"));
         }
     }
 
     /** Downloads a profile. */
-    public void downloadProfile(File file, HttpServletResponse response) {
+    private void downloadProfile(File file, HttpServletResponse response) {
         response.setContentType("application/octet-stream");
         response.setHeader(
             "Content-Disposition", "attachment; filename=\"" + file.getName() + "\"");
@@ -198,15 +242,17 @@ public class ProfileManager {
     }
 
     /** Deletes a profile. */
-    void deleteProfile(File file, ModelMap model) {
+    private void deleteProfile(File file, ModelMap model) {
         if (file.getName().equals(getCurrentProfile())) {
-            model.addAttribute("failure", "delete");
-            model.addAttribute("output", "Cannot delete the currently active profile.");
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Cannot delete the currently active profile.");
         } else if (file.delete()) {
-            model.addAttribute("success", "delete");
+            model.addAttribute("success", true);
+            model.addAttribute("message", "Success deleting profile: " + file.getName());
         } else {
+            model.addAttribute("success", false);
+            model.addAttribute("message", "Error deleting profile: " + file.getName());
             log.error("Error deleting profile: " + file.getName());
-            model.addAttribute("failure", "delete");
         }
     }
 
@@ -214,7 +260,7 @@ public class ProfileManager {
      * Executes a command with one argument, returning true if the command succeeds.
      * Gathers the output from stdout and stderr into the provided list of lines.
      */
-    boolean execute(String command, File arg, List<String> lines) {
+    private boolean execute(String command, File arg, List<String> lines) {
         ProcessBuilder pb = new ProcessBuilder(command, arg.getAbsolutePath());
         pb.redirectErrorStream(true);  // redirect stderr to stdout
         try {
@@ -229,24 +275,25 @@ public class ProfileManager {
             return proc.exitValue() == 0;
         } catch (Exception e) {
             log.error("Exception while executing: " + command + " " + arg, e);
+            lines.add(e.getMessage());
             return false;
         }
     }
 
     /** Sanitizes a string to produce a safe filename. */
-    String sanitizeName(String filename) {
+    private String sanitizeName(String filename) {
         String[] parts = filename.split("/");
         return parts[parts.length - 1].replaceAll("[^A-Za-z0-9._-]", " ").replaceAll(" +", " ");
     }
 
     /** Gets the global property for the name of the current profile. */
-    String getCurrentProfile() {
+    private String getCurrentProfile() {
         return Context.getAdministrationService().getGlobalProperty(
             GlobalProperties.CURRENT_PROFILE);
     }
 
     /** Sets the global property for the name of the current profile. */
-    void setCurrentProfile(String name) {
+    private void setCurrentProfile(String name) {
         Context.getAdministrationService().setGlobalProperty(
             GlobalProperties.CURRENT_PROFILE, name);
     }
@@ -268,10 +315,14 @@ public class ProfileManager {
         public String getFormattedName() {
             return (name + "                              ").substring(0, 30);
         }
-        public Long getSize() { return size; }
+        public Long getSize() {
+            return size;
+        }
         public String getFormattedSize() {
             return String.format("%7d", size);
         }
-        public Date getModified() { return modified; }
+        public Date getModified() {
+            return modified;
+        }
     }
 }
