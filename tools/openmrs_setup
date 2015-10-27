@@ -89,9 +89,11 @@ sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
 sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/utils.sh"
 
 # In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this a mac friendly url.
+# We then have to chmod this file to ensure that buendia-profile-apply can be executed.
 # TODO: review this after system wide path related changes.
 if [[ "$OS" == 'Darwin' ]]; then
-    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply > sudo "$bin_dir/buendia-profile-apply"
+    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply | sudo tee "$bin_dir/buendia-profile-apply" > /dev/null
+    sudo chmod a+x "$bin_dir/buendia-profile-apply"
 else
     sudo cp -p tools/profile_apply "$bin_dir/buendia-profile-apply"
 fi
