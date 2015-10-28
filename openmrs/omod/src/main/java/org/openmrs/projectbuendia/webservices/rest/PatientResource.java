@@ -11,7 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Location;
@@ -44,19 +43,18 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Rest API for patients.
  * <p/>
  * <p>Expected behavior:
  * <ul>
- * <li>GET /patient returns all patients ({@link #getAll(RequestContext)})
- * <li>GET /patient?q=[query] returns patients whose name or ID contains the query string
- * ({@link #search(RequestContext)})
- * <li>GET /patient/[UUID] returns a single patient ({@link #retrieve(String, RequestContext)})
- * <li>POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
- * <li>POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject,
+ * <li>GET /patients returns all patients ({@link #getAll(RequestContext)})
+ * <li>GET /patients/[UUID] returns a single patient ({@link #retrieve(String, RequestContext)})
+ * <li>GET /patients?id=[id] returns a search for a patient with the specified MSF (i.e. not
+ * OpenMRS) id.
+ * <li>POST /patients creates a patient ({@link #create(SimpleObject, RequestContext)}
+ * <li>POST /patients/[UUID] updates a patient ({@link #update(String, SimpleObject,
  * RequestContext)})
  * </ul>
  * <p/>
@@ -369,36 +367,16 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        List<Patient> patients = new ArrayList<>();
+        List<Patient> patients;
         String patientId = requestContext.getParameter("id");  // single patient by ID; overrides
-        // "q"
         if (patientId != null) {
             List<PatientIdentifierType> idTypes = new ArrayList<>();
             idTypes.add(DbUtil.getMsfIdentifierType());
             patients = patientService.getPatients(null, patientId, idTypes, true);
         } else {
-            String nameQuery = requestContext.getParameter("q");
-            patients = filterPatients(nameQuery, patientService.getAllPatients());
+            patients = patientService.getAllPatients();
         }
         return getSimpleObjectWithResults(patients);
-    }
-
-    private List<Patient> filterPatients(String query, List<Patient> allPatients) {
-        List<Patient> filteredPatients = new ArrayList<>();
-
-        // Filter patients by name. Don't use patientService.getPatients() for
-        // this, as the behavior does not match the expected behavior from the API docs.
-        PatientIdentifierType msfIdentifierType = DbUtil.getMsfIdentifierType();
-        for (Patient patient : allPatients) {
-            for (PersonName name : patient.getNames()) {
-                if (StringUtils.containsIgnoreCase(name.getFullName(), query)) {
-                    filteredPatients.add(patient);
-                    break;
-                }
-            }
-        }
-
-        return filteredPatients;
     }
 
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
