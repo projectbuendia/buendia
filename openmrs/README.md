@@ -64,6 +64,8 @@ You might already have python pre-installed on your OS. If so you only need to a
         [INFO] Started Jetty Server
 
     the server is ready, and you can log in at [[http://localhost:9000/openmrs/]] as "buendia" with password "buendia".
+    
+6.  Apply a buendia profile. See [Setting Up A Buendia Profile](https://github.com/projectbuendia/buendia/wiki/Setting-Up-a-Buendia-profile) for more information.
 
 After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.
 
