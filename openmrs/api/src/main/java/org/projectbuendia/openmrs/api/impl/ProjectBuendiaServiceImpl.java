@@ -13,9 +13,14 @@ package org.projectbuendia.openmrs.api.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.Encounter;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+
+import javax.annotation.Nullable;
+import java.util.Date;
+import java.util.List;
 
 /** It is a default implementation of {@link ProjectBuendiaService}. */
 public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements ProjectBuendiaService {
@@ -23,13 +28,13 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
 
     private ProjectBuendiaDAO dao;
 
-    /** @return the dao */
-    public ProjectBuendiaDAO getDao() {
-        return dao;
+    @Override
+    public void setDAO(ProjectBuendiaDAO dao) {
+        this.dao = dao;
     }
 
-    /** @param dao the dao to set */
-    public void setDao(ProjectBuendiaDAO dao) {
-        this.dao = dao;
+    @Override
+    public List<Encounter> getEncountersModifiedOnOrAfter(@Nullable Date date) {
+        return dao.getEncountersModifiedOnOrAfter(date);
     }
 }

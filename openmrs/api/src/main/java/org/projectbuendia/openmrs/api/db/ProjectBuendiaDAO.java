@@ -11,9 +11,14 @@
 
 package org.projectbuendia.openmrs.api.db;
 
+import org.openmrs.Encounter;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+
+import java.util.Date;
+import java.util.List;
 
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
-    /* Add DAO methods here */
+    List<Encounter> getEncountersModifiedOnOrAfter(Date date);
+
 }

@@ -13,8 +13,14 @@ package org.projectbuendia.openmrs.api.db.hibernate;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Restrictions;
+import org.openmrs.Encounter;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+
+import java.util.Date;
+import java.util.List;
 
 /** Default implementation of {@link ProjectBuendiaDAO}. */
 public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
@@ -30,5 +36,22 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     /** @param sessionFactory the sessionFactory to set */
     public void setSessionFactory(SessionFactory sessionFactory) {
         this.sessionFactory = sessionFactory;
+    }
+
+    @Override
+    public List<Encounter> getEncountersModifiedOnOrAfter(Date date) {
+        // NOTES:
+        // - this code relies on the assumption that observations can't be modified independently of
+        // encounters.
+        // - This doesn't actually return encounters "modified on or after", it's currently
+        // encounters "created on or after". This is ok for our purposes because we don't have
+        // the ability to modify Encounters in Buendia.
+
+        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Encounter.class);
+        if (date != null) {
+            criteria.add(Restrictions.ge("dateCreated", date));
+        }
+        //noinspection unchecked
+        return criteria.list();
     }
 }
