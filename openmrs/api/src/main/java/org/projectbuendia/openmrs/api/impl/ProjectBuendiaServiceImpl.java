@@ -35,6 +35,6 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
 
     @Override
     public List<Encounter> getEncountersModifiedOnOrAfter(@Nullable Date date) {
-        return dao.getEncountersModifiedOnOrAfter(date);
+        return dao.getEncountersCreatedAtOrAfter(date);
     }
 }

@@ -19,6 +19,6 @@ import java.util.List;
 
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
-    List<Encounter> getEncountersModifiedOnOrAfter(Date date);
+    List<Encounter> getEncountersCreatedAtOrAfter(Date date);
 
 }

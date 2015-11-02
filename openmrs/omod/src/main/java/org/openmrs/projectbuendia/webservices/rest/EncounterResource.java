@@ -157,7 +157,7 @@ public class EncounterResource
      *   <li>"timestamp": the encounter datetime in RFC 3339 === ISO 8601 format
      *   <li>"uuid": the encounter's UUID
      *   <li>"observations": {@link SimpleObject} that maps concept UUIDs to values
-     *   <li>"order_uuids": unique identifiers of orders related to this encounter.
+     *   <li>"order_uuids": unique identifiers of orders executed as part of this encounter.
      * </ul>
      * @param context      unused.
      * @param snapshotTime unused.

@@ -39,7 +39,7 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     }
 
     @Override
-    public List<Encounter> getEncountersModifiedOnOrAfter(Date date) {
+    public List<Encounter> getEncountersCreatedAtOrAfter(Date date) {
         // NOTES:
         // - this code relies on the assumption that observations can't be modified independently of
         // encounters.
