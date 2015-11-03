@@ -65,7 +65,7 @@ import java.util.Map;
  *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
  *   creation
  *   "id": "567", // required unique id specified by user
- *   "gender": "F", // required as "M" or "F", unfortunately
+ *   "sex": "F", // required as "M" or "F", unfortunately
  *   "birthdate": "1990-02-17", // required, but can be estimated
  *   "given_name": "Jane", // required, "Unknown" suggested if not known
  *   "family_name": "Doe", // required, "Unknown" suggested if not known
@@ -102,7 +102,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String ID = "id";
     private static final String UUID = "uuid";
     private static final String SEX = "sex";
-    private static final String GENDER = "gender";  // deprecated, for backward compatibility only
     private static final String BIRTHDATE = "birthdate";
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
@@ -155,7 +154,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             if (patientIdentifier != null) {
                 jsonForm.add(ID, patientIdentifier.getIdentifier());
             }
-            jsonForm.add(GENDER, patient.getGender()); // for backward compatibility
             jsonForm.add(SEX, patient.getGender());
             if (patient.getBirthdate() != null) {
                 jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
@@ -283,7 +281,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         String sex = (String) json.get(SEX);
-        sex = sex == null ? (String) json.get(GENDER) : null;
         // OpenMRS calls it "gender"; we use it for physical sex (as other implementations do).
         patient.setGender(normalizeSex(sex));
 
@@ -461,10 +458,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     break;
                 case BIRTHDATE:
                     patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue(), BIRTHDATE));
-                    changedPatient = true;
-                    break;
-                case GENDER:
-                    patient.setGender(normalizeSex((String) entry.getValue()));
                     changedPatient = true;
                     break;
                 case ID:
