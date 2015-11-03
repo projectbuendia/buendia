@@ -35,8 +35,11 @@ import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
+import javax.annotation.Nullable;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -114,19 +117,22 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
+    private static final String VOIDED = "voided";
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     private static final Object createPatientLock = new Object();
     private final PatientService patientService;
+    private final ProjectBuendiaService buendiaService;
 
     public PatientResource() {
         patientService = Context.getPatientService();
+        buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
     @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner();
+            SimpleObject result = getAllInner(context);
             logger.reply(context, this, "getAll", result);
             return result;
         } catch (Exception e) {
@@ -135,25 +141,46 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
-    private SimpleObject getAllInner() throws ResponseException {
-        List<Patient> patients = patientService.getAllPatients();
-        return getSimpleObjectWithResults(patients);
+    private SimpleObject getAllInner(RequestContext context) throws ResponseException {
+        Date syncFrom;
+        try {
+            syncFrom = RequestUtil.getSyncFromDate(context);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Date Format invalid, expected ISO 8601");
+        }
+        Date snapshotTime = new Date();
+        List<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
+                syncFrom, syncFrom != null /* includeVoided */);
+        return getSimpleObjectWithResults(patients, snapshotTime);
     }
 
-    private SimpleObject getSimpleObjectWithResults(List<Patient> patients) {
+    // TODO: consolidate the incremental sync timestamping / wrapper logic for this and
+    // EncountersResource into the same class.
+    private SimpleObject getSimpleObjectWithResults(
+            List<Patient> patients, @Nullable Date snapshotTime) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Patient patient : patients) {
             jsonResults.add(patientToJson(patient));
         }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+        SimpleObject wrapper = new SimpleObject();
+        wrapper.put("results", jsonResults);
+        if (snapshotTime != null) {
+            wrapper.put("snapshotTime", Utils.toIso8601(snapshotTime));
+        }
+        return wrapper;
     }
 
     protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
 
         jsonForm.add(UUID, patient.getUuid());
+        jsonForm.add(VOIDED, patient.isPersonVoided());
+
+        if (patient.isPersonVoided()) {
+            // early return, we don't need the rest of the data.
+            return jsonForm;
+        }
+
         PatientIdentifier patientIdentifier =
             patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
         if (patientIdentifier != null) {
@@ -374,10 +401,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             List<PatientIdentifierType> idTypes = new ArrayList<>();
             idTypes.add(DbUtil.getMsfIdentifierType());
             patients = patientService.getPatients(null, patientId, idTypes, true);
+            return getSimpleObjectWithResults(patients, null);
         } else {
-            patients = patientService.getAllPatients();
+            return getAllInner(requestContext);
         }
-        return getSimpleObjectWithResults(patients);
     }
 
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
