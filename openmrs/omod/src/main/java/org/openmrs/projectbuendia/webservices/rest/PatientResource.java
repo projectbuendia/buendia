@@ -93,6 +93,13 @@ import java.util.Map;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
+
+    private static final SimpleDateFormat PATIENT_BIRTHDATE_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd");
+    static {
+        PATIENT_BIRTHDATE_FORMAT.setTimeZone(Utils.UTC);
+    }
+
     // Fake values
     private static final User CREATOR = new User(1);
     private static final String FACILITY_NAME = "Kailahun";  // TODO: Use a real facility name.
@@ -145,44 +152,41 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        dateFormat.setTimeZone(Utils.UTC);
-        if (patient != null) {
-            jsonForm.add(UUID, patient.getUuid());
-            PatientIdentifier patientIdentifier =
-                patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
-            if (patientIdentifier != null) {
-                jsonForm.add(ID, patientIdentifier.getIdentifier());
-            }
-            jsonForm.add(SEX, patient.getGender());
-            if (patient.getBirthdate() != null) {
-                jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
-            }
-            String givenName = patient.getGivenName();
-            if (!givenName.equals(MISSING_NAME)) {
-                jsonForm.add(GIVEN_NAME, patient.getGivenName());
-            }
-            String familyName = patient.getFamilyName();
-            if (!familyName.equals(MISSING_NAME)) {
-                jsonForm.add(FAMILY_NAME, patient.getFamilyName());
-            }
 
-            // TODO: refactor so we have a single assigned location with a uuid,
-            // and we walk up the tree to get extra information for the patient.
-            String assignedLocation = DbUtil.getPersonAttributeValue(
-                patient, DbUtil.getAssignedLocationAttributeType());
-            if (assignedLocation != null) {
-                LocationService locationService = Context.getLocationService();
-                Location location = locationService.getLocation(
-                    Integer.valueOf(assignedLocation));
-                if (location != null) {
-                    SimpleObject locationJson = new SimpleObject();
-                    locationJson.add(UUID, location.getUuid());
-                    if (location.getParentLocation() != null) {
-                        locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
-                    }
-                    jsonForm.add(ASSIGNED_LOCATION, locationJson);
+        jsonForm.add(UUID, patient.getUuid());
+        PatientIdentifier patientIdentifier =
+            patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
+        if (patientIdentifier != null) {
+            jsonForm.add(ID, patientIdentifier.getIdentifier());
+        }
+        jsonForm.add(SEX, patient.getGender());
+        if (patient.getBirthdate() != null) {
+            jsonForm.add(BIRTHDATE, PATIENT_BIRTHDATE_FORMAT.format(patient.getBirthdate()));
+        }
+        String givenName = patient.getGivenName();
+        if (!givenName.equals(MISSING_NAME)) {
+            jsonForm.add(GIVEN_NAME, patient.getGivenName());
+        }
+        String familyName = patient.getFamilyName();
+        if (!familyName.equals(MISSING_NAME)) {
+            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+        }
+
+        // TODO: refactor so we have a single assigned location with a uuid,
+        // and we walk up the tree to get extra information for the patient.
+        String assignedLocation = DbUtil.getPersonAttributeValue(
+            patient, DbUtil.getAssignedLocationAttributeType());
+        if (assignedLocation != null) {
+            LocationService locationService = Context.getLocationService();
+            Location location = locationService.getLocation(
+                Integer.valueOf(assignedLocation));
+            if (location != null) {
+                SimpleObject locationJson = new SimpleObject();
+                locationJson.add(UUID, location.getUuid());
+                if (location.getParentLocation() != null) {
+                    locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
                 }
+                jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
         }
         return jsonForm;
