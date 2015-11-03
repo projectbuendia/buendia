@@ -16,6 +16,7 @@ import org.openmrs.api.OpenmrsService;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
 
@@ -39,5 +40,5 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * Returns all encounters modified on or after the given {code date}.
      * @param date if {@code null}, returns all encounters since the beginning of time.
      */
-    List<Encounter> getEncountersModifiedOnOrAfter(Date date);
+    List<Encounter> getEncountersCreatedAtOrAfter(@Nullable Date date);
 }

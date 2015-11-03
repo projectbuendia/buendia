@@ -14,11 +14,12 @@ package org.projectbuendia.openmrs.api.db;
 import org.openmrs.Encounter;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
 
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
-    List<Encounter> getEncountersCreatedAtOrAfter(Date date);
+    List<Encounter> getEncountersCreatedAtOrAfter(@Nullable Date date);
 
 }
