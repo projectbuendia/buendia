@@ -11,8 +11,13 @@
 
 package org.projectbuendia.openmrs.api;
 
+import org.openmrs.Encounter;
 import org.openmrs.api.OpenmrsService;
+import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Date;
+import java.util.List;
 
 /**
  * This service exposes module's core functionality. It is a Spring managed bean which is
@@ -26,5 +31,13 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Transactional
 public interface ProjectBuendiaService extends OpenmrsService {
-    /* Add service methods here */
+
+    /** Sets the DAO for this service. This is done by DI and Spring. */
+    void setDAO(ProjectBuendiaDAO dao);
+
+    /**
+     * Returns all encounters modified on or after the given {code date}.
+     * @param date if {@code null}, returns all encounters since the beginning of time.
+     */
+    List<Encounter> getEncountersModifiedOnOrAfter(Date date);
 }

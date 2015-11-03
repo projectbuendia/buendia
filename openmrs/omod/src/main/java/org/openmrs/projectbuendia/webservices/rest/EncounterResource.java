@@ -26,8 +26,10 @@ import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -41,27 +43,31 @@ import java.util.List;
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/encounters",
     supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class EncounterResource
-    extends AbstractReadOnlyResource<Patient> implements Creatable {
+    extends AbstractReadOnlyResource<Encounter> implements Creatable {
     private final PatientService patientService;
-    private final EncounterService encounterService;
+    private final ProjectBuendiaService buendiaService;
 
     public EncounterResource() {
-        super("patient", Representation.DEFAULT);
+        super("encounter", Representation.DEFAULT);
         patientService = Context.getPatientService();
-        encounterService = Context.getEncounterService();
+        buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
     /**
-     * Returns all patients.  The retrieved records will be filled in with
-     * each patient's encounter and observation data by
-     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
-     * on its way to becoming JSON that is sent to the client.
-     * @param context      unused here; see populateJsonProperties() for details
+     * Returns all encounters observed after the "since" parameter, or since the beginning of time
+     * if the "since" parameter is not set.
+     * @param context      used to obtain the "since" parameter for incremental sync.
      * @param snapshotTime unused here; see populateJsonProperties() for details
      * @see AbstractReadOnlyResource#search(RequestContext)
      */
-    @Override public List<Patient> searchImpl(RequestContext context, long snapshotTime) {
-        return patientService.getAllPatients();
+    @Override public List<Encounter> searchImpl(RequestContext context, long snapshotTime) {
+        Date syncFrom;
+        try {
+            syncFrom = RequestUtil.getSyncFromDate(context);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Date Format invalid, expected ISO 8601");
+        }
+        return buendiaService.getEncountersModifiedOnOrAfter(syncFrom);
     }
 
     /**
@@ -131,17 +137,35 @@ public class EncounterResource
         if (encounter == null) {
             throw new InvalidObjectDataException("No observations specified");
         }
-        return encounterToJson(encounter);
+        SimpleObject simpleObject = new SimpleObject();
+        populateJsonProperties(encounter, context, simpleObject, 0);
+        return simpleObject;
     }
 
     /**
-     * Converts an encounter to its JSON representation, filling in observation data.
-     * @param encounter an encounter instance
-     * @return a SimpleObject representing the encounter, ready to be serialized to JSON
+     * Retrieves the encounter with a given UUID. Currently not implemented.
      */
-    private SimpleObject encounterToJson(Encounter encounter) {
-        SimpleObject encounterJson = new SimpleObject();
+    @Override
+    protected Encounter retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
+        // Not implemented
+        return null;
+    }
 
+    /**
+     * Populates observation and order data for the given encounter, including:
+     * <ul>
+     *   <li>"timestamp": the encounter datetime in RFC 3339 === ISO 8601 format
+     *   <li>"uuid": the encounter's UUID
+     *   <li>"observations": {@link SimpleObject} that maps concept UUIDs to values
+     *   <li>"order_uuids": unique identifiers of orders executed as part of this encounter.
+     * </ul>
+     * @param context      unused.
+     * @param snapshotTime unused.
+     */
+    @Override protected void populateJsonProperties(
+        Encounter encounter, RequestContext context, SimpleObject encounterJson, long
+            snapshotTime) {
+        encounterJson.put("patient_uuid", encounter.getPatient().getUuid());
         encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
         encounterJson.put("uuid", encounter.getUuid());
 
@@ -188,116 +212,5 @@ public class EncounterResource
         if (!orderUuids.isEmpty()) {
             encounterJson.put("order_uuids", orderUuids);
         }
-        return encounterJson;
-    }
-
-    /**
-     * Retrieves the patient with a given UUID.  The retrieved record will
-     * be filled in with the patient's encounter and observation data by
-     * {@link #populateJsonProperties(Patient, RequestContext, SimpleObject, long)}
-     * on its way to becoming JSON that is sent to the client.
-     * @param context      unused here; see populateJsonProperties() for details
-     * @param snapshotTime unused here; see populateJsonProperties() for details
-     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     */
-    @Override
-    protected Patient retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
-        return patientService.getPatientByUuid(uuid);
-    }
-
-    /**
-     * Fetches the encounter and observation data for a patient as of a given
-     * snapshotTime, optionally also omitting data that was fetched previously,
-     * and adds the following fields to the given {@link SimpleObject}:
-     * <ul>
-     * <li>"encounters": {@link List} of {@link SimpleObject}s, each containing:
-     * <ul>
-     * <li>"timestamp": the encounter datetime in RFC 3339 format
-     * <li>"uuid": the encounter's UUID
-     * <li>"observations": {@link SimpleObject} that maps concept UUIDs to values
-     * </ul>
-     * </ul>
-     * @param context      the request context; supports the optional "sm" query
-     *                     parameter, which lets a client fetch only the data that is new since
-     *                     a previous fetch (the results will contain only the encounter and
-     *                     observation data with creation or modification times at or after the
-     *                     specified time).  To fetch just the new data since a previous fetch,
-     *                     set "sm" to the snapshotTime that was returned in that previous fetch.
-     * @param snapshotTime a server clock time in epoch milliseconds; only
-     *                     encounters and observations that existed as of this snapshot time
-     *                     (i.e. created strictly before snapshotTime) will be returned.
-     */
-    @Override protected void populateJsonProperties(
-        Patient patient, RequestContext context, SimpleObject json, long snapshotTime) {
-        String parameter = context.getParameter("sm");
-        Long startMillisecondsInclusive = null;
-        if (parameter != null) {
-            // Fail fast throwing number format exception to aid debugging.
-            startMillisecondsInclusive = Long.parseLong(parameter);
-        }
-        List<Encounter> encountersByPatient;
-        if (startMillisecondsInclusive == null) {
-            encountersByPatient = encounterService.getEncountersByPatient(patient);
-        } else {
-            // It would be nice to be able to use the getEncounters() method here, which has some
-            // filtering parameters such as fromDate and toDate.  Unfortunately, these restrict
-            // according to the encounter date, whereas we need to filter by creation/modification
-            // date in order to support incremental fetching correctly.  (Filtering by encounter
-            // date would miss encounters dated in the past that are added later.)  Filtering by
-            // creation/modification date been added as a feature request to OpenMRS at
-            // https://issues.openmrs.org/browse/TRUNK-4571
-            //
-            // Until this feature is available, we have two options:
-            // 1. Use the DAO directly, hooking in to the spring injection code to get it.
-            // 2. Load the encounters, and then filter in RAM before getting the observations.
-            // For now, we are going with 2 and hoping it is fast enough.
-            encountersByPatient = filterEncountersByModificationTime(startMillisecondsInclusive,
-                encounterService.getEncountersByPatient(patient));
-        }
-        List<SimpleObject> encounters = new ArrayList<>();
-        for (Encounter encounter : filterBeforeSnapshotTime(snapshotTime, encountersByPatient)) {
-            encounters.add(encounterToJson(encounter));
-        }
-        json.put("encounters", encounters);
-    }
-
-    /**
-     * Given a list of encounters, selects those that were created or modified
-     * at or after a specified time.
-     * @param startMillisecondsInclusive a timestamp in epoch milliseconds
-     * @param encountersByPatient        a list of encounters or observations
-     * @return a new list of the items with creation or modification times &gt;=
-     * startMillisecondsInclusive
-     */
-    private List<Encounter> filterEncountersByModificationTime(
-        long startMillisecondsInclusive, List<Encounter> encountersByPatient) {
-        ArrayList<Encounter> filtered = new ArrayList<>();
-        for (Encounter encounter : encountersByPatient) {
-            // Sigh.  OpenMRS does not set modification time on initial create,
-            // so we have to check both the creation and modification times.
-            if (encounter.getDateCreated().getTime() >= startMillisecondsInclusive || (
-                encounter.getDateChanged() != null
-                    && encounter.getDateChanged().getTime() >= startMillisecondsInclusive)) {
-                filtered.add(encounter);
-            }
-        }
-        return filtered;
-    }
-
-    /**
-     * Given a list of encounters, selects those that existed at a given time.
-     * @param snapshotTime        a timestamp in epoch milliseconds
-     * @param encountersByPatient a list of encounters
-     * @return a new list of encounters with creation times strictly less than snapshotTime
-     */
-    private List<Encounter> filterBeforeSnapshotTime(
-        long snapshotTime, List<Encounter> encountersByPatient) {
-        List<Encounter> filtered = new ArrayList<>();
-        for (Encounter encounter : encountersByPatient) {
-            if (encounter.getDateCreated().getTime() < snapshotTime) {
-                filtered.add(encounter);
-            }
-        }
-        return filtered;
     }
 }
