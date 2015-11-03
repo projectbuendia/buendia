@@ -23,7 +23,6 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
@@ -39,8 +38,6 @@ import java.util.List;
  * point in time (referred to as the "snapshot time").
  * @see AbstractReadOnlyResource
  */
-// TODO: Merge with PatientResource and let clients use a query parameter to
-// indicate whether encounter data should be included with each returned patient.
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/encounters",
     supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class EncounterResource
@@ -64,18 +61,7 @@ public class EncounterResource
      * @see AbstractReadOnlyResource#search(RequestContext)
      */
     @Override public List<Patient> searchImpl(RequestContext context, long snapshotTime) {
-        String patientUuid = context.getParameter("patient_uuid");
-        if (patientUuid != null) {
-            Patient patient = patientService.getPatientByUuid(patientUuid);
-            if (patient == null) {
-                throw new ObjectNotFoundException();
-            }
-            List<Patient> patients = new ArrayList<>();
-            patients.add(patient);
-            return patients;
-        } else {
-            return patientService.getAllPatients();
-        }
+        return patientService.getAllPatients();
     }
 
     /**
