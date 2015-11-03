@@ -39,7 +39,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -212,12 +212,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // We really want this to use XForms, but let's have a simple default
         // implementation for early testing
 
-        Patient patient = null;
+        Patient patient;
         synchronized (createPatientLock) {
             String id = (String) json.get(ID);
             if (id != null) {
                 List<PatientIdentifierType> identifierTypes =
-                    Arrays.asList(DbUtil.getMsfIdentifierType());
+                        Collections.singletonList(DbUtil.getMsfIdentifierType());
                 List<Patient> existing = patientService.getPatients(
                     null, id, identifierTypes, true /* exact identifier match */);
                 if (!existing.isEmpty()) {
@@ -397,7 +397,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
+        return Collections.singletonList(Representation.DEFAULT);
     }
 
     @Override
@@ -473,7 +473,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (newId != null && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
             synchronized (createPatientLock) {
                 List<PatientIdentifierType> identifierTypes =
-                    Arrays.asList(DbUtil.getMsfIdentifierType());
+                        Collections.singletonList(DbUtil.getMsfIdentifierType());
                 List<Patient> existing = patientService.getPatients(
                     null, newId, identifierTypes, true /* exact identifier match */);
                 if (!existing.isEmpty()) {
