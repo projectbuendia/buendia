@@ -19,6 +19,7 @@ import org.hibernate.criterion.Restrictions;
 import org.openmrs.Encounter;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 
+import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
 
@@ -39,7 +40,7 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     }
 
     @Override
-    public List<Encounter> getEncountersCreatedAtOrAfter(Date date) {
+    public List<Encounter> getEncountersCreatedAtOrAfter(@Nullable Date date) {
         // NOTES:
         // - this code relies on the assumption that observations can't be modified independently of
         // encounters.

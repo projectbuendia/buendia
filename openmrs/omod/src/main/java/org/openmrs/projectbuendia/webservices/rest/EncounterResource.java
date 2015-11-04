@@ -15,7 +15,6 @@ import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
-import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -67,7 +66,7 @@ public class EncounterResource
         } catch (ParseException e) {
             throw new IllegalArgumentException("Date Format invalid, expected ISO 8601");
         }
-        return buendiaService.getEncountersModifiedOnOrAfter(syncFrom);
+        return buendiaService.getEncountersCreatedAtOrAfter(syncFrom);
     }
 
     /**
