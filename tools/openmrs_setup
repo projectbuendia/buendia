@@ -88,7 +88,7 @@ sudo mkdir -p $profiles_dir
 sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
 sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/utils.sh"
 
-# In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this a mac friendly url.
+# In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this by a mac friendly path.
 # We then have to chmod this file to ensure that buendia-profile-apply can be executed.
 # TODO: review this after system wide path related changes.
 if [[ "$OS" == 'Darwin' ]]; then
@@ -99,7 +99,9 @@ else
 fi
 
 # Set permissions
-sudo chmod -R 777 $buendia_dir
+current_user=`whoami`
+sudo chown -R root:$current_user $buendia_dir
+sudo chmod -R 775 $buendia_dir
 
 # Configure OpenMRS to use the openmrs_user MySQL account.
 cat <<EOF >$server_dir/openmrs-runtime.properties
