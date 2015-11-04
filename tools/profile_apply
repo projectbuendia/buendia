@@ -235,10 +235,10 @@ def apply(tabs):
         """Creates or updates a concept with the given name, type, and class."""
         datatype_id = db.get('datatype_id', concept_id=concept_id)
         # Changing the datatype of an existing concept is illegal in OpenMRS.
-        if datatype_id and new_datatype_id != datatype_id:
-            raise ValueError("Concept %d: cannot change type from %s to %s" %
-                             (concept_id, get_datatype_name(datatype_id),
-                              get_datatype_name(new_datatype_id)))
+        #if datatype_id and new_datatype_id != datatype_id:
+        #    raise ValueError("Concept %d: cannot change type from %s to %s" %
+        #                     (concept_id, get_datatype_name(datatype_id),
+        #                      get_datatype_name(new_datatype_id)))
         update_or_insert('concept', concept_id, datatype_id=new_datatype_id,
                          class_id=class_id, retired=0)
         set_concept_name(concept_id, name, locale)
