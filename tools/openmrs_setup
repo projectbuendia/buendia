@@ -100,8 +100,8 @@ fi
 
 # Set permissions
 current_user=`whoami`
-sudo chown -R root:$current_user $buendia_dir
-sudo chmod -R 775 $buendia_dir
+sudo chown -R "$current_user" "$buendia_dir"
+sudo chmod -R 755 $buendia_dir
 
 # Configure OpenMRS to use the openmrs_user MySQL account.
 cat <<EOF >$server_dir/openmrs-runtime.properties
