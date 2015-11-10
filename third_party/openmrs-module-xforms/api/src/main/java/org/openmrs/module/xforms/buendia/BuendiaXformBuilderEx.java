@@ -257,19 +257,6 @@ public class BuendiaXformBuilderEx {
             String sectionName = FormUtil.getXmlToken(formField.getField().getName());
             String name = FormUtil.getNewTag(sectionName, tagList);
 
-            if (formField.getParent() != null && fieldTokens.values().contains(name)) {
-                String parentName = fieldTokens.get(formField.getParent());
-                String token = parentName + "_" + name;
-
-                if (!bindings.containsKey(token)) {
-                    token = FormUtil.getNewTag(FormUtil.getXmlToken(formField.getParent()
-                        .getField().getName()), new Vector<String>());
-                    token = token + "_" + name;
-                }
-
-                name = token;
-            }
-
             fieldTokens.put(formField, name);
 
             Field field = formField.getField();
