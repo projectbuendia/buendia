@@ -18,6 +18,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Disjunction;
 import org.hibernate.criterion.Restrictions;
 import org.openmrs.Obs;
+import org.openmrs.Patient;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 
 import javax.annotation.Nullable;
@@ -56,6 +57,28 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
 
             if (includeVoided) {
                 orClause.add(ge("dateVoided", date));
+            }
+            criteria.add(orClause);
+        }
+        //noinspection unchecked
+        return criteria.list();
+    }
+
+    @Override
+    public List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
+        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Patient.class);
+
+        if (!includeVoided) {
+            criteria.add(eq("personVoided", false));
+        }
+
+        if (date != null) {
+            Disjunction orClause = Restrictions.disjunction();
+            orClause.add(ge("personDateChanged", date))
+                    .add(ge("personDateCreated", date));
+
+            if (includeVoided) {
+                orClause.add(ge("personDateVoided", date));
             }
             criteria.add(orClause);
         }

@@ -12,6 +12,7 @@
 package org.projectbuendia.openmrs.api.db;
 
 import org.openmrs.Obs;
+import org.openmrs.Patient;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 
 import javax.annotation.Nullable;
@@ -22,4 +23,6 @@ import java.util.List;
 public interface ProjectBuendiaDAO {
 
     List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+
+    List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
 }

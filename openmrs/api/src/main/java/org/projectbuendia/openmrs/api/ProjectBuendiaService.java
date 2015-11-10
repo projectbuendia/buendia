@@ -12,6 +12,7 @@
 package org.projectbuendia.openmrs.api;
 
 import org.openmrs.Obs;
+import org.openmrs.Patient;
 import org.openmrs.api.OpenmrsService;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,4 +44,10 @@ public interface ProjectBuendiaService extends OpenmrsService {
      *                      specified {@code date}.
      */
     List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+
+    /**
+     * Returns all patients modified on or after the given {@code date}.
+     * @param date if {@code null}, returns all encounters since the beginning of time.
+     */
+    List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
 }
