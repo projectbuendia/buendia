@@ -15,13 +15,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Disjunction;
 import org.hibernate.criterion.Restrictions;
-import org.openmrs.Encounter;
+import org.openmrs.Obs;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 
 import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.List;
+
+import static org.hibernate.criterion.Restrictions.eq;
+import static org.hibernate.criterion.Restrictions.ge;
 
 /** Default implementation of {@link ProjectBuendiaDAO}. */
 public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
@@ -40,17 +44,20 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     }
 
     @Override
-    public List<Encounter> getEncountersCreatedAtOrAfter(@Nullable Date date) {
-        // NOTES:
-        // - this code relies on the assumption that observations can't be modified independently of
-        // encounters.
-        // - This doesn't actually return encounters "modified on or after", it's currently
-        // encounters "created on or after". This is ok for our purposes because we don't have
-        // the ability to modify Encounters in Buendia.
+    public List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
+        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Obs.class);
+        if (!includeVoided) {
+            criteria.add(eq("voided", false));
+        }
 
-        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Encounter.class);
         if (date != null) {
-            criteria.add(Restrictions.ge("dateCreated", date));
+            Disjunction orClause = Restrictions.disjunction();
+            orClause.add(ge("dateCreated", date));
+
+            if (includeVoided) {
+                orClause.add(ge("dateVoided", date));
+            }
+            criteria.add(orClause);
         }
         //noinspection unchecked
         return criteria.list();

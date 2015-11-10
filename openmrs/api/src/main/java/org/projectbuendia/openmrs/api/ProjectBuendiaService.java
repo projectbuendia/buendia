@@ -11,7 +11,7 @@
 
 package org.projectbuendia.openmrs.api;
 
-import org.openmrs.Encounter;
+import org.openmrs.Obs;
 import org.openmrs.api.OpenmrsService;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,8 +37,10 @@ public interface ProjectBuendiaService extends OpenmrsService {
     void setDAO(ProjectBuendiaDAO dao);
 
     /**
-     * Returns all encounters modified on or after the given {code date}.
-     * @param date if {@code null}, returns all encounters since the beginning of time.
+     * Returns all observations modified on or after the given {@code date}.
+     * @param date if {@code null}, returns all observations since the beginning of time
+     * @param includeVoided if {@code true}, returns observations that have been voided since the
+     *                      specified {@code date}.
      */
-    List<Encounter> getEncountersCreatedAtOrAfter(@Nullable Date date);
+    List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
 }

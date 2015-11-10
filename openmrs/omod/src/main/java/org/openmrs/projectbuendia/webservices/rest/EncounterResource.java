@@ -14,21 +14,19 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Obs;
+import org.openmrs.OpenmrsObject;
 import org.openmrs.Patient;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
+import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
-import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
-import org.openmrs.projectbuendia.VisitObsValue;
-import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -40,33 +38,13 @@ import java.util.List;
  * @see AbstractReadOnlyResource
  */
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/encounters",
-    supportedClass = Patient.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class EncounterResource
-    extends AbstractReadOnlyResource<Encounter> implements Creatable {
+    supportedClass = Encounter.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+public class EncounterResource implements Creatable {
     private final PatientService patientService;
-    private final ProjectBuendiaService buendiaService;
+    private RequestLogger logger = RequestLogger.LOGGER;
 
     public EncounterResource() {
-        super("encounter", Representation.DEFAULT);
         patientService = Context.getPatientService();
-        buendiaService = Context.getService(ProjectBuendiaService.class);
-    }
-
-    /**
-     * Returns all encounters observed after the "since" parameter, or since the beginning of time
-     * if the "since" parameter is not set.
-     * @param context      used to obtain the "since" parameter for incremental sync.
-     * @param snapshotTime unused here; see populateJsonProperties() for details
-     * @see AbstractReadOnlyResource#search(RequestContext)
-     */
-    @Override public List<Encounter> searchImpl(RequestContext context, long snapshotTime) {
-        Date syncFrom;
-        try {
-            syncFrom = RequestUtil.getSyncFromDate(context);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Date Format invalid, expected ISO 8601");
-        }
-        return buendiaService.getEncountersCreatedAtOrAfter(syncFrom);
     }
 
     /**
@@ -137,17 +115,8 @@ public class EncounterResource
             throw new InvalidObjectDataException("No observations specified");
         }
         SimpleObject simpleObject = new SimpleObject();
-        populateJsonProperties(encounter, context, simpleObject, 0);
+        populateJsonProperties(encounter, simpleObject);
         return simpleObject;
-    }
-
-    /**
-     * Retrieves the encounter with a given UUID. Currently not implemented.
-     */
-    @Override
-    protected Encounter retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
-        // Not implemented
-        return null;
     }
 
     /**
@@ -158,12 +127,8 @@ public class EncounterResource
      *   <li>"observations": {@link SimpleObject} that maps concept UUIDs to values
      *   <li>"order_uuids": unique identifiers of orders executed as part of this encounter.
      * </ul>
-     * @param context      unused.
-     * @param snapshotTime unused.
      */
-    @Override protected void populateJsonProperties(
-        Encounter encounter, RequestContext context, SimpleObject encounterJson, long
-            snapshotTime) {
+    protected void populateJsonProperties(Encounter encounter, SimpleObject encounterJson) {
         encounterJson.put("patient_uuid", encounter.getPatient().getUuid());
         encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
         encounterJson.put("uuid", encounter.getUuid());
@@ -178,32 +143,7 @@ public class EncounterResource
                 continue;
             }
 
-            observations.put(obs.getConcept().getUuid(), VisitObsValue.visit(
-                obs, new VisitObsValue.ObsValueVisitor<Object>() {
-                    @Override public Object visitCoded(Concept value) {
-                        return value.getUuid();
-                    }
-
-                    @Override public Object visitNumeric(Double value) {
-                        return "" + value;
-                    }
-
-                    @Override public Object visitBoolean(Boolean value) {
-                        return "" + value;
-                    }
-
-                    @Override public Object visitText(String value) {
-                        return value;
-                    }
-
-                    @Override public Object visitDate(Date value) {
-                        return Utils.YYYYMMDD_UTC_FORMAT.format(value);
-                    }
-
-                    @Override public Object visitDateTime(Date value) {
-                        return Utils.toIso8601(value);
-                    }
-                }));
+            observations.put(obs.getConcept().getUuid(), ObservationsHandler.obsValueToString(obs));
         }
         if (!observations.isEmpty()) {
             encounterJson.put("observations", observations);
@@ -211,5 +151,13 @@ public class EncounterResource
         if (!orderUuids.isEmpty()) {
             encounterJson.put("order_uuids", orderUuids);
         }
+    }
+
+    @Override
+    public String getUri(Object instance) {
+        // We don't actually use this, but return a relatively sensible value anyway.
+        OpenmrsObject mrsObject = (OpenmrsObject) instance;
+        Resource res = getClass().getAnnotation(Resource.class);
+        return RestConstants.URI_PREFIX + res.name() + "/" + mrsObject.getUuid();
     }
 }

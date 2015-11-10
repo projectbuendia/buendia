@@ -12,6 +12,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.module.webservices.rest.web.RequestContext;
+import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.projectbuendia.Utils;
 
 import javax.annotation.Nullable;
@@ -36,5 +37,20 @@ public class RequestUtil {
             return null;
         }
         return Utils.fromIso8601(param);
+    }
+
+    /**
+     * Identical to {@link #getSyncFromDate(RequestContext)}, but throws an
+     * {@link IllegalPropertyException} with an appropriate error message instead of a
+     * {@link ParseException} if the date fails to parse.
+     */
+    @Nullable
+    public static Date mustParseSyncFromDate(RequestContext context)
+            throws IllegalPropertyException {
+        try {
+            return getSyncFromDate(context);
+        } catch (ParseException e) {
+            throw new IllegalPropertyException("Date Format invalid, expected ISO 8601");
+        }
     }
 }

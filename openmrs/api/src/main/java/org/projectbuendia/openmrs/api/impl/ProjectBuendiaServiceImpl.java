@@ -13,7 +13,7 @@ package org.projectbuendia.openmrs.api.impl;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.Encounter;
+import org.openmrs.Obs;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
@@ -34,7 +34,7 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
     }
 
     @Override
-    public List<Encounter> getEncountersCreatedAtOrAfter(@Nullable Date date) {
-        return dao.getEncountersCreatedAtOrAfter(date);
+    public List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
+        return dao.getObservationsModifiedAtOrAfter(date, includeVoided);
     }
 }
