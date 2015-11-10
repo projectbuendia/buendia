@@ -596,3 +596,11 @@ DELETE FROM location_attribute WHERE
     location_id NOT IN (SELECT location_id FROM keep_locations);
 DELETE FROM location WHERE
     location_id NOT IN (SELECT location_id FROM keep_locations);
+
+-- Clear the huge concept word and concept reference tables; we don't need them.
+DELETE FROM concept_word;
+DELETE FROM concept_reference_term_map;
+DELETE FROM concept_reference_term;
+DELETE FROM drug_reference_map;
+DELETE FROM concept_reference_term;
+DELETE FROM concept_reference_map;
