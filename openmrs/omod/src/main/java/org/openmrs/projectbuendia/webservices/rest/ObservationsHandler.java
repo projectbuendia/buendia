@@ -25,6 +25,7 @@ import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.Utils;
+import org.openmrs.projectbuendia.VisitObsValue;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -168,7 +169,36 @@ public class ObservationsHandler {
         }
         Obs obs = new Obs(patient, DbUtil.getOrderExecutedConcept(), encounterTime, location);
         obs.setOrder(order);
-        obs.setValueNumeric(new Double(1));
+        obs.setValueNumeric(1d);
         return obs;
+    }
+
+    public static String obsValueToString(Obs obs) {
+        return VisitObsValue.visit(
+                obs, new VisitObsValue.ObsValueVisitor<String>() {
+                    @Override public String visitCoded(Concept value) {
+                        return value.getUuid();
+                    }
+
+                    @Override public String visitNumeric(Double value) {
+                        return "" + value;
+                    }
+
+                    @Override public String visitBoolean(Boolean value) {
+                        return "" + value;
+                    }
+
+                    @Override public String visitText(String value) {
+                        return value;
+                    }
+
+                    @Override public String visitDate(Date value) {
+                        return Utils.YYYYMMDD_UTC_FORMAT.format(value);
+                    }
+
+                    @Override public String visitDateTime(Date value) {
+                        return Utils.toIso8601(value);
+                    }
+                });
     }
 }
