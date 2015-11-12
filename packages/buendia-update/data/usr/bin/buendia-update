@@ -10,7 +10,9 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-set -e; . /usr/share/buendia/utils.sh
+# Exit on first failure.
+set -e;
+. /usr/share/buendia/utils.sh
 name=$(basename $0)
 
 if [ "$1" = "-h" ]; then
@@ -38,13 +40,15 @@ buendia-status
 # Update the package list.
 echo
 echo "--- Updating package list"
+# Some sources might fail, but the only one we care about is the Project Buendia source.
+# We don't have a way to filter that at the moment, so we just ignore errors.
 apt-get update || true
 
 # Fix up any broken things.
 echo
 echo "--- Fixing up partially installed packages"
-dpkg --configure -a || true
-apt-get -V -y -f install || true
+dpkg --configure -a
+apt-get -V -y -f install
 
 # Install and upgrade the specified packages, or all the Buendia packages.
 if [ -n "$1" ]; then
@@ -57,7 +61,7 @@ echo "--- Updating packages: $packages"
 # Applying updates: red and yellow
 buendia-led red on || true
 buendia-led yellow on || true
-apt-get -V -y --allow-unauthenticated install $packages || true
+apt-get -V -y --allow-unauthenticated install $packages
 
 echo
 echo "--- Finished update:"
