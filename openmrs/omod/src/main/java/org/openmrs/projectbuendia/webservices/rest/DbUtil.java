@@ -107,7 +107,7 @@ public class DbUtil {
             // arbitrary string IDs unrelated to RFC 4122.  Therefore, to prevent
             // collisions, UUIDs specific to this module are prefixed "buendia-".
             "buendia-concept-order_executed",
-            "N/A",
+            "Numeric",
             "Finding");
     }
 
