@@ -19,7 +19,6 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.User;
-import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
@@ -91,26 +90,25 @@ import java.util.Set;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
-    static final User CREATOR = new User(1);  // fake value
-    static final RequestLogger logger = RequestLogger.LOGGER;
-    static Log log = LogFactory.getLog(OrderResource.class);
-    static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
+    private static final User CREATOR = new User(1);  // fake value
+    private static final RequestLogger logger = RequestLogger.LOGGER;
+    private static Log log = LogFactory.getLog(OrderResource.class);
+    private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
 
-    final PatientService patientService;
-    final OrderService orderService;
-    final ProviderService providerService;
-    final ConceptService conceptService;
-    final EncounterService encounterService;
+    private final PatientService patientService;
+    private final OrderService orderService;
+    private final ProviderService providerService;
+    private final EncounterService encounterService;
 
     public OrderResource() {
         patientService = Context.getPatientService();
         orderService = Context.getOrderService();
         providerService = Context.getProviderService();
-        conceptService = Context.getConceptService();
         encounterService = Context.getEncounterService();
     }
 
-    @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
+    @Override
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
         return search(context);
     }
 
@@ -118,7 +116,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return getSimpleObjectWithResults(getAllOrders());
     }
 
-    SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
+    private SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Order order : orders) {
             jsonResults.add(orderToJson(order));
@@ -128,7 +126,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return json;
     }
 
-    public Collection<Order> getAllOrders() {
+    private Collection<Order> getAllOrders() {
         Map<String, Order> orders = new HashMap<>();
         Set<String> previousOrderUuids = new HashSet<>();
         for (Encounter encounter : encounterService.getEncounters(
@@ -147,7 +145,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     /** Serializes an order to JSON. */
-    protected static SimpleObject orderToJson(Order order) {
+    private static SimpleObject orderToJson(Order order) {
         SimpleObject json = new SimpleObject();
         if (order != null) {
             json.add("uuid", order.getUuid());
@@ -168,7 +166,8 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return json;
     }
 
-    @Override public SimpleObject search(RequestContext context) throws ResponseException {
+    @Override
+    public SimpleObject search(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "handleSync");
             SimpleObject result = handleSync();
@@ -180,6 +179,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
+    @Override
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", json);
@@ -192,14 +192,14 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
-    Object createInner(SimpleObject json) throws ResponseException {
+    private Object createInner(SimpleObject json) throws ResponseException {
         Order order = jsonToOrder(json);
         orderService.saveOrder(order, null);
         return orderToJson(order);
     }
 
     /** Creates a new Order and a corresponding Encounter containing it. */
-    protected Order jsonToOrder(SimpleObject json) {
+    private Order jsonToOrder(SimpleObject json) {
         String patientUuid = (String) json.get("patient_uuid");
         if (patientUuid == null) {
             throw new IllegalArgumentException("Required key 'patient_uuid' is missing");
@@ -233,7 +233,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return order;
     }
 
-    Encounter createEncounter(Patient patient, Date encounterDateTime) {
+    private Encounter createEncounter(Patient patient, Date encounterDateTime) {
         Encounter encounter = new Encounter();
         encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
         encounter.setEncounterDatetime(encounterDateTime);
@@ -244,23 +244,25 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return encounter;
     }
 
-    Provider getProvider() {
+    private Provider getProvider() {
         return providerService.getAllProviders(false).get(0); // omit retired
     }
 
-    Concept getFreeTextOrderConcept() {
+    private Concept getFreeTextOrderConcept() {
         return DbUtil.getConcept(
             "Order described in free text instructions",
             FREE_TEXT_ORDER_UUID, "N/A", "Misc");
     }
 
-    @Override public String getUri(Object instance) {
+    @Override
+    public String getUri(Object instance) {
         Order order = (Order) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + order.getUuid();
     }
 
-    @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+    @Override
+    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
             Object result = retrieveInner(uuid);
@@ -272,7 +274,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
-    Object retrieveInner(String uuid) throws ResponseException {
+    private Object retrieveInner(String uuid) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
         if (order == null) {
             throw new ObjectNotFoundException();
@@ -280,7 +282,8 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return orderToJson(order);
     }
 
-    @Override public List<Representation> getAvailableRepresentations() {
+    @Override
+    public List<Representation> getAvailableRepresentations() {
         return Collections.singletonList(Representation.DEFAULT);
     }
 
@@ -309,7 +312,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
      * whole call should fail, but for now there may be partial updates
      * </ul>
      */
-    Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
+    private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
         if (order == null) {
             throw new ObjectNotFoundException();
@@ -324,7 +327,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     /** Revises an order.  Returns null if no changes were made. */
-    protected Order reviseOrder(Order order, SimpleObject edits) {
+    private Order reviseOrder(Order order, SimpleObject edits) {
         Order newOrder = order.cloneForRevision();
         boolean changed = false;
 
