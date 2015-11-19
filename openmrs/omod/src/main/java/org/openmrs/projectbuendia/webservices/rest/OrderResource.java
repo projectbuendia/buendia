@@ -40,8 +40,8 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,14 +51,14 @@ import java.util.Set;
 
 /**
  * Rest API for orders.
- * <p/>
  * <p>Expected behavior:
  * <ul>
- * <li>GET /order?patient=[UUID] returns all orders for a patient ({@link #search(RequestContext)})
- * <li>GET /order/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
- * <li>POST /order?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
+ * <li>GET /orders returns all orders
+ * <li>GET /orders?since=[bookmark] returns all orders since the last server-provided bookmark.
+ * <li>GET /orders/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
+ * <li>POST /orders?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
  * RequestContext)}
- * <li>POST /order/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
+ * <li>POST /orders/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
  * </ul>
  * <p/>
  * <p>Each operation handles Order resources in the following JSON form:
@@ -111,18 +111,10 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner();
-            logger.reply(context, this, "getAll", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
-            throw e;
-        }
+        return search(context);
     }
 
-    private SimpleObject getAllInner() throws ResponseException {
+    private SimpleObject handleSync() throws ResponseException {
         return getSimpleObjectWithResults(getAllOrders());
     }
 
@@ -178,30 +170,14 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
     @Override public SimpleObject search(RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = searchInner(getPatient(context));
-            logger.reply(context, this, "getAll", result);
+            logger.request(context, this, "handleSync");
+            SimpleObject result = handleSync();
+            logger.reply(context, this, "handleSync", result);
             return result;
         } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
+            logger.error(context, this, "handleSync", e);
             throw e;
         }
-    }
-
-    SimpleObject searchInner(Patient patient) throws ResponseException {
-        return getSimpleObjectWithResults(patient == null ?
-            getAllOrders() :
-            orderService.getAllOrdersByPatient(patient));
-    }
-
-    Patient getPatient(RequestContext context) {
-        String patientUuid = context.getParameter("patient");
-        if (patientUuid == null) return null;
-        Patient patient = patientService.getPatientByUuid(patientUuid);
-        if (patient == null) {
-            throw new ObjectNotFoundException();
-        }
-        return patient;
     }
 
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
@@ -305,7 +281,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     @Override public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
+        return Collections.singletonList(Representation.DEFAULT);
     }
 
     @Override
