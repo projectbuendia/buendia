@@ -137,9 +137,14 @@ public class Utils {
         return datetime;
     }
 
-    /** Formats a datetime as an ISO 8601 string in the UTC timezone. */
+    /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
     public static String toIso8601(Date dateTime) {
         return FORMAT.format(dateTime);
+    }
+
+    /** Parses an ISO 8601-formatted date into a {@link Date}. */
+    public static Date fromIso8601(String iso8601) throws ParseException {
+        return FORMAT.parse(iso8601);
     }
 
     /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */

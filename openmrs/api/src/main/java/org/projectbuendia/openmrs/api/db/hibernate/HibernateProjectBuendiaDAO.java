@@ -13,8 +13,20 @@ package org.projectbuendia.openmrs.api.db.hibernate;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Disjunction;
+import org.hibernate.criterion.Restrictions;
+import org.openmrs.Obs;
+import org.openmrs.Patient;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+
+import javax.annotation.Nullable;
+import java.util.Date;
+import java.util.List;
+
+import static org.hibernate.criterion.Restrictions.eq;
+import static org.hibernate.criterion.Restrictions.ge;
 
 /** Default implementation of {@link ProjectBuendiaDAO}. */
 public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
@@ -30,5 +42,47 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     /** @param sessionFactory the sessionFactory to set */
     public void setSessionFactory(SessionFactory sessionFactory) {
         this.sessionFactory = sessionFactory;
+    }
+
+    @Override
+    public List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
+        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Obs.class);
+        if (!includeVoided) {
+            criteria.add(eq("voided", false));
+        }
+
+        if (date != null) {
+            Disjunction orClause = Restrictions.disjunction();
+            orClause.add(ge("dateCreated", date));
+
+            if (includeVoided) {
+                orClause.add(ge("dateVoided", date));
+            }
+            criteria.add(orClause);
+        }
+        //noinspection unchecked
+        return criteria.list();
+    }
+
+    @Override
+    public List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
+        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Patient.class);
+
+        if (!includeVoided) {
+            criteria.add(eq("personVoided", false));
+        }
+
+        if (date != null) {
+            Disjunction orClause = Restrictions.disjunction();
+            orClause.add(ge("personDateChanged", date))
+                    .add(ge("personDateCreated", date));
+
+            if (includeVoided) {
+                orClause.add(ge("personDateVoided", date));
+            }
+            criteria.add(orClause);
+        }
+        //noinspection unchecked
+        return criteria.list();
     }
 }

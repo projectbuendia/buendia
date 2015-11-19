@@ -71,6 +71,38 @@ mysql -uroot -p <<< "
 "
 echo 'Added MySQL user "openmrs_user" with password "openmrs".'
 
+# Running from Linux or Mac? Set the appropriate path.
+buendia_dir='/usr/share/buendia'
+bin_dir='/usr/bin'
+OS=`uname`
+if [[ "$OS" == 'Darwin' ]]; then
+    buendia_dir='/usr/local/opt/buendia'
+    bin_dir='/usr/local/bin'
+fi
+profiles_dir="$buendia_dir/profiles"
+
+# TODO: remove the need for sudo
+# Create directories and copy scripts
+echo "Please, enter your sudo password to create buendia directories and scripts:"
+sudo mkdir -p $profiles_dir
+sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
+sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/utils.sh"
+
+# In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this by a mac friendly path.
+# We then have to chmod this file to ensure that buendia-profile-apply can be executed.
+# TODO: review this after system wide path related changes.
+if [[ "$OS" == 'Darwin' ]]; then
+    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply | sudo tee "$bin_dir/buendia-profile-apply" > /dev/null
+    sudo chmod a+x "$bin_dir/buendia-profile-apply"
+else
+    sudo cp -p tools/profile_apply "$bin_dir/buendia-profile-apply"
+fi
+
+# Set permissions
+current_user=`whoami`
+sudo chown -R "$current_user" "$buendia_dir"
+sudo chmod -R 755 $buendia_dir
+
 # Configure OpenMRS to use the openmrs_user MySQL account.
 cat <<EOF >$server_dir/openmrs-runtime.properties
 connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
@@ -78,6 +110,7 @@ connection.username=openmrs_user
 connection.password=openmrs
 auto_update_database=true
 module.allow_web_admin=true
+profile_manager.profile_dir=$profiles_dir
 EOF
 echo 'Configured OpenMRS to use the MySQL user openmrs_user@localhost.'
 

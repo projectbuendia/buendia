@@ -31,6 +31,11 @@ Follow the instructions below to get your system set up to do Buendia server dev
       * Open the downloaded file and then open the .pkg file within to install it.
       * Open System Preferences > MySQL and click **Start MySQL Server** to bring the server up.
 
+##### Python and python-mysqldb
+You might already have python pre-installed on your OS. If so you only need to add the mysql connector.
+* Linux: `sudo apt-get install python python-mysqldb`
+* Mac OS: There are different ways of installing mysql connector. Please refer to this [Mysql Page](https://dev.mysql.com/doc/connector-python/en/)
+
 ##### IntelliJ IDEA
   * Download the Community Edition at https://www.jetbrains.com/idea/download/ and follow the [setup instructions](https://www.jetbrains.com/idea/help/basics-and-installation.html#d1847332e131).
 
@@ -59,6 +64,8 @@ Follow the instructions below to get your system set up to do Buendia server dev
         [INFO] Started Jetty Server
 
     the server is ready, and you can log in at [[http://localhost:9000/openmrs/]] as "buendia" with password "buendia".
+    
+6.  Apply a buendia profile. See [Setting Up A Buendia Profile](https://github.com/projectbuendia/buendia/wiki/Setting-Up-a-Buendia-profile) for more information.
 
 After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.
 
