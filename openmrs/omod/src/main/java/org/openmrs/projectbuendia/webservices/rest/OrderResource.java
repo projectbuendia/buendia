@@ -36,17 +36,13 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Rest API for orders.
@@ -66,6 +62,7 @@ import java.util.Set;
  * {
  *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
  *   creation
+ *   "voided": false, // If true, fields other than UUID are not guaranteed to be set.
  *   "instructions": "Paracetamol 2 tablets 3x/day",
  *   "start_millis": 1438711253000,
  *   "stop_millis": 1438714253000  // optionally present
@@ -99,12 +96,14 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     private final OrderService orderService;
     private final ProviderService providerService;
     private final EncounterService encounterService;
+    private final ProjectBuendiaService buendiaService;
 
     public OrderResource() {
         patientService = Context.getPatientService();
         orderService = Context.getOrderService();
         providerService = Context.getProviderService();
         encounterService = Context.getEncounterService();
+        buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
     @Override
@@ -112,36 +111,22 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return search(context);
     }
 
-    private SimpleObject handleSync() throws ResponseException {
-        return getSimpleObjectWithResults(getAllOrders());
-    }
+    private SimpleObject handleSync(RequestContext context) throws ResponseException {
+        Date date = RequestUtil.mustParseSyncFromDate(context);
 
-    private SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
-        List<SimpleObject> jsonResults = new ArrayList<>();
+        // Set the next sync from time to be one second in the past because there's issues
+        // due to OpenMRS rounding truncating insertion times. See
+        // https://github.com/projectbuendia/client/pull/90
+        Date nextSyncFrom = new Date(System.currentTimeMillis() - 1000);
+
+        List<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(date, date != null);
+
+        List<SimpleObject> jsonOrders = new ArrayList<>(orders.size());
         for (Order order : orders) {
-            jsonResults.add(orderToJson(order));
+            jsonOrders.add(orderToJson(order));
         }
-        SimpleObject json = new SimpleObject();
-        json.add("results", jsonResults);
-        return json;
-    }
 
-    private Collection<Order> getAllOrders() {
-        Map<String, Order> orders = new HashMap<>();
-        Set<String> previousOrderUuids = new HashSet<>();
-        for (Encounter encounter : encounterService.getEncounters(
-            null, null, null, null, null, null, null, null, null, false)) {
-            for (Order order : encounter.getOrders()) {
-                orders.put(order.getUuid(), order);
-                if (order.getPreviousOrder() != null) {
-                    previousOrderUuids.add(order.getPreviousOrder().getUuid());
-                }
-            }
-        }
-        for (String uuid : previousOrderUuids) {
-            orders.remove(uuid);
-        }
-        return orders.values();
+        return ResponseUtil.createIncrementalSyncResults(jsonOrders, nextSyncFrom);
     }
 
     /** Serializes an order to JSON. */
@@ -149,6 +134,10 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         SimpleObject json = new SimpleObject();
         if (order != null) {
             json.add("uuid", order.getUuid());
+            json.add("voided", order.isVoided());
+            if (order.isVoided()) {
+                return json;
+            }
             json.add("patient_uuid", order.getPatient().getUuid());
             String instructions = order.getInstructions();
             if (instructions != null) {
@@ -170,7 +159,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     public SimpleObject search(RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "handleSync");
-            SimpleObject result = handleSync();
+            SimpleObject result = handleSync(context);
             logger.reply(context, this, "handleSync", result);
             return result;
         } catch (Exception e) {
