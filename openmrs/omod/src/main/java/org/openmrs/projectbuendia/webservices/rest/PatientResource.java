@@ -38,8 +38,6 @@ import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import javax.annotation.Nullable;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -130,43 +128,31 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner(context);
-            logger.reply(context, this, "getAll", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
-            throw e;
-        }
+        // #search covers a more general case of of #getAll, so we just forward through.
+        return search(context);
     }
 
-    private SimpleObject getAllInner(RequestContext context) throws ResponseException {
-        Date syncFrom;
-        try {
-            syncFrom = RequestUtil.getSyncFromDate(context);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Date Format invalid, expected ISO 8601");
-        }
-        Date snapshotTime = new Date();
+    private SimpleObject handleSync(RequestContext context) throws ResponseException {
+        Date syncFrom = RequestUtil.mustParseSyncFromDate(context);
+        Date newSyncToken = new Date();
         List<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
                 syncFrom, syncFrom != null /* includeVoided */);
-        return getSimpleObjectWithResults(patients, snapshotTime);
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Patient patient : patients) {
+            jsonResults.add(patientToJson(patient));
+        }
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newSyncToken);
     }
 
     // TODO: consolidate the incremental sync timestamping / wrapper logic for this and
     // EncountersResource into the same class.
-    private SimpleObject getSimpleObjectWithResults(
-            List<Patient> patients, @Nullable Date snapshotTime) {
+    private SimpleObject getSimpleObjectWithResults(List<Patient> patients) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Patient patient : patients) {
             jsonResults.add(patientToJson(patient));
         }
         SimpleObject wrapper = new SimpleObject();
         wrapper.put("results", jsonResults);
-        if (snapshotTime != null) {
-            wrapper.put("snapshotTime", Utils.toIso8601(snapshotTime));
-        }
         return wrapper;
     }
 
@@ -383,28 +369,37 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override public SimpleObject search(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "search");
-            SimpleObject result = searchInner(context);
-            logger.reply(context, this, "search", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "search", e);
-            throw e;
+        // If there's an ID, run an actual search, otherwise, run a sync.
+        String patientId = context.getParameter("id");
+        if (patientId != null) {
+            try {
+                logger.request(context, this, "search");
+                SimpleObject result = searchInner(patientId);
+                logger.reply(context, this, "search", result);
+                return result;
+            }
+            catch (Exception e) {
+                logger.error(context, this, "search", e);
+                throw e;
+            }
+        } else {
+            try {
+                logger.request(context, this, "handleSync");
+                SimpleObject result = handleSync(context);
+                logger.reply(context, this, "handleSync", result);
+                return result;
+            } catch (Exception e) {
+                logger.error(context, this, "handleSync", e);
+                throw e;
+            }
         }
     }
 
-    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        List<Patient> patients;
-        String patientId = requestContext.getParameter("id");  // single patient by ID; overrides
-        if (patientId != null) {
-            List<PatientIdentifierType> idTypes = new ArrayList<>();
-            idTypes.add(DbUtil.getMsfIdentifierType());
-            patients = patientService.getPatients(null, patientId, idTypes, true);
-            return getSimpleObjectWithResults(patients, null);
-        } else {
-            return getAllInner(requestContext);
-        }
+    private SimpleObject searchInner(String patientId) throws ResponseException {
+        List<PatientIdentifierType> idTypes =
+                Collections.singletonList(DbUtil.getMsfIdentifierType());
+        List<Patient> patients = patientService.getPatients(null, patientId, idTypes, true);
+        return getSimpleObjectWithResults(patients);
     }
 
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
