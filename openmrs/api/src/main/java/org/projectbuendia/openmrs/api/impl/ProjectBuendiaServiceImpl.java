@@ -14,6 +14,7 @@ package org.projectbuendia.openmrs.api.impl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
@@ -42,5 +43,10 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
     @Override
     public List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
         return dao.getPatientsModifiedAtOrAfter(date, includeVoided);
+    }
+
+    @Override
+    public List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
+        return dao.getOrdersModifiedAtOrAfter(date, includeVoided);
     }
 }
