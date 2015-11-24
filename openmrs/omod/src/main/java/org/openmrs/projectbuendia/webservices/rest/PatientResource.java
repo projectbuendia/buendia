@@ -34,6 +34,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.projectbuendia.openmrs.api.SyncToken;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
@@ -136,7 +137,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         Date syncFrom = RequestUtil.mustParseSyncFromDate(context);
         Date newSyncToken = new Date();
         List<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
-                syncFrom, syncFrom != null /* includeVoided */);
+                // TODO: use a real UUID instead of the empty string once the client supports it.
+                syncFrom == null ? null : new SyncToken(syncFrom, ""),
+                syncFrom != null /* includeVoided */,
+                0 /* maxResults */);
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Patient patient : patients) {
             jsonResults.add(patientToJson(patient));
