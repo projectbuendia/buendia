@@ -25,6 +25,9 @@ Follow the instructions below to get your system set up to do Buendia server dev
       * Confirm that the `mvn` command works by running `mvn -v`.
 
 ##### MySQL Server 5.6
+
+**Note:** it's critical that MySQL 5.6 is installed, and not a newer version. The version of OpenMRS we're currently using hardcodes `storage_engine=InnoDB` into the connection parameters, and that parameter was [removed in 5.7.5](http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine), so OpenMRS never connects to the database if a newer version is installed.
+
   * Linux: `sudo apt-get install mysql-server`
   * Mac OS:
       * Go to http://dev.mysql.com/downloads/mysql/ and download the **DMG Archive** for your Mac OS version.
