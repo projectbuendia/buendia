@@ -48,9 +48,13 @@ public interface ProjectBuendiaService extends OpenmrsService {
 
     /**
      * Returns all patients modified on or after the given {@code date}.
-     * @param date if {@code null}, returns all encounters since the beginning of time.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided patients.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
-    List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    List<Patient> getPatientsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
     List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
 }
