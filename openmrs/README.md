@@ -98,3 +98,14 @@ If you start the OpenMRS server from the shell with `tools/openmrs_run`, it will
 3. Change "Unnamed" to something recognizable, then click **OK**.
 
 Now when you click Run > Debug and use this configuration, IntelliJ IDEA will connect to the currently running OpenMRS server.
+
+### Debugging the Unit Tests
+
+You can debug the unit tests with
+
+```shell
+cd openmrs
+mvn -Dmaven.surefire.debug test
+```
+
+The tests will pause until a debugger has attached. See the [Surefire Documentation](http://maven.apache.org/surefire/maven-surefire-plugin/examples/debugging.html) for more information.
