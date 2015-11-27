@@ -15,6 +15,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.api.SyncToken;
 
 import java.util.Date;
 import java.util.List;
@@ -30,5 +31,12 @@ public class ResponseUtil {
         return new SimpleObject()
                 .add("results", results)
                 .add("snapshotTime", Utils.toIso8601(newSyncToken));
+    }
+
+    public static SimpleObject createIncrementalSyncResults(
+            List<SimpleObject> results, SyncToken syncToken) {
+        return new SimpleObject()
+                .add("results", results)
+                .add("syncToken", SyncTokenUtils.syncTokenToJson(syncToken));
     }
 }
