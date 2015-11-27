@@ -36,6 +36,8 @@ import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.SimpleDateFormat;
@@ -134,11 +136,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private SimpleObject handleSync(RequestContext context) throws ResponseException {
         Date syncFrom = RequestUtil.mustParseSyncFromDate(context);
-        Date newSyncToken = new Date();
-        List<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
-                syncFrom, syncFrom != null /* includeVoided */);
+        SyncToken token = syncFrom == null ? null : new SyncToken(syncFrom, null);
+        // Set the next sync from time to be one second in the past because there's issues
+        // due to OpenMRS rounding truncating insertion times. See
+        // https://github.com/projectbuendia/client/pull/90
+        Date newSyncToken = new Date(System.currentTimeMillis() - 1000);
+        SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
+                token, syncFrom != null /* includeVoided */, 0 /* maxResults */);
         List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Patient patient : patients) {
+        for (Patient patient : patients.results) {
             jsonResults.add(patientToJson(patient));
         }
         return ResponseUtil.createIncrementalSyncResults(jsonResults, newSyncToken);

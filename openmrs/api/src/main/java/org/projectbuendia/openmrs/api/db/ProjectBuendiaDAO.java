@@ -15,6 +15,7 @@ import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
 
 import javax.annotation.Nullable;
 import java.util.Date;
@@ -25,7 +26,8 @@ public interface ProjectBuendiaDAO {
 
     List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
 
-    List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Patient> getPatientsModifiedAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
     List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <!--
+        If you need Hibernate classes to be available in API (as opposed to OMOD) tests, add the
+        corresponding config files here.
+        -->
+        <mapping resource="PatientSyncParameters.hbm.xml"/>
+    </session-factory>
+</hibernate-configuration>

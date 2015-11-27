@@ -18,7 +18,9 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 
 import javax.annotation.Nullable;
 import java.util.Date;
@@ -41,8 +43,9 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
     }
 
     @Override
-    public List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
-        return dao.getPatientsModifiedAtOrAfter(date, includeVoided);
+    public SyncPage<Patient> getPatientsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+        return dao.getPatientsModifiedAfter(syncToken, includeVoided, maxResults);
     }
 
     @Override
