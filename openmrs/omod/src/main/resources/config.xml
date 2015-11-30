@@ -60,6 +60,7 @@
 
   <!-- Maps hibernate files, if present -->
   <mappingFiles>
+    PatientSyncParameters.hbm.xml
     ProjectBuendia.hbm.xml
   </mappingFiles>
 
