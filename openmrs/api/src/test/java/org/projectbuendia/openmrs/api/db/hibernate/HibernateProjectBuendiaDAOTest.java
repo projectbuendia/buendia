@@ -112,8 +112,8 @@ public class HibernateProjectBuendiaDAOTest extends BaseModuleContextSensitiveTe
     /**
      * {@link BaseModuleContextSensitiveTest} does this initialization, but also pre-loads the
      * database with a bunch of patient records. We don't want to load those patient records,
-     * because we'd then have to augment them with `buendia_patient_sync_map` records, which would couple
-     * our test integrity to the records in OpenMRS' test data. For this reason, we disable
+     * because we'd then have to augment them with `buendia_patient_sync_map` records, which would
+     * couple our test integrity to the records in OpenMRS' test data. For this reason, we disable
      * {@link BaseModuleContextSensitiveTest}'s setup by putting the {@link SkipBaseSetup}
      * annotation on the class, but then we've got to explicitly init the database and authenticate
      * ourselves.
@@ -160,7 +160,6 @@ public class HibernateProjectBuendiaDAOTest extends BaseModuleContextSensitiveTe
                 Arrays.copyOfRange(EXPECTED_UUID_ORDER_NO_VOIDED_NO_DUPLICATE_TIMESTAMPS, 6, 7),
                 extractListOfUuids(results.results));
     }
-
 
     @Test
     public void testSyncTokenGeneratedFromLastResultInPage() throws Exception {
@@ -276,15 +275,15 @@ public class HibernateProjectBuendiaDAOTest extends BaseModuleContextSensitiveTe
         Statement statement = getConnection().createStatement();
         String query =
                 "SELECT p.person_id, p.uuid, sm.uuid " +
-                "FROM person p LEFT JOIN buendia_patient_sync_map sm ON p.person_id = sm.patient_id " +
+                "FROM person p " +
+                "LEFT JOIN buendia_patient_sync_map sm ON p.person_id = sm.patient_id " +
                 "WHERE p.uuid <> sm.uuid";
         ResultSet results  = statement.executeQuery(query);
         int failures = 0;
         while (results.next()) {
             failures++;
-            System.out.printf(
-                    "WARNING: Person with ID #%d has inconsistent entry in buendia_patient_sync_map.\n" +
-                            "Person UUID: %s Sync Map UUID: %s\n",
+            System.out.printf("WARNING: Person with ID #%d has inconsistent entry in " +
+                    "buendia_patient_sync_map.\nPerson UUID: %s Sync Map UUID: %s\n",
                     results.getInt(1), results.getString(2), results.getString(3));
         }
         if (failures > 0) {
