@@ -23,6 +23,7 @@ import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.projectbuendia.openmrs.sync.ObsSyncParameters;
 import org.projectbuendia.openmrs.sync.PatientSyncParameters;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
@@ -57,23 +58,12 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     }
 
     @Override
-    public List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
-        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Obs.class);
-        if (!includeVoided) {
-            criteria.add(eq("voided", false));
-        }
-
-        if (date != null) {
-            Disjunction orClause = disjunction();
-            orClause.add(ge("dateCreated", date));
-
-            if (includeVoided) {
-                orClause.add(ge("dateVoided", date));
-            }
-            criteria.add(orClause);
-        }
+    public SyncPage<Obs> getObservationsModifiedAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
         //noinspection unchecked
-        return criteria.list();
+        return fetchSyncPage(
+                (Class<SyncParameters<Obs>>) (Class<?>) ObsSyncParameters.class,
+                syncToken, includeVoided, maxResults);
     }
 
     @Override
