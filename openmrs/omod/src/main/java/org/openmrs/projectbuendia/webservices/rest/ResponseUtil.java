@@ -34,9 +34,10 @@ public class ResponseUtil {
     }
 
     public static SimpleObject createIncrementalSyncResults(
-            List<SimpleObject> results, SyncToken syncToken) {
+            List<SimpleObject> results, SyncToken syncToken, boolean more) {
         return new SimpleObject()
                 .add("results", results)
-                .add("syncToken", SyncTokenUtils.syncTokenToJson(syncToken));
+                .add("syncToken", SyncTokenUtils.syncTokenToJson(syncToken))
+                .add("more", more);
     }
 }

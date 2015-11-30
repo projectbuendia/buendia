@@ -151,7 +151,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         SyncToken newToken =
                 SyncTokenUtils.clampSyncTokenToBufferedRequestTime(patients.syncToken, requestTime);
-        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     // TODO: consolidate the incremental sync timestamping / wrapper logic for this and
