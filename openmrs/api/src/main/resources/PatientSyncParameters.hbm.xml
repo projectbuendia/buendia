@@ -15,7 +15,7 @@
 <!DOCTYPE hibernate-mapping PUBLIC
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="org.projectbuendia.openmrs">
+<hibernate-mapping package="org.projectbuendia.openmrs.sync">
     <!--
     From a Java perspective, this class should be treated as read-only. Updates are only ever
     performed by a trigger on the database. See `liquibase.xml` and `PatientSyncParameters.java`
@@ -25,8 +25,9 @@
         name="PatientSyncParameters"
         table="buendia_patient_sync_map"
         mutable="false" >
+
         <id
-            name="patientId"
+            name="itemId"
             column="patient_id"
             type="int" />
         <property
@@ -42,8 +43,9 @@
             type="string"
             not-null="true"
             lazy="true" />
+
         <one-to-one
-            name="patient"
+            name="item"
             class="org.openmrs.Patient"
             lazy="false"
             constrained="true"/>
