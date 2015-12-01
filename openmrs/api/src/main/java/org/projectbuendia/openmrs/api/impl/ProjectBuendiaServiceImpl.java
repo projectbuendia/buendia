@@ -38,8 +38,9 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
     }
 
     @Override
-    public List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
-        return dao.getObservationsModifiedAtOrAfter(date, includeVoided);
+    public SyncPage<Obs> getObservationsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+        return dao.getObservationsModifiedAfter(syncToken, includeVoided, maxResults);
     }
 
     @Override

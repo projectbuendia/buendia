@@ -18,17 +18,17 @@
 <hibernate-mapping package="org.projectbuendia.openmrs.sync">
     <!--
     From a Java perspective, this class should be treated as read-only. Updates are only ever
-    performed by a trigger on the database. See `liquibase.xml` and `PatientSyncParameters.java`
+    performed by a trigger on the database. See `liquibase.xml` and `ObsSyncParameters.java`
     for details.
     -->
     <class
-        name="PatientSyncParameters"
-        table="buendia_patient_sync_map"
+        name="ObsSyncParameters"
+        table="buendia_obs_sync_map"
         mutable="false" >
 
         <id
             name="itemId"
-            column="patient_id"
+            column="obs_id"
             type="int" />
         <property
             name="dateUpdated"
@@ -46,7 +46,7 @@
 
         <one-to-one
             name="item"
-            class="org.openmrs.Patient"
+            class="org.openmrs.Obs"
             lazy="false"
             constrained="true"/>
     </class>

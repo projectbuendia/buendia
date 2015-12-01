@@ -24,7 +24,8 @@ import java.util.List;
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
 
-    List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Obs> getObservationsModifiedAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
     SyncPage<Patient> getPatientsModifiedAfter(
             @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
