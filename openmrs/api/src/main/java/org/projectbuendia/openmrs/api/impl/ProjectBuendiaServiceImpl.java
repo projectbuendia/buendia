@@ -50,7 +50,8 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
     }
 
     @Override
-    public List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
-        return dao.getOrdersModifiedAtOrAfter(date, includeVoided);
+    public SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+        return dao.getOrdersModifiedAtOrAfter(syncToken, includeVoided, maxResults);
     }
 }

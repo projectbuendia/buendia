@@ -37,6 +37,8 @@ import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -92,6 +94,8 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     private static Log log = LogFactory.getLog(OrderResource.class);
     private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
 
+    private static final int MAX_ORDERS_PER_PAGE = 500;
+
     private final PatientService patientService;
     private final OrderService orderService;
     private final ProviderService providerService;
@@ -112,21 +116,23 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     private SimpleObject handleSync(RequestContext context) throws ResponseException {
-        Date date = RequestUtil.mustParseSyncFromDate(context);
+        SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
 
-        // Set the next sync from time to be one second in the past because there's issues
-        // due to OpenMRS rounding truncating insertion times. See
-        // https://github.com/projectbuendia/client/pull/90
-        Date nextSyncFrom = new Date(System.currentTimeMillis() - 1000);
+        SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
+                syncToken,
+                syncToken != null /* includeVoided */,
+                MAX_ORDERS_PER_PAGE /* maxResults */);
 
-        List<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(date, date != null);
-
-        List<SimpleObject> jsonOrders = new ArrayList<>(orders.size());
-        for (Order order : orders) {
-            jsonOrders.add(orderToJson(order));
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Order order : orders.results) {
+            jsonResults.add(orderToJson(order));
         }
-
-        return ResponseUtil.createIncrementalSyncResults(jsonOrders, nextSyncFrom);
+        SyncToken newToken =
+                SyncTokenUtils.clampSyncTokenToBufferedRequestTime(orders.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     /** Serializes an order to JSON. */

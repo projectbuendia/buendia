@@ -18,8 +18,6 @@ import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.SyncToken;
 
 import javax.annotation.Nullable;
-import java.util.Date;
-import java.util.List;
 
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
@@ -30,5 +28,6 @@ public interface ProjectBuendiaDAO {
     SyncPage<Patient> getPatientsModifiedAfter(
             @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
-    List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 }

@@ -16,29 +16,26 @@ import org.apache.commons.logging.LogFactory;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.classic.Session;
-import org.hibernate.criterion.Disjunction;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.Type;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
-import org.projectbuendia.openmrs.sync.ObsSyncParameters;
-import org.projectbuendia.openmrs.sync.PatientSyncParameters;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.projectbuendia.openmrs.api.db.SyncPage;
+import org.projectbuendia.openmrs.sync.ObsSyncParameters;
+import org.projectbuendia.openmrs.sync.OrderSyncParameters;
+import org.projectbuendia.openmrs.sync.PatientSyncParameters;
 import org.projectbuendia.openmrs.sync.SyncParameters;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static org.hibernate.criterion.Order.asc;
-import static org.hibernate.criterion.Restrictions.disjunction;
 import static org.hibernate.criterion.Restrictions.eq;
-import static org.hibernate.criterion.Restrictions.ge;
 import static org.hibernate.criterion.Restrictions.sqlRestriction;
 
 /** Default implementation of {@link ProjectBuendiaDAO}. */
@@ -76,22 +73,12 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
     }
 
     @Override
-    public List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided) {
-        Criteria criteria = sessionFactory.getCurrentSession().createCriteria(Order.class);
-        if (!includeVoided) {
-            criteria.add(eq("voided", false));
-        }
-        if (date != null) {
-            Disjunction orClause = disjunction();
-            orClause.add(ge("dateCreated", date));
-
-            if (includeVoided) {
-                orClause.add(ge("dateVoided", date));
-            }
-            criteria.add(orClause);
-        }
+    public SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
         //noinspection unchecked
-        return criteria.list();
+        return fetchSyncPage(
+                (Class<SyncParameters<Order>>)(Class<?>) OrderSyncParameters.class,
+                syncToken, includeVoided, maxResults);
     }
 
 
@@ -142,7 +129,7 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
 
     private <T extends BaseOpenmrsData> SyncPage<T> resultsToSyncPage(
             List<SyncParameters<T>> dbResults) {
-        // PatientSyncParameters --> Patient
+        // SyncParameters<T> --> SyncPage<T>
         ArrayList<T> items = new ArrayList<>(dbResults.size());
         for (SyncParameters<T> params : dbResults) {
             items.add(params.getItem());
