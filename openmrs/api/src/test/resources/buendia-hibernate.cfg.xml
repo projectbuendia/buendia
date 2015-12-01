@@ -24,6 +24,7 @@
         corresponding config files here.
         -->
         <mapping resource="ObsSyncParameters.hbm.xml"/>
+        <mapping resource="OrderSyncParameters.hbm.xml"/>
         <mapping resource="PatientSyncParameters.hbm.xml"/>
     </session-factory>
 </hibernate-configuration>

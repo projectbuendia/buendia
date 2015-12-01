@@ -20,8 +20,6 @@ import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nullable;
-import java.util.Date;
-import java.util.List;
 
 /**
  * This service exposes module's core functionality. It is a Spring managed bean which is
@@ -59,5 +57,6 @@ public interface ProjectBuendiaService extends OpenmrsService {
     SyncPage<Patient> getPatientsModifiedAtOrAfter(
             @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
-    List<Order> getOrdersModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 }

@@ -150,4 +150,65 @@
             </sql>
         </rollback>
     </changeSet>
+
+    <changeSet id="buendia-add-order-date-updated-index" author="@capnfabs">
+        <createTable
+                tableName="buendia_order_sync_map"
+                remarks="Records are automatically inserted by triggers on the `orders` table." >
+            <column name="order_id" type="INTEGER">
+                <constraints
+                        primaryKey="true"
+                        nullable="false" />
+            </column>
+            <column name="date_updated" type="TIMESTAMP" />
+            <!--
+            We need to store UUID here as well as on the order table, because otherwise we can't
+            create an index across the two columns.
+            -->
+            <column name="uuid" type="CHAR(38)" />
+        </createTable>
+        <addForeignKeyConstraint
+                baseTableName="buendia_order_sync_map"
+                baseColumnNames="order_id"
+                constraintName="order_id_to_order"
+                referencedTableName="orders"
+                referencedColumnNames="order_id"
+                onDelete="CASCADE"
+                onUpdate="CASCADE" />
+        <createIndex tableName="buendia_order_sync_map" indexName="pagination_index">
+            <column name="date_updated" />
+            <column name="uuid" />
+        </createIndex>
+        <sql>
+            <!-- Insert records for the order that are already here. -->
+            INSERT INTO `buendia_order_sync_map` (`order_id`, `date_updated`, `uuid`)
+            SELECT `order_id`, NOW(), `uuid`
+            FROM `orders`
+        </sql>
+        <sql>
+            DROP TRIGGER IF EXISTS `buendia_order_update_date_updated`
+        </sql>
+        <sql>
+            CREATE TRIGGER `buendia_order_update_date_updated` AFTER UPDATE
+            ON `orders` FOR EACH ROW
+            REPLACE INTO `buendia_order_sync_map` (order_id, date_updated, uuid)
+            VALUES (NEW.order_id, NOW(), NEW.uuid)
+        </sql>
+        <sql>
+            DROP TRIGGER IF EXISTS `buendia_order_insert_date_updated`
+        </sql>
+        <sql>
+            CREATE TRIGGER `buendia_order_insert_date_updated` AFTER INSERT
+            ON `orders` FOR EACH ROW
+            REPLACE INTO `buendia_order_sync_map` (order_id, date_updated, uuid)
+            VALUES (NEW.order_id, NOW(), NEW.uuid)
+        </sql>
+        <rollback>
+            <dropTable tableName="buendia_order_sync_map" />
+            <sql>
+                DROP TRIGGER IF EXISTS `buendia_order_update_date_updated`;
+                DROP TRIGGER IF EXISTS `buendia_order_insert_date_updated`;
+            </sql>
+        </rollback>
+    </changeSet>
 </databaseChangeLog>
