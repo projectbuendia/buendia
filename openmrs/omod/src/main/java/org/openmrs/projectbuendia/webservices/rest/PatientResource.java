@@ -103,6 +103,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         PATIENT_BIRTHDATE_FORMAT.setTimeZone(Utils.UTC);
     }
 
+    private static final int MAX_PATIENTS_PER_PAGE = 500;
+
     // Fake values
     private static final User CREATOR = new User(1);
     private static final String FACILITY_NAME = "Kailahun";  // TODO: Use a real facility name.
@@ -135,19 +137,23 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     private SimpleObject handleSync(RequestContext context) throws ResponseException {
-        Date syncFrom = RequestUtil.mustParseSyncFromDate(context);
-        SyncToken token = syncFrom == null ? null : new SyncToken(syncFrom, null);
-        // Set the next sync from time to be one second in the past because there's issues
-        // due to OpenMRS rounding truncating insertion times. See
-        // https://github.com/projectbuendia/client/pull/90
-        Date newSyncToken = new Date(System.currentTimeMillis() - 1000);
+        SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
+
         SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
-                token, syncFrom != null /* includeVoided */, 0 /* maxResults */);
+                syncToken,
+                syncToken != null /* includeVoided */,
+                MAX_PATIENTS_PER_PAGE /* maxResults */);
+
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Patient patient : patients.results) {
             jsonResults.add(patientToJson(patient));
         }
-        return ResponseUtil.createIncrementalSyncResults(jsonResults, newSyncToken);
+        SyncToken newToken =
+                SyncTokenUtils.clampSyncTokenToBufferedRequestTime(patients.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     // TODO: consolidate the incremental sync timestamping / wrapper logic for this and
