@@ -42,6 +42,8 @@ import java.util.List;
     supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ObservationResource implements Listable, Searchable {
 
+    private static final int MAX_OBS_PER_PAGE = 500;
+
     private final ProjectBuendiaService buendiaService;
 
     public ObservationResource() {
@@ -59,21 +61,21 @@ public class ObservationResource implements Listable, Searchable {
     }
 
     private SimpleObject handleSync(RequestContext context) {
-        Date syncFromDate = RequestUtil.mustParseSyncFromDate(context);
-        SyncToken syncFrom = syncFromDate == null ? null : new SyncToken(syncFromDate, null);
-
-        // Set the next sync from time to be one second in the past because there's issues
-        // due to OpenMRS rounding truncating insertion times. See
-        // https://github.com/projectbuendia/client/pull/90
-        Date nextSyncFrom = new Date(System.currentTimeMillis() - 1000);
+        SyncToken syncFrom = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
 
         SyncPage<Obs> observations =
-                buendiaService.getObservationsModifiedAtOrAfter(syncFrom, syncFrom != null, 0);
+                buendiaService.getObservationsModifiedAtOrAfter(
+                        syncFrom, syncFrom != null, MAX_OBS_PER_PAGE);
         List<SimpleObject> jsonResults = new ArrayList<>(observations.results.size());
         for (Obs obs : observations.results) {
             jsonResults.add(obsToJson(obs));
         }
-        return ResponseUtil.createIncrementalSyncResults(jsonResults, nextSyncFrom);
+        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
+                observations.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = observations.results.size() == MAX_OBS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     private SimpleObject obsToJson(Obs obs) {
