@@ -12,17 +12,22 @@
 package org.projectbuendia.openmrs.api.db;
 
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
 
 import javax.annotation.Nullable;
-import java.util.Date;
-import java.util.List;
 
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
 
-    List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Obs> getObservationsModifiedAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
-    List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Patient> getPatientsModifiedAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+
+    SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 }

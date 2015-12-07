@@ -24,6 +24,8 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -39,6 +41,8 @@ import java.util.List;
     supportedClass = Obs.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ObservationResource implements Listable, Searchable {
+
+    private static final int MAX_OBS_PER_PAGE = 500;
 
     private final ProjectBuendiaService buendiaService;
 
@@ -57,20 +61,21 @@ public class ObservationResource implements Listable, Searchable {
     }
 
     private SimpleObject handleSync(RequestContext context) {
-        Date syncFrom = RequestUtil.mustParseSyncFromDate(context);
+        SyncToken syncFrom = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
 
-        // Set the next sync from time to be one second in the past because there's issues
-        // due to OpenMRS rounding truncating insertion times. See
-        // https://github.com/projectbuendia/client/pull/90
-        Date nextSyncFrom = new Date(System.currentTimeMillis() - 1000);
-
-        List<Obs> observations =
-                buendiaService.getObservationsModifiedAtOrAfter(syncFrom, syncFrom != null);
-        List<SimpleObject> jsonResults = new ArrayList<>(observations.size());
-        for (Obs obs : observations) {
+        SyncPage<Obs> observations =
+                buendiaService.getObservationsModifiedAtOrAfter(
+                        syncFrom, syncFrom != null, MAX_OBS_PER_PAGE);
+        List<SimpleObject> jsonResults = new ArrayList<>(observations.results.size());
+        for (Obs obs : observations.results) {
             jsonResults.add(obsToJson(obs));
         }
-        return ResponseUtil.createIncrementalSyncResults(jsonResults, nextSyncFrom);
+        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
+                observations.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = observations.results.size() == MAX_OBS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     private SimpleObject obsToJson(Obs obs) {

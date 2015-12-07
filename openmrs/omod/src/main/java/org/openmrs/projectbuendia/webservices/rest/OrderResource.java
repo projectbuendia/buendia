@@ -19,7 +19,6 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.User;
-import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
@@ -37,28 +36,26 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Rest API for orders.
- * <p/>
  * <p>Expected behavior:
  * <ul>
- * <li>GET /order?patient=[UUID] returns all orders for a patient ({@link #search(RequestContext)})
- * <li>GET /order/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
- * <li>POST /order?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
+ * <li>GET /orders returns all orders
+ * <li>GET /orders?since=[bookmark] returns all orders since the last server-provided bookmark.
+ * <li>GET /orders/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
+ * <li>POST /orders?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
  * RequestContext)}
- * <li>POST /order/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
+ * <li>POST /orders/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
  * </ul>
  * <p/>
  * <p>Each operation handles Order resources in the following JSON form:
@@ -67,6 +64,7 @@ import java.util.Set;
  * {
  *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
  *   creation
+ *   "voided": false, // If true, fields other than UUID are not guaranteed to be set.
  *   "instructions": "Paracetamol 2 tablets 3x/day",
  *   "start_millis": 1438711253000,
  *   "stop_millis": 1438714253000  // optionally present
@@ -91,74 +89,61 @@ import java.util.Set;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
-    static final User CREATOR = new User(1);  // fake value
-    static final RequestLogger logger = RequestLogger.LOGGER;
-    static Log log = LogFactory.getLog(OrderResource.class);
-    static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
+    private static final User CREATOR = new User(1);  // fake value
+    private static final RequestLogger logger = RequestLogger.LOGGER;
+    private static Log log = LogFactory.getLog(OrderResource.class);
+    private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
 
-    final PatientService patientService;
-    final OrderService orderService;
-    final ProviderService providerService;
-    final ConceptService conceptService;
-    final EncounterService encounterService;
+    private static final int MAX_ORDERS_PER_PAGE = 500;
+
+    private final PatientService patientService;
+    private final OrderService orderService;
+    private final ProviderService providerService;
+    private final EncounterService encounterService;
+    private final ProjectBuendiaService buendiaService;
 
     public OrderResource() {
         patientService = Context.getPatientService();
         orderService = Context.getOrderService();
         providerService = Context.getProviderService();
-        conceptService = Context.getConceptService();
         encounterService = Context.getEncounterService();
+        buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
-    @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner();
-            logger.reply(context, this, "getAll", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
-            throw e;
-        }
+    @Override
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
+        return search(context);
     }
 
-    private SimpleObject getAllInner() throws ResponseException {
-        return getSimpleObjectWithResults(getAllOrders());
-    }
+    private SimpleObject handleSync(RequestContext context) throws ResponseException {
+        SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
 
-    SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
+        SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
+                syncToken,
+                syncToken != null /* includeVoided */,
+                MAX_ORDERS_PER_PAGE /* maxResults */);
+
         List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Order order : orders) {
+        for (Order order : orders.results) {
             jsonResults.add(orderToJson(order));
         }
-        SimpleObject json = new SimpleObject();
-        json.add("results", jsonResults);
-        return json;
-    }
-
-    public Collection<Order> getAllOrders() {
-        Map<String, Order> orders = new HashMap<>();
-        Set<String> previousOrderUuids = new HashSet<>();
-        for (Encounter encounter : encounterService.getEncounters(
-            null, null, null, null, null, null, null, null, null, false)) {
-            for (Order order : encounter.getOrders()) {
-                orders.put(order.getUuid(), order);
-                if (order.getPreviousOrder() != null) {
-                    previousOrderUuids.add(order.getPreviousOrder().getUuid());
-                }
-            }
-        }
-        for (String uuid : previousOrderUuids) {
-            orders.remove(uuid);
-        }
-        return orders.values();
+        SyncToken newToken =
+                SyncTokenUtils.clampSyncTokenToBufferedRequestTime(orders.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     /** Serializes an order to JSON. */
-    protected static SimpleObject orderToJson(Order order) {
+    private static SimpleObject orderToJson(Order order) {
         SimpleObject json = new SimpleObject();
         if (order != null) {
             json.add("uuid", order.getUuid());
+            json.add("voided", order.isVoided());
+            if (order.isVoided()) {
+                return json;
+            }
             json.add("patient_uuid", order.getPatient().getUuid());
             String instructions = order.getInstructions();
             if (instructions != null) {
@@ -176,34 +161,20 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return json;
     }
 
-    @Override public SimpleObject search(RequestContext context) throws ResponseException {
+    @Override
+    public SimpleObject search(RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = searchInner(getPatient(context));
-            logger.reply(context, this, "getAll", result);
+            logger.request(context, this, "handleSync");
+            SimpleObject result = handleSync(context);
+            logger.reply(context, this, "handleSync", result);
             return result;
         } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
+            logger.error(context, this, "handleSync", e);
             throw e;
         }
     }
 
-    SimpleObject searchInner(Patient patient) throws ResponseException {
-        return getSimpleObjectWithResults(patient == null ?
-            getAllOrders() :
-            orderService.getAllOrdersByPatient(patient));
-    }
-
-    Patient getPatient(RequestContext context) {
-        String patientUuid = context.getParameter("patient");
-        if (patientUuid == null) return null;
-        Patient patient = patientService.getPatientByUuid(patientUuid);
-        if (patient == null) {
-            throw new ObjectNotFoundException();
-        }
-        return patient;
-    }
-
+    @Override
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", json);
@@ -216,14 +187,14 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
-    Object createInner(SimpleObject json) throws ResponseException {
+    private Object createInner(SimpleObject json) throws ResponseException {
         Order order = jsonToOrder(json);
         orderService.saveOrder(order, null);
         return orderToJson(order);
     }
 
     /** Creates a new Order and a corresponding Encounter containing it. */
-    protected Order jsonToOrder(SimpleObject json) {
+    private Order jsonToOrder(SimpleObject json) {
         String patientUuid = (String) json.get("patient_uuid");
         if (patientUuid == null) {
             throw new IllegalArgumentException("Required key 'patient_uuid' is missing");
@@ -257,7 +228,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return order;
     }
 
-    Encounter createEncounter(Patient patient, Date encounterDateTime) {
+    private Encounter createEncounter(Patient patient, Date encounterDateTime) {
         Encounter encounter = new Encounter();
         encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
         encounter.setEncounterDatetime(encounterDateTime);
@@ -268,23 +239,25 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return encounter;
     }
 
-    Provider getProvider() {
+    private Provider getProvider() {
         return providerService.getAllProviders(false).get(0); // omit retired
     }
 
-    Concept getFreeTextOrderConcept() {
+    private Concept getFreeTextOrderConcept() {
         return DbUtil.getConcept(
             "Order described in free text instructions",
             FREE_TEXT_ORDER_UUID, "N/A", "Misc");
     }
 
-    @Override public String getUri(Object instance) {
+    @Override
+    public String getUri(Object instance) {
         Order order = (Order) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + order.getUuid();
     }
 
-    @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+    @Override
+    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
             Object result = retrieveInner(uuid);
@@ -296,7 +269,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
-    Object retrieveInner(String uuid) throws ResponseException {
+    private Object retrieveInner(String uuid) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
         if (order == null) {
             throw new ObjectNotFoundException();
@@ -304,8 +277,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return orderToJson(order);
     }
 
-    @Override public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
+    @Override
+    public List<Representation> getAvailableRepresentations() {
+        return Collections.singletonList(Representation.DEFAULT);
     }
 
     @Override
@@ -333,7 +307,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
      * whole call should fail, but for now there may be partial updates
      * </ul>
      */
-    Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
+    private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
         if (order == null) {
             throw new ObjectNotFoundException();
@@ -348,7 +322,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     /** Revises an order.  Returns null if no changes were made. */
-    protected Order reviseOrder(Order order, SimpleObject edits) {
+    private Order reviseOrder(Order order, SimpleObject edits) {
         Order newOrder = order.cloneForRevision();
         boolean changed = false;
 
