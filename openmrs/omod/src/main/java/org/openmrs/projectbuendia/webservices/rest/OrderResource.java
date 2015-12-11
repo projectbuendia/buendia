@@ -170,16 +170,16 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         Date requestTime = new Date();
 
         SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
-            syncToken,
-            syncToken != null /* includeVoided */,
-            MAX_ORDERS_PER_PAGE /* maxResults */);
+                syncToken,
+                syncToken != null /* includeVoided */,
+                MAX_ORDERS_PER_PAGE /* maxResults */);
 
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Order order : orders.results) {
             jsonResults.add(orderToJson(order));
         }
         SyncToken newToken =
-            SyncTokenUtils.clampSyncTokenToBufferedRequestTime(orders.syncToken, requestTime);
+                SyncTokenUtils.clampSyncTokenToBufferedRequestTime(orders.syncToken, requestTime);
         // If we fetched a full page, there's probably more data available.
         boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
         return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
