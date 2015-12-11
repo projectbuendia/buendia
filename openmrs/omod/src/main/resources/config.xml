@@ -60,6 +60,9 @@
 
   <!-- Maps hibernate files, if present -->
   <mappingFiles>
+    ObsSyncParameters.hbm.xml
+    OrderSyncParameters.hbm.xml
+    PatientSyncParameters.hbm.xml
     ProjectBuendia.hbm.xml
   </mappingFiles>
 

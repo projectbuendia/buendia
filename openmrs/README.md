@@ -25,11 +25,19 @@ Follow the instructions below to get your system set up to do Buendia server dev
       * Confirm that the `mvn` command works by running `mvn -v`.
 
 ##### MySQL Server 5.6
+
+**Note:** it's critical that MySQL 5.6 is installed, and not a newer version. The version of OpenMRS we're currently using hardcodes `storage_engine=InnoDB` into the connection parameters, and that parameter was [removed in 5.7.5](http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine), so OpenMRS never connects to the database if a newer version is installed.
+
   * Linux: `sudo apt-get install mysql-server`
   * Mac OS:
       * Go to http://dev.mysql.com/downloads/mysql/ and download the **DMG Archive** for your Mac OS version.
       * Open the downloaded file and then open the .pkg file within to install it.
       * Open System Preferences > MySQL and click **Start MySQL Server** to bring the server up.
+
+##### Python and python-mysqldb
+You might already have python pre-installed on your OS. If so you only need to add the mysql connector.
+* Linux: `sudo apt-get install python python-mysqldb`
+* Mac OS: There are different ways of installing mysql connector. Please refer to this [Mysql Page](https://dev.mysql.com/doc/connector-python/en/)
 
 ##### IntelliJ IDEA
   * Download the Community Edition at https://www.jetbrains.com/idea/download/ and follow the [setup instructions](https://www.jetbrains.com/idea/help/basics-and-installation.html#d1847332e131).
@@ -59,6 +67,8 @@ Follow the instructions below to get your system set up to do Buendia server dev
         [INFO] Started Jetty Server
 
     the server is ready, and you can log in at [[http://localhost:9000/openmrs/]] as "buendia" with password "buendia".
+    
+6.  Apply a buendia profile. See [Setting Up A Buendia Profile](https://github.com/projectbuendia/buendia/wiki/Setting-Up-a-Buendia-profile) for more information.
 
 After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.
 
@@ -88,3 +98,14 @@ If you start the OpenMRS server from the shell with `tools/openmrs_run`, it will
 3. Change "Unnamed" to something recognizable, then click **OK**.
 
 Now when you click Run > Debug and use this configuration, IntelliJ IDEA will connect to the currently running OpenMRS server.
+
+### Debugging the Unit Tests
+
+You can debug the unit tests with
+
+```shell
+cd openmrs
+mvn -Dmaven.surefire.debug test
+```
+
+The tests will pause until a debugger has attached. See the [Surefire Documentation](http://maven.apache.org/surefire/maven-surefire-plugin/examples/debugging.html) for more information.

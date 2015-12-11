@@ -19,7 +19,7 @@
           </property>
           <property name="target">
             <bean class="org.projectbuendia.openmrs.api.impl.ProjectBuendiaServiceImpl">
-              <property name="dao">
+              <property name="DAO">
                 <bean
                     class="org.projectbuendia.openmrs.api.db.hibernate.HibernateProjectBuendiaDAO">
                   <property name="sessionFactory">

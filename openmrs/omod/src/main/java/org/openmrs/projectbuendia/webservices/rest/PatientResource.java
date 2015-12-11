@@ -11,7 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Location;
@@ -36,27 +35,29 @@ import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 /**
  * Rest API for patients.
  * <p/>
  * <p>Expected behavior:
  * <ul>
- * <li>GET /patient returns all patients ({@link #getAll(RequestContext)})
- * <li>GET /patient?q=[query] returns patients whose name or ID contains the query string
- * ({@link #search(RequestContext)})
- * <li>GET /patient/[UUID] returns a single patient ({@link #retrieve(String, RequestContext)})
- * <li>POST /patient creates a patient ({@link #create(SimpleObject, RequestContext)}
- * <li>POST /patient/[UUID] updates a patient ({@link #update(String, SimpleObject,
+ * <li>GET /patients returns all patients ({@link #getAll(RequestContext)})
+ * <li>GET /patients/[UUID] returns a single patient ({@link #retrieve(String, RequestContext)})
+ * <li>GET /patients?id=[id] returns a search for a patient with the specified MSF (i.e. not
+ * OpenMRS) id.
+ * <li>POST /patients creates a patient ({@link #create(SimpleObject, RequestContext)}
+ * <li>POST /patients/[UUID] updates a patient ({@link #update(String, SimpleObject,
  * RequestContext)})
  * </ul>
  * <p/>
@@ -67,7 +68,7 @@ import java.util.TimeZone;
  *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
  *   creation
  *   "id": "567", // required unique id specified by user
- *   "gender": "F", // required as "M" or "F", unfortunately
+ *   "sex": "F", // required as "M" or "F", unfortunately
  *   "birthdate": "1990-02-17", // required, but can be estimated
  *   "given_name": "Jane", // required, "Unknown" suggested if not known
  *   "family_name": "Doe", // required, "Unknown" suggested if not known
@@ -95,6 +96,15 @@ import java.util.TimeZone;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
+
+    private static final SimpleDateFormat PATIENT_BIRTHDATE_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd");
+    static {
+        PATIENT_BIRTHDATE_FORMAT.setTimeZone(Utils.UTC);
+    }
+
+    private static final int MAX_PATIENTS_PER_PAGE = 500;
+
     // Fake values
     private static final User CREATOR = new User(1);
     private static final String FACILITY_NAME = "Kailahun";  // TODO: Use a real facility name.
@@ -104,89 +114,104 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String ID = "id";
     private static final String UUID = "uuid";
     private static final String SEX = "sex";
-    private static final String GENDER = "gender";  // deprecated, for backward compatibility only
     private static final String BIRTHDATE = "birthdate";
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
     private static final String PARENT_UUID = "parent_uuid";
+    private static final String VOIDED = "voided";
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     private static final Object createPatientLock = new Object();
     private final PatientService patientService;
+    private final ProjectBuendiaService buendiaService;
 
     public PatientResource() {
         patientService = Context.getPatientService();
+        buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
     @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner();
-            logger.reply(context, this, "getAll", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
-            throw e;
+        // #search covers a more general case of of #getAll, so we just forward through.
+        return search(context);
+    }
+
+    private SimpleObject handleSync(RequestContext context) throws ResponseException {
+        SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
+
+        SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
+                syncToken,
+                syncToken != null /* includeVoided */,
+                MAX_PATIENTS_PER_PAGE /* maxResults */);
+
+        List<SimpleObject> jsonResults = new ArrayList<>();
+        for (Patient patient : patients.results) {
+            jsonResults.add(patientToJson(patient));
         }
+        SyncToken newToken =
+                SyncTokenUtils.clampSyncTokenToBufferedRequestTime(patients.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
-    private SimpleObject getAllInner() throws ResponseException {
-        List<Patient> patients = patientService.getAllPatients();
-        return getSimpleObjectWithResults(patients);
-    }
-
+    // TODO: consolidate the incremental sync timestamping / wrapper logic for this and
+    // EncountersResource into the same class.
     private SimpleObject getSimpleObjectWithResults(List<Patient> patients) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Patient patient : patients) {
             jsonResults.add(patientToJson(patient));
         }
-        SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
-        return list;
+        SimpleObject wrapper = new SimpleObject();
+        wrapper.put("results", jsonResults);
+        return wrapper;
     }
 
     protected static SimpleObject patientToJson(Patient patient) {
         SimpleObject jsonForm = new SimpleObject();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        dateFormat.setTimeZone(Utils.UTC);
-        if (patient != null) {
-            jsonForm.add(UUID, patient.getUuid());
-            PatientIdentifier patientIdentifier =
-                patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
-            if (patientIdentifier != null) {
-                jsonForm.add(ID, patientIdentifier.getIdentifier());
-            }
-            jsonForm.add(GENDER, patient.getGender()); // for backward compatibility
-            jsonForm.add(SEX, patient.getGender());
-            if (patient.getBirthdate() != null) {
-                jsonForm.add(BIRTHDATE, dateFormat.format(patient.getBirthdate()));
-            }
-            String givenName = patient.getGivenName();
-            if (!givenName.equals(MISSING_NAME)) {
-                jsonForm.add(GIVEN_NAME, patient.getGivenName());
-            }
-            String familyName = patient.getFamilyName();
-            if (!familyName.equals(MISSING_NAME)) {
-                jsonForm.add(FAMILY_NAME, patient.getFamilyName());
-            }
 
-            // TODO: refactor so we have a single assigned location with a uuid,
-            // and we walk up the tree to get extra information for the patient.
-            String assignedLocation = DbUtil.getPersonAttributeValue(
-                patient, DbUtil.getAssignedLocationAttributeType());
-            if (assignedLocation != null) {
-                LocationService locationService = Context.getLocationService();
-                Location location = locationService.getLocation(
-                    Integer.valueOf(assignedLocation));
-                if (location != null) {
-                    SimpleObject locationJson = new SimpleObject();
-                    locationJson.add(UUID, location.getUuid());
-                    if (location.getParentLocation() != null) {
-                        locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
-                    }
-                    jsonForm.add(ASSIGNED_LOCATION, locationJson);
+        jsonForm.add(UUID, patient.getUuid());
+        jsonForm.add(VOIDED, patient.isPersonVoided());
+
+        if (patient.isPersonVoided()) {
+            // early return, we don't need the rest of the data.
+            return jsonForm;
+        }
+
+        PatientIdentifier patientIdentifier =
+            patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
+        if (patientIdentifier != null) {
+            jsonForm.add(ID, patientIdentifier.getIdentifier());
+        }
+        jsonForm.add(SEX, patient.getGender());
+        if (patient.getBirthdate() != null) {
+            jsonForm.add(BIRTHDATE, PATIENT_BIRTHDATE_FORMAT.format(patient.getBirthdate()));
+        }
+        String givenName = patient.getGivenName();
+        if (!givenName.equals(MISSING_NAME)) {
+            jsonForm.add(GIVEN_NAME, patient.getGivenName());
+        }
+        String familyName = patient.getFamilyName();
+        if (!familyName.equals(MISSING_NAME)) {
+            jsonForm.add(FAMILY_NAME, patient.getFamilyName());
+        }
+
+        // TODO: refactor so we have a single assigned location with a uuid,
+        // and we walk up the tree to get extra information for the patient.
+        String assignedLocation = DbUtil.getPersonAttributeValue(
+            patient, DbUtil.getAssignedLocationAttributeType());
+        if (assignedLocation != null) {
+            LocationService locationService = Context.getLocationService();
+            Location location = locationService.getLocation(
+                Integer.valueOf(assignedLocation));
+            if (location != null) {
+                SimpleObject locationJson = new SimpleObject();
+                locationJson.add(UUID, location.getUuid());
+                if (location.getParentLocation() != null) {
+                    locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
                 }
+                jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
         }
         return jsonForm;
@@ -216,12 +241,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // We really want this to use XForms, but let's have a simple default
         // implementation for early testing
 
-        Patient patient = null;
+        Patient patient;
         synchronized (createPatientLock) {
             String id = (String) json.get(ID);
             if (id != null) {
                 List<PatientIdentifierType> identifierTypes =
-                    Arrays.asList(DbUtil.getMsfIdentifierType());
+                        Collections.singletonList(DbUtil.getMsfIdentifierType());
                 List<Patient> existing = patientService.getPatients(
                     null, id, identifierTypes, true /* exact identifier match */);
                 if (!existing.isEmpty()) {
@@ -285,7 +310,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         String sex = (String) json.get(SEX);
-        sex = sex == null ? (String) json.get(GENDER) : null;
         // OpenMRS calls it "gender"; we use it for physical sex (as other implementations do).
         patient.setGender(normalizeSex(sex));
 
@@ -357,48 +381,37 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override public SimpleObject search(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "search");
-            SimpleObject result = searchInner(context);
-            logger.reply(context, this, "search", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "search", e);
-            throw e;
-        }
-    }
-
-    private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        List<Patient> patients = new ArrayList<>();
-        String patientId = requestContext.getParameter("id");  // single patient by ID; overrides
-        // "q"
+        // If there's an ID, run an actual search, otherwise, run a sync.
+        String patientId = context.getParameter("id");
         if (patientId != null) {
-            List<PatientIdentifierType> idTypes = new ArrayList<>();
-            idTypes.add(DbUtil.getMsfIdentifierType());
-            patients = patientService.getPatients(null, patientId, idTypes, true);
+            try {
+                logger.request(context, this, "search");
+                SimpleObject result = searchInner(patientId);
+                logger.reply(context, this, "search", result);
+                return result;
+            }
+            catch (Exception e) {
+                logger.error(context, this, "search", e);
+                throw e;
+            }
         } else {
-            String nameQuery = requestContext.getParameter("q");
-            patients = filterPatients(nameQuery, patientService.getAllPatients());
-        }
-        return getSimpleObjectWithResults(patients);
-    }
-
-    private List<Patient> filterPatients(String query, List<Patient> allPatients) {
-        List<Patient> filteredPatients = new ArrayList<>();
-
-        // Filter patients by name. Don't use patientService.getPatients() for
-        // this, as the behavior does not match the expected behavior from the API docs.
-        PatientIdentifierType msfIdentifierType = DbUtil.getMsfIdentifierType();
-        for (Patient patient : allPatients) {
-            for (PersonName name : patient.getNames()) {
-                if (StringUtils.containsIgnoreCase(name.getFullName(), query)) {
-                    filteredPatients.add(patient);
-                    break;
-                }
+            try {
+                logger.request(context, this, "handleSync");
+                SimpleObject result = handleSync(context);
+                logger.reply(context, this, "handleSync", result);
+                return result;
+            } catch (Exception e) {
+                logger.error(context, this, "handleSync", e);
+                throw e;
             }
         }
+    }
 
-        return filteredPatients;
+    private SimpleObject searchInner(String patientId) throws ResponseException {
+        List<PatientIdentifierType> idTypes =
+                Collections.singletonList(DbUtil.getMsfIdentifierType());
+        List<Patient> patients = patientService.getPatients(null, patientId, idTypes, true);
+        return getSimpleObjectWithResults(patients);
     }
 
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
@@ -422,7 +435,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     @Override public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
+        return Collections.singletonList(Representation.DEFAULT);
     }
 
     @Override
@@ -485,10 +498,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue(), BIRTHDATE));
                     changedPatient = true;
                     break;
-                case GENDER:
-                    patient.setGender(normalizeSex((String) entry.getValue()));
-                    changedPatient = true;
-                    break;
                 case ID:
                     newId = (String) entry.getValue();
                     break;
@@ -502,7 +511,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         if (newId != null && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
             synchronized (createPatientLock) {
                 List<PatientIdentifierType> identifierTypes =
-                    Arrays.asList(DbUtil.getMsfIdentifierType());
+                        Collections.singletonList(DbUtil.getMsfIdentifierType());
                 List<Patient> existing = patientService.getPatients(
                     null, newId, identifierTypes, true /* exact identifier match */);
                 if (!existing.isEmpty()) {

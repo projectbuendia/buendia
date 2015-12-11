@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+  ~ Copyright 2015 The Project Buendia Authors
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License"); you may not
+  ~ use this file except in compliance with the License.  You may obtain a copy
+  ~ of the License at: http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software distrib-
+  ~ uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+  ~ OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+  ~ specific language governing permissions and limitations under the License.
+  -->
+<dataset>
+    <!-- These are sorted in order of date_updated. -->
+    <patient patient_id="1002" creator="1" date_created="2005-09-22 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:29:59.0" voided="false" void_reason=""/>
+    <person person_id="1002" gender="M" birthdate="1948-01-01 00:00:00.0" birthdate_estimated="0" dead="false" creator="1" date_created="2005-09-22 00:00:00.0" voided="false" uuid="aaaaa"/>
+    <buendia_patient_sync_map patient_id="1002" date_updated="2015-07-18 00:00:00.0" uuid="aaaaa" />
+    <patient patient_id="1006" creator="1" date_created="2008-01-18 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:24:34.0" voided="true" void_reason=""/>
+    <person person_id="1006" gender="F" dead="false" creator="1" birthdate_estimated="0" date_created="2008-01-18 00:00:00.0" voided="true" uuid="eeeee"/>
+    <buendia_patient_sync_map patient_id="1006" date_updated="2015-07-18 12:00:00.0" uuid="eeeee" />
+    <patient patient_id="1003" creator="1" date_created="2006-01-18 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:25:31.0" voided="false" void_reason=""/>
+    <person person_id="1003" gender="M" birthdate="1975-04-08 00:00:00.0" birthdate_estimated="0" dead="false" creator="1" date_created="2006-01-18 00:00:00.0" voided="false" uuid="bbbbb"/>
+    <buendia_patient_sync_map patient_id="1003" date_updated="2015-07-19 00:00:00.0" uuid="bbbbb" />
+    <patient patient_id="1004" creator="1" date_created="2006-01-18 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:25:57.0" voided="false" void_reason=""/>
+    <person person_id="1004" gender="M" birthdate="2007-05-27 00:00:00.0" birthdate_estimated="0" dead="false" creator="1" date_created="2006-01-18 00:00:00.0" voided="false" uuid="fffff"/>
+    <buendia_patient_sync_map patient_id="1004" date_updated="2015-07-20 00:00:00.0" uuid="fffff" />
+    <patient patient_id="1005" creator="1" date_created="2007-01-18 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:24:34.0" voided="true" void_reason=""/>
+    <person person_id="1005" gender="F" birthdate="1976-08-25 00:00:00.0" birthdate_estimated="1" dead="false" creator="1" date_created="2007-01-18 00:00:00.0" voided="true" uuid="ddddd"/>
+    <buendia_patient_sync_map patient_id="1005" date_updated="2015-07-21 00:00:00.0" uuid="ddddd" />
+    <patient patient_id="1007" creator="1" date_created="2006-01-12 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:24:34.0" voided="true" void_reason=""/>
+    <person person_id="1007" gender="M" dead="false" creator="1" birthdate_estimated="0" date_created="2006-01-12 00:00:00.0" voided="true" uuid="ccccc"/>
+    <buendia_patient_sync_map patient_id="1007" date_updated="2015-07-23 00:00:00.0" uuid="ccccc" />
+    <patient patient_id="1008" creator="1" date_created="2015-07-18 00:00:00.0" changed_by="1" date_changed="2015-08-18 12:24:34.0" voided="false" void_reason=""/>
+    <person person_id="1008" gender="M" dead="false" creator="1" birthdate_estimated="0" date_created="2015-07-18 00:00:00.0" voided="false" uuid="gggggg"/>
+    <buendia_patient_sync_map patient_id="1008" date_updated="2015-07-24 00:00:00.0" uuid="gggggg" />
+</dataset>

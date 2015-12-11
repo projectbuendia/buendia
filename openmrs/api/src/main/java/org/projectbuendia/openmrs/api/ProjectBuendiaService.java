@@ -11,8 +11,15 @@
 
 package org.projectbuendia.openmrs.api;
 
+import org.openmrs.Obs;
+import org.openmrs.Order;
+import org.openmrs.Patient;
 import org.openmrs.api.OpenmrsService;
+import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Nullable;
 
 /**
  * This service exposes module's core functionality. It is a Spring managed bean which is
@@ -26,5 +33,30 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Transactional
 public interface ProjectBuendiaService extends OpenmrsService {
-    /* Add service methods here */
+
+    /** Sets the DAO for this service. This is done by DI and Spring. */
+    void setDAO(ProjectBuendiaDAO dao);
+
+    /**
+     * Returns all observations modified on or after the given {@code date}.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided observations.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
+     */
+    SyncPage<Obs> getObservationsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+
+    /**
+     * Returns all patients modified on or after the given {@code date}.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided patients.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
+     */
+    SyncPage<Patient> getPatientsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+
+    SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 }
