@@ -34,8 +34,13 @@
   </modules>
 
     <properties>
+        <!-- NOTE: This version number is also replicated in [git root]/tools/openmrs_build -->
         <openMRSVersion>1.10.0</openMRSVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!--
+          NOTE: you need to make sure that these modules are installed as well; see
+          [git root]/tools/openmrs_build
+        -->
         <webservicesRestVersion>2.6</webservicesRestVersion>
         <xformsVersion>4.3.5</xformsVersion>
     </properties>

@@ -15,6 +15,7 @@
 set -e
 SITE_SQL_DIR=packages/buendia-db-init/data/usr/share/buendia/db
 SERVER_ID=server
+# This version numbers is duplicated in [git root]/openmrs/pom.xml
 OPENMRS_PLATFORM_VERSION=1.10.2  # db-snapshot data is compatible with 1.10.x
 if [ "$1" = "-f" ]; then
     force_flag="-f"

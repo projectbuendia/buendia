@@ -86,6 +86,11 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
         buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
+    @Before
+    public void setUpBaseData() throws Exception {
+        executeDataSet(SAMPLE_PATIENT_DATA_SET);
+    }
+
     // Dataset 1
 
     @Test
