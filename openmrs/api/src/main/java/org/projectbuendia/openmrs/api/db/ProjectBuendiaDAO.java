@@ -29,5 +29,6 @@ public interface ProjectBuendiaDAO {
             @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
     SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
+            @Nullable Order.Action[] allowedOrderTypes);
 }

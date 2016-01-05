@@ -156,4 +156,20 @@ public class Utils {
                 "The %s field should be in yyyy-MM-dd format", fieldName));
         }
     }
+
+    /**
+     * Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long.
+     */
+    public static Long asLong(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Integer) {
+            return Long.valueOf((Integer) obj);
+        }
+        if (obj instanceof Long) {
+            return (Long) obj;
+        }
+        throw new ClassCastException("Expected value of type Long or Integer");
+    }
 }

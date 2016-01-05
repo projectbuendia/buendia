@@ -23,8 +23,6 @@ import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 
 import javax.annotation.Nullable;
-import java.util.Date;
-import java.util.List;
 
 /** It is a default implementation of {@link ProjectBuendiaService}. */
 public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements ProjectBuendiaService {
@@ -51,7 +49,9 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
 
     @Override
     public SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
-        return dao.getOrdersModifiedAtOrAfter(syncToken, includeVoided, maxResults);
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
+            @Nullable Order.Action[] allowedOrderTypes) {
+        return dao.getOrdersModifiedAtOrAfter(
+                syncToken, includeVoided, maxResults, allowedOrderTypes);
     }
 }

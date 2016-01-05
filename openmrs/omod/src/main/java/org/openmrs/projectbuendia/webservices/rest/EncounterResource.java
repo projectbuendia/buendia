@@ -94,10 +94,10 @@ public class EncounterResource implements Creatable {
             throw new InvalidObjectDataException("Patient not found: " + post.get("uuid"));
         }
         Date encounterTime;
-        String timestamp = post.get("timestamp").toString();
+        Object timestamp = post.get("timestamp");
         try {
             if (timestamp != null) {
-                encounterTime = new Date(Long.parseLong(timestamp)*1000L);
+                encounterTime = new Date(Long.parseLong(timestamp.toString())*1000L);
             } else {
                 // Allow clients to omit the timestamp to use the current server time.
                 encounterTime = new Date();
