@@ -40,6 +40,12 @@ public abstract class HibernateProjectBuendiaDAOTest extends BaseModuleContextSe
     protected static final DateFormat DB_DATE_FORMAT =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
 
+    protected static final String SAMPLE_PATIENT_DATA_SET =
+            "org/projectbuendia/openmrs/include/samplePatientsDataSet.xml";
+
+    private static final String BASE_DATASET =
+            "org/projectbuendia/openmrs/include/baseMetaDataSet.xml";
+
     /**
      * {@link BaseModuleContextSensitiveTest} does this initialization, but also pre-loads the
      * database with a bunch of patient records. We don't want to load those patient records,
@@ -53,6 +59,7 @@ public abstract class HibernateProjectBuendiaDAOTest extends BaseModuleContextSe
     public void setUpData() throws Exception {
         if (useInMemoryDatabase()) {
             initializeInMemoryDatabase();
+            executeDataSet(BASE_DATASET);
             authenticate();
         }
     }

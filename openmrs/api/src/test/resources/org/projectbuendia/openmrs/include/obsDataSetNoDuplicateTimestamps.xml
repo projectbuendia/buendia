@@ -14,7 +14,9 @@
   -->
 
 <!-- This dataset based off org/openmrs/include/standardTestDataset.xml. -->
-
+<!--
+This dataset requires samplePatientsDataSet.xml, which defines the patients referenced here.
+-->
 <dataset>
     <obs obs_id="7" person_id="7" concept_id="5089" encounter_id="3" obs_datetime="2008-07-01 00:00:00.0" location_id="1" value_numeric="50.0" comments="" creator="1" date_created="2008-08-18 14:09:35.0" voided="false" value_coded="[NULL]" value_coded_name_id="[NULL]" value_complex="[NULL]" value_text="[NULL]" value_datetime="[NULL]" value_drug="[NULL]" uuid="fffffff"/>
     <buendia_obs_sync_map obs_id="7" date_updated="2008-08-18 14:09:35.0" uuid="fffffff" />

@@ -39,6 +39,7 @@ EOF
 fi
 
 # Install the module dependencies in the OpenMRS development server.
+# These version numbers are duplicated in [git root]/openmrs/pom.xml
 $INSTALL -DartifactId=xforms -Dversion=4.3.5
 $INSTALL -DartifactId=webservices.rest -Dversion=2.6
 

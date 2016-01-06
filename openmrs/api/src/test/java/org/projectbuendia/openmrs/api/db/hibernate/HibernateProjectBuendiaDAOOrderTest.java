@@ -59,6 +59,7 @@ public class HibernateProjectBuendiaDAOOrderTest extends HibernateProjectBuendia
     @Before
     public void setUp() throws Exception {
         buendiaService = Context.getService(ProjectBuendiaService.class);
+        executeDataSet(SAMPLE_PATIENT_DATA_SET);
         executeDataSet(TEST_DATASET);
     }
 
