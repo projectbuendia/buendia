@@ -30,12 +30,14 @@ import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.resource.api.Deletable;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
@@ -44,7 +46,9 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Rest API for orders.
@@ -88,7 +92,7 @@ import java.util.List;
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
+public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
     private static final User CREATOR = new User(1);  // fake value
     private static final RequestLogger logger = RequestLogger.LOGGER;
     private static Log log = LogFactory.getLog(OrderResource.class);
@@ -115,6 +119,52 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return search(context);
     }
 
+    @Override
+    public void delete(String uuid, String reason, RequestContext context) throws
+        ResponseException {
+        try {
+            logger.request(context, this, "delete", uuid);
+            deleteInner(uuid);
+            logger.reply(context, this, "delete", "returned");
+        } catch (Exception e) {
+            logger.error(context, this, "delete", e);
+            throw e;
+        }
+    }
+
+    void deleteInner(String uuid) throws ResponseException {
+        Order order = orderService.getOrderByUuid(uuid);
+        if (order == null) {
+            throw new ObjectNotFoundException();
+        }
+
+        // Starting from the end of the chain, walk backward and void every order in the chain.
+        for (order = getLatestVersion(order); order != null; order = order.getPreviousOrder()) {
+            orderService.voidOrder(order, "deleted via REST API");
+        }
+    }
+
+    /** Finds the last order in the chain containing the given order. */
+    public Order getLatestVersion(Order order) {
+        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
+        Map<String, String> nextOrderUuids = new HashMap<>();
+        for (Order o : orderService.getAllOrdersByPatient(order.getPatient())) {
+            Order prev = o.getPreviousOrder();
+            if (prev != null) {
+                nextOrderUuids.put(prev.getUuid(), o.getUuid());
+            }
+        }
+
+        // Walk forward until the end of the chain.
+        String uuid = order.getUuid();
+        String nextUuid = nextOrderUuids.get(uuid);
+        while (nextUuid != null) {
+            uuid = nextUuid;
+            nextUuid = nextOrderUuids.get(uuid);
+        }
+        return orderService.getOrderByUuid(uuid);
+    }
+
     private SimpleObject handleSync(RequestContext context) throws ResponseException {
         SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
         Date requestTime = new Date();
@@ -135,11 +185,26 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
+    /** Finds the UUID of the first order in the chain containing the given order. */
+    public String getOriginalUuid(Order order) {
+        Order prev = order.getPreviousOrder();
+        while (prev != null) {
+            order = prev;
+            prev = order.getPreviousOrder();
+        }
+        return order.getUuid();
+    }
+
     /** Serializes an order to JSON. */
-    private static SimpleObject orderToJson(Order order) {
+    private SimpleObject orderToJson(Order order) {
         SimpleObject json = new SimpleObject();
         if (order != null) {
-            json.add("uuid", order.getUuid());
+            // OpenMRS forces creation of a new order UUID on any edit, even a change in the
+            // starting or stopping time.  To retain an order's relationship to its previous
+            // executions is kept intact), we return only the last order in any given chain, while
+            // using the UUID of the first order in the chain as a stable identifier for the order.
+            json.add("uuid", getOriginalUuid(order));
+
             json.add("voided", order.isVoided());
             if (order.isVoided()) {
                 return json;
@@ -271,10 +336,10 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
 
     private Object retrieveInner(String uuid) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
-        if (order == null) {
+        if (order == null || order.isVoided()) {
             throw new ObjectNotFoundException();
         }
-        return orderToJson(order);
+        return orderToJson(getLatestVersion(order));
     }
 
     @Override
@@ -313,6 +378,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
             throw new ObjectNotFoundException();
         }
 
+        // Only the last order in the chain can be revised.
+        order = getLatestVersion(order);
+
         Order revisedOrder = reviseOrder(order, simpleObject);
         if (revisedOrder != null) {
             orderService.saveOrder(revisedOrder, null);
@@ -341,6 +409,30 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
                     }
                     break;
 
+                case "start_millis":
+                    if (value == null) {
+                        newOrder.setScheduledDate(null);
+                        changed = true;
+                    } else if (value instanceof Long || value instanceof Integer) {
+                        newOrder.setScheduledDate(new Date(Utils.asLong(value)));
+                        changed = true;
+                    } else {
+                        log.warn("Key '" + key + "' has value of invalid type: " + value);
+                    }
+                    break;
+
+                case "stop_millis":
+                    if (value == null) {
+                        newOrder.setAutoExpireDate(null);
+                        changed = true;
+                    } else if (value instanceof Long || value instanceof Integer) {
+                        newOrder.setAutoExpireDate(new Date(Utils.asLong(value)));
+                        changed = true;
+                    } else {
+                        log.warn("Key '" + key + "' has value of invalid type: " + value);
+                    }
+                    break;
+
                 case "instructions":
                     if (value instanceof String) {
                         newOrder.setInstructions((String) value);
@@ -357,11 +449,11 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
 
         if (!changed) return null;
-        Date now = new Date();
-        newOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-        newOrder.setScheduledDate(now);
-        newOrder.setEncounter(createEncounter(order.getPatient(), now));
+        newOrder.setEncounter(createEncounter(order.getPatient(), new Date()));
         newOrder.setOrderer(getProvider());
+        // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore
+        // we have to store revisions as NEW orders and not as REVISE orders.
+        newOrder.setAction(Order.Action.NEW);
         return newOrder;
     }
 }
