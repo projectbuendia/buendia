@@ -250,12 +250,22 @@ def apply(tabs):
         for chart_rows in split_by_title(rows):
             put_chart(chart_rows)
 
+    def clear_form(form_id):
+        """Removes all the form_fields from the given form."""
+        db.execute('update form_field set parent_form_field = null'
+                   ' where form_id = %s', form_id)  # remove foreign keys
+        db.execute('delete from form_field where form_id = %s', form_id)
+
     def apply_chart(rows, form_id):
         """Applies the chart definition given rows from the chart tab."""
+        clear_form(form_id)
         section = None
         sections = []
         section_rows = []
+
         for row in rows:
+            if row['title'].strip():
+                sections.append(('[chart_divider]', [{'label': row['title'].strip(), 'concept':'162169', 'type':''}]))
             if row['section'].strip():
                 if section and section_rows:
                     sections.append((section, section_rows))
@@ -265,12 +275,6 @@ def apply(tabs):
         if section and section_rows:
             sections.append((section, section_rows))
         apply_chart_sections(sections, form_id)
-
-    def clear_form(form_id):
-        """Removes all the form_fields from the given form."""
-        db.execute('update form_field set parent_form_field = null'
-                   ' where form_id = %s', form_id)  # remove foreign keys
-        db.execute('delete from form_field where form_id = %s', form_id)
 
     def apply_chart_sections(sections, form_id):
         """
