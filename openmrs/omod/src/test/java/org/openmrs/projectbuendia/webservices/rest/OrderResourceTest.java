@@ -27,7 +27,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -63,6 +62,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
     private static final String SAMPLE_INSTRUCTIONS = "Paracetamol 1000mg 4x daily";
     private static final long SAMPLE_START_DATE = 1420602264000L;
     private static final long SAMPLE_END_DATE = SAMPLE_START_DATE + ONE_WEEK_IN_MILLIS;
+    private OrderService orderService;
 
     /**
      * {@link BaseModuleContextSensitiveTest} does this initialization, but also pre-loads the
@@ -74,7 +74,8 @@ public class OrderResourceTest extends MainResourceControllerTest {
      * ourselves.
      */
     @Before
-    public void setUpData() throws Exception {
+    public void setUp() throws Exception {
+        orderService = Context.getOrderService();
         if (useInMemoryDatabase()) {
             initializeInMemoryDatabase();
             authenticate();
@@ -120,7 +121,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(SAMPLE_END_DATE, response.get(OrderResource.STOP_MILLIS));
 
         // Check that these fields match the object stored.
-        Order stored = Context.getOrderService().getOrderByUuid(uuid);
+        Order stored = orderService.getOrderByUuid(uuid);
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
         assertEquals(SAMPLE_START_DATE, stored.getScheduledDate().getTime());
@@ -178,7 +179,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertNull(response.get(OrderResource.STOP_MILLIS));
 
         // Check that these fields match the object stored.
-        Order stored = Context.getOrderService().getOrderByUuid(uuid);
+        Order stored = orderService.getOrderByUuid(uuid);
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
         assertEquals(SAMPLE_START_DATE, stored.getScheduledDate().getTime());
@@ -196,8 +197,8 @@ public class OrderResourceTest extends MainResourceControllerTest {
 
         String uuid = (String) response.get(OrderResource.UUID);
 
-        // Check that it's returning a different Order
-        assertNotEquals(baseOrder.getUuid(), uuid);
+        // Check that it's returning the same UUID
+        assertEquals(baseOrder.getUuid(), uuid);
 
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
@@ -205,8 +206,8 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(SAMPLE_START_DATE, response.get(OrderResource.START_MILLIS));
         assertEquals(SAMPLE_END_DATE, response.get(OrderResource.STOP_MILLIS));
 
-        // Check that these fields match the object stored.
-        Order stored = Context.getOrderService().getOrderByUuid(uuid);
+        // Check that the underlying order is a different one and has the correct values.
+        Order stored = OrderResource.getLatestVersion(orderService.getOrderByUuid(uuid));
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(newInstructions, stored.getInstructions());
         assertEquals(SAMPLE_START_DATE, stored.getScheduledDate().getTime());
@@ -229,8 +230,8 @@ public class OrderResourceTest extends MainResourceControllerTest {
 
         String uuid = (String) response.get(OrderResource.UUID);
 
-        // Check that it's returning a different Order
-        assertNotEquals(baseOrder.getUuid(), uuid);
+        // The client should get the same UUID, but in storage, it should be a different order.
+        assertEquals(baseOrder.getUuid(), uuid);
 
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
@@ -239,47 +240,11 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(newEndTime, response.get(OrderResource.STOP_MILLIS));
 
         // Check that these fields match the object stored.
-        Order stored = Context.getOrderService().getOrderByUuid(uuid);
+        Order stored = orderService.getRevisionOrder(orderService.getOrderByUuid(uuid));
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
         assertEquals(startTime, stored.getScheduledDate().getTime());
         assertEquals(newEndTime, stored.getAutoExpireDate().getTime());
-    }
-
-    @Test
-    public void testUpdateForNewNonExecutedOrderVoidsOldOrder() throws Exception {
-        String newInstructions = "New instructions!";
-        Order baseOrder = createOrderStartingNow();
-        long startTime = baseOrder.getScheduledDate().getTime();
-        long endTime = baseOrder.getAutoExpireDate().getTime();
-
-        SimpleObject newDetails = newOrderJson(null, newInstructions, null, null);
-        MockHttpServletRequest request =
-                newPostRequest(BASE_URL + "/" + baseOrder.getUuid(), newDetails);
-
-        SimpleObject response = deserialize(handle(request));
-
-        String uuid = (String) response.get(OrderResource.UUID);
-
-        // Check that it's returning a different Order
-        assertNotEquals(baseOrder.getUuid(), uuid);
-
-        // Fetch the base order again, it should've been voided.
-        baseOrder = Context.getOrderService().getOrderByUuid(baseOrder.getUuid());
-        assertTrue("The original order was voided", baseOrder.isVoided());
-
-        // Check that fields are correctly set in response
-        assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
-        assertEquals(newInstructions, response.get(OrderResource.INSTRUCTIONS));
-        assertEquals(startTime, response.get(OrderResource.START_MILLIS));
-        assertEquals(endTime, response.get(OrderResource.STOP_MILLIS));
-
-        // Check that these fields match the object stored.
-        Order stored = Context.getOrderService().getOrderByUuid(uuid);
-        assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
-        assertEquals(newInstructions, stored.getInstructions());
-        assertEquals(startTime, stored.getScheduledDate().getTime());
-        assertEquals(endTime, stored.getAutoExpireDate().getTime());
     }
 
     @Test
@@ -289,24 +254,42 @@ public class OrderResourceTest extends MainResourceControllerTest {
         MockHttpServletRequest request =
                 newDeleteRequest(BASE_URL + "/" + uuid);
         handle(request);
-        assertTrue("Order is voided", Context.getOrderService().getOrderByUuid(uuid).isVoided());
+        assertTrue("Order is voided", orderService.getOrderByUuid(uuid).isVoided());
     }
 
     @Test
-    public void testDeleteForExecutedOrder() throws Exception {
+    public void testDeleteForExecutedOrderVoids() throws Exception {
         Order baseOrder = createOrderStartingNow();
         executeOrder(baseOrder);
         String uuid = baseOrder.getUuid();
         MockHttpServletRequest request =
                 newDeleteRequest(BASE_URL + "/" + uuid);
         handle(request);
-        OrderService service = Context.getOrderService();
+        OrderService service = orderService;
         Order order = service.getOrderByUuid(uuid);
-        assertFalse("Order is not voided", order.isVoided());
-        Order revision = service.getDiscontinuationOrder(order);
-        assertNotNull(revision);
-        assertEquals(Order.Action.DISCONTINUE, revision.getAction());
-        assertNotNull(order.getDateStopped());
+        assertTrue("Order is voided", order.isVoided());
+    }
+
+    @Test
+    public void testDeleteForRevisedOrderVoidsAll() throws Exception {
+        Order baseOrder = createOrderStartingNow();
+        String baseUuid = baseOrder.getUuid();
+
+        SimpleObject newDetails = newOrderJson(null, "New instructions!", null, null);
+        MockHttpServletRequest request =
+                newPostRequest(BASE_URL + "/" + baseUuid, newDetails);
+
+        // Make the update.
+        handle(request);
+
+        request = newDeleteRequest(BASE_URL + "/" + baseUuid);
+        handle(request);
+        // Reload the base order from storage
+        baseOrder = orderService.getOrderByUuid(baseUuid);
+        assertTrue("Base order is voided", baseOrder.isVoided());
+        Order revisionOrder = OrderResource.getLatestVersion(baseOrder);
+        assertNotNull("Expected a non-null revision order", revisionOrder);
+        assertTrue("Revision order is voided", revisionOrder.isVoided());
     }
 
 
@@ -315,15 +298,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
                 SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
         SimpleObject response = deserialize(handle(newPostRequest(BASE_URL, input)));
         String uuid = (String) response.get(OrderResource.UUID);
-        return Context.getOrderService().getOrderByUuid(uuid);
-    }
-
-    private Order createUnexpiredOrderOlderThan24Hrs() throws Exception {
-        SimpleObject input = newOrderJson(
-                SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, null);
-        SimpleObject response = deserialize(handle(newPostRequest(BASE_URL, input)));
-        String uuid = (String) response.get(OrderResource.UUID);
-        return Context.getOrderService().getOrderByUuid(uuid);
+        return orderService.getOrderByUuid(uuid);
     }
 
     private Order createOrderStartingNow() throws Exception {
@@ -332,7 +307,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
                 SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, now, now + ONE_WEEK_IN_MILLIS);
         SimpleObject response = deserialize(handle(newPostRequest(BASE_URL, input)));
         String uuid = (String) response.get(OrderResource.UUID);
-        return Context.getOrderService().getOrderByUuid(uuid);
+        return orderService.getOrderByUuid(uuid);
     }
 
     private void executeOrder(Order order) throws Exception {

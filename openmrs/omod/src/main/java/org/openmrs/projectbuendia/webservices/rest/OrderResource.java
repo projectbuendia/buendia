@@ -16,7 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
-import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
@@ -49,6 +48,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -114,7 +114,6 @@ public class OrderResource implements
     private static final User CREATOR = new User(1);  // fake value
 
     private static final int MAX_ORDERS_PER_PAGE = 500;
-    private static final long ONE_DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
 
     // Allow all order actions except discontinues, because the client doesn't represent those.
     private static final Order.Action[] ALLOWABLE_ACTIONS =
@@ -162,9 +161,15 @@ public class OrderResource implements
 
     /** Serializes an order to JSON. */
     private static SimpleObject orderToJson(Order order) {
+        // The UUID we send to the client is actually the UUID of the order at the head of the
+        // revision chain...
+        Order rootOrder = Utils.getRootOrder(order);
+        // but the data we supply comes from the latest revision in the chain.
+        order = getLatestVersion(rootOrder);
+
         SimpleObject json = new SimpleObject();
         if (order != null) {
-            json.add(UUID, order.getUuid());
+            json.add(UUID, rootOrder.getUuid());
             json.add(VOIDED, order.isVoided());
             if (order.isVoided()) {
                 return json;
@@ -223,6 +228,33 @@ public class OrderResource implements
         populateDefaultsForAllOrders(order);
         populateDefaultsForNewOrder(order);
         return order;
+    }
+
+    /**
+     * Finds the last order in the chain containing the given order. We need to do this instead of
+     * using {@link OrderService#getRevisionOrder(Order)} because {@code getRevisionOrder(Order)}
+     * only gets orders that have an action of {@link org.openmrs.Order.Action#REVISE}. To use
+     * {@code REVISE}, the previous order needs to have not expired, which we can't guarantee.
+     * </ul>
+     */
+    public static Order getLatestVersion(Order order) {
+        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
+        Map<String, String> nextOrderUuids = new HashMap<>();
+        for (Order o : Context.getOrderService().getAllOrdersByPatient(order.getPatient())) {
+            Order prev = o.getPreviousOrder();
+            if (prev != null) {
+                nextOrderUuids.put(prev.getUuid(), o.getUuid());
+            }
+        }
+
+        // Walk forward until the end of the chain.
+        String uuid = order.getUuid();
+        String nextUuid = nextOrderUuids.get(uuid);
+        while (nextUuid != null) {
+            uuid = nextUuid;
+            nextUuid = nextOrderUuids.get(uuid);
+        }
+        return Context.getOrderService().getOrderByUuid(uuid);
     }
 
     /**
@@ -420,10 +452,8 @@ public class OrderResource implements
             throw new ObjectNotFoundException();
         }
 
-        if (orderService.getRevisionOrder(order) != null) {
-            // If this isn't the newest revision, abort.
-            throw new NewerOrderException("Can only update the latest revision, not an old one.");
-        }
+        // Skip ahead to the latest order in the chain.
+        order = getLatestVersion(order);
 
         Order revisedOrder = reviseOrder(order, simpleObject);
 
@@ -432,23 +462,8 @@ public class OrderResource implements
             return orderToJson(order);
         }
 
-        // If older than one day, or the order has been executed, then revise the order
-        if (order.getDateCreated().before(new Date(System.currentTimeMillis() - ONE_DAY_IN_MILLIS))
-                || hasOrderBeenExecuted(order)) {
-            orderService.saveOrder(revisedOrder, null);
-            return orderToJson(revisedOrder);
-        } else {
-            // Newer than one day and not executed. Void the old order, create a new one.
-
-            // First, we have to re-set the action and previous order to remove the voided order
-            // from the chain.
-            revisedOrder.setPreviousOrder(order.getPreviousOrder());
-            revisedOrder.setAction(order.getAction());
-
-            orderService.voidOrder(order, "Voided by Buendia Android client");
-            orderService.saveOrder(revisedOrder, null);
-            return orderToJson(revisedOrder);
-        }
+        orderService.saveOrder(revisedOrder, null);
+        return orderToJson(revisedOrder);
     }
 
     /** Revises an order.  Returns null if no changes were made. */
@@ -486,44 +501,22 @@ public class OrderResource implements
         if (order == null) {
             throw new ObjectNotFoundException();
         }
-
-        // There are a few circumstances under which we can't just void an order. They are:
-        // - If the order has been executed, we can't void the order because it's important to keep
-        //   a record of anything that was given to the patient.
-        // - If the order is chained to a previous order, we shouldn't void it because it changes
-        //   the meaning of the previous order.
-        if (hasOrderBeenExecuted(order) || order.getPreviousOrder() != null) {
-            if (orderHasExpired(order)) {
-                // Do nothing, the order has expired anyway.
-                return;
-            }
-            // Should just make the order STOP immediately.
-            Order newOrder = order.cloneForDiscontinuing();
-            populateDefaultsForAllOrders(newOrder);
-            orderService.saveOrder(newOrder, null);
-        } else {
-            orderService.voidOrder(order, "Voided by Buendia Android client");
+        if (order.isVoided()) {
+            return;
         }
+
+        // Void all orders in the chain.
+        Order orderToVoid = getLatestVersion(order);
+        do {
+            orderService.voidOrder(orderToVoid,
+                    "Voided by Buendia Android client in delete request");
+            orderToVoid = orderToVoid.getPreviousOrder();
+        } while (orderToVoid != null);
     }
 
     private static boolean orderHasExpired(Order order) {
         Date now = new Date();
         return (order.getDateStopped() != null && order.getDateStopped().before(now))
                 || (order.getAutoExpireDate() != null && order.getAutoExpireDate().before(now));
-    }
-
-    /**
-     * Returns {@code true} if the specified {@code order} has ever been executed.
-     */
-    private static boolean hasOrderBeenExecuted(Order order) {
-        List<Obs> obsList = Context.getObsService().getObservationsByPersonAndConcept(
-                order.getPatient(), DbUtil.getOrderExecutedConcept());
-        for (Obs obs : obsList) {
-            // Just compare by UUID, that's enough to guarantee equality and it's quicker.
-            if (obs.getOrder().getUuid().equals(order.getUuid())) {
-                return true;
-            }
-        }
-        return false;
     }
 }

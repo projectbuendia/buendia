@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia;
 
+import org.openmrs.Order;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
 import java.text.DateFormat;
@@ -171,5 +172,15 @@ public class Utils {
             return (Long) obj;
         }
         throw new ClassCastException("Expected value of type Long or Integer");
+    }
+
+    /**
+     * Iterates backwards through revision orders until it finds the root order.
+     */
+    public static Order getRootOrder(Order order) {
+        while (order.getPreviousOrder() != null) {
+            order = order.getPreviousOrder();
+        }
+        return order;
     }
 }
