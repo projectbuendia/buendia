@@ -57,6 +57,16 @@ public interface ProjectBuendiaService extends OpenmrsService {
     SyncPage<Patient> getPatientsModifiedAtOrAfter(
             @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
+    /**
+     * Returns all orders modified on or after the given {@code date}.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided orders.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
+     * @param allowedOrderTypes only order types specified in this whitelist will be fetched. If
+     *                          null, all order types are permissible.
+     */
     SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
+            @Nullable Order.Action[] allowedOrderTypes);
 }

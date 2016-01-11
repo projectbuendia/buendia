@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia;
 
+import org.openmrs.Order;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
 import java.text.DateFormat;
@@ -155,5 +156,31 @@ public class Utils {
             throw new InvalidObjectDataException(String.format(
                 "The %s field should be in yyyy-MM-dd format", fieldName));
         }
+    }
+
+    /**
+     * Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long.
+     */
+    public static Long asLong(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Integer) {
+            return Long.valueOf((Integer) obj);
+        }
+        if (obj instanceof Long) {
+            return (Long) obj;
+        }
+        throw new ClassCastException("Expected value of type Long or Integer");
+    }
+
+    /**
+     * Iterates backwards through revision orders until it finds the root order.
+     */
+    public static Order getRootOrder(Order order) {
+        while (order.getPreviousOrder() != null) {
+            order = order.getPreviousOrder();
+        }
+        return order;
     }
 }

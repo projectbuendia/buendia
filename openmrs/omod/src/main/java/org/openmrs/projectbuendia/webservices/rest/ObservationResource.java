@@ -96,7 +96,12 @@ public class ObservationResource implements Listable, Searchable {
         boolean isExecutedOrder =
                 DbUtil.getOrderExecutedConcept().equals(obs.getConcept()) && obs.getOrder() != null;
         if (isExecutedOrder) {
-            object.add("value", obs.getOrder().getUuid());
+            // As far as the client knows, a chain of orders is represented by the root order's
+            // UUID, so we have to work back through the chain or orders to get the root UUID.
+            // Normally, the client will only ever supply observations for the root order ID, but
+            // in the event that an order is marked as executed on the server (for example) we don't
+            // want that to mean that an order execution gets missed.
+            object.add("value", Utils.getRootOrder(obs.getOrder()).getUuid());
         } else {
             object.add("value", ObservationsHandler.obsValueToString(obs));
         }

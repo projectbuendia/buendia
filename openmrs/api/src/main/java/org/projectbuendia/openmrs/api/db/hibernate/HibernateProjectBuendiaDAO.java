@@ -16,6 +16,8 @@ import org.apache.commons.logging.LogFactory;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.classic.Session;
+import org.hibernate.criterion.Criterion;
+import org.hibernate.criterion.Restrictions;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.Type;
 import org.openmrs.BaseOpenmrsData;
@@ -31,11 +33,14 @@ import org.projectbuendia.openmrs.sync.PatientSyncParameters;
 import org.projectbuendia.openmrs.sync.SyncParameters;
 
 import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.hibernate.criterion.Order.asc;
 import static org.hibernate.criterion.Restrictions.eq;
+import static org.hibernate.criterion.Restrictions.in;
+import static org.hibernate.criterion.Restrictions.ne;
 import static org.hibernate.criterion.Restrictions.sqlRestriction;
 
 /** Default implementation of {@link ProjectBuendiaDAO}. */
@@ -60,7 +65,7 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
         //noinspection unchecked
         return fetchSyncPage(
                 (Class<SyncParameters<Obs>>) (Class<?>) ObsSyncParameters.class,
-                syncToken, includeVoided, maxResults);
+                syncToken, null, includeVoided, maxResults);
     }
 
     @Override
@@ -69,31 +74,38 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
         //noinspection unchecked
         return fetchSyncPage(
                 (Class<SyncParameters<Patient>>) (Class<?>) PatientSyncParameters.class,
-                syncToken, includeVoided, maxResults);
+                syncToken, null, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
+            @Nullable Order.Action[] allowedOrderTypes) {
+
+        final Criterion itemFilter = allowedOrderTypes != null
+                ? in("action", allowedOrderTypes)
+                : null;
+
         //noinspection unchecked
         return fetchSyncPage(
                 (Class<SyncParameters<Order>>)(Class<?>) OrderSyncParameters.class,
-                syncToken, includeVoided, maxResults);
+                syncToken, itemFilter, includeVoided, maxResults);
     }
 
 
     private <T extends BaseOpenmrsData> SyncPage<T> fetchSyncPage(
-            Class<SyncParameters<T>> clazz, @Nullable SyncToken syncToken,
+            Class<SyncParameters<T>> clazz, @Nullable SyncToken syncToken, Criterion restriction,
             boolean includeVoided, int maxResults) {
         List<SyncParameters<T>> dbList =
-                fetchResults(clazz, syncToken, includeVoided, maxResults);
+                fetchResults(clazz, syncToken, restriction, includeVoided, maxResults);
         return resultsToSyncPage(dbList);
 
 
     }
 
     private <T extends SyncParameters> List<T> fetchResults(
-            Class<T> clazz, @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+            Class<T> clazz, @Nullable SyncToken syncToken,
+            @Nullable Criterion restriction, boolean includeVoided, int maxResults) {
         Session session = sessionFactory.getCurrentSession();
 
         Criteria criteria = session.createCriteria(clazz);
@@ -112,8 +124,14 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
                     new Type[] {StandardBasicTypes.TIMESTAMP, StandardBasicTypes.STRING}));
         }
 
+        Criteria subCriteria = criteria.createCriteria("item");
+
+        if (restriction != null) {
+            subCriteria.add(restriction);
+        }
+
         if (!includeVoided) {
-            criteria.createCriteria("item").add(eq("voided", false));
+            subCriteria.add(eq("voided", false));
         }
 
         criteria.addOrder(asc("dateUpdated"))
