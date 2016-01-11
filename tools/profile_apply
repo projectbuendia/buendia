@@ -265,7 +265,8 @@ def apply(tabs):
 
         for row in rows:
             if row['title'].strip():
-                sections.append(('[chart_divider]', [{'label': row['title'].strip(), 'concept':'162169', 'type':''}]))
+                sections.append(('[chart_divider]',
+                                 [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
             if row['section'].strip():
                 if section and section_rows:
                     sections.append((section, section_rows))
@@ -288,7 +289,10 @@ def apply(tabs):
         clear_form(form_id)
 
         for i, (section, rows) in enumerate(sections):
-            section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
+            if section == '[chart_divider]':
+                section_type = 'CHART_DIVIDER'
+            else:
+                section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
             field_id = get_field_for_section(
                 section, description=json.dumps({'type': section_type}))
             section_id = add_field_to_form(form_id, field_id, None, i + 1)
