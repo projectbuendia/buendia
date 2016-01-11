@@ -14,7 +14,14 @@
 
 set -e
 SITE_SQL_DIR=packages/buendia-db-init/data/usr/share/buendia/db
-SERVER_ID=server
+if [ -z "$OPENMRS_SERVER" ]; then
+  SERVER_ID="server"
+  echo "Setting up server named \"$SERVER_ID\", set \$OPENMRS_SERVER to change"
+else
+  SERVER_ID="$OPENMRS_SERVER"
+  echo "Setting up server named \"$SERVER_ID\""
+fi
+
 # This version numbers is duplicated in [git root]/openmrs/pom.xml
 OPENMRS_PLATFORM_VERSION=1.10.2  # db-snapshot data is compatible with 1.10.x
 if [ "$1" = "-f" ]; then
@@ -63,10 +70,12 @@ if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
         -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION
 fi
 
+database_name="openmrs_$SERVER_ID"
+
 # Create the openmrs_user account in MySQL.
 echo "Enter the MySQL root password, or just hit Enter if there is no password."
 mysql -uroot -p <<< "
-    grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
+    grant all on $database_name.* to openmrs_user@localhost identified by 'openmrs';
     grant file on *.* to openmrs_user@localhost;
     flush privileges;
 "
@@ -106,7 +115,7 @@ sudo chmod -R 755 $buendia_dir
 
 # Configure OpenMRS to use the openmrs_user MySQL account.
 cat <<EOF >$server_dir/openmrs-runtime.properties
-connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
+connection.url=jdbc\:mysql\://localhost\:3306/$database_name?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
 connection.username=openmrs_user
 connection.password=openmrs
 auto_update_database=true
@@ -123,13 +132,14 @@ trap 'rm -f /tmp/init.$$.zip' EXIT
 # Load the snapshot into the MySQL database.
 export MYSQL_USER=openmrs_user
 export MYSQL_PASSWORD=openmrs
+export MYSQL_DB="$database_name"
 echo
-tools/openmrs_load $force_flag openmrs /tmp/init.$$.zip
+tools/openmrs_load $force_flag $database_name /tmp/init.$$.zip
 
 # Apply the selected site configuration.
 echo
 echo "Loading $site_sql..."
-mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" openmrs < $site_sql
+mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" $database_name < $site_sql
 echo
 
 # Set up the OpenMRS account for Buendia.
