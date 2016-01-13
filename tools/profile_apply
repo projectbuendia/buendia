@@ -264,13 +264,13 @@ def apply(tabs):
         section_rows = []
 
         for row in rows:
-            if row['title'].strip():
-                sections.append(('[chart_divider]',
-                                 [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
             if row['section'].strip():
                 if section and section_rows:
                     sections.append((section, section_rows))
                 section, section_rows = row['section'].strip(), []
+            if row['title'].strip():
+                sections.append(('[chart_divider]',
+                                 [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
             if validate_str(row['type']) and validate_ints(row['concept']):
                 section_rows.append(row)
         if section and section_rows:
