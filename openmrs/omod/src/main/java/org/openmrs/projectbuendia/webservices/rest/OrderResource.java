@@ -19,7 +19,6 @@ import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
-import org.openmrs.User;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
@@ -111,7 +110,6 @@ public class OrderResource implements
     public static final String VOIDED = "voided";
 
     private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
-    private static final User CREATOR = new User(1);  // fake value
 
     private static final int MAX_ORDERS_PER_PAGE = 500;
 
@@ -263,7 +261,7 @@ public class OrderResource implements
      */
     private void populateDefaultsForAllOrders(Order order) {
         order.setOrderer(getProvider());
-        order.setCreator(CREATOR);  // TODO: do this properly from authentication
+        order.setCreator(Context.getAuthenticatedUser());
         order.setEncounter(createEncounter(order.getPatient(), new Date()));
     }
 
@@ -370,7 +368,7 @@ public class OrderResource implements
 
     private Encounter createEncounter(Patient patient, Date encounterDateTime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
+        encounter.setCreator(Context.getAuthenticatedUser());
         encounter.setEncounterDatetime(encounterDateTime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());

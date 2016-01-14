@@ -12,6 +12,8 @@
 package org.openmrs.projectbuendia;
 
 import org.openmrs.Order;
+import org.openmrs.User;
+import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
 import java.text.DateFormat;
