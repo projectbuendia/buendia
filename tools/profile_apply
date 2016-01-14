@@ -339,11 +339,18 @@ def apply(tabs):
     def normalize_name(name):
         return re.sub('[\W_]+', '_', name.lower()).strip('_')
 
+    def truncate_for_uuid(uuid):
+        """
+        UUIDs are only allowed to be 38 characters. Truncate the given string
+        to this length.
+        """
+        return uuid[:38]
+
     def put_form(rows):
         adult_return = db.get('encounter_type_id', name='ADULTRETURN')
 
         title = rows[0]['title']
-        uuid = 'buendia-form-' + normalize_name(title)
+        uuid = truncate_for_uuid('buendia-form-' + normalize_name(title))
         form_id = db.get('form_id', uuid=uuid)
         if not form_id:
             form_id = odb.insert('form', name=title, version='1',
