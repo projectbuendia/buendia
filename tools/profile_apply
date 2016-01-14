@@ -119,8 +119,8 @@ def read_csv(filename, tab=None):
         tabs.setdefault(tab, []).append(row)
     return tabs
 
-def apply(tabs):
-    db = get_db('openmrs')
+def apply(tabs, database_name):
+    db = get_db(database_name)
     odb = OpenmrsDatabase(db, 'buendia_admin')
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
@@ -498,4 +498,6 @@ def apply(tabs):
 
 
 if __name__ == '__main__':
-    apply(read_csv(sys.argv[1]))
+    profile_filename = sys.argv[1]
+    dbname = sys.argv[2] if len(sys.argv) >= 2 else 'openmrs'
+    apply(read_csv(profile_filename), dbname)
