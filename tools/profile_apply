@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import uuid
+import warnings
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
 LOCALE = 'en_GB_client'
@@ -336,21 +337,29 @@ def apply(tabs):
         for form_rows in split_by_title(rows):
             put_form(form_rows)
 
-    def normalize_name(name):
-        return re.sub('[\W_]+', '_', name.lower()).strip('_')
-
-    def truncate_for_uuid(uuid):
+    def create_uuid_from_form_name(name):
         """
-        UUIDs are only allowed to be 38 characters. Truncate the given string
-        to this length.
+        Construct a UUID from a form name, and issue a warning if we can't
+        guarantee that the UUID will be unique.
         """
-        return uuid[:38]
+        prefix = 'buendia-form-'
+        max_uuid_len = 38
+        max_name_len = max_uuid_len - len(prefix)
+        if len(name) > max_name_len:
+            warnings.warn(
+            "The form name '%s' has been clipped to create a unique form ID. "
+            "Note that if you have another form that starts with the same %d "
+            "characters as this form, the form IDs will collide and only one "
+            "form will be displayed. To fix this, ensure that the first %d "
+            "characters of each form name are unique."
+            % (name, max_name_len, max_name_len) )
+        return prefix + re.sub('[\W_]+', '_', name[:max_name_len].lower()).strip('_')
 
     def put_form(rows):
         adult_return = db.get('encounter_type_id', name='ADULTRETURN')
 
         title = rows[0]['title']
-        uuid = truncate_for_uuid('buendia-form-' + normalize_name(title))
+        uuid = create_uuid_from_form_name(title)
         form_id = db.get('form_id', uuid=uuid)
         if not form_id:
             form_id = odb.insert('form', name=title, version='1',
