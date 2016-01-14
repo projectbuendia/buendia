@@ -4,3 +4,6 @@
 [submodule "db-snapshot"]
 	path = db-snapshot
 	url = ../db-snapshot
+[submodule "third_party/openmrs-module-sync"]
+	path = third_party/openmrs-module-sync
+	url = git@github.com:capnfabs/openmrs-module-sync.git

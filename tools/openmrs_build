@@ -13,7 +13,13 @@
 # Builds the Buendia module and installs it in an OpenMRS development server.
 
 set -e
-SERVER_ID=server
+
+if [ -z "$OPENMRS_SERVER" ]; then
+  SERVER_ID="server"
+else
+  SERVER_ID="$OPENMRS_SERVER"
+fi
+
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
 MODULE_DIR=$SERVER_DIR/modules
 INSTALL="mvn openmrs-sdk:install -DserverId=$SERVER_ID"
@@ -45,9 +51,17 @@ $INSTALL -DartifactId=webservices.rest -Dversion=2.6
 
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
 # given to this script.
-cd openmrs
+pushd openmrs >/dev/null
 mvn clean install "$@"
 
 # Install the module in the OpenMRS development server.
 $INSTALL -DgroupId=org.projectbuendia \
     -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT
+
+popd >/dev/null
+
+# Build the sync module and install.
+pushd third_party/openmrs-module-sync >/dev/null
+mvn clean install "$@"
+$INSTALL -DgroupId=org.openmrs.module -DartifactId=sync -Dversion=1.3-SNAPSHOT
+popd >/dev/null
