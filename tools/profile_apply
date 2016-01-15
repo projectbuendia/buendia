@@ -345,6 +345,9 @@ def apply(tabs):
         for form_rows in split_by_title(rows):
             put_form(form_rows)
 
+    def normalize_name(name):
+        return re.sub('[\W_]+', '_', name.lower()).strip('_')
+
     def create_uuid_from_form_name(name):
         """
         Construct a UUID from a form name, and issue a warning if we can't
@@ -361,7 +364,7 @@ def apply(tabs):
             "form will be displayed. To fix this, ensure that the first %d "
             "characters of each form name are unique."
             % (name, max_name_len, max_name_len) )
-        return prefix + re.sub('[\W_]+', '_', name[:max_name_len].lower()).strip('_')
+        return prefix + normalize_name(name[:max_name_len])
 
     def put_form(rows):
         adult_return = db.get('encounter_type_id', name='ADULTRETURN')
