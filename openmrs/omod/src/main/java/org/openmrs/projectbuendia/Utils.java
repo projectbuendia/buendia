@@ -12,8 +12,14 @@
 package org.openmrs.projectbuendia;
 
 import org.openmrs.Order;
+import org.openmrs.Person;
+import org.openmrs.Provider;
+import org.openmrs.User;
+import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
+import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.ParseException;
@@ -182,5 +188,30 @@ public class Utils {
             order = order.getPreviousOrder();
         }
         return order;
+    }
+
+    public static @Nullable User getUserFromProvider(@Nullable Provider provider) {
+        if (provider == null) {
+            return null;
+        }
+        Person person = provider.getPerson();
+        if (person == null) {
+            throw new IllegalStateException(
+                    "Should not be possible to get null person from provider.");
+        }
+        List<User> users = Context.getUserService().getUsersByPerson(person, false);
+        if (users.size() < 1) {
+            // This is a server error.
+            throw new IllegalStateException("There is no user for the associated provider");
+        }
+        return users.get(0);
+    }
+
+    public static @Nullable User getUserFromProviderUuid(@Nullable String providerUuid) {
+        if (providerUuid == null) {
+            return null;
+        }
+        Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
+        return getUserFromProvider(provider);
     }
 }

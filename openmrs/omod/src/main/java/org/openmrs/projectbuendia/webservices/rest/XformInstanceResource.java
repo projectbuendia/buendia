@@ -15,8 +15,6 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
-import org.openmrs.Person;
-import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
@@ -243,19 +241,11 @@ public class XformInstanceResource implements Creatable {
             if (uuid == null) {
                 throw new IllegalPropertyException("Enterer UUID must be set.");
             }
-            Provider provider = providerService.getProviderByUuid(uuid);
-            if (provider == null) {
+            User user = Utils.getUserFromProviderUuid(uuid);
+            if (user == null) {
                 throw new IllegalPropertyException("Provider UUID does not exist: " + uuid);
             }
-            // Person should not be null, every provider has an associated person.
-            Person person = provider.getPerson();
-            //
-            List<User> users = userService.getUsersByPerson(person, false);
-            if (users.size() < 1) {
-                // This is a server error.
-                throw new IllegalStateException("There is no user for the associated provider");
-            }
-            post.put("enterer_id", users.get(0).getUserId());
+            post.put("enterer_id", user.getUserId());
         }
 
         return post;
