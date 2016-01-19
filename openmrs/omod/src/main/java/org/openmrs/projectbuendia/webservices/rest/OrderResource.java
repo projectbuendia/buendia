@@ -109,9 +109,9 @@ public class OrderResource implements
     public static final String STOP_MILLIS = "stop_millis";
     public static final String UUID = "uuid";
     public static final String VOIDED = "voided";
+    public static final String ORDERER_UUID = "orderer_uuid";
 
     private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
-    private static final User CREATOR = new User(1);  // fake value
 
     private static final int MAX_ORDERS_PER_PAGE = 500;
 
@@ -262,9 +262,14 @@ public class OrderResource implements
      * both new orders and revisions.
      */
     private void populateDefaultsForAllOrders(Order order) {
-        order.setOrderer(getProvider());
-        order.setCreator(CREATOR);  // TODO: do this properly from authentication
-        order.setEncounter(createEncounter(order.getPatient(), new Date()));
+        Provider orderer = order.getOrderer();
+        // Populate with a default orderer if none is supplied.
+        if (orderer == null) {
+            order.setOrderer(getProvider());
+        }
+        // Will be null if `orderer` is null.
+        User creator = Utils.getUserFromProvider(orderer);
+        order.setEncounter(createEncounter(order.getPatient(), creator, new Date()));
     }
 
     /**
@@ -348,6 +353,16 @@ public class OrderResource implements
                     changed = true;
                 } break;
 
+                case ORDERER_UUID: {
+                    if (!(value instanceof String)) {
+                        throw new IllegalPropertyException(
+                                "Illegal format for " + ORDERER_UUID + ", expected string");
+                    }
+                    order.setCreator(Utils.getUserFromProviderUuid((String) value));
+                    order.setOrderer(
+                            providerService.getProviderByUuid((String) value));
+                } break;
+
                 default: {
                     log.warn(
                             "Key '" + entry.getKey() + "' is not the name of an editable property");
@@ -368,9 +383,9 @@ public class OrderResource implements
         return millis == null ? null : new Date(millis);
     }
 
-    private Encounter createEncounter(Patient patient, Date encounterDateTime) {
+    private Encounter createEncounter(Patient patient, User creator, Date encounterDateTime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
+        encounter.setCreator(creator);
         encounter.setEncounterDatetime(encounterDateTime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());
