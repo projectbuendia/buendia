@@ -413,6 +413,7 @@ def apply(tabs):
         field_id = get_field_for_element('encounter', 'provider_id')
         add_field_to_form(form_id, field_id, section_id, sort_weight=3)
 
+        begining = True
         section_id = None
         last_type = None
         select_concept_id, select_answer_ids = None, []
@@ -423,6 +424,7 @@ def apply(tabs):
                 field_id = get_field_for_section(row['section'])
                 section_id = add_field_to_form(form_id, field_id, None, fn)
                 last_type = None
+                begining = False
                 continue
 
             type, datatype = validate_type(row['type'])
@@ -440,10 +442,14 @@ def apply(tabs):
                     label = row['label']
                     field_id = get_field_for_section(label + '[binary]', label)
                     section_id = add_field_to_form(form_id, field_id, None, fn)
-                elif last_type == 'select_multiple':
+                elif last_type == 'select_multiple' or begining:
                     # Fields after the end of a toggle group don't belong in
                     # the section, so put them in a new section, using
                     # "[invisible]" in its name to hide the section heading.
+                    #
+                    # If begining is True then there is no section declared in
+                    # the begining of the form so we also need to create at least
+                    # one "[invisible]" section to avoid chart rendering problems.
                     fn += 1
                     field_id = get_field_for_section('[invisible]')
                     section_id = add_field_to_form(form_id, field_id, None, fn)
