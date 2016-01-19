@@ -12,14 +12,14 @@
 package org.projectbuendia.openmrs.api;
 
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.api.OpenmrsService;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nullable;
-import java.util.Date;
-import java.util.List;
 
 /**
  * This service exposes module's core functionality. It is a Spring managed bean which is
@@ -39,15 +39,34 @@ public interface ProjectBuendiaService extends OpenmrsService {
 
     /**
      * Returns all observations modified on or after the given {@code date}.
-     * @param date if {@code null}, returns all observations since the beginning of time
-     * @param includeVoided if {@code true}, returns observations that have been voided since the
-     *                      specified {@code date}.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided observations.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
-    List<Obs> getObservationsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Obs> getObservationsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
 
     /**
      * Returns all patients modified on or after the given {@code date}.
-     * @param date if {@code null}, returns all encounters since the beginning of time.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided patients.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
-    List<Patient> getPatientsModifiedAtOrAfter(@Nullable Date date, boolean includeVoided);
+    SyncPage<Patient> getPatientsModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+
+    /**
+     * Returns all orders modified on or after the given {@code date}.
+     * @param syncToken a token representing the first record to be excluded from the result set.
+     *                  See {@link SyncToken} for more information.
+     * @param includeVoided if {@code true}, results will include voided orders.
+     * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
+     * @param allowedOrderTypes only order types specified in this whitelist will be fetched. If
+     *                          null, all order types are permissible.
+     */
+    SyncPage<Order> getOrdersModifiedAtOrAfter(
+            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
+            @Nullable Order.Action[] allowedOrderTypes);
 }

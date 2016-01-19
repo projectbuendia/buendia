@@ -1,0 +1,25 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--
+    From applicationContext-service.xml in openmrs-api
+    Normally, the OMOD takes care of ensuring that Hibernate class specs are available, but for
+    testing, the OMOD isn't loaded. We thus need to specify Hibernate configuration manually here
+    to ensure that Hibernate can work with our custom types in tests.
+    -->
+    <bean id="sessionFactory" class="org.openmrs.api.db.hibernate.HibernateSessionFactoryBean">
+        <property name="configLocations">
+            <list>
+                <value>classpath:hibernate.cfg.xml</value>
+                <value>classpath:buendia-hibernate.cfg.xml</value>
+            </list>
+        </property>
+        <property name="mappingJarLocations">
+            <ref bean="mappingJarResources" />
+        </property>
+        <!--  default properties must be set in the hibernate.default.properties -->
+    </bean>
+
+</beans>

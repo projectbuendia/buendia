@@ -11,8 +11,14 @@
 
 package org.openmrs.projectbuendia;
 
+import org.openmrs.Order;
+import org.openmrs.Person;
+import org.openmrs.Provider;
+import org.openmrs.User;
+import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
+import javax.annotation.Nullable;
 import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.ParseException;
@@ -20,6 +26,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -154,6 +161,71 @@ public class Utils {
         } catch (ParseException e) {
             throw new InvalidObjectDataException(String.format(
                 "The %s field should be in yyyy-MM-dd format", fieldName));
+        }
+    }
+
+    /**
+     * Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long.
+     */
+    public static Long asLong(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Integer) {
+            return Long.valueOf((Integer) obj);
+        }
+        if (obj instanceof Long) {
+            return (Long) obj;
+        }
+        throw new ClassCastException("Expected value of type Long or Integer");
+    }
+
+    /**
+     * Iterates backwards through revision orders until it finds the root order.
+     */
+    public static Order getRootOrder(Order order) {
+        while (order.getPreviousOrder() != null) {
+            order = order.getPreviousOrder();
+        }
+        return order;
+    }
+
+    public static @Nullable User getUserFromProvider(@Nullable Provider provider) {
+        if (provider == null) {
+            return null;
+        }
+        Person person = provider.getPerson();
+        if (person == null) {
+            throw new IllegalStateException(
+                    "Should not be possible to get null person from provider.");
+        }
+        List<User> users = Context.getUserService().getUsersByPerson(person, false);
+        if (users.size() < 1) {
+            // This is a server error.
+            throw new IllegalStateException("There is no user for the associated provider");
+        }
+        return users.get(0);
+    }
+
+    public static @Nullable User getUserFromProviderUuid(@Nullable String providerUuid) {
+        if (providerUuid == null) {
+            return null;
+        }
+        Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
+        return getUserFromProvider(provider);
+    }
+
+    public static @Nullable Provider getProviderFromUser(@Nullable User user) {
+        if (user == null) {
+            return null;
+        }
+        Person person = user.getPerson();
+        Iterator<Provider> providers =
+                Context.getProviderService().getProvidersByPerson(person).iterator();
+        if (providers.hasNext()) {
+            return providers.next();
+        } else {
+            return null;
         }
     }
 }

@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
@@ -19,7 +20,6 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.User;
-import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
@@ -31,34 +31,40 @@ import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.resource.api.Deletable;
 import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
+
+import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
 
 /**
  * Rest API for orders.
- * <p/>
  * <p>Expected behavior:
  * <ul>
- * <li>GET /order?patient=[UUID] returns all orders for a patient ({@link #search(RequestContext)})
- * <li>GET /order/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
- * <li>POST /order?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
+ * <li>GET /orders returns all orders
+ * <li>GET /orders?since=[bookmark] returns all orders since the last server-provided bookmark.
+ * <li>GET /orders/[UUID] returns a single order ({@link #retrieve(String, RequestContext)})
+ * <li>POST /orders?patient=[UUID] creates an order for a patient ({@link #create(SimpleObject,
  * RequestContext)}
- * <li>POST /order/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
+ * <li>POST /orders/[UUID] updates a order ({@link #update(String, SimpleObject, RequestContext)})
  * </ul>
  * <p/>
  * <p>Each operation handles Order resources in the following JSON form:
@@ -67,6 +73,7 @@ import java.util.Set;
  * {
  *   "uuid": "e5e755d4-f646-45b6-b9bc-20410e97c87c", // assigned by OpenMRS, not required for
  *   creation
+ *   "voided": false, // If true, fields other than UUID are not guaranteed to be set.
  *   "instructions": "Paracetamol 2 tablets 3x/day",
  *   "start_millis": 1438711253000,
  *   "stop_millis": 1438714253000  // optionally present
@@ -90,120 +97,112 @@ import java.util.Set;
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class OrderResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
-    static final User CREATOR = new User(1);  // fake value
-    static final RequestLogger logger = RequestLogger.LOGGER;
-    static Log log = LogFactory.getLog(OrderResource.class);
-    static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
+public class OrderResource implements
+        Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
+    private static final RequestLogger logger = RequestLogger.LOGGER;
+    private static final Log log = LogFactory.getLog(OrderResource.class);
 
-    final PatientService patientService;
-    final OrderService orderService;
-    final ProviderService providerService;
-    final ConceptService conceptService;
-    final EncounterService encounterService;
+    // JSON fields
+    public static final String PATIENT_UUID = "patient_uuid";
+    public static final String INSTRUCTIONS = "instructions";
+    public static final String START_MILLIS = "start_millis";
+    public static final String STOP_MILLIS = "stop_millis";
+    public static final String UUID = "uuid";
+    public static final String VOIDED = "voided";
+    public static final String ORDERER_UUID = "orderer_uuid";
+
+    private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
+
+    private static final int MAX_ORDERS_PER_PAGE = 500;
+
+    // Allow all order actions except discontinues, because the client doesn't represent those.
+    private static final Order.Action[] ALLOWABLE_ACTIONS =
+            ArrayUtils.removeElement(Order.Action.values(), Order.Action.DISCONTINUE);
+
+    private final PatientService patientService;
+    private final OrderService orderService;
+    private final ProviderService providerService;
+    private final EncounterService encounterService;
+    private final ProjectBuendiaService buendiaService;
 
     public OrderResource() {
         patientService = Context.getPatientService();
         orderService = Context.getOrderService();
         providerService = Context.getProviderService();
-        conceptService = Context.getConceptService();
         encounterService = Context.getEncounterService();
+        buendiaService = Context.getService(ProjectBuendiaService.class);
     }
 
-    @Override public SimpleObject getAll(RequestContext context) throws ResponseException {
-        try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = getAllInner();
-            logger.reply(context, this, "getAll", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
-            throw e;
-        }
+    @Override
+    public SimpleObject getAll(RequestContext context) throws ResponseException {
+        return search(context);
     }
 
-    private SimpleObject getAllInner() throws ResponseException {
-        return getSimpleObjectWithResults(getAllOrders());
-    }
+    private SimpleObject handleSync(RequestContext context) throws ResponseException {
+        SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        Date requestTime = new Date();
 
-    SimpleObject getSimpleObjectWithResults(Collection<Order> orders) {
+        SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
+                syncToken,
+                syncToken != null /* includeVoided */,
+                MAX_ORDERS_PER_PAGE /* maxResults */,
+                ALLOWABLE_ACTIONS);
+
         List<SimpleObject> jsonResults = new ArrayList<>();
-        for (Order order : orders) {
+        for (Order order : orders.results) {
             jsonResults.add(orderToJson(order));
         }
-        SimpleObject json = new SimpleObject();
-        json.add("results", jsonResults);
-        return json;
-    }
-
-    public Collection<Order> getAllOrders() {
-        Map<String, Order> orders = new HashMap<>();
-        Set<String> previousOrderUuids = new HashSet<>();
-        for (Encounter encounter : encounterService.getEncounters(
-            null, null, null, null, null, null, null, null, null, false)) {
-            for (Order order : encounter.getOrders()) {
-                orders.put(order.getUuid(), order);
-                if (order.getPreviousOrder() != null) {
-                    previousOrderUuids.add(order.getPreviousOrder().getUuid());
-                }
-            }
-        }
-        for (String uuid : previousOrderUuids) {
-            orders.remove(uuid);
-        }
-        return orders.values();
+        SyncToken newToken =
+                SyncTokenUtils.clampSyncTokenToBufferedRequestTime(orders.syncToken, requestTime);
+        // If we fetched a full page, there's probably more data available.
+        boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
+        return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
     }
 
     /** Serializes an order to JSON. */
-    protected static SimpleObject orderToJson(Order order) {
+    private static SimpleObject orderToJson(Order order) {
+        // The UUID we send to the client is actually the UUID of the order at the head of the
+        // revision chain...
+        Order rootOrder = Utils.getRootOrder(order);
+        // but the data we supply comes from the latest revision in the chain.
+        order = getLatestVersion(rootOrder);
+
         SimpleObject json = new SimpleObject();
         if (order != null) {
-            json.add("uuid", order.getUuid());
-            json.add("patient_uuid", order.getPatient().getUuid());
+            json.add(UUID, rootOrder.getUuid());
+            json.add(VOIDED, order.isVoided());
+            if (order.isVoided()) {
+                return json;
+            }
+            json.add(PATIENT_UUID, order.getPatient().getUuid());
             String instructions = order.getInstructions();
             if (instructions != null) {
-                json.add("instructions", instructions);
+                json.add(INSTRUCTIONS, instructions);
             }
             Date start = order.getScheduledDate();
             if (start != null) {
-                json.add("start_millis", start.getTime());
+                json.add(START_MILLIS, start.getTime());
             }
-            Date stop = order.getAutoExpireDate();
-            if (stop != null) {
-                json.add("stop_millis", stop.getTime());
-            }
+            Date stop = firstNonNull(order.getDateStopped(), order.getAutoExpireDate());
+            json.add(STOP_MILLIS, stop == null ? null : stop.getTime());
         }
         return json;
     }
 
-    @Override public SimpleObject search(RequestContext context) throws ResponseException {
+    @Override
+    public SimpleObject search(RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "getAll");
-            SimpleObject result = searchInner(getPatient(context));
-            logger.reply(context, this, "getAll", result);
+            logger.request(context, this, "handleSync");
+            SimpleObject result = handleSync(context);
+            logger.reply(context, this, "handleSync", result);
             return result;
         } catch (Exception e) {
-            logger.error(context, this, "getAll", e);
+            logger.error(context, this, "handleSync", e);
             throw e;
         }
     }
 
-    SimpleObject searchInner(Patient patient) throws ResponseException {
-        return getSimpleObjectWithResults(patient == null ?
-            getAllOrders() :
-            orderService.getAllOrdersByPatient(patient));
-    }
-
-    Patient getPatient(RequestContext context) {
-        String patientUuid = context.getParameter("patient");
-        if (patientUuid == null) return null;
-        Patient patient = patientService.getPatientByUuid(patientUuid);
-        if (patient == null) {
-            throw new ObjectNotFoundException();
-        }
-        return patient;
-    }
-
+    @Override
     public Object create(SimpleObject json, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "create", json);
@@ -216,50 +215,177 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
-    Object createInner(SimpleObject json) throws ResponseException {
+    private Object createInner(SimpleObject json) throws ResponseException {
         Order order = jsonToOrder(json);
         orderService.saveOrder(order, null);
         return orderToJson(order);
     }
 
     /** Creates a new Order and a corresponding Encounter containing it. */
-    protected Order jsonToOrder(SimpleObject json) {
-        String patientUuid = (String) json.get("patient_uuid");
-        if (patientUuid == null) {
-            throw new IllegalArgumentException("Required key 'patient_uuid' is missing");
-        }
-        Patient patient = patientService.getPatientByUuid(patientUuid);
-        if (patient == null) {
-            throw new ObjectNotFoundException();
-        }
-        String instructions = (String) json.get("instructions");
-        if (instructions == null || instructions.isEmpty()) {
-            throw new IllegalArgumentException("Required key 'instructions' is missing or empty");
-        }
-        Long startMillis = (Long) json.get("start_millis");
-        Date startDate = startMillis == null ? new Date() : new Date(startMillis);
-        Long stopMillis = (Long) json.get("stop_millis");
-        Date stopDate = stopMillis == null ? null : new Date(stopMillis);
-
-        Order order = new Order();  // an excellent band
-        order.setCreator(CREATOR);  // TODO: do this properly from authentication
-        order.setEncounter(createEncounter(patient, new Date()));
-        order.setOrderer(getProvider());
-        order.setOrderType(DbUtil.getMiscOrderType());
-        order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
-        order.setConcept(getFreeTextOrderConcept());
-        order.setDateCreated(new Date());
-        order.setPatient(patient);
-        order.setInstructions(instructions);
-        order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-        order.setScheduledDate(startDate);
-        order.setAutoExpireDate(stopDate);
+    private Order jsonToOrder(SimpleObject json) {
+        Order order = new Order();
+        populateFromJson(order, json);
+        populateDefaultsForAllOrders(order);
+        populateDefaultsForNewOrder(order);
         return order;
     }
 
-    Encounter createEncounter(Patient patient, Date encounterDateTime) {
+    /**
+     * Finds the last order in the chain containing the given order. We need to do this instead of
+     * using {@link OrderService#getRevisionOrder(Order)} because {@code getRevisionOrder(Order)}
+     * only gets orders that have an action of {@link org.openmrs.Order.Action#REVISE}. To use
+     * {@code REVISE}, the previous order needs to have not expired, which we can't guarantee.
+     * </ul>
+     */
+    public static Order getLatestVersion(Order order) {
+        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
+        Map<String, String> nextOrderUuids = new HashMap<>();
+        for (Order o : Context.getOrderService().getAllOrdersByPatient(order.getPatient())) {
+            Order prev = o.getPreviousOrder();
+            if (prev != null) {
+                nextOrderUuids.put(prev.getUuid(), o.getUuid());
+            }
+        }
+
+        // Walk forward until the end of the chain.
+        String uuid = order.getUuid();
+        String nextUuid = nextOrderUuids.get(uuid);
+        while (nextUuid != null) {
+            uuid = nextUuid;
+            nextUuid = nextOrderUuids.get(uuid);
+        }
+        return Context.getOrderService().getOrderByUuid(uuid);
+    }
+
+    /**
+     * Populates data for an order that was created with the Buendia API. This should be done for
+     * both new orders and revisions.
+     */
+    private void populateDefaultsForAllOrders(Order order) {
+        Provider orderer = order.getOrderer();
+        // Populate with a default orderer if none is supplied.
+        if (orderer == null) {
+            order.setOrderer(getProvider());
+        }
+        // Will be null if `orderer` is null.
+        User creator = Utils.getUserFromProvider(orderer);
+        order.setEncounter(createEncounter(order.getPatient(), creator, new Date()));
+    }
+
+    /**
+     * Populates data for a NEW order that was created with the Buendia API. This should not be used
+     * for revisions, because it may overwrite data set by another source.
+     */
+    private void populateDefaultsForNewOrder(Order order) {
+        order.setOrderType(DbUtil.getMiscOrderType());
+        order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
+        order.setConcept(getFreeTextOrderConcept());
+        order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
+    }
+
+    /**
+     * Populates an {@link Order} from a JSON representation. Overwrites fields from the JSON where
+     * this is valid (all fields except for {@link #PATIENT_UUID}).
+     * @param order The order to update
+     * @param json The JSON representation to draw updates from.
+     * @return {@code true} if the Order was changed.
+     */
+    private boolean populateFromJson(Order order, SimpleObject json) {
+        boolean changed = false;
+        for (Map.Entry<String, Object> entry : json.entrySet()) {
+            final Object value = entry.getValue();
+            switch (entry.getKey()) {
+                case PATIENT_UUID: {
+                    if (value == null) {
+                        throw new IllegalPropertyException(PATIENT_UUID + " cannot be null");
+                    }
+                    if (!(value instanceof String)) {
+                        throw new IllegalPropertyException(
+                                "Illegal format for " + PATIENT_UUID + ", expected string");
+                    }
+                    String patientUuid = (String) value;
+                    if (order.getPatient() != null) {
+                        if (Objects.equals(order.getPatient().getUuid(), patientUuid)) {
+                            // Patient hasn't changed, keep going
+                            continue;
+                        }
+                        throw new IllegalPropertyException("Can't modify " + PATIENT_UUID);
+                    }
+                    Patient patient = patientService.getPatientByUuid(patientUuid);
+                    if (patient == null) {
+                        throw new IllegalPropertyException(
+                                "Patient with UUID " + patientUuid + " does not exist.");
+                    }
+                    order.setPatient(patient);
+                    changed = true;
+                } break;
+
+                case INSTRUCTIONS: {
+                    if (!(value instanceof String)) {
+                        throw new IllegalPropertyException(
+                                "Illegal format for " + INSTRUCTIONS + ", expected string");
+                    }
+                    if (Objects.equals(order.getInstructions(), value)) {
+                        // No change
+                        continue;
+                    }
+                    order.setInstructions((String) value);
+                    changed = true;
+                } break;
+
+                case START_MILLIS: {
+                    Date dateVal = objectToDate(value, START_MILLIS);
+                    if (Objects.equals(order.getScheduledDate(), dateVal)) {
+                        // No change
+                        continue;
+                    }
+                    order.setScheduledDate(dateVal);
+                    changed = true;
+                } break;
+
+                case STOP_MILLIS: {
+                    Date dateVal = objectToDate(value, STOP_MILLIS);
+                    if (Objects.equals(order.getAutoExpireDate(), dateVal)) {
+                        // No change
+                        continue;
+                    }
+                    order.setAutoExpireDate(dateVal);
+                    changed = true;
+                } break;
+
+                case ORDERER_UUID: {
+                    if (!(value instanceof String)) {
+                        throw new IllegalPropertyException(
+                                "Illegal format for " + ORDERER_UUID + ", expected string");
+                    }
+                    order.setCreator(Utils.getUserFromProviderUuid((String) value));
+                    order.setOrderer(
+                            providerService.getProviderByUuid((String) value));
+                } break;
+
+                default: {
+                    log.warn(
+                            "Key '" + entry.getKey() + "' is not the name of an editable property");
+                } break;
+            }
+        }
+        return changed;
+    }
+
+    private static Date objectToDate(Object value, String fieldName) {
+        Long millis;
+        try {
+            millis = Utils.asLong(value);
+        } catch (ClassCastException ex) {
+            throw new IllegalPropertyException(
+                    "Illegal format for " + fieldName + ", expected number");
+        }
+        return millis == null ? null : new Date(millis);
+    }
+
+    private Encounter createEncounter(Patient patient, User creator, Date encounterDateTime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(CREATOR);  // TODO: do this properly from authentication
+        encounter.setCreator(creator);
         encounter.setEncounterDatetime(encounterDateTime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());
@@ -268,23 +394,25 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return encounter;
     }
 
-    Provider getProvider() {
+    private Provider getProvider() {
         return providerService.getAllProviders(false).get(0); // omit retired
     }
 
-    Concept getFreeTextOrderConcept() {
+    private static Concept getFreeTextOrderConcept() {
         return DbUtil.getConcept(
             "Order described in free text instructions",
             FREE_TEXT_ORDER_UUID, "N/A", "Misc");
     }
 
-    @Override public String getUri(Object instance) {
+    @Override
+    public String getUri(Object instance) {
         Order order = (Order) instance;
         Resource res = getClass().getAnnotation(Resource.class);
         return RestConstants.URI_PREFIX + res.name() + "/" + order.getUuid();
     }
 
-    @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+    @Override
+    public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
             logger.request(context, this, "retrieve", uuid);
             Object result = retrieveInner(uuid);
@@ -296,7 +424,7 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         }
     }
 
-    Object retrieveInner(String uuid) throws ResponseException {
+    private Object retrieveInner(String uuid) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
         if (order == null) {
             throw new ObjectNotFoundException();
@@ -304,8 +432,9 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
         return orderToJson(order);
     }
 
-    @Override public List<Representation> getAvailableRepresentations() {
-        return Arrays.asList(Representation.DEFAULT);
+    @Override
+    public List<Representation> getAvailableRepresentations() {
+        return Collections.singletonList(Representation.DEFAULT);
     }
 
     @Override
@@ -323,71 +452,86 @@ public class OrderResource implements Listable, Searchable, Retrievable, Creatab
     }
 
     /**
-     * Receives a SimpleObject that is parsed from the Gson serialization of a client-side
-     * Order bean.  It has the following semantics:
+     * Updates an Order from the JSON representation. This method has the following semantics:
      * <ul>
      * <li>Any field that is set overwrites the current content
      * <li>Any field with a key but value == null deletes the current content
      * <li>Any field whose key is not present leaves the current content unchanged
-     * <li>If the client requests a change that is illegal, that is an error. Really the
-     * whole call should fail, but for now there may be partial updates
+     * <li>If the client requests a change that is illegal, that is an error. The whole call will
+     * fail in this case.
      * </ul>
      */
-    Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
+    private Object updateInner(String uuid, SimpleObject simpleObject) throws ResponseException {
+        Order order = orderService.getOrderByUuid(uuid);
+        if (order == null || order.isVoided()) {
+            throw new ObjectNotFoundException();
+        }
+
+        // Skip ahead to the latest order in the chain.
+        order = getLatestVersion(order);
+
+        Order revisedOrder = reviseOrder(order, simpleObject);
+
+        // Don't update anything, there's no changes.
+        if (revisedOrder == null) {
+            return orderToJson(order);
+        }
+
+        orderService.saveOrder(revisedOrder, null);
+        return orderToJson(revisedOrder);
+    }
+
+    /** Revises an order.  Returns null if no changes were made. */
+    private Order reviseOrder(Order order, SimpleObject edits) {
+        Order newOrder = order.cloneForRevision();
+        boolean changed = populateFromJson(newOrder, edits);
+        if (!changed) {
+            return null;
+        }
+        populateDefaultsForAllOrders(newOrder);
+
+        // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore, for
+        // such orders, we have to store revisions with the NEW action instead of the REVISE action.
+        if (orderHasExpired(order)) {
+            newOrder.setAction(Order.Action.NEW);
+        }
+        return newOrder;
+    }
+
+    @Override
+    public void delete(String uuid, String reason, RequestContext context)
+            throws ResponseException {
+        try {
+            logger.request(context, this, "delete", uuid);
+            deleteInner(uuid);
+            logger.reply(context, this, "delete", "returned");
+        } catch (Exception e) {
+            logger.error(context, this, "delete", e);
+            throw e;
+        }
+    }
+
+    public void deleteInner(String uuid) throws ResponseException {
         Order order = orderService.getOrderByUuid(uuid);
         if (order == null) {
             throw new ObjectNotFoundException();
         }
-
-        Order revisedOrder = reviseOrder(order, simpleObject);
-        if (revisedOrder != null) {
-            orderService.saveOrder(revisedOrder, null);
-            order = revisedOrder;
+        if (order.isVoided()) {
+            return;
         }
-        return orderToJson(order);
+
+        // Void all orders in the chain.
+        Order orderToVoid = getLatestVersion(order);
+        do {
+            orderService.voidOrder(orderToVoid,
+                    "Voided by Buendia Android client in delete request");
+            orderToVoid = orderToVoid.getPreviousOrder();
+        } while (orderToVoid != null);
     }
 
-    /** Revises an order.  Returns null if no changes were made. */
-    protected Order reviseOrder(Order order, SimpleObject edits) {
-        Order newOrder = order.cloneForRevision();
-        boolean changed = false;
-
-        for (String key : edits.keySet()) {
-            Object value = edits.get(key);
-            switch (key) {
-                case "stop":
-                    if (value == null) {
-                        newOrder.setAutoExpireDate(null);
-                        changed = true;
-                    } else if (value instanceof Integer) {
-                        newOrder.setAutoExpireDate(new Date((Integer) value));
-                        changed = true;
-                    } else {
-                        log.warn("Key '" + key + "' has value of invalid type: " + value);
-                    }
-                    break;
-
-                case "instructions":
-                    if (value instanceof String) {
-                        newOrder.setInstructions((String) value);
-                        changed = true;
-                    } else {
-                        log.warn("Key '" + key + "' has value of invalid type: " + value);
-                    }
-                    break;
-
-                default:
-                    log.warn("Key '" + key + "' is not the name of an editable property");
-                    break;
-            }
-        }
-
-        if (!changed) return null;
+    private static boolean orderHasExpired(Order order) {
         Date now = new Date();
-        newOrder.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
-        newOrder.setScheduledDate(now);
-        newOrder.setEncounter(createEncounter(order.getPatient(), now));
-        newOrder.setOrderer(getProvider());
-        return newOrder;
+        return (order.getDateStopped() != null && order.getDateStopped().before(now))
+                || (order.getAutoExpireDate() != null && order.getAutoExpireDate().before(now));
     }
 }

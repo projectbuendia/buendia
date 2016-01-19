@@ -15,7 +15,10 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
+import org.openmrs.User;
 import org.openmrs.api.PatientService;
+import org.openmrs.api.ProviderService;
+import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -94,9 +97,13 @@ public class XformInstanceResource implements Creatable {
     }
 
     private final PatientService patientService;
+    private final ProviderService providerService;
+    private final UserService userService;
 
     public XformInstanceResource() {
         patientService = Context.getPatientService();
+        providerService = Context.getProviderService();
+        userService = Context.getUserService();
     }
 
     @Override public String getUri(Object instance) {
@@ -122,7 +129,7 @@ public class XformInstanceResource implements Creatable {
     private Object createInner(SimpleObject post, RequestContext context) throws ResponseException {
         try {
             // We have to fix a few things before OpenMRS will accept the form.
-            String xml = completeXform(convertIdIfNecessary(post));
+            String xml = completeXform(convertUuidsToIds(post));
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
@@ -206,20 +213,39 @@ public class XformInstanceResource implements Creatable {
         return XformsUtil.doc2String(doc);
     }
 
-    /** Fill in any missing "id" property by converting the UUID to a person_id. */
-    private SimpleObject convertIdIfNecessary(SimpleObject post) {
-        Object patientId = post.get("patient_id");
-
-        if (patientId != null) return post;
-
-        String uuid = (String) post.get("patient_uuid");
-        if (uuid != null) {
-            Patient patient = patientService.getPatientByUuid(uuid);
-            if (patient == null) {
-                throw new IllegalPropertyException("Patient UUID did not exist: " + uuid);
+    /**
+     * Fill in any missing "id" property by converting the UUID to a person_id.
+     * <p>
+     * <b>NOTE:</b> We're moving away from this model of allowing either {@code patient_id} or
+     * {@code patient_uuid}, because {@code patient_id} is an internal-only identifier and shouldn't
+     * be known by the client under any circumstances. We keep this behavior for the time being
+     * because the tests currently depend on it.
+     * <p>
+     * TODO: replace this conversion logic with a hard requirement for both patient_uuid and
+     * enterer_uuid.
+     */
+    private SimpleObject convertUuidsToIds(SimpleObject post) {
+        if (!post.containsKey("patient_id")) {
+            String uuid = (String) post.get("patient_uuid");
+            if (uuid != null) {
+                Patient patient = patientService.getPatientByUuid(uuid);
+                if (patient == null) {
+                    throw new IllegalPropertyException("Patient UUID does not exist: " + uuid);
+                }
+                post.put("patient_id", patient.getPatientId());
             }
-            post.add("patient_id", patient.getPatientId());
-            return post;
+        }
+
+        if (!post.containsKey("enterer_id")) {
+            String uuid = (String) post.get("enterer_uuid");
+            if (uuid == null) {
+                throw new IllegalPropertyException("Enterer UUID must be set.");
+            }
+            User user = Utils.getUserFromProviderUuid(uuid);
+            if (user == null) {
+                throw new IllegalPropertyException("Provider UUID does not exist: " + uuid);
+            }
+            post.put("enterer_id", user.getUserId());
         }
 
         return post;

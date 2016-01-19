@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import uuid
+import warnings
 
 CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
 LOCALE = 'en_GB_client'
@@ -250,27 +251,32 @@ def apply(tabs):
         for chart_rows in split_by_title(rows):
             put_chart(chart_rows)
 
-    def apply_chart(rows, form_id):
-        """Applies the chart definition given rows from the chart tab."""
-        section = None
-        sections = []
-        section_rows = []
-        for row in rows:
-            if row['section'].strip():
-                if section and section_rows:
-                    sections.append((section, section_rows))
-                section, section_rows = row['section'].strip(), []
-            if validate_str(row['type']) and validate_ints(row['concept']):
-                section_rows.append(row)
-        if section and section_rows:
-            sections.append((section, section_rows))
-        apply_chart_sections(sections, form_id)
-
     def clear_form(form_id):
         """Removes all the form_fields from the given form."""
         db.execute('update form_field set parent_form_field = null'
                    ' where form_id = %s', form_id)  # remove foreign keys
         db.execute('delete from form_field where form_id = %s', form_id)
+
+    def apply_chart(rows, form_id):
+        """Applies the chart definition given rows from the chart tab."""
+        clear_form(form_id)
+        section = None
+        sections = []
+        section_rows = []
+
+        for row in rows:
+            if row['section'].strip():
+                if section and section_rows:
+                    sections.append((section, section_rows))
+                section, section_rows = row['section'].strip(), []
+            if row['title'].strip():
+                sections.append(('[chart_divider]',
+                                 [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
+            if validate_str(row['type']) and validate_ints(row['concept']):
+                section_rows.append(row)
+        if section and section_rows:
+            sections.append((section, section_rows))
+        apply_chart_sections(sections, form_id)
 
     def apply_chart_sections(sections, form_id):
         """
@@ -284,7 +290,10 @@ def apply(tabs):
         clear_form(form_id)
 
         for i, (section, rows) in enumerate(sections):
-            section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
+            if section == '[chart_divider]':
+                section_type = 'CHART_DIVIDER'
+            else:
+                section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
             field_id = get_field_for_section(
                 section, description=json.dumps({'type': section_type}))
             section_id = add_field_to_form(form_id, field_id, None, i + 1)
@@ -339,11 +348,29 @@ def apply(tabs):
     def normalize_name(name):
         return re.sub('[\W_]+', '_', name.lower()).strip('_')
 
+    def create_uuid_from_form_name(name):
+        """
+        Construct a UUID from a form name, and issue a warning if we can't
+        guarantee that the UUID will be unique.
+        """
+        prefix = 'buendia-form-'
+        max_uuid_len = 38
+        max_name_len = max_uuid_len - len(prefix)
+        if len(name) > max_name_len:
+            warnings.warn(
+            "The form name '%s' has been clipped to create a unique form ID. "
+            "Note that if you have another form that starts with the same %d "
+            "characters as this form, the form IDs will collide and only one "
+            "form will be displayed. To fix this, ensure that the first %d "
+            "characters of each form name are unique."
+            % (name, max_name_len, max_name_len) )
+        return prefix + normalize_name(name[:max_name_len])
+
     def put_form(rows):
         adult_return = db.get('encounter_type_id', name='ADULTRETURN')
 
         title = rows[0]['title']
-        uuid = 'buendia-form-' + normalize_name(title)
+        uuid = create_uuid_from_form_name(title)
         form_id = db.get('form_id', uuid=uuid)
         if not form_id:
             form_id = odb.insert('form', name=title, version='1',
