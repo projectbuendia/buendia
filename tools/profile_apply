@@ -453,6 +453,7 @@ def apply(tabs):
                     fn += 1
                     field_id = get_field_for_section('[invisible]')
                     section_id = add_field_to_form(form_id, field_id, None, fn)
+                    begining = False
 
                 if (concept_id and
                     type in ['number', 'text', 'yes_no', 'select_one']):
