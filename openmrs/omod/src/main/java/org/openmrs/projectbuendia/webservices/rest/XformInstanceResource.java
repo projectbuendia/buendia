@@ -249,7 +249,7 @@ public class XformInstanceResource implements Creatable {
             }
             // Person should not be null, every provider has an associated person.
             Person person = provider.getPerson();
-            //
+
             List<User> users = userService.getUsersByPerson(person, false);
             if (users.size() < 1) {
                 // This is a server error.
