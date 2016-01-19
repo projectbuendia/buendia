@@ -141,7 +141,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
                 return Collections.emptyList();
             }
 
-            List list = (List) extendedData.get("concepts");
+            List list = (List) object;
             for (Object obj : list) {
                 if (obj == null) {
                     continue;
