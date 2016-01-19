@@ -12,8 +12,13 @@
 package org.openmrs.projectbuendia;
 
 import org.openmrs.Order;
+import org.openmrs.Person;
+import org.openmrs.Provider;
+import org.openmrs.User;
+import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
+import javax.annotation.Nullable;
 import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.ParseException;
@@ -21,6 +26,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
@@ -182,5 +188,19 @@ public class Utils {
             order = order.getPreviousOrder();
         }
         return order;
+    }
+
+    public static @Nullable Provider getProviderFromUser(@Nullable User user) {
+        if (user == null) {
+            return null;
+        }
+        Person person = user.getPerson();
+        Iterator<Provider> providers =
+                Context.getProviderService().getProvidersByPerson(person).iterator();
+        if (providers.hasNext()) {
+            return providers.next();
+        } else {
+            return null;
+        }
     }
 }

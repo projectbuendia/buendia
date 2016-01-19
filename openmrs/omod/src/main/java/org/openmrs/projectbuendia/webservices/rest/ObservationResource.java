@@ -14,6 +14,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Obs;
+import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -92,6 +93,9 @@ public class ObservationResource implements Listable, Searchable {
             .add("encounter_uuid", obs.getEncounter().getUuid())
             .add("concept_uuid", obs.getConcept().getUuid())
             .add("timestamp", Utils.toIso8601(obs.getObsDatetime()));
+
+        Provider provider = Utils.getProviderFromUser(obs.getCreator());
+        object.add("enterer_uuid", provider != null ? provider.getUuid() : null);
 
         boolean isExecutedOrder =
                 DbUtil.getOrderExecutedConcept().equals(obs.getConcept()) && obs.getOrder() != null;
