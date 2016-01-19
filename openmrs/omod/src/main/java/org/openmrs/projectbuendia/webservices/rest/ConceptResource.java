@@ -25,9 +25,13 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.projectbuendia.ClientConceptNamer;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
+import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -96,14 +100,63 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
             for (FormField formField : chart.getFormFields()) {
                 Field field = formField.getField();
                 Concept fieldConcept = field.getConcept();
-                if (fieldConcept == null) continue;
-                ret.add(fieldConcept);
-                for (ConceptAnswer answer : fieldConcept.getAnswers(false)) {
-                    ret.add(answer.getAnswerConcept());
+                if (fieldConcept != null) {
+                    ret.add(fieldConcept);
+                    for (ConceptAnswer answer : fieldConcept.getAnswers(false)) {
+                        ret.add(answer.getAnswerConcept());
+                    }
+                }
+                // Fetch and add additional concepts that might have been stored in the field
+                // description.
+                for (Concept additionalConcept :
+                        getConceptsFromFieldDescription(field.getDescription())) {
+                    ret.add(additionalConcept);
                 }
             }
         }
         return ret;
+    }
+
+    /**
+     * Buendia supports multiple concepts per field, but OpenMRS does not. To handle this, Buendia
+     * packs additional concept IDs into the JSON field description that it generates in the
+     * {@code profile_apply} script.
+     * <p>
+     * This method extracts those concept IDs and converts them into {@link Concept}s.
+     *
+     * @param fieldDescription The output of {@link Field#getDescription()}.
+     * @return a list of referenced concepts, or an empty list if the field description doesn't
+     * match the expected input format.
+     */
+    private static List<Concept> getConceptsFromFieldDescription(
+            @Nullable String fieldDescription) {
+        if (fieldDescription == null) {
+            return Collections.emptyList();
+        }
+        List<Concept> returnValue = new ArrayList<>();
+        try {
+            SimpleObject extendedData = SimpleObject.parseJson(fieldDescription);
+            Object object = extendedData.get("concepts");
+            if (! (object instanceof List)) {
+                return Collections.emptyList();
+            }
+
+            List list = (List) extendedData.get("concepts");
+            for (Object obj : list) {
+                if (obj == null) {
+                    continue;
+                }
+                // We're ok with a ClassCastException here if this isn't an Integer.
+                Integer conceptId = (Integer) obj;
+                Concept concept = Context.getConceptService().getConcept(conceptId);
+                if (concept == null) {
+                    continue;
+                }
+                returnValue.add(concept);
+            }
+        } catch (IOException ignore) {
+        }
+        return returnValue;
     }
 
     /**
