@@ -144,9 +144,10 @@ def apply(tabs):
     text_datatype = db.get('concept_datatype_id', name='Text')
     answer_datatype = db.get('concept_datatype_id', name='N/A')
     datatypes_by_type = {
-        'yes_no': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
+        'yes_no': coded_datatype,  # no (1066) or yes (1065)
+        'yes_no_unknown': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
         'select_one': coded_datatype,
-        'select_multiple': coded_datatype,  # no (1066) or yes (1065)
+        'select_multiple': coded_datatype,  # set of no (1066) or yes (1065) fields
         'number': numeric_datatype,
         'text': text_datatype,
     }
@@ -467,9 +468,12 @@ def apply(tabs):
                     section_id = add_field_to_form(form_id, field_id, None, fn)
 
                 if (concept_id and
-                    type in ['number', 'text', 'yes_no', 'select_one']):
+                    type in ['number', 'text', 'yes_no', 'yes_no_unknown', 'select_one']):
                     put_concept(concept_id, label, LOCALE, datatype, obs_class)
                     if type == 'yes_no':
+                        # Answers are: no (1066) or yes (1065)
+                        set_concept_answers(concept_id, [1066, 1065])
+                    elif type == 'yes_no_unknown':
                         # Answers are: unknown (1067), no (1066), or yes (1065)
                         set_concept_answers(concept_id, [1067, 1066, 1065])
                     if datatype == numeric_datatype:
