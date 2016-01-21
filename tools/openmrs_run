@@ -12,17 +12,51 @@
 
 # Starts a local OpenMRS server for development.
 
+## Usage:
+##   tools/openmrs_run [-p PORTNUM] [--debug]
+##
+## Note that it's possible to change the OpenMRS server ID by setting OPENMRS_SERVER.
+
 set -e
-SERVER_ID=server
+
+PORT="9000"
+DEBUG=0
+
+while [[ $# > 0 ]]
+  do
+  key="$1"
+
+  case $key in
+    -p)
+      PORT="$2"
+      shift # past argument
+      ;;
+    --debug)
+      DEBUG=1
+      ;;
+  esac
+  shift # past argument or value
+done
+
+
+if [ -z "$OPENMRS_SERVER" ]; then
+  SERVER_ID="server"
+else
+  SERVER_ID="$OPENMRS_SERVER"
+fi
 
 # Serve on port 9000 to match production.
-PORT_OPTS="-Djetty.port=9000"
+PORT_OPTS="-Djetty.port=$PORT"
 
 # Increase memory limits.
 MEMORY_OPTS="-Xmx2G -XX:MaxPermSize=128m"
 
 # Enable remote debugging.
-DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+if [ "$DEBUG" -eq 1 ]; then
+  DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+else
+  DEBUG_OPTS=""
+fi
 
 # Go to the OpenMRS installation directory.
 if [ ! -d $HOME/openmrs/$SERVER_ID ]; then

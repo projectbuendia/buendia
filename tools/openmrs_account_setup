@@ -15,22 +15,44 @@
 set -e
 openmrs_user="$1"
 openmrs_password="$2"
+
+function usage() {
+  echo "Usage: $0 <username> <password>"
+  echo
+  echo "Sets up an OpenMRS user with the given username and password"
+  echo "as the account to be used for Buendia API requests.  If the"
+  echo "OpenMRS user account already exists, changes its password."
+  echo
+  echo 'Requires a MySQL user that has been granted database access with'
+  echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
+  echo 'Specify the user, password and database with $MYSQL_USER, $MYSQL_PASSWORD and $MYSQL_DB'
+  echo ' respectively.'
+  echo
+}
+
 if [ -z "$openmrs_password" ]; then
-    echo "Usage: $0 <username> <password>"
-    echo
-    echo "Sets up an OpenMRS user with the given username and password"
-    echo "as the account to be used for Buendia API requests.  If the"
-    echo "OpenMRS user account already exists, changes its password."
-    echo
-    echo 'Requires a MySQL user that has been granted database access with'
-    echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
-    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
-    echo
+    usage
     exit 1
 fi
 
 if [ -z "$MYSQL_USER" ]; then
-    echo '$MYSQL_USER is not set; please set $MYSQL_USER and $MYSQL_PASSWORD.'
+    echo '$MYSQL_USER is not set; please set $MYSQL_USER, $MYSQL_PASSWORD and $MYSQL_DB.'
+    echo
+    usage
+    exit 1
+fi
+
+if [ -z "$MYSQL_PASSWORD" ]; then
+    echo '$MYSQL_PASSWORD is not set; please set $MYSQL_USER, $MYSQL_PASSWORD and $MYSQL_DB.'
+    echo
+    usage
+    exit 1
+fi
+
+if [ -z "$MYSQL_DB" ]; then
+    echo '$MYSQL_DB is not set; please set $MYSQL_USER, $MYSQL_PASSWORD and $MYSQL_DB.'
+    echo
+    usage
     exit 1
 fi
 
@@ -43,7 +65,7 @@ PERSON_UUID=a0e512fd-a6e0-11e4-b418-040ccecfdba4
 PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
 
 # Ensure MySQL is running.
-MYSQL="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD openmrs"
+MYSQL="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DB"
 
 # If there is no user account with the expected UUID, add one.
 if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1; then
