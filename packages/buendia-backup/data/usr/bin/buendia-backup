@@ -16,6 +16,7 @@ export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 name=$(basename $0)
 root=$1
 limit=$2
+success=false
 
 if [ "$root" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <backup-root-path> [<kilobytes>]"
@@ -40,6 +41,19 @@ fi
 backup_id=$(date +'%Y-%m-%d')
 tmp="/tmp/buendia-backup.$$"
 
+# report any backup errors to file for Yocto LED reporting
+report_exit_status() {
+	if $success; then
+		echo 1 > /home/buendia/server_status.txt;
+	else
+		echo 4 > /home/buendia/server_status.txt;
+	fi
+}
+trap report_exit_status EXIT
+
+# report 'backup started'
+echo 2 > /home/buendia/server_status.txt
+
 # Mount the given device, if necessary.
 if [ -b "$root" ]; then
     echo "$root is a block device; mounting..."
@@ -53,7 +67,7 @@ if [ -b "$root" ]; then
     old_dir="$root/old-$$.$backup_id"
     final_deb="$root/packages"
     new_deb="$new_dir/packages"
-    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; cd /; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; cd /; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir; report_exit_status;' EXIT
 
     if [ -n "$limit" ]; then
         percent=limit
@@ -69,7 +83,7 @@ elif [ -d "$root" -o ! -e "$root" ]; then
     old_dir="$root/old-$$.$backup_id"
     final_deb="$root/packages"
     new_deb="$new_dir/packages"
-    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"' EXIT
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; report_exit_status' EXIT
 
 else
     echo "$root is neither a block device nor a directory."
@@ -83,6 +97,9 @@ mkdir -p "$tmp" "$new_dir" "$old_dir" "$new_deb"
 # First we'll write everything to $new_dir, then move it to $final_dir.  The
 # move is atomic because $new_dir is in the same filesystem as $root.
 echo "Backing up to $final_dir..."
+
+# report 'backup processing' to file for Yocto LED reporting
+echo 3 > /home/buendia/server_status.txt
 
 # Mark the new backup subdirectory as a directory to keep.  Since
 # buendia-limit removes the oldest files first, the presence of this file
@@ -158,6 +175,10 @@ sync
 # Now atomically commit the backup.
 mv "$new_dir" "$final_dir"
 echo Done.
+
+# report 'backup succeeded' to file for Yocto LED reporting
+success=true
+echo 1 > /home/buendia/server_status.txt
 
 # ---- Sweep all the packages in completed backups into a common directory.
 
