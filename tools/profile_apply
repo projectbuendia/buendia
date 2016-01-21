@@ -147,7 +147,7 @@ def apply(tabs):
         'yes_no': coded_datatype,  # no (1066) or yes (1065)
         'yes_no_unknown': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
         'select_one': coded_datatype,
-        'select_multiple': coded_datatype,  # set of no (1066) or yes (1065) fields
+        'select_multiple': coded_datatype,  # set of 'yes_no' fields
         'number': numeric_datatype,
         'text': text_datatype,
     }
