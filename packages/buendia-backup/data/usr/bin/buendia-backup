@@ -51,11 +51,11 @@ report_exit_status() {
 }
 trap report_exit_status EXIT
 
-# report 'backup started'
-echo 2 > /home/buendia/server_status.txt
-
 # Mount the given device, if necessary.
 if [ -b "$root" ]; then
+    # report 'backing up to USB'
+    echo 3 > /home/buendia/server_status.txt
+
     echo "$root is a block device; mounting..."
     mnt_dir="/mnt/$name.$$.$(basename $root)"
     mkdir -p "$mnt_dir"
@@ -77,6 +77,9 @@ if [ -b "$root" ]; then
     fi
 
 elif [ -d "$root" -o ! -e "$root" ]; then
+    # report 'internal backup started'
+    echo 2 > /home/buendia/server_status.txt
+
     mkdir -p "$root"
     final_dir="$root/backup.$backup_id"
     new_dir="$root/new-$$.$backup_id"
@@ -97,9 +100,6 @@ mkdir -p "$tmp" "$new_dir" "$old_dir" "$new_deb"
 # First we'll write everything to $new_dir, then move it to $final_dir.  The
 # move is atomic because $new_dir is in the same filesystem as $root.
 echo "Backing up to $final_dir..."
-
-# report 'backup processing' to file for Yocto LED reporting
-echo 3 > /home/buendia/server_status.txt
 
 # Mark the new backup subdirectory as a directory to keep.  Since
 # buendia-limit removes the oldest files first, the presence of this file
