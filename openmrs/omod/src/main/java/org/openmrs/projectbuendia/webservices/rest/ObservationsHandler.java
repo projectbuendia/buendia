@@ -11,22 +11,26 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
+import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
+import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
+import org.openmrs.User;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 
+import javax.annotation.Nullable;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -51,13 +55,8 @@ public class ObservationsHandler {
      * </pre>
      */
 
-    private static Log log = LogFactory.getLog(ObservationsHandler.class);
-    private static final String OBSERVATIONS = "observations";
-    private static final String QUESTION_UUID = "question_uuid";
-    private static final String ANSWER_DATE = "answer_date";
-    private static final String ANSWER_NUMBER = "answer_number";
-    private static final String ANSWER_UUID = "answer_uuid";
-    private static final String ORDER_UUID = "order_uuid";
+    private static final String KEY_QUESTION_UUID = "question_uuid";
+    private static final String KEY_ANSWER = "answer_value";
 
     /**
      * Adds a new encounter with the given observations and orders.
@@ -68,11 +67,12 @@ public class ObservationsHandler {
      * @param changeMessage     a message to be recorded with the observation
      * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
      * @param locationUuid      the UUID of the location where the encounter happened
+     * @param entererUuid      optional. The UUID of the provider who entered the encounter.
      */
     public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
-                                         Date encounterTime, String changeMessage, String
-                                             encounterTypeName,
-                                         String locationUuid) {
+                                         Date encounterTime, String changeMessage,
+                                         String encounterTypeName, String locationUuid,
+                                         @Nullable String entererUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = Utils.fixEncounterDateTime(encounterTime);
@@ -87,16 +87,22 @@ public class ObservationsHandler {
             throw new InvalidObjectDataException("Encounter type not found: " + encounterTypeName);
         }
 
+        @Nullable User enterer = Utils.getUserFromProviderUuid(entererUuid);
+
         List<Obs> obsList = new ArrayList<>();
         if (observations != null) {
             for (Object observation : observations) {
-                obsList.add(jsonObservationToObs(observation, patient, encounterTime, location));
+                Obs obs = jsonObservationToObs(observation, patient, encounterTime, location);
+                obs.setCreator(enterer);
+                obsList.add(obs);
             }
         }
 
         if (orderUuids != null) {
             for (Object item : orderUuids) {
-                obsList.add(orderUuidToObs((String) item, patient, encounterTime, location));
+                Obs obs = orderUuidToObs((String) item, patient, encounterTime, location);
+                obs.setCreator(enterer);
+                obsList.add(obs);
             }
         }
 
@@ -106,6 +112,15 @@ public class ObservationsHandler {
         encounter.setPatient(patient);
         encounter.setLocation(location);
         encounter.setEncounterType(encounterType);
+
+        // Maybe set provider
+        Provider provider = Utils.getProviderFromUser(enterer);
+        if (provider != null) {
+            EncounterRole encounterRole = Context.getEncounterService()
+                    .getEncounterRoleByUuid(EncounterRole.UNKNOWN_ENCOUNTER_ROLE_UUID);
+            encounter.setProvider(encounterRole, provider);
+        }
+
         encounter = encounterService.saveEncounter(encounter);
 
         ObsService obsService = Context.getObsService();
@@ -118,59 +133,80 @@ public class ObservationsHandler {
         return encounter;
     }
 
-    static Obs jsonObservationToObs(Object jsonObservation, Patient patient,
+    public static Obs jsonObservationToObs(Object jsonObservation, Patient patient,
                                     Date encounterTime, Location location) {
         Map observationObject = (Map) jsonObservation;
-        String questionUuid = (String) observationObject.get(QUESTION_UUID);
+        String questionUuid = (String) observationObject.get(KEY_QUESTION_UUID);
         ConceptService conceptService = Context.getConceptService();
         Concept questionConcept = conceptService.getConceptByUuid(questionUuid);
         if (questionConcept == null) {
-            log.warn("Question concept not found: " + questionUuid);
-            return null;
+            throw new InvalidObjectDataException("Question concept not found: " + questionUuid);
         }
         Obs obs = new Obs(patient, questionConcept, encounterTime, location);
-        String answerUuid = (String) observationObject.get(ANSWER_UUID);
-        String answerDate = (String) observationObject.get(ANSWER_DATE);
-        String answerNumber = (String) observationObject.get(ANSWER_NUMBER);
-        if (answerUuid != null) {
-            Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
-            if (answerConcept == null) {
-                log.warn("Answer concept not found: " + answerUuid);
-                return null;
+        String answer = (String) observationObject.get(KEY_ANSWER);
+        ConceptDatatype conceptDatatype = questionConcept.getDatatype();
+        try {
+            // OpenMRS's setValueAsString method parses strings using the local server timezone,
+            // instead of GMT. This can result in date values getting shifted. We work around this
+            // by intercepting datatypes that are dates, formatting using a UTC formatter, and
+            // storing the value directly.
+            if (conceptDatatype.isDate()) {
+                obs.setValueDate(Utils.YYYYMMDD_UTC_FORMAT.parse(answer));
+            } else if (conceptDatatype.isTime() || conceptDatatype.isDateTime()) {
+                throw new RuntimeException("Timestamps aren't supported yet.");
+            } else {
+                obs.setValueAsString(answer);
             }
-            obs.setValueCoded(answerConcept);
-        } else if (answerDate != null) {
-            try {
-                obs.setValueDate(Utils.YYYYMMDD_UTC_FORMAT.parse(answerDate));
-            } catch (ParseException e) {
-                log.warn("Invalid date answer: " + answerDate);
-                return null;
-            }
-        } else if (observationObject.containsKey(ANSWER_NUMBER)) {
-            try {
-                obs.setValueNumeric(Double.parseDouble(answerNumber));
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid numeric answer: " + answerUuid);
-                return null;
-            }
-        } else {
-            log.warn("Invalid answer type: " + observationObject);
-            return null;
+        } catch (ParseException e) {
+            throw new InvalidObjectDataException("Couldn't parse value '" + answer + "'.");
         }
         return obs;
     }
 
-    static Obs orderUuidToObs(String orderUuid, Patient patient, Date encounterTime, Location
-        location) {
+    private static Obs orderUuidToObs(String orderUuid, Patient patient, Date encounterTime,
+                                      Location location) {
         Order order = Context.getOrderService().getOrderByUuid(orderUuid);
         if (order == null) {
-            log.warn("Order not found: " + orderUuid);
-            return null;
+            throw new InvalidObjectDataException("Order not found: " + orderUuid);
         }
         Obs obs = new Obs(patient, DbUtil.getOrderExecutedConcept(), encounterTime, location);
         obs.setOrder(order);
         obs.setValueNumeric(1d);
         return obs;
+    }
+
+    public static SimpleObject obsToJson(Obs obs) {
+        SimpleObject object = new SimpleObject()
+            .add("uuid", obs.getUuid())
+            .add("voided", obs.isVoided());
+
+        if (obs.isVoided()) {
+            return object;
+        }
+
+        object
+            .add("patient_uuid", obs.getPerson().getUuid())
+            .add("encounter_uuid", obs.getEncounter().getUuid())
+            .add("concept_uuid", obs.getConcept().getUuid())
+            .add("timestamp", Utils.toIso8601(obs.getObsDatetime()));
+
+        Provider provider = Utils.getProviderFromUser(obs.getCreator());
+        object.add("enterer_uuid", provider != null ? provider.getUuid() : null);
+
+        boolean isExecutedOrder =
+                DbUtil.getOrderExecutedConcept().equals(obs.getConcept()) && obs.getOrder() != null;
+        if (isExecutedOrder) {
+            // As far as the client knows, a chain of orders is represented by the root order's
+            // UUID, so we have to work back through the chain or orders to get the root UUID.
+            // Normally, the client will only ever supply observations for the root order ID, but
+            // in the event that an order is marked as executed on the server (for example) we don't
+            // want that to mean that an order execution gets missed.
+            object.add("value", Utils.getRootOrder(obs.getOrder()).getUuid());
+        } else {
+            object.add("value", ObservationsHandler.obsValueToString(obs));
+        }
+
+        return object;
     }
 
     public static String obsValueToString(Obs obs) {
