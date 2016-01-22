@@ -73,7 +73,7 @@ progressfile=$root/progress.log
 
 # Prepare some empty temporary directories.
 tmp="/tmp/$name.$$"
-trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp"; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
 rm -rf "$tmp"
 mkdir -p "$tmp"
 
