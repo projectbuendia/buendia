@@ -178,7 +178,6 @@ echo Done.
 
 # report 'backup succeeded' to file for Yocto LED reporting
 success=true
-echo 1 > /home/buendia/server_status.txt
 
 # ---- Sweep all the packages in completed backups into a common directory.
 
