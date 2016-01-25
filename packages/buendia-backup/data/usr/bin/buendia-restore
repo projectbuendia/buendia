@@ -15,7 +15,7 @@ export MYSQL_USER=$OPENMRS_MYSQL_USER
 export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 root=$1
 name=$(basename $0)
-
+success=false
 
 if [ "$root" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <restore-root-path>"
@@ -73,7 +73,7 @@ progressfile=$root/progress.log
 
 # Prepare some empty temporary directories.
 tmp="/tmp/$name.$$"
-trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp"; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
 rm -rf "$tmp"
 mkdir -p "$tmp"
 
@@ -82,6 +82,16 @@ mkdir -p "$tmp"
 # Define some incrementing constants for each stage fo the script.
 readonly PROGRESS_SETTINGS_NEXT=0
 readonly PROGRESS_MYSQL_NEXT=1
+
+# report any restore errors to file for Yocto LED reporting
+report_exit_status() {
+  if $success; then
+    echo 1 > /home/buendia/server_status.txt;
+  else
+    echo 6 > /home/buendia/server_status.txt;
+  fi
+}
+trap 'rm -rf "$tmp"; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir; report_exit_status' EXIT
 
 # ---- Check to see the any progress on previous backups
 if [ -e $progressfile ]; then
@@ -97,6 +107,7 @@ if [ -e $progressfile ]; then
     ;;
   finished)
     echo "Previous restore finished successfully. To restore again remove $progressfile"
+    success=true # prevent it reporting this as an error
     exit 1
     ;;
   *)
@@ -109,6 +120,9 @@ else
   echo "started" >> $progressfile
   sync
   progress_state=$PROGRESS_SETTINGS_NEXT
+
+  # restore started
+  echo 5 > /home/buendia/server_status.txt;
 fi
 
 # TODO(nfortescue): work out how to restore packages. Probably uninstall all
@@ -179,3 +193,6 @@ fi
 # ---- Mark successful completion
 echo "finished" >> $progressfile
 sync
+
+# report 'restore succeeded' to file for Yocto LED reporting
+success=true
