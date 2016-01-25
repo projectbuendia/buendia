@@ -135,12 +135,12 @@ public class DataExportServlet extends HttpServlet {
 
         // Write one encounter per line
         for (Patient patient : patients) {
+            final Object[] values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
             ArrayList<Encounter> encounters = new ArrayList<>(encounterService
                 .getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
             for (Encounter encounter : encounters) {
                 try {
-                    final Object[] values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
                     values[0] = patient.getUuid();
                     values[1] = patient.getPatientIdentifier("MSF");
                     if (patient.getBirthdate() != null) {
@@ -150,8 +150,8 @@ public class DataExportServlet extends HttpServlet {
                     values[4] = encounter.getEncounterDatetime().getTime();
                     values[5] = Utils.toIso8601(encounter.getEncounterDatetime());
                     values[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
-                    Arrays.fill(values, FIXED_HEADERS.length, FIXED_HEADERS.length + indexer.size()
-                        *COLUMNS_PER_OBS, "");
+//                    Arrays.fill(values, FIXED_HEADERS.length, FIXED_HEADERS.length + indexer.size()
+//                        *COLUMNS_PER_OBS, "");
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
                         if (index == null) continue;
@@ -162,12 +162,8 @@ public class DataExportServlet extends HttpServlet {
                         final int valueColumn = FIXED_HEADERS.length + index*COLUMNS_PER_OBS;
                         VisitObsValue.visit(obs, new VisitObsValue.ObsValueVisitor<Void>() {
                             @Override public Void visitCoded(Concept value) {
-                                if (value == null || value.getUuid() == null || value.getUuid()
-                                    .isEmpty()) {
-                                    values[valueColumn] = "";
-                                    values[valueColumn + 1] = "";
-                                    values[valueColumn + 2] = "";
-                                } else {
+                                if (value != null || value.getUuid() != null
+                                    || !value.getUuid().isEmpty()) {
                                     values[valueColumn] = NAMER.getClientName(value);
                                     values[valueColumn + 1] = value.getId();
                                     values[valueColumn + 2] = value.getUuid();
@@ -176,73 +172,61 @@ public class DataExportServlet extends HttpServlet {
                             }
 
                             @Override public Void visitNumeric(Double value) {
-                                String s;
-                                if (value == null) {
-                                    s = "";
-                                } else {
-                                    s = Double.toString(value);
+                                if (value != null) {
+                                    String s = Double.toString(value);
+                                    values[valueColumn] = s;
+                                    values[valueColumn + 1] = s;
+                                    values[valueColumn + 2] = s;
                                 }
-                                values[valueColumn] = s;
-                                values[valueColumn + 1] = s;
-                                values[valueColumn + 2] = s;
                                 return null;
                             }
 
                             @Override public Void visitBoolean(Boolean value) {
-                                String s;
-                                if (value == null) {
-                                    s = "";
-                                } else {
-                                    s = Boolean.toString(value);
+                                if (value != null) {
+                                    String s = Boolean.toString(value);
+                                    values[valueColumn] = s;
+                                    values[valueColumn + 1] = s;
+                                    values[valueColumn + 2] = s;
                                 }
-                                values[valueColumn] = s;
-                                values[valueColumn + 1] = s;
-                                values[valueColumn + 2] = s;
                                 return null;
                             }
 
                             @Override public Void visitText(String value) {
-                                if (value == null) {
-                                    value = "";
+                                if (value != null) {
+                                    values[valueColumn] = value;
+                                    values[valueColumn + 1] = value;
+                                    values[valueColumn + 2] = value;
                                 }
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
                                 return null;
                             }
 
                             @Override public Void visitDate(Date d) {
-                                String value;
-                                if (d == null) {
-                                    value = "";
-                                } else {
-                                    value = Utils.YYYYMMDD_UTC_FORMAT.format(d);
+                                if (d != null) {
+                                    String value = Utils.YYYYMMDD_UTC_FORMAT.format(d);
+                                    values[valueColumn] = value;
+                                    values[valueColumn + 1] = value;
+                                    values[valueColumn + 2] = value;
                                 }
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
                                 return null;
                             }
 
                             @Override public Void visitDateTime(Date d) {
-                                String value;
-                                if (d == null) {
-                                    value = "";
-                                } else {
-                                    value = Utils.SPREADSHEET_FORMAT.format(d);
+                                if (d != null) {
+                                    String value = Utils.SPREADSHEET_FORMAT.format(d);
+                                    values[valueColumn] = value;
+                                    values[valueColumn + 1] = value;
+                                    values[valueColumn + 2] = value;
                                 }
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
                                 return null;
                             }
                         });
                     }
-                    printer.printRecord(values);
+
                 } catch (Exception e) {
                     log.error("Error exporting encounter", e);
                 }
             }
+            printer.printRecord(values);
         }
     }
 
