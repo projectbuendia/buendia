@@ -410,7 +410,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private SimpleObject searchInner(String patientId) throws ResponseException {
         List<PatientIdentifierType> idTypes =
                 Collections.singletonList(DbUtil.getMsfIdentifierType());
-        List<Patient> patients = patientService.getPatients(null, patientId, idTypes, true);
+        List<Patient> patients = patientService.getPatients(null, patientId, idTypes, false);
         return getSimpleObjectWithResults(patients);
     }
 
