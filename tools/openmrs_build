@@ -45,9 +45,17 @@ $INSTALL -DartifactId=webservices.rest -Dversion=2.6
 
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
 # given to this script.
-cd openmrs
+pushd openmrs >/dev/null
 mvn clean install "$@"
 
 # Install the module in the OpenMRS development server.
 $INSTALL -DgroupId=org.projectbuendia \
     -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT
+
+popd >/dev/null
+
+# Build the sync module and install.
+pushd third_party/openmrs-module-sync >/dev/null
+mvn clean install "$@"
+$INSTALL -DgroupId=org.openmrs.module -DartifactId=sync -Dversion=1.3-SNAPSHOT
+popd >/dev/null
