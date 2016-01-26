@@ -132,9 +132,10 @@ def apply(tabs):
     text_datatype = db.get('concept_datatype_id', name='Text')
     answer_datatype = db.get('concept_datatype_id', name='N/A')
     datatypes_by_type = {
-        'yes_no': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
+        'yes_no': coded_datatype,  # no (1066) or yes (1065)
+        'yes_no_unknown': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
         'select_one': coded_datatype,
-        'select_multiple': coded_datatype,  # no (1066) or yes (1065)
+        'select_multiple': coded_datatype,  # set of 'yes_no' fields
         'number': numeric_datatype,
         'text': text_datatype,
     }
@@ -413,6 +414,7 @@ def apply(tabs):
         field_id = get_field_for_element('encounter', 'provider_id')
         add_field_to_form(form_id, field_id, section_id, sort_weight=3)
 
+        beginning = True
         section_id = None
         last_type = None
         select_concept_id, select_answer_ids = None, []
@@ -423,6 +425,7 @@ def apply(tabs):
                 field_id = get_field_for_section(row['section'])
                 section_id = add_field_to_form(form_id, field_id, None, fn)
                 last_type = None
+                beginning = False
                 continue
 
             type, datatype = validate_type(row['type'])
@@ -440,18 +443,27 @@ def apply(tabs):
                     label = row['label']
                     field_id = get_field_for_section(label + '[binary]', label)
                     section_id = add_field_to_form(form_id, field_id, None, fn)
-                elif last_type == 'select_multiple':
+                elif last_type == 'select_multiple' or beginning:
                     # Fields after the end of a toggle group don't belong in
                     # the section, so put them in a new section, using
                     # "[invisible]" in its name to hide the section heading.
+                    #
+                    # If beginning is True then there is no section declared in
+                    # the beginning of the form so we also need to create at least
+                    # one "[invisible]" section to to work around a bug in the
+                    # ODK Android library.
                     fn += 1
                     field_id = get_field_for_section('[invisible]')
                     section_id = add_field_to_form(form_id, field_id, None, fn)
+                    beginning = False
 
                 if (concept_id and
-                    type in ['number', 'text', 'yes_no', 'select_one']):
+                    type in ['number', 'text', 'yes_no', 'yes_no_unknown', 'select_one']):
                     put_concept(concept_id, label, LOCALE, datatype, obs_class)
                     if type == 'yes_no':
+                        # Answers are: no (1066) or yes (1065)
+                        set_concept_answers(concept_id, [1066, 1065])
+                    elif type == 'yes_no_unknown':
                         # Answers are: unknown (1067), no (1066), or yes (1065)
                         set_concept_answers(concept_id, [1067, 1066, 1065])
                     if datatype == numeric_datatype:

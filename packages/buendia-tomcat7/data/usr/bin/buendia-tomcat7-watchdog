@@ -32,6 +32,8 @@ if service $service status 2>&1 > $tmpfile; then
 else
     if [ -n "$(pidof -x buendia-update apt-get dpkg)" ]; then
         echo "$service is not running, but package update is running; skipping restart."
+    elif  [ -n "$(pidof -x buendia-restore)" ]; then
+        echo "$service is not running, but package buendia-restore is running; skipping restart."
     else
         echo "$service is not running, restarting..."
         if service $service restart; then

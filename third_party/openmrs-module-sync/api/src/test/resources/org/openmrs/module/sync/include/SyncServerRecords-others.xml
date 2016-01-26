@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<dataset>
+	<sync_server_record server_record_id="101" server_id="13" record_id="1" state="FAILED" retry_count="1"/>
+	<sync_server_record server_record_id="102" server_id="13" record_id="2" state="FAILED" retry_count="1"/>
+	<sync_server_record server_record_id="103" server_id="13" record_id="3" state="NEW" retry_count="0"/>
+</dataset>
