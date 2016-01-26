@@ -96,12 +96,7 @@ public class DataExportServlet extends HttpServlet {
     private void defineStringVisitor() {
         stringVisitor = new VisitObsValue.ObsValueVisitor<String>() {
             @Override public String visitCoded(Concept value) {
-                //if (value != null || value.getUuid() != null || !value.getUuid().isEmpty()) {
-                    /*values[valueColumn] = NAMER.getClientName(value);
-                    values[valueColumn + 1] = value.getId();
-                    values[valueColumn + 2] = value.getUuid();*/
                 return NAMER.getClientName(value);
-                //}
             }
 
             @Override public String visitNumeric(Double value) {
@@ -228,9 +223,11 @@ public class DataExportServlet extends HttpServlet {
                             values[valueColumn + 2] = value.getUuid();
                         } else {
                             String value = (String) VisitObsValue.visit(obs, stringVisitor);
-                            values[valueColumn] = value;
-                            values[valueColumn + 1] = value;
-                            values[valueColumn + 2] = value;
+                            if ((value != null) && (!value.isEmpty())) {
+                                values[valueColumn] = value;
+                                values[valueColumn + 1] = value;
+                                values[valueColumn + 2] = value;
+                            }
                         }
                     }
                     if (i == (encounters.size() - 1)){
