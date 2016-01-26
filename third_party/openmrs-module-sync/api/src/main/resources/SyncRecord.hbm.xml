@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd" >
+
+<hibernate-mapping package="org.openmrs.module.sync">
+
+	<class name="SyncRecord" table="sync_record">
+
+		<id name="recordId" type="int" column="record_id">
+			<generator class="native" />
+		</id>
+
+		<property name="uuid" type="java.lang.String"
+			column="uuid" length="36" not-null="true" />
+
+		<property name="originalUuid" type="java.lang.String"
+			column="original_uuid" length="36" not-null="true" />
+
+		<property name="creator" type="java.lang.String"
+			column="creator" length="36" />
+
+		<property name="databaseVersion" type="java.lang.String"
+			column="database_version" length="20" />
+			
+		<property name="timestamp" type="java.util.Date"
+			column="timestamp" length="19" />
+
+		<property name="retryCount" type="int" 
+			column="retry_count" length="11" />
+		
+		<property name="state">
+			<type name="org.openmrs.module.sync.api.db.hibernate.usertype.GenericEnumUserType">
+				<param name="enumClassName">org.openmrs.module.sync.SyncRecordState</param>
+			</type>
+		</property>
+
+		<property name="items" type="org.openmrs.module.sync.api.db.hibernate.usertype.SyncItemListSerializingUserType"
+			column="payload" />
+
+		<property name="containedClasses" type="java.lang.String"
+			column="contained_classes" length="1000" />
+
+		<set name="serverRecords" lazy="true" inverse="true" cascade="all-delete-orphan">
+			<key>
+				<column name="record_id" />
+			</key>
+			<one-to-many class="org.openmrs.module.sync.server.SyncServerRecord" />
+		</set>
+    
+	</class>
+</hibernate-mapping>

@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqldiff PUBLIC "-//OpenMRS//DTD OpenMRS SQL Diff Config 1.0//EN" "http://resources.openmrs.org/doctype/sqldiff-1.0.dtd">
+
+<sqldiff version="1.0">
+	<help>
+		
+	</help>
+	
+	<diff>
+		<version>0.1</version>
+		<author>Ben Wolfe</author>
+		<date>Aug 21st 2009</date>
+		<description>
+			Create sync tables
+		</description>
+		<sql>
+			CREATE TABLE IF NOT EXISTS `sync_record` (
+			  `record_id` int(11) NOT NULL auto_increment,
+			  `uuid` char(36) NOT NULL,
+			  `creator` char(36) default NULL,
+			  `database_version` char(8) default NULL,
+			  `timestamp` datetime default NULL,
+			  `retry_count` int(11) default NULL,
+			  `state` varchar(20) default NULL,
+			  `payload` longtext,
+			  `contained_classes` varchar(1000) default '',
+			  `original_uuid` varchar(36) NOT NULL,	  
+			  PRIMARY KEY  (`record_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		
+			CREATE TABLE IF NOT EXISTS `sync_import` (
+			  `record_id` int(11) NOT NULL auto_increment,
+			  `uuid` char(36) NOT NULL,
+			  `creator` char(36) default NULL,
+			  `database_version` char(8) default NULL,
+			  `timestamp` datetime default NULL,
+			  `retry_count` int(11) default NULL,
+			  `state` varchar(20) default NULL,
+			  `payload` longtext,
+			  `error_message` varchar(255) default NULL,
+			  PRIMARY KEY  (`record_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		
+			CREATE TABLE IF NOT EXISTS `sync_server` (
+			  `server_id` int(11) NOT NULL auto_increment,
+			  `nickname` varchar(255) default NULL,
+			  `address` varchar(255) NOT NULL,
+			  `server_type` varchar(20) NOT NULL,
+			  `username` varchar(255) default NULL,
+			  `password` varchar(255) default NULL,
+			  `uuid` char(36) default NULL,
+			  `last_sync` datetime default NULL,
+			  `last_sync_state` varchar(50) default NULL,
+			  `disabled` tinyint(1) NOT NULL,
+			  `child_username` varchar(50) default '',
+			  PRIMARY KEY  (`server_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		
+			CREATE TABLE IF NOT EXISTS `sync_class` (
+			  `class_id` int(11) NOT NULL auto_increment,
+			  `name` varchar(255) NOT NULL,
+			  `type` varchar(255) NOT NULL,
+			  `default_to` tinyint(1) NOT NULL,
+			  `default_from` tinyint(1) NOT NULL,
+			  PRIMARY KEY  (`class_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;	
+			
+			CREATE TABLE IF NOT EXISTS `sync_server_class` (
+				`server_class_id` int(11) NOT NULL auto_increment,
+				`class_id` int(11) NOT NULL,
+				`server_id` int(11) NOT NULL,
+				`send_to` tinyint(1) NOT NULL,
+				`receive_from` tinyint(1) NOT NULL,
+				PRIMARY KEY  (`server_class_id`),
+				KEY `server_class_class` (`class_id`),
+				KEY `server_class_server` (`server_id`),
+				CONSTRAINT `server_class_class` FOREIGN KEY (`class_id`) REFERENCES `sync_class` (`class_id`),
+				CONSTRAINT `server_class_server` FOREIGN KEY (`server_id`) REFERENCES `sync_server` (`server_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		
+			CREATE TABLE IF NOT EXISTS `sync_server_record` (
+				`server_record_id` int(11) NOT NULL auto_increment,
+				`server_id` int(11) NOT NULL,
+				`record_id` int(11) NOT NULL,
+				`state` varchar(20) default NULL,
+				`retry_count` int(11) default NULL,
+				PRIMARY KEY  (`server_record_id`),
+				KEY `server_record_server` (`server_id`),
+				KEY `server_record_record` (`record_id`),
+				CONSTRAINT `server_record_server` FOREIGN KEY (`server_id`) REFERENCES `sync_server` (`server_id`),
+				CONSTRAINT `server_record_record` FOREIGN KEY (`record_id`) REFERENCES `sync_record` (`record_id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+		</sql>
+	</diff>
+	
+		<diff>
+		<version>0.2</version>
+		<author>Ben Wolfe</author>
+		<date>Aug 21st 2009</date>
+		<description>
+			Add rows to the sync class table
+		</description>
+		<sql>
+			INSERT INTO `sync_class` (`name`,`type`,`default_to`,`default_from`) values
+			('GlobalProperty', 'MISC', 0, 0);
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.3</version>
+		<author>Ben Wolfe</author>
+		<date>Aug 21st 2009</date>
+		<description>
+			Create/fill-in server uuid global property
+		</description>
+		<sql>
+			DELETE FROM
+				global_property 
+			WHERE
+				property = 'sync.server_uuid'
+				and
+				(
+					property_value is null
+					or
+					property_value = ''
+				);
+				
+			INSERT INTO
+				global_property (property, property_value, description, uuid)
+			VALUES (
+				'sync.server_uuid',
+				uuid(),
+				'Universally unique server id used to identify a given data source in synchronization.',
+				uuid());
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.4</version>
+		<author>Ben Wolfe</author>
+		<date>Oct 6th 2009</date>
+		<description>
+			Modify sync_class table to be opt_out and only have classes that are _not_ sync'd
+		</description>
+		<sql>
+			ALTER TABLE sync_class DROP COLUMN type;
+			ALTER TABLE sync_class CHANGE COLUMN default_from default_receive_from tinyint(1) NOT NULL;
+			ALTER TABLE sync_class CHANGE COLUMN default_to default_send_to tinyint(1) NOT NULL;
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.4.1</version>
+		<author>Ben Wolfe</author>
+		<date>Oct 6th 2009</date>
+		<description>
+			Clean up sync_class and sync_server_class tables to have only the one opted-out classes
+		</description>
+		<sql>
+			DELETE FROM sync_server_class WHERE receive_from = 1 AND send_to = 1;
+			
+			DELETE FROM 
+				sync_class
+			WHERE
+				default_receive_from = 1
+				AND
+				default_send_to = 1
+				AND
+				class_id not in (select class_id from sync_server_class);
+			
+			UPDATE sync_class set name = concat('org.openmrs.', name);
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.4.2</version>
+		<author>Ben Wolfe</author>
+		<date>Oct 15th 2009</date>
+		<description>
+			Increase size of database_version column to hold the more complicated openmrs code version now
+		</description>
+		<sql>
+			ALTER TABLE sync_record CHANGE COLUMN database_version database_version char(20) default NULL;
+			ALTER TABLE sync_import CHANGE COLUMN database_version database_version char(20) default NULL;
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.5</version>
+		<author>Ben Wolfe</author>
+		<date>Nov 20th 2009</date>
+		<description>
+			Increase size of state columns to hold longer state names
+		</description>
+		<sql>
+			ALTER TABLE sync_record CHANGE COLUMN state state char(32) default NULL;
+			ALTER TABLE sync_import CHANGE COLUMN state state char(32) default NULL;
+			ALTER TABLE sync_server_record CHANGE COLUMN state state char(32) default NULL;
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.6</version>
+		<author>Ben Wolfe</author>
+		<date>Dec 14th 2009</date>
+		<description>
+			Renaming the sync_import.record_id column for clarity. (Must be done this way to prevent primary key errors in mysql)
+		</description>
+		<sql>
+			ALTER TABLE sync_import CHANGE COLUMN record_id record_id int(11) NOT NULL;
+			ALTER TABLE sync_import DROP PRIMARY KEY;
+			ALTER TABLE sync_import CHANGE COLUMN record_id sync_import_id int(11) NOT NULL auto_increment, ADD PRIMARY KEY (sync_import_id);
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.7</version>
+		<author>Ben Wolfe</author>
+		<date>Dec 18th 2009</date>
+		<description>
+			Adding a scheduled task for the sync record cleanup
+		</description>
+		<sql>
+			INSERT INTO scheduler_task_config (name, description, schedulable_class, start_time, start_time_pattern, repeat_interval, start_on_startup, started, created_by, date_created, changed_by, date_changed, uuid) VALUES ('Cleanup Old Sync Records', 'This task deletes old rows in the sync_record and sync_server_record tables.  The default settings work on all servers, but for advanced users, you can change the properties to suit your needs.', 'org.openmrs.module.sync.scheduler.CleanupSyncTablesTask', '2009-12-18 17:26:31', 'MM/dd/yyyy HH:mm:ss', '604800', '1', '0', '1', '2009-12-18 17:28:39', null, null, 'd3122955-00d7-454c-b17f-e3f87206c74b');
+			INSERT INTO scheduler_task_config_property (name, value, task_config_id) VALUES ('delete_entries_files_older_than_x_days', '90', (select max(task_config_id) from scheduler_task_config where name = 'Cleanup Old Sync Records'));
+			INSERT INTO scheduler_task_config_property (name, value, task_config_id) VALUES ('sync_record_states_to_delete', '', (select max(task_config_id) from scheduler_task_config where name = 'Cleanup Old Sync Records'));
+		</sql>
+	</diff>
+
+	<diff>
+		<version>0.71</version>
+		<author>Maros Cunderlik</author>
+		<date>May 27th 2010</date>
+		<description>
+			Additional classes to be excluded from sync by default: Scheduler, HL7, concept_word
+		</description>
+		<sql>
+			INSERT INTO `sync_class` (`name`,`default_send_to`,`default_receive_from`) values
+			('org.openmrs.scheduler', 0, 0);
+			INSERT INTO `sync_class` (`name`,`default_send_to`,`default_receive_from`) values
+			('org.openmrs.hl7', 0, 0);		
+			INSERT INTO `sync_class` (`name`,`default_send_to`,`default_receive_from`) values
+			('org.openmrs.ConceptWord', 0, 0);
+		</sql>
+	</diff>
+
+	<diff>
+		<version>0.72</version>
+		<author>Maros Cunderlik</author>
+		<date>May 28th 2010</date>
+		<description>
+			Removed concept_word from the additional classes; it doesn't implement OpenmrsObject
+		</description>
+		<sql>
+			DELETE `sync_server_class` FROM  `sync_server_class`, `sync_class`
+				WHERE `sync_class`.`class_id` = `sync_server_class`.`class_id` AND 
+				`sync_class`.`name` = 'org.openmrs.ConceptWord';
+			DELETE FROM `sync_class` where `name` = 'org.openmrs.ConceptWord';
+		</sql>
+	</diff>
+	<diff>
+		<version>0.80</version>
+		<author>Maros Cunderlik</author>
+		<date>June 22nd 2010</date>
+		<description>
+			Remove synchronization.original_uuid from global properties: it is no longer in use.
+		</description>
+		<sql>
+			DELETE FROM  `global_property`
+				WHERE property = 'synchronization.original_uuid';
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.81</version>
+		<author>Ben Wolfe</author>
+		<date>July 23rd 2010</date>
+		<description>
+			Add error message to sync_server_record
+		</description>
+		<sql>
+			ALTER table `sync_server_record` ADD COLUMN error_message varchar(255) default NULL;
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.97</version>
+		<author>Wyclif</author>
+		<date>September 06 2011</date>
+		<description>
+			Add unique constraint to sync_record.uuid column
+		</description>
+		<sql>
+			ALTER TABLE `sync_record` ADD UNIQUE (`uuid`);
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.975</version>
+		<author>Rafal Korytkowski</author>
+		<date>September 09 2011</date>
+		<description>
+			Add source_server_id to sync_import
+		</description>
+		<sql>
+			ALTER TABLE `sync_import` ADD COLUMN `source_server_id` int(11),
+				ADD CONSTRAINT `sync_import_source_server` FOREIGN KEY (`source_server_id`) REFERENCES `sync_server` (`server_id`);
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.976</version>
+		<author>Daniel Kayiwa</author>
+		<date>September 14 2011</date>
+		<description>
+			Adding the org.openmrs.notification.Alert class to the list to be ignored by sync.
+		</description>
+		<sql>
+			INSERT INTO `sync_class` (`name`,`default_send_to`,`default_receive_from`) values
+			('org.openmrs.notification.Alert', 0, 0);
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>0.978</version>
+		<author>Daniel Kayiwa</author>
+		<date>September 15 2011</date>
+		<description>
+			Adding the org.openmrs.notification.Alert class to the sync_server_class table.
+		</description>
+		<sql>
+			INSERT INTO sync_server_class (class_id, server_id, send_to, receive_from)
+			SELECT 
+			  (SELECT min(class_id) FROM sync_class WHERE name = 'org.openmrs.notification.Alert'), 
+			  server_id, 
+			  0, 
+			  0
+			FROM sync_server
+			WHERE 
+			  server_id not in 
+			     (SELECT
+			        server_id
+			      FROM sync_server_class 
+			      WHERE 
+			        class_id = 
+			          (SELECT min(class_id)
+			           FROM sync_class
+			           WHERE name = 'org.openmrs.notification.Alert'
+			          )
+			     );
+		</sql>
+	</diff>
+	
+	<diff>
+		<version>1.1</version>
+		<author>Mark Goodrich</author>
+		<date>February 29 2012</date>
+		<description>
+			Add unique constraint to sync_import.uuid column
+		</description>
+		<sql>
+			ALTER TABLE `sync_import` ADD UNIQUE (`uuid`);
+		</sql>
+	</diff>
+        
+        <diff>
+		<version>1.1.1</version>
+		<author>Saptarshi Purkayastha</author>
+		<date>March 16 2013</date>
+		<description>
+			SYNC-278 - Add unique key to sync_record.original_uuid column
+		</description>
+		<sql>
+			ALTER TABLE `sync_record` ADD UNIQUE INDEX (`original_uuid`);
+		</sql>
+	</diff>
+        
+    <diff>
+		<version>1.1.2</version>
+		<author>Saptarshi Purkayastha</author>
+		<date>March 18 2013</date>
+		<description>
+			SYNC-279 - Add index to sync_record.timestamp and sync_record.state columns
+		</description>
+		<sql>
+			ALTER TABLE `sync_record` ADD INDEX (`timestamp`), ADD INDEX (`state`);
+		</sql>
+	</diff>
+        
+    <diff>
+		<version>1.1.3</version>
+		<author>Saptarshi Purkayastha</author>
+		<date>March 18 2013</date>
+		<description>
+			SYNC-279 - Add index to sync_server_record.server_id and sync_server_record.state columns
+		</description>
+		<sql>
+			ALTER TABLE `sync_server_record` ADD INDEX (`server_id`), ADD INDEX (`state`);
+		</sql>
+	</diff>
+	
+</sqldiff>

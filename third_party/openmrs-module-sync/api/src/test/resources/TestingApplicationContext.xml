@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.0.xsd
+		http://www.springframework.org/schema/util
+		http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+	
+	<!-- 
+	From applicationContext-service.xml in openmrs-api
+	Needed to override and add hibernate mappings to the classpath since omod is not packaged yet 
+	-->
+	<bean id="sessionFactory" class="org.openmrs.api.db.hibernate.HibernateSessionFactoryBean">
+		<property name="configLocations">
+			<list>
+				<value>classpath:hibernate.cfg.xml</value>
+				<value>classpath:test-hibernate.cfg.xml</value>
+			</list>
+		</property>
+		<property name="mappingJarLocations">
+			<ref bean="mappingJarResources" />
+		</property>
+		<!--  default properties must be set in the hibernate.default.properties -->
+	</bean>
+
+	<bean id="exampleTransactionalService" class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+		<property name="transactionManager"><ref bean="transactionManager"/></property>
+		<property name="target">
+			<bean class="org.openmrs.module.sync.test.ExampleTransactionalServiceImpl">
+				<property name="sessionFactory"><ref bean="sessionFactory"/></property>
+			</bean>
+		</property>
+		<property name="preInterceptors">
+			<ref bean="serviceInterceptors" />
+		</property>
+		<property name="transactionAttributeSource">
+			<bean class="org.springframework.transaction.annotation.AnnotationTransactionAttributeSource"/>
+		</property>
+	</bean>
+
+	<bean parent="serviceContext">
+		<property name="moduleService">
+			<list merge="true">
+				<value>org.openmrs.module.sync.test.ExampleTransactionalService</value>
+				<ref bean="exampleTransactionalService"/>
+			</list>
+		</property>
+	</bean>
+
+</beans>
