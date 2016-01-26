@@ -225,6 +225,16 @@ public class DataExportServlet extends HttpServlet {
                         } else {
                             String value = (String) VisitObsValue.visit(obs, stringVisitor);
                             if ((value != null) && (!value.isEmpty())) {
+                                if (obs.getValueText() != null) {
+                                    String currentValue = (String) values[valueColumn];
+                                    if ((currentValue != null) && (!currentValue.isEmpty())) {
+                                        currentValue += "\n";
+                                    } else {
+                                        currentValue = "";
+                                    }
+                                    currentValue += values[6] + ": "+ value;
+                                    value = currentValue;
+                                }
                                 values[valueColumn] = value;
                                 values[valueColumn + 1] = value;
                                 values[valueColumn + 2] = value;
