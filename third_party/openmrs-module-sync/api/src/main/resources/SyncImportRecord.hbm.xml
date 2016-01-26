@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!DOCTYPE hibernate-mapping PUBLIC
+    "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+    "http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd" >
+
+<hibernate-mapping package="org.openmrs.module.sync.ingest">
+
+	<class name="SyncImportRecord" table="sync_import">
+
+		<id name="importId" type="int" column="sync_import_id">
+			<generator class="native" />
+		</id>
+
+		<property name="uuid" type="java.lang.String"
+			column="uuid" length="36" />
+
+		<property name="creator" type="java.lang.String"
+			column="creator" length="36" />
+
+		<property name="databaseVersion" type="java.lang.String"
+			column="database_version" length="20" />
+			
+		<property name="timestamp" type="java.util.Date"
+			column="timestamp" length="19" />
+
+		<property name="retryCount" type="int" 
+			column="retry_count" length="11" />
+		
+		<property name="state">
+			<type name="org.openmrs.module.sync.api.db.hibernate.usertype.GenericEnumUserType">
+				<param name="enumClassName">org.openmrs.module.sync.SyncRecordState</param>
+			</type>
+		</property>
+
+		<property name="errorMessage" type="text"
+			column="error_message" length="65535" />
+			
+		<many-to-one name="sourceServer" class="org.openmrs.module.sync.server.RemoteServer">
+			<column name="source_server_id" />
+		</many-to-one>
+
+	</class>
+</hibernate-mapping>
