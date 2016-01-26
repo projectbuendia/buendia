@@ -90,46 +90,49 @@ public class DataExportServlet extends HttpServlet {
     private static final int COLUMNS_PER_OBS = 3;
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
-    public static final int DEFAULT_INTERVAL = 30;
+    public static final int DEFAULT_INTERVAL_MINS = 30;
 
-    private VisitObsValue.ObsValueVisitor stringVisitor;
-    private void defineStringVisitor() {
-        stringVisitor = new VisitObsValue.ObsValueVisitor<String>() {
-            @Override public String visitCoded(Concept value) {
-                return NAMER.getClientName(value);
-            }
+    private final VisitObsValue.ObsValueVisitor stringVisitor =
+        new VisitObsValue.ObsValueVisitor<String>() {
+        @Override public String visitCoded(Concept value) {
+            return NAMER.getClientName(value);
+        }
 
-            @Override public String visitNumeric(Double value) {
-                return Double.toString(value);
-            }
+        @Override public String visitNumeric(Double value) {
+            return Double.toString(value);
+        }
 
-            @Override public String visitBoolean(Boolean value) {
-                return Boolean.toString(value);
-            }
+        @Override public String visitBoolean(Boolean value) {
+            return Boolean.toString(value);
+        }
 
-            @Override public String visitText(String value) {
-                return value;
-            }
+        @Override public String visitText(String value) {
+            return value;
+        }
 
-            @Override public String visitDate(Date d) {
-                return Utils.YYYYMMDD_UTC_FORMAT.format(d);
-            }
+        @Override public String visitDate(Date d) {
+            return Utils.YYYYMMDD_UTC_FORMAT.format(d);
+        }
 
-            @Override public String visitDateTime(Date d) {
-                return Utils.SPREADSHEET_FORMAT.format(d);
-            }
-        };
-    }
+        @Override public String visitDateTime(Date d) {
+            return Utils.SPREADSHEET_FORMAT.format(d);
+        }
+    };
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
         ServletException, IOException {
 
         // Defines the interval in minutes that will be used to merge encounters.
-        int interval = DEFAULT_INTERVAL;
+        int interval = DEFAULT_INTERVAL_MINS;
         String intervalParameter = request.getParameter("interval");
         if (intervalParameter != null) {
-            interval = Integer.valueOf(intervalParameter);
+            int newInterval = Integer.valueOf(intervalParameter);
+            if (newInterval > 0) {
+                interval = newInterval;
+            } else {
+                log.error("Interval value is less then 0. Default used.");
+            }
         }
 
         CSVPrinter printer = new CSVPrinter(response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
@@ -173,7 +176,6 @@ public class DataExportServlet extends HttpServlet {
         writeHeaders(printer, indexer);
 
         Calendar calendar = Calendar.getInstance();
-        defineStringVisitor();
 
         // Write each line with the encounters merged within interval
         for (Patient patient : patients) {
@@ -186,9 +188,8 @@ public class DataExportServlet extends HttpServlet {
                 encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
 
-            for (int i = 0; i < encounters.size(); i++) {
+            for (Encounter encounter : encounters) {
                 try {
-                    Encounter encounter = encounters.get(i);
                     Date encounterTime = encounter.getEncounterDatetime();
                     if (encounterTime.after(deadLine)) {
                         printer.printRecord(values);
@@ -230,13 +231,11 @@ public class DataExportServlet extends HttpServlet {
                             }
                         }
                     }
-                    if (i == (encounters.size() - 1)){
-                        printer.printRecord(values);
-                    }
                 } catch (Exception e) {
                     log.error("Error exporting encounter", e);
                 }
             }
+            printer.printRecord(values);
         }
     }
 
