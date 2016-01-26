@@ -270,6 +270,7 @@ public class OrderResource implements
         // Will be null if `orderer` is null.
         User creator = Utils.getUserFromProvider(orderer);
         order.setEncounter(createEncounter(order.getPatient(), creator, new Date()));
+        order.setCreator(creator);
     }
 
     /**
