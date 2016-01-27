@@ -91,6 +91,7 @@ public class DataExportServlet extends HttpServlet {
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
     public static final int DEFAULT_INTERVAL_MINS = 30;
+    public static final int SPREADSHEET_DATE_FORMAT_COLUMN = 6;
 
     private final VisitObsValue.ObsValueVisitor stringVisitor =
         new VisitObsValue.ObsValueVisitor<String>() {
@@ -177,10 +178,10 @@ public class DataExportServlet extends HttpServlet {
 
         Calendar calendar = Calendar.getInstance();
 
-        // Write each line with the encounters merged within interval
+        // Loop through all the patients and get their encounters
         for (Patient patient : patients) {
 
-            Object[] values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+            Object[] previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
 
             Date deadLine = new Date(0);
 
@@ -188,26 +189,34 @@ public class DataExportServlet extends HttpServlet {
                 encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
 
+            // Loop through all the encounters for this patient to get the observations
             for (Encounter encounter : encounters) {
                 try {
+                    boolean useMerged = true;
+                    Object[] mergedCSVLine = new Object[previousCSVLine.length];
+                    System.arraycopy(previousCSVLine, 0, mergedCSVLine, 0, previousCSVLine.length);
+                    Object[] currentCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
                     Date encounterTime = encounter.getEncounterDatetime();
                     if (encounterTime.after(deadLine)) {
-                        printer.printRecord(values);
-                        values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                        printer.printRecord(previousCSVLine);
+                        previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
                     }
                     calendar.setTime(encounterTime);
                     calendar.add(Calendar.MINUTE, interval);
                     deadLine = calendar.getTime();
 
-                    values[0] = patient.getUuid();
-                    values[1] = patient.getPatientIdentifier("MSF");
+                    currentCSVLine[0] = patient.getUuid();
+                    currentCSVLine[1] = patient.getPatientIdentifier("MSF");
                     if (patient.getBirthdate() != null) {
-                        values[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
+                        currentCSVLine[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
                     }
-                    values[3] = encounter.getUuid();
-                    values[4] = encounterTime.getTime();
-                    values[5] = Utils.toIso8601(encounterTime);
-                    values[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
+                    currentCSVLine[3] = encounter.getUuid();
+                    currentCSVLine[4] = encounterTime.getTime();
+                    currentCSVLine[5] = Utils.toIso8601(encounterTime);
+                    currentCSVLine[SPREADSHEET_DATE_FORMAT_COLUMN] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
+
+                    System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
+
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
                         if (index == null) continue;
@@ -217,25 +226,58 @@ public class DataExportServlet extends HttpServlet {
                         // three columns contain the formatted value.
                         int valueColumn = FIXED_HEADERS.length + index*COLUMNS_PER_OBS;
 
-                        if (obs.getValueCoded() != null){
+                        if (obs.getValueCoded() != null) {
                             Concept value = obs.getValueCoded();
-                            values[valueColumn] = NAMER.getClientName(value);
-                            values[valueColumn + 1] = value.getId();
-                            values[valueColumn + 2] = value.getUuid();
+                            currentCSVLine[valueColumn] = NAMER.getClientName(value);
+                            currentCSVLine[valueColumn + 1] = value.getId();
+                            currentCSVLine[valueColumn + 2] = value.getUuid();
+                            if (useMerged) {
+                                String previousValue = (String) mergedCSVLine[valueColumn];
+                                if ((previousValue == null) || (previousValue.isEmpty())) {
+                                    mergedCSVLine[valueColumn] = NAMER.getClientName(value);
+                                    mergedCSVLine[valueColumn + 1] = value.getId();
+                                    mergedCSVLine[valueColumn + 2] = value.getUuid();
+                                } else {
+                                    useMerged = false;
+                                }
+                            }
                         } else {
                             String value = (String) VisitObsValue.visit(obs, stringVisitor);
                             if ((value != null) && (!value.isEmpty())) {
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
+                                if (obs.getValueText() != null) {
+                                    value = currentCSVLine[SPREADSHEET_DATE_FORMAT_COLUMN] + ": " + value;
+                                }
+                                currentCSVLine[valueColumn] = value;
+                                currentCSVLine[valueColumn + 1] = value;
+                                currentCSVLine[valueColumn + 2] = value;
+                                if (useMerged) {
+                                    String previousValue = (String) mergedCSVLine[valueColumn];
+                                    if ((previousValue != null) && (!previousValue.isEmpty())) {
+                                        if (obs.getValueText() != null) {
+                                            previousValue += "\n" + currentCSVLine[6] + ": " + value;
+                                            value = previousValue;
+                                        } else {
+                                            useMerged = false;
+                                        }
+                                    }
+                                    mergedCSVLine[valueColumn] = value;
+                                    mergedCSVLine[valueColumn + 1] = value;
+                                    mergedCSVLine[valueColumn + 2] = value;
+                                }
                             }
                         }
+                    }
+                    if (useMerged) {
+                        previousCSVLine = mergedCSVLine;
+                    } else {
+                        printer.printRecord(previousCSVLine);
+                        previousCSVLine = currentCSVLine;
                     }
                 } catch (Exception e) {
                     log.error("Error exporting encounter", e);
                 }
             }
-            printer.printRecord(values);
+            printer.printRecord(previousCSVLine);
         }
     }
 
