@@ -91,6 +91,7 @@ public class DataExportServlet extends HttpServlet {
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
     public static final int DEFAULT_INTERVAL_MINS = 30;
+    public static final int SPREADSHEET_DATE_FORMAT_COLUMN = 6;
 
     private final VisitObsValue.ObsValueVisitor stringVisitor =
         new VisitObsValue.ObsValueVisitor<String>() {
@@ -177,7 +178,7 @@ public class DataExportServlet extends HttpServlet {
 
         Calendar calendar = Calendar.getInstance();
 
-        // Write each line with the encounters merged within interval
+        // Loop through all the patients and get their encounters
         for (Patient patient : patients) {
 
             Object[] previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
@@ -188,6 +189,7 @@ public class DataExportServlet extends HttpServlet {
                 encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
 
+            // Loop through all the encounters for this patient to get the observations
             for (Encounter encounter : encounters) {
                 try {
                     boolean useMerged = true;
@@ -211,7 +213,7 @@ public class DataExportServlet extends HttpServlet {
                     currentCSVLine[3] = encounter.getUuid();
                     currentCSVLine[4] = encounterTime.getTime();
                     currentCSVLine[5] = Utils.toIso8601(encounterTime);
-                    currentCSVLine[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
+                    currentCSVLine[SPREADSHEET_DATE_FORMAT_COLUMN] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
 
                     System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
 
@@ -243,7 +245,7 @@ public class DataExportServlet extends HttpServlet {
                             String value = (String) VisitObsValue.visit(obs, stringVisitor);
                             if ((value != null) && (!value.isEmpty())) {
                                 if (obs.getValueText() != null) {
-                                    value = currentCSVLine[6] + ": " + value;
+                                    value = currentCSVLine[SPREADSHEET_DATE_FORMAT_COLUMN] + ": " + value;
                                 }
                                 currentCSVLine[valueColumn] = value;
                                 currentCSVLine[valueColumn + 1] = value;
