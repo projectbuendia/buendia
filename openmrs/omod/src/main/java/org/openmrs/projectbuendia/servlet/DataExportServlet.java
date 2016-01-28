@@ -91,7 +91,6 @@ public class DataExportServlet extends HttpServlet {
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
     public static final int DEFAULT_INTERVAL_MINS = 30;
-    public static final int SPREADSHEET_DATE_FORMAT_COLUMN = 6;
 
     private final VisitObsValue.ObsValueVisitor stringVisitor =
         new VisitObsValue.ObsValueVisitor<String>() {
@@ -124,6 +123,9 @@ public class DataExportServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
         ServletException, IOException {
 
+        // Set the default merge mode
+        boolean merge = true;
+
         // Defines the interval in minutes that will be used to merge encounters.
         int interval = DEFAULT_INTERVAL_MINS;
         String intervalParameter = request.getParameter("interval");
@@ -131,6 +133,9 @@ public class DataExportServlet extends HttpServlet {
             int newInterval = Integer.valueOf(intervalParameter);
             if (newInterval >= 0) {
                 interval = newInterval;
+                if (interval == 0) {
+                    merge = false;
+                }
             } else {
                 log.error("Interval value is less then 0. Default used.");
             }
@@ -190,12 +195,15 @@ public class DataExportServlet extends HttpServlet {
                 encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
 
+            // TODO: For now patients with no encounters are ignored. List them on the future.
+            if (encounters.size() == 0) continue;
+
             // Loop through all the encounters for this patient to get the observations.
             for (Encounter encounter : encounters) {
                 try {
                     // Flag to whether we will use the merged version of the encounter
                     // or the single version.
-                    boolean useMerged = true;
+                    boolean useMerged = merge;
 
                     // Array that will be used to merge in previous encounter with the current one.
                     Object[] mergedCSVLine = new Object[previousCSVLine.length];
@@ -212,6 +220,7 @@ public class DataExportServlet extends HttpServlet {
                     if (encounterTime.after(deadLine)) {
                         printer.printRecord(previousCSVLine);
                         previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                        useMerged = false;
                     }
                     // Set the next deadline as the current encounter time plus "interval" minutes.
                     calendar.setTime(encounterTime);
@@ -227,7 +236,7 @@ public class DataExportServlet extends HttpServlet {
                     currentCSVLine[3] = encounter.getUuid();
                     currentCSVLine[4] = encounterTime.getTime();
                     currentCSVLine[5] = Utils.toIso8601(encounterTime);
-                    currentCSVLine[SPREADSHEET_DATE_FORMAT_COLUMN] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
+                    currentCSVLine[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
 
                     // All the values fo the fixed columns saved in the current encounter line
                     // will also be saved to the merged line.
@@ -272,11 +281,6 @@ public class DataExportServlet extends HttpServlet {
                             String value = (String) VisitObsValue.visit(obs, stringVisitor);
                             // Check if we have values stored for this observation
                             if ((value != null) && (!value.isEmpty())) {
-                                if (obs.getValueText() != null) {
-                                    // The observation is of type text then let's store it with
-                                    // the date of the encounter.
-                                    value = currentCSVLine[SPREADSHEET_DATE_FORMAT_COLUMN] + ": " + value;
-                                }
                                 // Save the value of the observation on the current encounter line.
                                 currentCSVLine[valueColumn] = value;
                                 currentCSVLine[valueColumn + 1] = value;
@@ -292,7 +296,8 @@ public class DataExportServlet extends HttpServlet {
                                         if (obs.getValueText() != null) {
                                             // We only continue merging if the observation is of
                                             // type text, so we concatenate it.
-                                            previousValue += "\n" + currentCSVLine[6] + ": " + value;
+                                            // TODO: add timestamps to the merged values that are of type text
+                                            previousValue += "\n" + value;
                                             value = previousValue;
                                         } else {
                                             // Any other type of value we stop the merging.
@@ -312,8 +317,10 @@ public class DataExportServlet extends HttpServlet {
                         previousCSVLine = mergedCSVLine;
                     } else {
                         // We had overlapped values so let's print the previous line and make the
-                        // current encounter the previous one.
-                        printer.printRecord(previousCSVLine);
+                        // current encounter the previous one. Only if the previous line is not empty.
+                        if (previousCSVLine[0] != null) {
+                            printer.printRecord(previousCSVLine);
+                        }
                         previousCSVLine = currentCSVLine;
                     }
                 } catch (Exception e) {
