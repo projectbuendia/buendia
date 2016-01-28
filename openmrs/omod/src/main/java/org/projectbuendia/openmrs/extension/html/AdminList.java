@@ -37,6 +37,8 @@ public class AdminList extends AdministrationSectionExt {
         Map<String, String> map = new LinkedHashMap<String, String>();
         map.put("/module/projectbuendia/openmrs/profiles.form",
             "projectbuendia.openmrs.profiles");
+        map.put("/module/projectbuendia/openmrs/print-charts.form",
+            "Print Patient Charts");
         return map;
     }
 }
