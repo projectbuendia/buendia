@@ -129,7 +129,7 @@ public class DataExportServlet extends HttpServlet {
         String intervalParameter = request.getParameter("interval");
         if (intervalParameter != null) {
             int newInterval = Integer.valueOf(intervalParameter);
-            if (newInterval > 0) {
+            if (newInterval >= 0) {
                 interval = newInterval;
             } else {
                 log.error("Interval value is less then 0. Default used.");
