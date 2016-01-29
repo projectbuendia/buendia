@@ -30,28 +30,32 @@ SELECT @emc_id := location_id FROM location
     WHERE uuid = '3449f5fe-8e6b-4250-bcaa-fca5df28ddbf';
 
 INSERT INTO location (name, creator, date_created, uuid, parent_location) VALUES
-    ('Bokoro ITFC', @admin_id, NOW(), '69890fb4-49bb-4c14-a834-b1dead6a34df', @emc_id),
-    ('Bokoro ATFC', @admin_id, NOW(), 'e8f112b2-e121-43b3-b1cc-d5f16a88e567', @emc_id),
-    ('Ngama ATFC', @admin_id, NOW(), '0c96ad58-f580-4f0a-88ba-cafb88b406a8', @emc_id),
-    ('Moyto ATFC', @admin_id, NOW(), 'e8c01a9c-1cb1-43dc-9478-4bcada286bde', @emc_id)
+    ('Bokoro', @admin_id, NOW(), '69890fb4-49bb-4c14-a834-b1dead6a34df', @emc_id)
     ON DUPLICATE KEY UPDATE uuid = uuid;
 
 -- Add the tents.
-SELECT @bokoro_itfc_id := location_id FROM location
+SELECT @bokoro_id := location_id FROM location
     WHERE uuid='69890fb4-49bb-4c14-a834-b1dead6a34df';
-SELECT @bokoro_atfc_id := location_id FROM location
-    WHERE uuid='e8f112b2-e121-43b3-b1cc-d5f16a88e567';
-SELECT @ngama_atfc_id := location_id FROM location
-    WHERE uuid = '0c96ad58-f580-4f0a-88ba-cafb88b406a8';
-SELECT @moyto_atfc_id := location_id FROM location
-    WHERE uuid = 'e8c01a9c-1cb1-43dc-9478-4bcada286bde';
 
 INSERT INTO location (name, creator, date_created, uuid, parent_location) VALUES
-    ('ITFC ICU', @admin_id, NOW(), '03213d10-550f-4253-bf66-d7c6ec8d1eb5', @bokoro_itfc_id),
-    ('ITFC Phase I', @admin_id, NOW(), '3a15c457-ef0d-4129-8f61-893b084977fa', @bokoro_itfc_id),
-    ('ITFC Phase I-T', @admin_id, NOW(), '59964e20-bbb9-4c5e-8a0b-a2d7b656362d', @bokoro_itfc_id),
-    ('ITFC Phase II', @admin_id, NOW(), '0c3740e1-a204-4f2b-bceb-97a1334bd653', @bokoro_itfc_id),
-    ('Bokoro ATFC', @admin_id, NOW(), '3d3da080-2493-4733-93f2-5fcc1faa3403', @bokoro_atfc_id),
-    ('Ngama ATFC', @admin_id, NOW(), '3086db2b-50ad-4bfb-b7eb-19f904660ca1', @ngama_atfc_id),
-    ('Moyto ATFC', @admin_id, NOW(), '0a01b40c-bc74-4910-8d56-b7a408af4aff', @moyto_atfc_id)
+    ('UNTI SI', @admin_id, NOW(), '03213d10-550f-4253-bf66-d7c6ec8d1eb5', @bokoro_id),
+    ('UNTI Phase I', @admin_id, NOW(), '3a15c457-ef0d-4129-8f61-893b084977fa', @bokoro_id),
+    ('UNTI Phase I-T', @admin_id, NOW(), '59964e20-bbb9-4c5e-8a0b-a2d7b656362d', @bokoro_id),
+    ('UNTI Phase II', @admin_id, NOW(), '0c3740e1-a204-4f2b-bceb-97a1334bd653', @bokoro_id),
+    ('Maigana UNTA', @admin_id, NOW(), '768070fa-72f9-4e82-862d-293508715677', @bokoro_id),
+    ('Arbouchatak UNTA', @admin_id, NOW(), '219b09bc-af37-40a8-84f4-a1cbf00238a9', @bokoro_id),
+    ('Djokana UNTA', @admin_id, NOW(), 'f2e198e8-0f6b-4297-8850-291f66b001d5', @bokoro_id),
+    ('Gama 1 UNTA', @admin_id, NOW(), '3086db2b-50ad-4bfb-b7eb-19f904660ca1', @bokoro_id),
+    ('Tersefe UNTA', @admin_id, NOW(), 'ff172222-f39d-49b7-981a-becacff59a5c', @bokoro_id),
+    ('Gama 2 UNTA', @admin_id, NOW(), '99d09d16-9247-43f2-98ac-587adb202e43', @bokoro_id),
+    ('Dilbini UNTA', @admin_id, NOW(), '34ddf5d6-0254-406f-a323-d44598b1ca57', @bokoro_id),
+    ('Ouled-Bili UNTA', @admin_id, NOW(), '38808aa4-9df0-4755-8259-109c49299688', @bokoro_id),
+    ('Bisney UNTA', @admin_id, NOW(), '3c6c2634-de50-4084-89e1-8bad27a5f7b8', @bokoro_id),
+    ('Abirebi UNTA', @admin_id, NOW(), '06e0c3d9-c496-47cf-9e8a-b829fbad3c15', @bokoro_id),
+    ('Tchaway UNTA', @admin_id, NOW(), '6b1512f0-fc74-4bab-87fe-e49d5212138f', @bokoro_id),
+    ('Dilema UNTA', @admin_id, NOW(), '69641751-9a2c-476f-bd63-1a4a442ee804', @bokoro_id),
+    ('Gambir UNTA', @admin_id, NOW(), 'cf38f962-9030-4ac5-b769-0e902ba0917b', @bokoro_id),
+    ('Bokoro 1 UNTA', @admin_id, NOW(), '3d3da080-2493-4733-93f2-5fcc1faa3403', @bokoro_id),
+    ('Abgode UNTA', @admin_id, NOW(), 'd48a0b7a-52da-4db7-b133-0d67e1874124', @bokoro_id),
+    ('Moito UNTA', @admin_id, NOW(), '0a01b40c-bc74-4910-8d56-b7a408af4aff', @bokoro_id)
     ON DUPLICATE KEY UPDATE uuid = uuid;
