@@ -123,13 +123,19 @@ public class DataExportServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
         ServletException, IOException {
 
+        // Set the default merge mode
+        boolean merge = true;
+
         // Defines the interval in minutes that will be used to merge encounters.
         int interval = DEFAULT_INTERVAL_MINS;
         String intervalParameter = request.getParameter("interval");
         if (intervalParameter != null) {
             int newInterval = Integer.valueOf(intervalParameter);
-            if (newInterval > 0) {
+            if (newInterval >= 0) {
                 interval = newInterval;
+                if (interval == 0) {
+                    merge = false;
+                }
             } else {
                 log.error("Interval value is less then 0. Default used.");
             }
@@ -172,15 +178,16 @@ public class DataExportServlet extends HttpServlet {
         }
         FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts);
 
-        // Write English headers
+        // Write English headers.
         writeHeaders(printer, indexer);
 
         Calendar calendar = Calendar.getInstance();
 
-        // Write each line with the encounters merged within interval
+        // Loop through all the patients and get their encounters.
         for (Patient patient : patients) {
 
-            Object[] values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+            // Define an array that will represent the line that will be inserted in the CSV.
+            Object[] previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
 
             Date deadLine = new Date(0);
 
@@ -188,26 +195,54 @@ public class DataExportServlet extends HttpServlet {
                 encounterService.getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
 
+            // TODO: For now patients with no encounters are ignored. List them on the future.
+            if (encounters.size() == 0) continue;
+
+            // Loop through all the encounters for this patient to get the observations.
             for (Encounter encounter : encounters) {
                 try {
+                    // Flag to whether we will use the merged version of the encounter
+                    // or the single version.
+                    boolean useMerged = merge;
+
+                    // Array that will be used to merge in previous encounter with the current one.
+                    Object[] mergedCSVLine = new Object[previousCSVLine.length];
+
+                    // Duplicate previous encounter into the (future to be) merged one.
+                    System.arraycopy(previousCSVLine, 0, mergedCSVLine, 0, previousCSVLine.length);
+
+                    // Define the array to be used to store the current encounter.
+                    Object[] currentCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+
+                    // If the current encounter is more then "interval" minutes from the previous
+                    // print the previous and reset it.
                     Date encounterTime = encounter.getEncounterDatetime();
                     if (encounterTime.after(deadLine)) {
-                        printer.printRecord(values);
-                        values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                        printer.printRecord(previousCSVLine);
+                        previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                        useMerged = false;
                     }
+                    // Set the next deadline as the current encounter time plus "interval" minutes.
                     calendar.setTime(encounterTime);
                     calendar.add(Calendar.MINUTE, interval);
                     deadLine = calendar.getTime();
 
-                    values[0] = patient.getUuid();
-                    values[1] = patient.getPatientIdentifier("MSF");
+                    // Fill the fixed columns values.
+                    currentCSVLine[0] = patient.getUuid();
+                    currentCSVLine[1] = patient.getPatientIdentifier("MSF");
                     if (patient.getBirthdate() != null) {
-                        values[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
+                        currentCSVLine[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
                     }
-                    values[3] = encounter.getUuid();
-                    values[4] = encounterTime.getTime();
-                    values[5] = Utils.toIso8601(encounterTime);
-                    values[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
+                    currentCSVLine[3] = encounter.getUuid();
+                    currentCSVLine[4] = encounterTime.getTime();
+                    currentCSVLine[5] = Utils.toIso8601(encounterTime);
+                    currentCSVLine[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
+
+                    // All the values fo the fixed columns saved in the current encounter line
+                    // will also be saved to the merged line.
+                    System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
+
+                    // Loop through all the observations for this encounter
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
                         if (index == null) continue;
@@ -217,25 +252,83 @@ public class DataExportServlet extends HttpServlet {
                         // three columns contain the formatted value.
                         int valueColumn = FIXED_HEADERS.length + index*COLUMNS_PER_OBS;
 
-                        if (obs.getValueCoded() != null){
+                        // Coded values are treated differently
+                        if (obs.getValueCoded() != null) {
                             Concept value = obs.getValueCoded();
-                            values[valueColumn] = NAMER.getClientName(value);
-                            values[valueColumn + 1] = value.getId();
-                            values[valueColumn + 2] = value.getUuid();
-                        } else {
-                            String value = (String) VisitObsValue.visit(obs, stringVisitor);
-                            if ((value != null) && (!value.isEmpty())) {
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
+                            currentCSVLine[valueColumn] = NAMER.getClientName(value);
+                            currentCSVLine[valueColumn + 1] = value.getId();
+                            currentCSVLine[valueColumn + 2] = value.getUuid();
+                            if (useMerged) {
+                                // If we are still merging the current encounter values into
+                                // the previous one get the previous value and see if it had
+                                // something in it.
+                                String previousValue = (String) mergedCSVLine[valueColumn];
+                                if ((previousValue == null) || (previousValue.isEmpty())) {
+                                    // If the previous value was empty copy the current value into it.
+                                    mergedCSVLine[valueColumn] = currentCSVLine[valueColumn];
+                                    mergedCSVLine[valueColumn + 1] = currentCSVLine[valueColumn + 1];
+                                    mergedCSVLine[valueColumn + 2] = currentCSVLine[valueColumn + 2];
+                                } else {
+                                    // If the previous encounter have values stored for this
+                                    // observation we cannot merge them anymore.
+                                    useMerged = false;
+                                }
                             }
                         }
+                        // All values except the coded ones will be treated equally.
+                        else {
+                            // Return the value of the the current observation using the visitor.
+                            String value = (String) VisitObsValue.visit(obs, stringVisitor);
+                            // Check if we have values stored for this observation
+                            if ((value != null) && (!value.isEmpty())) {
+                                // Save the value of the observation on the current encounter line.
+                                currentCSVLine[valueColumn] = value;
+                                currentCSVLine[valueColumn + 1] = value;
+                                currentCSVLine[valueColumn + 2] = value;
+                                if (useMerged) {
+                                    // Since we are still merging this encounter with the previous
+                                    // one let's get the previous value to see if it had something
+                                    // stored on it.
+                                    String previousValue = (String) mergedCSVLine[valueColumn];
+                                    if ((previousValue != null) && (!previousValue.isEmpty())) {
+                                        // Yes, we had information stored for this observation on
+                                        // the previous encounter
+                                        if (obs.getValueText() != null) {
+                                            // We only continue merging if the observation is of
+                                            // type text, so we concatenate it.
+                                            // TODO: add timestamps to the merged values that are of type text
+                                            previousValue += "\n" + value;
+                                            value = previousValue;
+                                        } else {
+                                            // Any other type of value we stop the merging.
+                                            useMerged = false;
+                                        }
+                                    }
+                                    mergedCSVLine[valueColumn] = value;
+                                    mergedCSVLine[valueColumn + 1] = value;
+                                    mergedCSVLine[valueColumn + 2] = value;
+                                }
+                            }
+                        }
+                    }
+                    if (useMerged) {
+                        // If after looping through all the observations we didn't had any
+                        // overlapped values we keep the merged line.
+                        previousCSVLine = mergedCSVLine;
+                    } else {
+                        // We had overlapped values so let's print the previous line and make the
+                        // current encounter the previous one. Only if the previous line is not empty.
+                        if (previousCSVLine[0] != null) {
+                            printer.printRecord(previousCSVLine);
+                        }
+                        previousCSVLine = currentCSVLine;
                     }
                 } catch (Exception e) {
                     log.error("Error exporting encounter", e);
                 }
             }
-            printer.printRecord(values);
+            // For the last encounter we print the remaining line.
+            printer.printRecord(previousCSVLine);
         }
     }
 

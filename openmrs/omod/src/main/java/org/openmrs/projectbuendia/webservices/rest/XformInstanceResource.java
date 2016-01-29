@@ -14,11 +14,12 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.Encounter;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
-import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -42,6 +43,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -98,12 +100,10 @@ public class XformInstanceResource implements Creatable {
 
     private final PatientService patientService;
     private final ProviderService providerService;
-    private final UserService userService;
 
     public XformInstanceResource() {
         patientService = Context.getPatientService();
         providerService = Context.getProviderService();
-        userService = Context.getUserService();
     }
 
     @Override public String getUri(Object instance) {
@@ -140,8 +140,71 @@ public class XformInstanceResource implements Creatable {
         } catch (Exception e) {
             throw new ConversionException("Error processing xform data", e);
         }
-        // FIXME
-        return post;
+
+        Encounter encounter = guessEncounterFromXformSubmission(post);
+        if (encounter == null) {
+            // Just return the data we got, because this wasn't an encounter.
+            return post;
+        }
+        SimpleObject returnJson = new SimpleObject();
+        EncounterResource.populateJsonProperties(encounter, returnJson);
+        return returnJson;
+    }
+
+    /**
+     * The Xforms code doesn't provide any information about the encounter that was created using
+     * the Xforms submission, so we take an educated guess about the encounter that was created. The
+     * educated guess is done by pulling the patient UUID and the provider UUID from the JSON input,
+     * and then finding the latest encounter with that timestamp. If there wasn't one created in the
+     * last two seconds, then we declare that the Xform submission didn't result in an encounter
+     * being created.
+     * <p>
+     * <b>NOTE</b>: this heuristic won't work if:
+     * <ul>
+     *     <li>The same user is logged in on two devices simultaneously, <b>and</b>
+     *     <li>That user submits different data for the same patient within a two second window.
+     * </ul>
+     * <p>
+     * <b>TODO:</b> Make enhancements to the Xforms module so that we don't need to guess.
+     */
+    private Encounter guessEncounterFromXformSubmission(SimpleObject postData) {
+        String patientUuid = (String) postData.get("patient_uuid");
+        if (patientUuid == null) {
+            return null;
+        }
+        Patient patient = patientService.getPatientByUuid(patientUuid);
+
+        String entererUuid = (String) postData.get("enterer_uuid");
+        if (entererUuid == null) {
+            throw new IllegalPropertyException("Enterer UUID must be set.");
+        }
+        Provider provider = providerService.getProviderByUuid(entererUuid);
+        // Get all encounters with this patient and provider.
+        List<Encounter> encounters =
+                Context.getEncounterService().getEncounters(
+                        patient,
+                        null /* location */,
+                        null /* fromDate */,
+                        null /* toDate */,
+                        null /* enteredViaForms */,
+                        null /* encounterTypes */,
+                        Collections.singleton(provider),
+                        null /* visitTypes */,
+                        null /* visits */,
+                        false /* includeVoided */);
+        // Filter based on creation time.
+        Encounter latest = null;
+        for (Encounter encounter : encounters) {
+            if (latest == null || encounter.getDateCreated().after(latest.getDateCreated())) {
+                latest = encounter;
+            }
+        }
+        Date twoSecondsAgo = new Date(System.currentTimeMillis() - 2000);
+        if (latest != null && latest.getDateCreated().before(twoSecondsAgo)) {
+            // This encounter probably wasn't created from this Xforms submission.
+            latest = null;
+        }
+        return latest;
     }
 
     /**
