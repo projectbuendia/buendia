@@ -42,9 +42,20 @@
   <div class="section error message">
     You don't have the necessary privileges to print patient charts.
     Please <a href="/openmrs/login.htm">log in</a> as a user authorized to
-    <b>Manage Concepts</b> and <b>Manage Forms</b>.
+    <b>View Patients</b>.
   </div>
 </c:if>
+
+
+
+<div>
+  <form method="post" action="printable.form">
+    <label for="patient_id">Patient ID</label>
+    <input type="text" name="patient_id"> (Leave blank for all)
+    <input type="submit" value="Generate">
+  </form>
+</div>
+
 
 
 <%@ include file="/WEB-INF/template/footer.jsp"%>
