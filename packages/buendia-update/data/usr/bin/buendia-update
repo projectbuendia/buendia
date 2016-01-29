@@ -40,13 +40,13 @@ echo
 echo "--- Updating package list"
 # Some sources might fail, but the only one we care about is the Project Buendia source.
 # We don't have a way to filter that at the moment, so we just ignore errors.
-apt-get update
+apt-get --allow-unauthenticated update
 
 # Fix up any broken things.
 echo
 echo "--- Fixing up partially installed packages"
 dpkg --configure -a
-apt-get -V -y -f install
+apt-get -V -y -f --allow-unauthenticated install
 
 # Install and upgrade the specified packages, or all the Buendia packages.
 if [ -n "$1" ]; then
