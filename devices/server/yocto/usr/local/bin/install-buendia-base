@@ -35,9 +35,11 @@ systemctl stop hostapd  # don't be an access point
 # Turn on wifi, using the last saved configuration.
 echo "Starting wifi."
 
-if wifi -; ! ping -c 1 -w 1 debian.org; then
-    if sleep 10; wifi -; ! ping -c 1 -w 1 debian.org; then
-        if sleep 20; wifi -; ! ping -c 1 -w 1 debian.org; then
+PING_SERVER=192.168.2.1
+
+if wifi -; ! ping -c 1 -w 1 $PING_SERVER; then
+    if sleep 10; wifi -; ! ping -c 1 -w 1 $PING_SERVER; then
+        if sleep 20; wifi -; ! ping -c 1 -w 1 $PING_SERVER; then
             echo 'Could not connect wifi.'
             exit 1
         fi

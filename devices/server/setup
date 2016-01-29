@@ -16,7 +16,7 @@ source remote-execution.sh
 password=$1
 setup_ssid_psk=$2
 site_id=$3
-repo_url=${REPO_URL:-http://packages.projectbuendia.org:9001}
+repo_url=${REPO_URL:-http://192.168.2.1:8080}
 
 if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
     echo "
@@ -71,7 +71,7 @@ if [ -n "$site_id" ]; then
 fi
 if [ -n "$repo_url" ]; then
     mkdir -p /tmp/debian/etc/apt/sources.list.d
-    echo "deb [arch=all] $repo_url stable main" > /tmp/debian/etc/apt/sources.list.d/buendia-base.list
+    echo "deb [arch=all] $repo_url buendia-stable main" > /tmp/debian/etc/apt/sources.list.d/buendia-base.list
 fi
 
 # Copy all the setup files and scripts onto the Edison.
@@ -82,7 +82,7 @@ $TAR --owner=0 --group=0 -cf - -C debian . -C /tmp/debian . | write_to_edison /e
 
 # Ensure that the Edison can connect to the setup network.  The configuration
 # will be saved and reused when wifi is turned on again in the future.
-echo "/usr/local/bin/wifi '$setup_ssid_psk'" | do_on_edison
+#echo "/usr/local/bin/wifi '$setup_ssid_psk'" | do_on_edison
 
 # Enable installation on the next boot, and reboot to continue.
 echo 'Rebooting Edison...'

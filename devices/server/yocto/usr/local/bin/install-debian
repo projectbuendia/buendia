@@ -20,9 +20,10 @@ if [ -f $ROOT/etc/debian-installed ]; then
     exit 0
 fi
 
-MIRROR_URL=http://ftp.debian.org/debian
+BITS_URL=http://192.168.2.1:6060
+MIRROR_URL=http://192.168.2.1:8080
 VER=0.5.9_i386  # version of cdebootstrap package
-SHA1SUM_SOURCE_URL=ftp://ftp.gnupg.org/gcrypt/binary/sha1sum.c
+SHA1SUM_SOURCE_URL=$BITS_URL/sha1sum.c
 DEBIAN_DIST=wheezy
 TMPDIR=/tmp/debootstrap-bin
 
@@ -32,7 +33,7 @@ mkdir $TMPDIR
 cd $TMPDIR
 
 # Unpack the cdebootstrap tools in the temporary directory.
-wget $MIRROR_URL/pool/main/c/cdebootstrap/cdebootstrap-static_$VER.deb
+wget $BITS_URL/cdebootstrap-static_$VER.deb
 ar -x cdebootstrap-static_$VER.deb
 tar xzOf data.tar.gz ./usr/lib/cdebootstrap/cdebootstrap_$VER.tar.gz > cdebootstrap_$VER.tar.gz
 tar xzf cdebootstrap_$VER.tar.gz
