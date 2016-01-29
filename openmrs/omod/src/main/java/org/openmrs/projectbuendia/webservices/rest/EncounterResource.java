@@ -125,7 +125,7 @@ public class EncounterResource implements Creatable {
      *   <li>"order_uuids": unique identifiers of orders executed as part of this encounter.
      * </ul>
      */
-    protected void populateJsonProperties(Encounter encounter, SimpleObject encounterJson) {
+    public static void populateJsonProperties(Encounter encounter, SimpleObject encounterJson) {
         encounterJson.put("patient_uuid", encounter.getPatient().getUuid());
         encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
         encounterJson.put("uuid", encounter.getUuid());
