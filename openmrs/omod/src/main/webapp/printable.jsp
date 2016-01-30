@@ -1,3 +1,4 @@
+<!-- WE ARE NOT USING THIS FILE RIGHT NOW: OUTPUTTING IT DIRECTLY FROM THE SERVLET -->
 <%@ include file="/WEB-INF/template/include.jsp"%>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ page trimDirectiveWhitespaces="true" %>
@@ -25,7 +26,7 @@
             <td>
                 ${concept.name}
 			</td>
-          </th>
+          </tr>
           </c:forEach>
           <!--tr>
               <td>teste 1</td><td>teste 1</td><td>teste 1</td><td>teste 1</td><td>teste 1</td><td>teste 1</td><td>teste 1</td><td>teste 1</td>
