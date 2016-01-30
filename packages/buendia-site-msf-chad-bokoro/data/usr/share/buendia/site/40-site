@@ -1,7 +1,7 @@
 # msf-chad-bokoro site configuration
 
 SERVER_OPENMRS_USER=buendia
-SERVER_OPENMRS_PASSWORD=onehundredyears
+SERVER_OPENMRS_PASSWORD=1HundredYears
 
 # Standard Edison limits.
 MONITORING_LIMITS='
