@@ -14,6 +14,7 @@ package org.projectbuendia.openmrs.web.controller;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
+import org.openmrs.ConceptName;
 import org.openmrs.Encounter;
 import org.openmrs.Form;
 import org.openmrs.FormField;
@@ -21,7 +22,9 @@ import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.api.context.Context;
+import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.Utils;
+import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.util.FormUtil;
 import org.springframework.stereotype.Controller;
@@ -37,8 +40,11 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
+import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -79,6 +85,35 @@ public class PrintCharts {
             Context.hasPrivilege("Manage Forms");
     }
 
+    private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.FRENCH);
+
+    private final VisitObsValue.ObsValueVisitor stringVisitor =
+        new VisitObsValue.ObsValueVisitor<String>() {
+            @Override public String visitCoded(Concept value) {
+                return NAMER.getClientName(value);
+            }
+
+            @Override public String visitNumeric(Double value) {
+                return Double.toString(value);
+            }
+
+            @Override public String visitBoolean(Boolean value) {
+                return Boolean.toString(value);
+            }
+
+            @Override public String visitText(String value) {
+                return value;
+            }
+
+            @Override public String visitDate(Date d) {
+                return Utils.YYYYMMDD_UTC_FORMAT.format(d);
+            }
+
+            @Override public String visitDateTime(Date d) {
+                return Utils.SPREADSHEET_FORMAT.format(d);
+            }
+        };
+
     /** This is executed every time a request is made. */
     @ModelAttribute
     public void onStart() {
@@ -91,80 +126,28 @@ public class PrintCharts {
     }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/printable", method = RequestMethod.POST)
-    public void post(HttpServletRequest request, ModelMap model) {
+    public void post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
 
         PatientService patientService = Context.getPatientService();
         EncounterService encounterService = Context.getEncounterService();
+        ObsService obsService = Context.getObsService();
 
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
-        //Set<Concept> questionConcepts = new HashSet<>();
-        ArrayList<ObsConcept> questionConcepts = new ArrayList<>();
+        ArrayList<Concept> questionConcepts = new ArrayList<>();
+        ArrayList<ConceptName> questionConceptNames = new ArrayList<>();
         for (Form form : ChartResource.getCharts(Context.getFormService())) {
             TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
             for (FormField groupField : formStructure.get(0)) {
                 for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                    //questionConcepts.add(fieldInGroup.getField().getConcept());
                     Concept concept = fieldInGroup.getField().getConcept();
-
-                    ObsConcept obsConcept = new ObsConcept();
-                    String conceptName = concept.getName(new Locale("fr")).toString();
-                    if (conceptName.isEmpty()){
-                        conceptName = concept.getName(new Locale("en_GB_client")).toString();
-                    }
-                    obsConcept.name = conceptName;
-                    questionConcepts.add(obsConcept);
+                    questionConcepts.add(concept);
+                    questionConceptNames.add(concept.getName());
                 }
             }
         }
 
-        ArrayList<PatientModel> patientModels = new ArrayList<>();
-        for (Patient patient : patients) {
-            PatientModel patientModel = new PatientModel();
-            patientModel.patientIdentifier = patient.getPatientIdentifier("MSF").toString();
-
-
-            ArrayList<Day> days = new ArrayList<>();
-
-            Day d = new Day();
-            d.desc = "Day 1";
-            d.date = "15 Oct";
-            days.add(d);
-
-            d = new Day();
-            d.desc = "Day 2";
-            d.date = "16 Oct";
-            days.add(d);
-
-            d = new Day();
-            d.desc = "Day 3";
-            d.date = "17 Oct";
-            days.add(d);
-
-            d = new Day();
-            d.desc = "Day 4";
-            d.date = "18 Oct";
-            days.add(d);
-
-            d = new Day();
-            d.desc = "Day 5";
-            d.date = "19 Oct";
-            days.add(d);
-
-            d = new Day();
-            d.desc = "Day 6";
-            d.date = "20 Oct";
-            days.add(d);
-
-            d = new Day();
-            d.desc = "Day 7";
-            d.date = "21 Oct";
-            days.add(d);
-
-            patientModel.days = days;
-
-            patientModels.add(patientModel);
 
 
 
@@ -172,58 +155,82 @@ public class PrintCharts {
 
 
 
-//            ArrayList<Encounter> encounters = new ArrayList<>(
-//                encounterService.getEncountersByPatient(patient));
-//            Collections.sort(encounters, ENCOUNTER_COMPARATOR);
+
+        try {
+            PrintWriter w = response.getWriter();
+            w.write("<!doctype html>\n"
+                + "<html>\n"
+                + "<head>\n"
+                + "  <meta charset=\"utf-8\">\n"
+                + "  <title>Patient Charts</title>\n"
+                + "  <style>\n"
+                + "  </style>\n"
+                + "</head>\n"
+                + "<body>");
+
+
+            for (Patient patient : patients) {
+
+
+
+
+
+
+
+
+
+//                ArrayList<Encounter> encounters = new ArrayList<>(
+//                    encounterService.getEncountersByPatient(patient));
+//                Collections.sort(encounters, ENCOUNTER_COMPARATOR);
 //
-//            for (Encounter encounter : encounters) {
-//                try {
-//                    for (Obs obs : encounter.getAllObs()) {
+//                for (Encounter encounter : encounters) {
+//                    try {
+//                        for (Obs obs : encounter.getAllObs()) {
+//
+//                        }
+//                    } catch (Exception e) {
+//                        log.error("Error exporting encounter", e);
 //                    }
-//                } catch (Exception e) {
-//                    log.error("Error exporting encounter", e);
 //                }
-//            }
+
+
+
+
+                w.write("<table cellpadding=\"0\" cellspacing=\"0\" border=\"1\">\n"
+                    + "\t<thead>\n"
+                    + "\t\t<th>&nbsp;</th>\n");
+                for (int i = 1; i < 8; i++){
+                    w.write("<th>Day " + i + "<br/>15 oct</th>");
+                }
+                w.write("\t</thead>\n"
+                        + "\t<tbody>\n");
+                for (Concept concept : questionConcepts) {
+                    w.write("<tr><td>");
+                    String conceptName = concept.getName(Locale.FRENCH).getName();
+                    w.write(conceptName);
+                    w.write("</td>");
+                    List<Obs> obsList = obsService.getObservationsByPersonAndConcept(patient, concept);
+
+                    for (Obs obs : obsList) {
+                        String value = (String) VisitObsValue.visit(obs, stringVisitor);
+                        w.write("<td>" + value + "</td>");
+                    }
+
+
+                    w.write("</tr>");
+                }
+                w.write("\t</tbody>\n"
+                        + "</table>\n");
+            }
+
+
+
+            w.write("</body>\n"
+                + "</html>");
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-
-        model.addAttribute("patients", patientModels);
-        model.addAttribute("concepts", questionConcepts);
-    }
-
-    public class PatientModel {
-        public String patientIdentifier;
-        //public ArrayList<Obs> observations;
-
-        public ArrayList<Day> days;
-
-        public String getPatientIdentifier() {
-            return patientIdentifier;
-        }
-
-        public ArrayList<Day> getDays() {
-            return days;
-        }
-    }
-
-    public class Day {
-        public String desc;
-        public String date;
-
-        public String getDesc() {
-            return desc;
-        }
-
-        public String getDate() {
-            return date;
-        }
-    }
-
-    public class ObsConcept {
-        public String name;
-
-        public String getName() {
-            return name;
-        }
     }
 }
