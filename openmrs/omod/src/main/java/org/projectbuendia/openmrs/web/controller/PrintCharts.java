@@ -219,27 +219,30 @@ public class PrintCharts {
                 w.write("\t</thead>\n"
                         + "\t<tbody>\n");
                 for (Concept concept : questionConcepts) {
+
+                    List<Person> obsPatientList = new ArrayList<>();
+                    obsPatientList.add(patient);
+                    List<Concept> obsConceptList = new ArrayList<>();
+                    obsConceptList.add(concept);
+
+                    int obsCount = obsService.getObservationCount(obsPatientList, null,
+                        obsConceptList, null, null, null, null, null, null, false);
+                    if (obsCount == 0) {
+                        continue;
+                    }
+
                     w.write("<tr><td>");
                     String conceptName = NAMER.getClientName(concept);
                     w.write(conceptName);
                     w.write("</td>");
-                    List<Obs> obsList = obsService.getObservationsByPersonAndConcept(patient, concept);
-
 
                     c.setTime(daysArray[0]);
                     for (int i = 1; i < 8; i++){
                         Date dayStart = c.getTime();
                         Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
-
-                        List<Person> obsPatientList = new ArrayList<>();
-                        obsPatientList.add(patient);
-                        List<Concept> obsConceptList = new ArrayList<>();
-                        obsConceptList.add(concept);
-
                         List<Obs> observations = obsService.getObservations(obsPatientList, null,
                             obsConceptList, null, null, null, null, 1, null, dayStart, dayEnd,
                             false);
-
                         String value = "&nbsp;";
                         if (!observations.isEmpty()) {
                             value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
@@ -251,9 +254,7 @@ public class PrintCharts {
                 }
                 w.write("\t</tbody>\n"
                         + "</table>\n");
-
             }
-
             w.write("</body>\n"
                 + "</html>");
 
