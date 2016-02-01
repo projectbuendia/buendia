@@ -49,7 +49,7 @@
 
 
 <div>
-  <form method="post" action="printable.form">
+  <form method="post" action="printable.form" target="_blank">
     <label for="patient_id">Patient ID</label>
     <input type="text" name="patient_id"> (Leave blank for all)
     <input type="submit" value="Generate">

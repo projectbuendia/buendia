@@ -21,41 +21,40 @@ import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
+import org.openmrs.Person;
+import org.openmrs.api.EncounterService;
+import org.openmrs.api.ObsService;
+import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.util.FormUtil;
+import org.openmrs.util.OpenmrsUtil;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.servlet.View;
-import org.springframework.web.servlet.view.RedirectView;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.openmrs.api.EncounterService;
-import org.openmrs.api.PatientService;
-import org.openmrs.api.ObsService;
-import org.openmrs.api.context.Context;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /** The controller for the profile management page. */
 @Controller
@@ -84,6 +83,8 @@ public class PrintCharts {
         return Context.hasPrivilege("Manage Concepts") &&
             Context.hasPrivilege("Manage Forms");
     }
+
+    public static final DateFormat HEADER_DATE_FORMAT = new SimpleDateFormat("d MMM");
 
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.FRENCH);
 
@@ -148,22 +149,31 @@ public class PrintCharts {
             }
         }
 
-
-
-
-
-
-
-
-
         try {
+            final Calendar c = Calendar.getInstance();
+
             PrintWriter w = response.getWriter();
             w.write("<!doctype html>\n"
                 + "<html>\n"
                 + "<head>\n"
                 + "  <meta charset=\"utf-8\">\n"
                 + "  <title>Patient Charts</title>\n"
-                + "  <style>\n"
+                + "  <style type=\"text/css\">\n"
+                //+ "    table { page-break-inside:auto }\n"
+                //+ "    tr    { page-break-inside:avoid; page-break-after:auto }\n"
+                //+ "    thead { display:table-header-group }\n"
+                //+ "    tfoot { display:table-footer-group }\n"
+                + "    h3 { margin 10dp; page-break-before: always;}\n"
+                + "    td { page-break-inside:avoid; }"
+//                + "tr    \n"
+//                + "{ \n"
+//                + "  display: table-row-group;\n"
+//                + "  page-break-inside:avoid; \n"
+//                + "  page-break-after:auto;\n"
+//                + "}\n"
+                //+ "@media print {\n"
+                //+ "   thead {display: table-header-group;}\n"
+                //+ "}"
                 + "  </style>\n"
                 + "</head>\n"
                 + "<body>");
@@ -171,59 +181,78 @@ public class PrintCharts {
 
             for (Patient patient : patients) {
 
+                ArrayList<Encounter> encounters = new ArrayList<>(
+                    encounterService.getEncountersByPatient(patient));
+                Collections.sort(encounters, ENCOUNTER_COMPARATOR);
+                LinkedHashSet<Date> days = new LinkedHashSet<>();
 
+                for (Encounter encounter : encounters) {
+                    c.setTime(encounter.getDateCreated());
+                    int year = c.get(Calendar.YEAR);
+                    int month = c.get(Calendar.MONTH);
+                    int day = c.get(Calendar.DAY_OF_MONTH);
+                    c.set(year, month, day);
+                    days.add(c.getTime());
+                }
 
+                w.write("<h3>" + patient.getPatientIdentifier("MSF") + ". "
+                    + patient.getGivenName() + " " + patient.getFamilyName()
+                    + "</h3>");
 
+                Date[] daysArray = days.toArray(new Date[days.size()]);
+                if (daysArray.length > 0) {
+                    c.setTime(daysArray[0]);
+                } else {
+                    w.write("<b>No encounters for this patient</b>");
+                    continue;
+                }
 
-
-
-
-
-//                ArrayList<Encounter> encounters = new ArrayList<>(
-//                    encounterService.getEncountersByPatient(patient));
-//                Collections.sort(encounters, ENCOUNTER_COMPARATOR);
-//
-//                for (Encounter encounter : encounters) {
-//                    try {
-//                        for (Obs obs : encounter.getAllObs()) {
-//
-//                        }
-//                    } catch (Exception e) {
-//                        log.error("Error exporting encounter", e);
-//                    }
-//                }
-
-
-
-
-                w.write("<table cellpadding=\"0\" cellspacing=\"0\" border=\"1\">\n"
+                w.write("<table cellpadding=\"1\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
                     + "\t<thead>\n"
-                    + "\t\t<th>&nbsp;</th>\n");
+                    + "\t\t<th width=\"20%\">&nbsp;</th>\n");
+
                 for (int i = 1; i < 8; i++){
-                    w.write("<th>Day " + i + "<br/>15 oct</th>");
+                    w.write("<th width=\"10%\">Day " + i + "<br/>"
+                        + HEADER_DATE_FORMAT.format(c.getTime()) + "</th>");
+                    c.add(c.DAY_OF_MONTH, 1);
                 }
                 w.write("\t</thead>\n"
                         + "\t<tbody>\n");
                 for (Concept concept : questionConcepts) {
                     w.write("<tr><td>");
-                    String conceptName = concept.getName(Locale.FRENCH).getName();
+                    String conceptName = NAMER.getClientName(concept);
                     w.write(conceptName);
                     w.write("</td>");
                     List<Obs> obsList = obsService.getObservationsByPersonAndConcept(patient, concept);
 
-                    for (Obs obs : obsList) {
-                        String value = (String) VisitObsValue.visit(obs, stringVisitor);
+
+                    c.setTime(daysArray[0]);
+                    for (int i = 1; i < 8; i++){
+                        Date dayStart = c.getTime();
+                        Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
+
+                        List<Person> obsPatientList = new ArrayList<>();
+                        obsPatientList.add(patient);
+                        List<Concept> obsConceptList = new ArrayList<>();
+                        obsConceptList.add(concept);
+
+                        List<Obs> observations = obsService.getObservations(obsPatientList, null,
+                            obsConceptList, null, null, null, null, 1, null, dayStart, dayEnd,
+                            false);
+
+                        String value = "&nbsp;";
+                        if (!observations.isEmpty()) {
+                            value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
+                        }
                         w.write("<td>" + value + "</td>");
+                        c.add(c.DAY_OF_MONTH, 1);
                     }
-
-
                     w.write("</tr>");
                 }
                 w.write("\t</tbody>\n"
                         + "</table>\n");
+
             }
-
-
 
             w.write("</body>\n"
                 + "</html>");
