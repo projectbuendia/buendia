@@ -14,7 +14,6 @@ package org.projectbuendia.openmrs.web.controller;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
-import org.openmrs.ConceptName;
 import org.openmrs.Encounter;
 import org.openmrs.Form;
 import org.openmrs.FormField;
@@ -47,6 +46,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -135,14 +135,12 @@ public class PrintCharts {
         Collections.sort(patients, PATIENT_COMPARATOR);
 
         ArrayList<Concept> questionConcepts = new ArrayList<>();
-        ArrayList<ConceptName> questionConceptNames = new ArrayList<>();
         for (Form form : ChartResource.getCharts(Context.getFormService())) {
             TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
             for (FormField groupField : formStructure.get(0)) {
                 for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
                     Concept concept = fieldInGroup.getField().getConcept();
                     questionConcepts.add(concept);
-                    questionConceptNames.add(concept.getName());
                 }
             }
         }
@@ -176,7 +174,6 @@ public class PrintCharts {
                 + "  </style>\n"
                 + "</head>\n"
                 + "<body>");
-
 
             for (Patient patient : patients) {
 
