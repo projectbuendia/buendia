@@ -170,7 +170,7 @@ public class PrintCharts {
                 //+ "    tr    { page-break-inside:avoid; page-break-after:auto }\n"
                 //+ "    thead { display:table-header-group }\n"
                 //+ "    tfoot { display:table-footer-group }\n"
-                + "    h3 { margin 10dp; page-break-before: always;}\n"
+                + "    h2 { margin 10dp; page-break-before: always;}\n"
                 + "    td { page-break-inside:avoid; }\n"
                 + "    thead {background-color:#C5C5C5;}\n"
 //                + "tr    \n"
