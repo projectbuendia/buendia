@@ -367,7 +367,7 @@ public class PrintCharts {
                 int day = 1;
 
                 c.setTime(start);
-                c.set(Calendar.HOUR, 0);
+                c.set(Calendar.HOUR_OF_DAY, 0);
                 c.set(Calendar.MINUTE, 0);
                 c.set(Calendar.SECOND, 0);
                 c.set(Calendar.MILLISECOND, 0);
@@ -406,11 +406,19 @@ public class PrintCharts {
                             Date dayStart = c.getTime();
                             Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
                             List<Obs> observations = obsService.getObservations(obsPatientList, null,
-                                obsConceptList, null, null, null, null, 1, null, dayStart, dayEnd,
+                                obsConceptList, null, null, null, null, null, null, dayStart, dayEnd,
                                 false);
                             String value = "&nbsp;";
                             if (!observations.isEmpty()) {
-                                value = observations.get(0).getValueNumeric().toString();
+                                int numGiven = 0;
+                                for (Obs observation : observations) {
+                                    if (observation.getOrder().equals(order)) {
+                                        numGiven++;
+                                    }
+                                }
+                                if (numGiven > 0) {
+                                    value = String.valueOf(numGiven);
+                                }
                             }
                             w.write("<td>" + value + "</td>");
                             c.add(c.DAY_OF_MONTH, 1);
