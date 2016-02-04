@@ -136,16 +136,15 @@ public class PrintCharts {
 
         HashMap<String, ArrayList<Concept>> charts = new HashMap<>();
         String chartName = null;
-        for (Form form : ChartResource.getCharts(Context.getFormService())) {
-            TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-            for (FormField groupField : formStructure.get(0)) {
-                if (groupField.getField().getName().equals("[chart_divider]")) {
-                    chartName = ((FormField) formStructure.get(groupField.getId()).toArray()[0]).getField().getName();
-                    charts.put(chartName, new ArrayList<Concept>());
-                }
-                for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                    charts.get(chartName).add(fieldInGroup.getField().getConcept());
-                }
+        Form form = ChartResource.getCharts(Context.getFormService()).get(0);
+        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+        for (FormField groupField : formStructure.get(0)) {
+            if (groupField.getField().getName().equals("[chart_divider]")) {
+                chartName = ((FormField) formStructure.get(groupField.getId()).toArray()[0]).getField().getName();
+                charts.put(chartName, new ArrayList<Concept>());
+            }
+            for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
+                charts.get(chartName).add(fieldInGroup.getField().getConcept());
             }
         }
 
