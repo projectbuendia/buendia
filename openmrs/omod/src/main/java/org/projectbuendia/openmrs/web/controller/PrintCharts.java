@@ -134,13 +134,17 @@ public class PrintCharts {
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
-        ArrayList<Concept> questionConcepts = new ArrayList<>();
+        HashMap<String, ArrayList<Concept>> charts = new HashMap<>();
+        String chartName = null;
         for (Form form : ChartResource.getCharts(Context.getFormService())) {
             TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
             for (FormField groupField : formStructure.get(0)) {
+                if (groupField.getField().getName().equals("[chart_divider]")) {
+                    chartName = ((FormField) formStructure.get(groupField.getId()).toArray()[0]).getField().getName();
+                    charts.put(chartName, new ArrayList<Concept>());
+                }
                 for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                    Concept concept = fieldInGroup.getField().getConcept();
-                    questionConcepts.add(concept);
+                    charts.get(chartName).add(fieldInGroup.getField().getConcept());
                 }
             }
         }
@@ -191,9 +195,9 @@ public class PrintCharts {
                     days.add(c.getTime());
                 }
 
-                w.write("<h3>" + patient.getPatientIdentifier("MSF") + ". "
+                w.write("<h2>" + patient.getPatientIdentifier("MSF") + ". "
                     + patient.getGivenName() + " " + patient.getFamilyName()
-                    + "</h3><hr/>");
+                    + "</h2><hr/>");
 
                 Date[] daysArray = days.toArray(new Date[days.size()]);
                 if (daysArray.length > 0) {
@@ -203,6 +207,48 @@ public class PrintCharts {
                     continue;
                 }
 
+
+                // For now we are expecting 3 charts: "Patient Chart", "Admission", and "Immunisations".
+                // TODO: Make it more generic.
+
+                // Admission Chart
+                w.write("<h3>PATIENT DETAILS / ADMISSION</h3>");
+                ArrayList<Concept> questionConcepts = charts.get("Admission");
+                w.write("<table cellpadding=\"1\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                    + "\t<thead>\n"
+                    + "\t\t<th width=\"20%\">&nbsp;</th>\n"
+                    + "\t\t<th>&nbsp;</th>\n");
+                w.write("\t</thead>\n"
+                    + "\t<tbody>\n");
+
+                for (Concept concept : questionConcepts) {
+                    w.write("<tr><td>");
+                    String conceptName = NAMER.getClientName(concept);
+                    w.write(conceptName);
+                    w.write("</td>");
+
+                    List<Person> obsPatientList = new ArrayList<>();
+                    obsPatientList.add(patient);
+                    List<Concept> obsConceptList = new ArrayList<>();
+                    obsConceptList.add(concept);
+
+                    List<Obs> observations = obsService.getObservations(obsPatientList, null,
+                        obsConceptList, null, null, null, null, 1, null, null, null, false);
+                    String value = "&nbsp;";
+                    if (!observations.isEmpty()) {
+                        value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
+                    }
+                    w.write("<td>" + value + "</td></tr>");
+                }
+
+                w.write("\t</tbody>\n"
+                    + "</table>\n");
+                // End of Admission Chart
+
+
+                // Patient Chart
+                w.write("<h3>PATIENT CHART</h3>");
+                questionConcepts = charts.get("Patient Chart");
                 int day = 1;
                 Date today = daysArray[0];
                 Date lastDay = daysArray[daysArray.length - 1];
@@ -262,6 +308,45 @@ public class PrintCharts {
                     c.add(Calendar.DAY_OF_MONTH, 7);
                     today = c.getTime();
                 } while (today.before(lastDay) || today.equals(lastDay));
+
+                // End of Patient Chart
+
+
+                // Immunisations Chart
+                w.write("<h3>IMMUNISATIONS</h3>");
+                questionConcepts = charts.get("Immunisations");
+                w.write("<table cellpadding=\"1\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                    + "\t<thead>\n"
+                    + "\t\t<th width=\"20%\">&nbsp;</th>\n"
+                    + "\t\t<th>&nbsp;</th>\n");
+                w.write("\t</thead>\n"
+                    + "\t<tbody>\n");
+
+                for (Concept concept : questionConcepts) {
+                    w.write("<tr><td>");
+                    String conceptName = NAMER.getClientName(concept);
+                    w.write(conceptName);
+                    w.write("</td>");
+
+                    List<Person> obsPatientList = new ArrayList<>();
+                    obsPatientList.add(patient);
+                    List<Concept> obsConceptList = new ArrayList<>();
+                    obsConceptList.add(concept);
+
+                    List<Obs> observations = obsService.getObservations(obsPatientList, null,
+                        obsConceptList, null, null, null, null, 1, null, null, null, false);
+                    String value = "&nbsp;";
+                    if (!observations.isEmpty()) {
+                        value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
+                    }
+                    w.write("<td>" + value + "</td></tr>");
+                }
+
+                w.write("\t</tbody>\n"
+                    + "</table>\n");
+                // End of Immunisations Chart
+
+
             }
             w.write("</body>\n"
                 + "</html>");
