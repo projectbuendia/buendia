@@ -18,11 +18,13 @@ import org.openmrs.Encounter;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.Person;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
+import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.projectbuendia.ClientConceptNamer;
@@ -130,11 +132,15 @@ public class PrintCharts {
         PatientService patientService = Context.getPatientService();
         EncounterService encounterService = Context.getEncounterService();
         ObsService obsService = Context.getObsService();
+        OrderService orderService = Context.getOrderService();
+        Concept orderExecutedConcept = Context.getConceptService()
+            .getConceptByUuid("buendia-concept-order_executed");
 
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
         HashMap<String, ArrayList<Concept>> charts = new HashMap<>();
+        HashMap<String, ArrayList<String>> fields = new HashMap<>();
         String chartName = null;
         Form form = ChartResource.getCharts(Context.getFormService()).get(0);
         TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
@@ -142,9 +148,11 @@ public class PrintCharts {
             if (groupField.getField().getName().equals("[chart_divider]")) {
                 chartName = ((FormField) formStructure.get(groupField.getId()).toArray()[0]).getField().getName();
                 charts.put(chartName, new ArrayList<Concept>());
+                fields.put(chartName, new ArrayList<String>());
             }
             for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
                 charts.get(chartName).add(fieldInGroup.getField().getConcept());
+                fields.get(chartName).add(fieldInGroup.getField().getName());
             }
         }
 
@@ -183,7 +191,14 @@ public class PrintCharts {
                 ArrayList<Encounter> encounters = new ArrayList<>(
                     encounterService.getEncountersByPatient(patient));
                 Collections.sort(encounters, ENCOUNTER_COMPARATOR);
-                LinkedHashSet<Date> days = new LinkedHashSet<>();
+                LinkedHashSet<Date> encounterDays = new LinkedHashSet<>();
+
+                List<Person> obsPatientList = new ArrayList<>();
+                obsPatientList.add(patient);
+
+                w.write("<h2>" + patient.getPatientIdentifier("MSF") + ". "
+                    + patient.getGivenName() + " " + patient.getFamilyName()
+                    + "</h2><hr/>");
 
                 for (Encounter encounter : encounters) {
                     c.setTime(encounter.getEncounterDatetime());
@@ -191,21 +206,16 @@ public class PrintCharts {
                     int month = c.get(Calendar.MONTH);
                     int day = c.get(Calendar.DAY_OF_MONTH);
                     c.set(year, month, day, 0, 0, 0);
-                    days.add(c.getTime());
+                    encounterDays.add(c.getTime());
                 }
 
-                w.write("<h2>" + patient.getPatientIdentifier("MSF") + ". "
-                    + patient.getGivenName() + " " + patient.getFamilyName()
-                    + "</h2><hr/>");
-
-                Date[] daysArray = days.toArray(new Date[days.size()]);
-                if (daysArray.length > 0) {
-                    c.setTime(daysArray[0]);
+                Date[] encounterDaysArray = encounterDays.toArray(new Date[encounterDays.size()]);
+                if (encounterDaysArray.length > 0) {
+                    c.setTime(encounterDaysArray[0]);
                 } else {
                     w.write("<b>No encounters for this patient</b>");
                     continue;
                 }
-
 
                 // For now we are expecting 3 charts: "Patient Chart", "Admission", and "Immunisations".
                 // TODO: Make it more generic.
@@ -213,7 +223,7 @@ public class PrintCharts {
                 // Admission Chart
                 w.write("<h3>PATIENT DETAILS / ADMISSION</h3>");
                 ArrayList<Concept> questionConcepts = charts.get("Admission");
-                w.write("<table cellpadding=\"1\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
                     + "\t<thead>\n"
                     + "\t\t<th width=\"20%\">&nbsp;</th>\n"
                     + "\t\t<th>&nbsp;</th>\n");
@@ -222,12 +232,9 @@ public class PrintCharts {
 
                 for (Concept concept : questionConcepts) {
                     w.write("<tr><td>");
-                    String conceptName = NAMER.getClientName(concept);
-                    w.write(conceptName);
+                    w.write(NAMER.getClientName(concept));
                     w.write("</td>");
 
-                    List<Person> obsPatientList = new ArrayList<>();
-                    obsPatientList.add(patient);
                     List<Concept> obsConceptList = new ArrayList<>();
                     obsConceptList.add(concept);
 
@@ -244,19 +251,18 @@ public class PrintCharts {
                     + "</table>\n");
                 // End of Admission Chart
 
-
                 // Patient Chart
                 w.write("<h3>PATIENT CHART</h3>");
                 questionConcepts = charts.get("Patient Chart");
-                int day = 1;
-                Date today = daysArray[0];
-                Date lastDay = daysArray[daysArray.length - 1];
+                int dayCount = 1;
+                Date today = encounterDaysArray[0];
+                Date lastDay = encounterDaysArray[encounterDaysArray.length - 1];
                 do {
-                    w.write("<table cellpadding=\"1\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                    w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
                         + "\t<thead>\n"
                         + "\t\t<th width=\"20%\">&nbsp;</th>\n");
                     c.setTime(today);
-                    for (int i = day; i < (day + 7); i++) {
+                    for (int i = dayCount; i < (dayCount + 7); i++) {
                         w.write("<th width=\"10%\">Day " + i + "<br/>"
                             + HEADER_DATE_FORMAT.format(c.getTime()) + "</th>");
                         c.add(c.DAY_OF_MONTH, 1);
@@ -266,8 +272,6 @@ public class PrintCharts {
 
                     for (Concept concept : questionConcepts) {
 
-                        List<Person> obsPatientList = new ArrayList<>();
-                        obsPatientList.add(patient);
                         List<Concept> obsConceptList = new ArrayList<>();
                         obsConceptList.add(concept);
 
@@ -278,8 +282,7 @@ public class PrintCharts {
                         }
 
                         w.write("<tr><td>");
-                        String conceptName = NAMER.getClientName(concept);
-                        w.write(conceptName);
+                        w.write(NAMER.getClientName(concept));
                         w.write("</td>");
 
                         c.setTime(today);
@@ -302,19 +305,17 @@ public class PrintCharts {
                     w.write("\t</tbody>\n"
                         + "</table>\n");
 
-                    day += 7;
+                    dayCount += 7;
                     c.setTime(today);
                     c.add(Calendar.DAY_OF_MONTH, 7);
                     today = c.getTime();
                 } while (today.before(lastDay) || today.equals(lastDay));
-
                 // End of Patient Chart
-
 
                 // Immunisations Chart
                 w.write("<h3>IMMUNISATIONS</h3>");
                 questionConcepts = charts.get("Immunisations");
-                w.write("<table cellpadding=\"1\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
                     + "\t<thead>\n"
                     + "\t\t<th width=\"20%\">&nbsp;</th>\n"
                     + "\t\t<th>&nbsp;</th>\n");
@@ -323,12 +324,9 @@ public class PrintCharts {
 
                 for (Concept concept : questionConcepts) {
                     w.write("<tr><td>");
-                    String conceptName = NAMER.getClientName(concept);
-                    w.write(conceptName);
+                    w.write(NAMER.getClientName(concept));
                     w.write("</td>");
 
-                    List<Person> obsPatientList = new ArrayList<>();
-                    obsPatientList.add(patient);
                     List<Concept> obsConceptList = new ArrayList<>();
                     obsConceptList.add(concept);
 
@@ -345,6 +343,90 @@ public class PrintCharts {
                     + "</table>\n");
                 // End of Immunisations Chart
 
+                // Orders Chart
+                w.write("<h3>TREATMENT</h3>");
+                List<Order> orders = orderService.getAllOrdersByPatient(patient);
+                if (orders.size() == 0) {
+                    w.write("<h3>This patient has no orders.</h3>");
+                    continue;
+                }
+
+                Date start = new Date();
+                Date stop = new Date();
+                for (Order order : orders) {
+                    if (order.getScheduledDate().before(start)) {
+                        start = order.getScheduledDate();
+                    }
+                    if (order.getAutoExpireDate() != null) {
+                        if (order.getAutoExpireDate().after(stop)) {
+                            stop = order.getAutoExpireDate();
+                        }
+                    }
+                }
+
+                int day = 1;
+
+                c.setTime(start);
+                c.set(Calendar.HOUR, 0);
+                c.set(Calendar.MINUTE, 0);
+                c.set(Calendar.SECOND, 0);
+                c.set(Calendar.MILLISECOND, 0);
+
+                today = c.getTime();
+                lastDay = stop;
+                do {
+                    w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                        + "\t<thead>\n"
+                        + "\t\t<th width=\"20%\">&nbsp;</th>\n");
+                    c.setTime(today);
+                    for (int i = day; i < (day + 7); i++) {
+                        w.write("<th width=\"10%\">Day " + i + "<br/>"
+                            + HEADER_DATE_FORMAT.format(c.getTime()) + "</th>");
+                        c.add(c.DAY_OF_MONTH, 1);
+                    }
+                    w.write("\t</thead>\n"
+                        + "\t<tbody>\n");
+
+                    for (Order order : orders) {
+                        List<Concept> obsConceptList = new ArrayList<>();
+                        obsConceptList.add(orderExecutedConcept);
+
+                        int obsCount = obsService.getObservationCount(obsPatientList, null,
+                            obsConceptList, null, null, null, null, null, null, false);
+                        if (obsCount == 0) {
+                            continue;
+                        }
+
+                        w.write("<tr><td>");
+                        w.write(order.getInstructions());
+                        w.write("</td>");
+
+                        c.setTime(today);
+                        for (int i = 1; i < 8; i++) {
+                            Date dayStart = c.getTime();
+                            Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
+                            List<Obs> observations = obsService.getObservations(obsPatientList, null,
+                                obsConceptList, null, null, null, null, 1, null, dayStart, dayEnd,
+                                false);
+                            String value = "&nbsp;";
+                            if (!observations.isEmpty()) {
+                                value = observations.get(0).getValueNumeric().toString();
+                            }
+                            w.write("<td>" + value + "</td>");
+                            c.add(c.DAY_OF_MONTH, 1);
+                        }
+                        w.write("</tr>");
+                    }
+
+                    w.write("\t</tbody>\n"
+                        + "</table>\n");
+
+                    day += 7;
+                    c.setTime(today);
+                    c.add(Calendar.DAY_OF_MONTH, 7);
+                    today = c.getTime();
+                } while (today.before(lastDay) || today.equals(lastDay));
+                // End of Orders Chart
 
             }
             w.write("</body>\n"
