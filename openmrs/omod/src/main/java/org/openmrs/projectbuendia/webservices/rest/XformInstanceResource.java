@@ -89,6 +89,7 @@ public class XformInstanceResource implements Creatable {
     // Everything not in this set is assumed to be a group of observations.
     private static final Set<String> KNOWN_CHILD_ELEMENTS = new HashSet<>();
     private static final XformsQueueProcessor processor = new XformsQueueProcessor();
+    private static Log log = LogFactory.getLog(XformInstanceResource.class);
 
     static {
         KNOWN_CHILD_ELEMENTS.add("header");
@@ -199,11 +200,18 @@ public class XformInstanceResource implements Creatable {
                 latest = encounter;
             }
         }
-        Date twoSecondsAgo = new Date(System.currentTimeMillis() - 2000);
-        if (latest != null && latest.getDateCreated().before(twoSecondsAgo)) {
-            // This encounter probably wasn't created from this Xforms submission.
-            latest = null;
+        if (latest == null) {
+            log.warn(String.format(
+                    "Couldn't find an encounter matching provider '%s' and patient '%s'",
+                    provider,
+                    patient));
+            return null;
         }
+        // NOTE: there's a possibility that if two tablets are entering information for the same
+        // patient using the same user (e.g. Guest Account) then the wrong result will be fetched.
+        // In that case, the correct record gets picked up after a sync anyway. Don't bother fixing
+        // that because this whole method is a hack, fix the root problem with the Xforms module
+        // instead.
         return latest;
     }
 
