@@ -17,7 +17,7 @@ case \$1 in
         ;;
 
     upgrade)
-        buendia-db-migrate \$2 $PACKAGE_VERSION
+
         ;;
 
     *) exit 1
