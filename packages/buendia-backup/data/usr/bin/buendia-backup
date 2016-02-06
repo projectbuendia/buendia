@@ -36,9 +36,8 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
-# Keep one backup per day.  (If you need to maintain a backup that is
-# much less than a day old, run buendia-backup multiple times per day.)
-backup_id=$(date +'%Y-%m-%d')
+# Name the backup with the current timestamp, e.g. 2016-02-06-09-48
+backup_id=$(date +'%Y-%m-%d-%H-%M')
 tmp="/tmp/buendia-backup.$$"
 
 # report any backup errors to file for Yocto LED reporting
