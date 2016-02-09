@@ -10,6 +10,9 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
+# Used to get IP address for making hrefs.
+. /usr/share/buendia/utils.sh
+
 tail -5 /var/log/buendia/buendia-warmup.log | grep -q Success && updown=SERVING || updown=DOWN
 
 uptime=$(uptime | sed -e 's/.* up//' -e 's/, *[0-9][0-9]* *user.*//')
@@ -43,7 +46,9 @@ Content-Type: text/html
 
 <p><a href="client">Download client app</a>
 
-<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
+<p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs">Login to OpenMRS</a></p>
+
+<p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
 
 <p><a href="stats.zip">Download usage stats</a>
 
@@ -54,7 +59,7 @@ Content-Type: text/html
 
 <p><a href="status">System status</a>
 
-<p><a href="//packages:9001">Package repository</a>
+<p><a href="//$NETWORKING_IP_ADDRESS:9001">Package repository</a>
 
 <p><a href="reboot">Reboot server</a>
 
