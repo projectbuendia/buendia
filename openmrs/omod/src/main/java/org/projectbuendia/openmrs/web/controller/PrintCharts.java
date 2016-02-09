@@ -11,6 +11,7 @@
 
 package org.projectbuendia.openmrs.web.controller;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -86,7 +87,7 @@ public class PrintCharts {
 
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.FRENCH);
 
-    private final VisitObsValue.ObsValueVisitor stringVisitor =
+    private static final VisitObsValue.ObsValueVisitor<String> STRING_VISITOR =
         new VisitObsValue.ObsValueVisitor<String>() {
             @Override public String visitCoded(Concept value) {
                 return NAMER.getClientName(value);
@@ -118,12 +119,13 @@ public class PrintCharts {
     public void onStart() {}
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/print-charts", method = RequestMethod.GET)
-    public void get(HttpServletRequest request, ModelMap model) {
-        model.addAttribute("authorized", authorized());
+    public void get(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
+        post(request, response, model);
     }
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/printable", method = RequestMethod.POST)
     public void post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
+        model.addAttribute("authorized", authorized());
         try {
             try {
                 generateExport(request, response, model);
@@ -409,16 +411,16 @@ public class PrintCharts {
                 for (int i = 1; i < 8; i++) {
                     Date dayStart = calendar.getTime();
                     Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
+                    // These are sorted by date / time by default.
                     List<Obs> observations = obsService.getObservations(
                             Collections.<Person>singletonList(patient), null,
-                            Collections.singletonList(concept), null, null, null, null, 1, null,
+                            Collections.singletonList(concept), null, null, null, null, null, null,
                             dayStart, dayEnd, false);
-                    String value = "&nbsp;";
-                    if (!observations.isEmpty()) {
-                        // TODO: multiple observations in this cell. Maybe with times? IDK.
-                        value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
+                    ArrayList<String> values = new ArrayList<>();
+                    for (Obs obs : observations) {
+                        values.add(VisitObsValue.visit(obs, STRING_VISITOR));
                     }
-                    w.write("<td>" + value + "</td>");
+                    w.write("<td>" + StringUtils.join(values, ", ") + "</td>");
                     calendar.add(Calendar.DAY_OF_MONTH, 1);
                 }
                 w.write("</tr>");
@@ -441,13 +443,16 @@ public class PrintCharts {
                 + "  <meta charset=\"utf-8\">\n"
                 + "  <title>Patient Charts</title>\n"
                 + "  <style type=\"text/css\">\n"
-                + "    table { page-break-inside:auto; margin-bottom: 22pt; }\n"
-                //+ "    tr    { page-break-inside:avoid; page-break-after:auto }\n"
-                //+ "    thead { display:table-header-group }\n"
-                //+ "    tfoot { display:table-footer-group }\n"
+                + "    table { margin-bottom: 22pt; }\n"
+                + "    table, tr, thead, tbody {\n"
+                + "        page-break-inside: avoid;\n"
+                + "    }\n"
+                + "    h3 { page-break-after: avoid; }\n"
                 + "    h2 { margin 10dp; page-break-before: always;}\n"
+                + "    h2:first-child { page-break-before: auto; }\n"
                 + "    td { page-break-inside:avoid; }\n"
                 + "    thead {background-color:#D5D5D5;}\n"
+                + "    body { font-size: 10pt; }\n"
 //                + "tr    \n"
 //                + "{ \n"
 //                + "  display: table-row-group;\n"
