@@ -11,6 +11,7 @@
 
 package org.projectbuendia.openmrs.web.controller;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
@@ -31,6 +32,7 @@ import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
+import org.openmrs.projectbuendia.webservices.rest.DbUtil;
 import org.openmrs.util.FormUtil;
 import org.openmrs.util.OpenmrsUtil;
 import org.springframework.stereotype.Controller;
@@ -39,6 +41,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DateFormat;
@@ -48,20 +52,17 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /** The controller for the profile management page. */
 @Controller
 public class PrintCharts {
-
     protected static Log log = LogFactory.getLog(ProfileManager.class);
 
     private static final Comparator<Patient> PATIENT_COMPARATOR = new Comparator<Patient>() {
@@ -75,18 +76,13 @@ public class PrintCharts {
         }
     };
 
-    private static final Comparator<Encounter> ENCOUNTER_COMPARATOR = new Comparator<Encounter>() {
-        @Override public int compare(Encounter e1, Encounter e2) {
-            return e1.getEncounterDatetime().compareTo(e2.getEncounterDatetime());
-        }
-    };
-
     private boolean authorized() {
         return Context.hasPrivilege("Manage Concepts") &&
             Context.hasPrivilege("Manage Forms");
     }
 
     public static final DateFormat HEADER_DATE_FORMAT = new SimpleDateFormat("d MMM");
+    private static final DateFormat ORDER_DATE_FORMAT = HEADER_DATE_FORMAT;
 
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.FRENCH);
 
@@ -128,39 +124,318 @@ public class PrintCharts {
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/printable", method = RequestMethod.POST)
     public void post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
+        try {
+            try {
+                generateExport(request, response, model);
+            } catch (NoProfileException e) {
+                response.getWriter().write(
+                        "No profile loaded. Please load a profile before exporting data.");
+            }
+        } catch (IOException e) {
+            // OpenMRS prints the stack trace when this happens. WIN.
+            throw new RuntimeException(e);
+        }
+    }
 
+    private LinkedHashMap<String, List<Concept>> buildChartModel()
+            throws NoProfileException {
+        LinkedHashMap<String, List<Concept>> charts = new LinkedHashMap<>();
+        String chartName = null;
+        ArrayList<Concept> concepts = null;
+        // Get the first chart. Currently the "first chart" actually contains multiple charts, the
+        // rest of the logic in this method is parsing those.
+        Form form = ChartResource.getCharts(Context.getFormService()).get(0);
+        // Get the structure for that chart.
+        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+        TreeSet<FormField> rootNode = formStructure.get(0);
+        for (FormField groupField : rootNode) {
+            if (groupField.getField().getName().equals("[chart_divider]")) {
+                // The first child of the [chart_divider] contains the chart name.
+                chartName = formStructure.get(groupField.getId()).first().getField().getName();
+                concepts = new ArrayList<>();
+                // Chart divider has a subfield "notes" (see profile_apply). We work around that
+                // here by skipping when we find a chart divider.
+                // Chart dividers are a hack anyway.
+                continue;
+            }
+            for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
+                if (chartName == null) {
+                    throw new NoProfileException();
+                }
+                // TODO: if this is bottleneck, use a TreeSet. Suspect it won't be because it's only
+                // called once / export
+                Concept concept = fieldInGroup.getField().getConcept();
+                if (!concepts.contains(concept)) {
+                    concepts.add(concept);
+                }
+            }
+            charts.put(chartName, concepts);
+        }
+        return charts;
+    }
+
+    private void generateExport(
+            HttpServletRequest request, HttpServletResponse response, ModelMap model)
+            throws NoProfileException {
         PatientService patientService = Context.getPatientService();
         EncounterService encounterService = Context.getEncounterService();
         ObsService obsService = Context.getObsService();
         OrderService orderService = Context.getOrderService();
-        Concept orderExecutedConcept = Context.getConceptService()
-            .getConceptByUuid("buendia-concept-order_executed");
+        Concept orderExecutedConcept = DbUtil.getOrderExecutedConcept();
 
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
-        HashMap<String, ArrayList<Concept>> charts = new HashMap<>();
-        HashMap<String, ArrayList<String>> fields = new HashMap<>();
-        String chartName = null;
-        Form form = ChartResource.getCharts(Context.getFormService()).get(0);
-        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-        for (FormField groupField : formStructure.get(0)) {
-            if (groupField.getField().getName().equals("[chart_divider]")) {
-                chartName = ((FormField) formStructure.get(groupField.getId()).toArray()[0]).getField().getName();
-                charts.put(chartName, new ArrayList<Concept>());
-                fields.put(chartName, new ArrayList<String>());
+        LinkedHashMap<String, List<Concept>> charts = buildChartModel();
+
+        try {
+
+            PrintWriter w = response.getWriter();
+            writeHeader(w);
+
+            for (Patient patient : patients) {
+                w.write("<h2>" + patient.getPatientIdentifier("MSF") + ". "
+                        + patient.getGivenName() + " " + patient.getFamilyName()
+                        + "</h2><hr/>");
+
+                SortedSet<Date> encounterDays =
+                        getDatesForEncounterList(encounterService.getEncountersByPatient(patient));
+
+                if (encounterDays.size() == 0) {
+                    w.write("<b>No encounters for this patient</b>");
+                    continue;
+                }
+
+                for (Map.Entry<String, List<Concept>> chart : charts.entrySet()) {
+                    printPatientChart(
+                            obsService,
+                            chart.getKey(),
+                            chart.getValue(),
+                            w,
+                            patient,
+                            encounterDays);
+                }
+
+                printOrdersChart(obsService, orderService, orderExecutedConcept, w, patient);
+
             }
-            for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                charts.get(chartName).add(fieldInGroup.getField().getConcept());
-                fields.get(chartName).add(fieldInGroup.getField().getName());
+            writeFooter(w);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private SortedSet<Date> getDatesForEncounterList(List<Encounter> encounters) {
+        TreeSet<Date> encounterDays = new TreeSet<>();
+        final Calendar c = Calendar.getInstance();
+        for (Encounter encounter : encounters) {
+            c.setTime(encounter.getEncounterDatetime());
+            int year = c.get(Calendar.YEAR);
+            int month = c.get(Calendar.MONTH);
+            int day = c.get(Calendar.DAY_OF_MONTH);
+            //noinspection MagicConstant
+            c.set(year, month, day, 0, 0, 0);
+            encounterDays.add(c.getTime());
+        }
+        return encounterDays;
+    }
+
+    private void printOrdersChart(ObsService obsService, OrderService orderService, Concept orderExecutedConcept, PrintWriter w, Patient patient) {
+        Calendar calendar = Calendar.getInstance();
+        w.write("<h3>TREATMENT</h3>");
+        List<Order> orders = orderService.getAllOrdersByPatient(patient);
+        if (orders.size() == 0) {
+            w.write("<h3>This patient has no treatments.</h3>");
+            return;
+        }
+        List<Obs> orderExecutedObs = obsService.getObservations(
+                Collections.<Person>singletonList(patient), null,
+                Collections.singletonList(orderExecutedConcept),
+                null, null, null, null, null, null, null, null, false);
+
+        Pair<Date, Date> dates = getStartAndEndDateForOrders(
+                orders, orderExecutedObs);
+        Date start = dates.getLeft();
+        Date stop = dates.getRight();
+
+        int day = 1;
+
+        calendar.setTime(start);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+
+        Date today = calendar.getTime();
+        do {
+            w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                    + "\t<thead>\n"
+                    + "\t\t<th width=\"20%\">&nbsp;</th>\n");
+            calendar.setTime(today);
+            for (int i = day; i < (day + 7); i++) {
+                w.write("<th width=\"10%\">Day " + i + "<br/>"
+                        + HEADER_DATE_FORMAT.format(calendar.getTime()) + "</th>");
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
+            w.write("\t</thead>\n"
+                    + "\t<tbody>\n");
+
+            for (Order order : orders) {
+                w.write("<tr><td>");
+                w.write(order.getInstructions());
+                w.write(" " + formatStartAndEndDatesForOrder(order));
+                w.write("</td>");
+
+                calendar.setTime(today);
+                for (int i = 1; i < 8; i++) {
+                    Date dayStart = calendar.getTime();
+                    Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
+                    List<Obs> observations = obsService.getObservations(Collections.<Person>singletonList(patient), null,
+                            Collections.singletonList(orderExecutedConcept), null, null, null, null, null, null, dayStart, dayEnd,
+                            false);
+                    String value = "&nbsp;";
+                    if (!observations.isEmpty()) {
+                        int numGiven = 0;
+                        for (Obs observation : observations) {
+                            if (observation.getOrder().equals(order)) {
+                                numGiven++;
+                            }
+                        }
+                        if (numGiven > 0) {
+                            value = String.valueOf(numGiven);
+                        }
+                    }
+                    w.write("<td>" + value + "</td>");
+                    calendar.add(Calendar.DAY_OF_MONTH, 1);
+                }
+                w.write("</tr>");
+            }
+
+            w.write("\t</tbody>\n"
+                    + "</table>\n");
+
+            day += 7;
+            calendar.setTime(today);
+            calendar.add(Calendar.DAY_OF_MONTH, 7);
+            today = calendar.getTime();
+        } while (today.before(stop) || today.equals(stop));
+    }
+
+    private String formatStartAndEndDatesForOrder(Order order) {
+        if (order.getScheduledDate() == null) {
+            // Shouldn't occur, but fail safe.
+            return "";
+        }
+        String startDateString = ORDER_DATE_FORMAT.format(order.getScheduledDate());
+        String endDateString = order.getAutoExpireDate() == null
+                        ? "*"
+                        : ORDER_DATE_FORMAT.format(order.getAutoExpireDate());
+        return String.format("(%s - %s)", startDateString, endDateString);
+    }
+
+    private Pair<Date, Date> getStartAndEndDateForOrders(
+            List<Order> orders,
+            List<Obs> orderExecutedObs) {
+        Date start = null;
+        Date stop = null;
+        for (Order order : orders) {
+            if (start == null || order.getScheduledDate().before(start)) {
+                start = order.getScheduledDate();
+            }
+            if (order.getAutoExpireDate() != null) {
+                if (stop == null || order.getAutoExpireDate().after(stop)) {
+                    stop = order.getAutoExpireDate();
+                }
             }
         }
 
-        try {
-            final Calendar c = Calendar.getInstance();
+        for (Obs obs : orderExecutedObs) {
+            Date obsTime = obs.getObsDatetime();
+            if (start == null || obsTime.before(start)) {
+                start = obsTime;
+            }
+            if (stop == null || obsTime.after(stop)) {
+                stop = obsTime;
+            }
+        }
 
-            PrintWriter w = response.getWriter();
-            w.write("<!doctype html>\n"
+        // This shouldn't ever occur, but fail gracefully.
+        if (start == null) {
+            start = new Date();
+        }
+        // If all orders are unlimited orders, this will print into forever. we fix that by ending
+        // printing at the start date.
+        if (stop == null) {
+            stop = start;
+        }
+        return Pair.of(start, stop);
+    }
+
+    private void printPatientChart(ObsService obsService, String chartName, List<Concept> questionConcepts, PrintWriter w, Patient patient, SortedSet<Date> encounterDays) {
+        w.write("<h3>" + chartName + "</h3>");
+        int dayCount = 1;
+        Date today = encounterDays.first();
+        Date lastDay = encounterDays.last();
+        do {
+            w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
+                    + "\t<thead>\n"
+                    + "\t\t<th width=\"20%\">&nbsp;</th>\n");
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(today);
+            for (int i = dayCount; i < (dayCount + 7); i++) {
+                w.write("<th width=\"10%\">Day " + i + "<br/>"
+                        + HEADER_DATE_FORMAT.format(calendar.getTime()) + "</th>");
+                calendar.add(Calendar.DAY_OF_MONTH, 1);
+            }
+            w.write("\t</thead>\n"
+                    + "\t<tbody>\n");
+
+            for (Concept concept : questionConcepts) {
+                // Skip concepts that aren't in use.
+                int obsCount = obsService.getObservationCount(
+                        Collections.<Person>singletonList(patient), null,
+                        Collections.singletonList(concept), null, null, null, null, null, null, false);
+                if (obsCount == 0) {
+                    continue;
+                }
+
+                w.write("<tr><td>");
+                w.write(NAMER.getClientName(concept));
+                w.write("</td>");
+
+                calendar.setTime(today);
+                for (int i = 1; i < 8; i++) {
+                    Date dayStart = calendar.getTime();
+                    Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
+                    List<Obs> observations = obsService.getObservations(
+                            Collections.<Person>singletonList(patient), null,
+                            Collections.singletonList(concept), null, null, null, null, 1, null,
+                            dayStart, dayEnd, false);
+                    String value = "&nbsp;";
+                    if (!observations.isEmpty()) {
+                        // TODO: multiple observations in this cell. Maybe with times? IDK.
+                        value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
+                    }
+                    w.write("<td>" + value + "</td>");
+                    calendar.add(Calendar.DAY_OF_MONTH, 1);
+                }
+                w.write("</tr>");
+            }
+
+            w.write("\t</tbody>\n"
+                    + "</table>\n");
+
+            dayCount += 7;
+            calendar.setTime(today);
+            calendar.add(Calendar.DAY_OF_MONTH, 7);
+            today = calendar.getTime();
+        } while (today.before(lastDay) || today.equals(lastDay));
+    }
+
+    private void writeHeader(PrintWriter w) {
+        w.write("<!doctype html>\n"
                 + "<html>\n"
                 + "<head>\n"
                 + "  <meta charset=\"utf-8\">\n"
@@ -172,7 +447,7 @@ public class PrintCharts {
                 //+ "    tfoot { display:table-footer-group }\n"
                 + "    h2 { margin 10dp; page-break-before: always;}\n"
                 + "    td { page-break-inside:avoid; }\n"
-                + "    thead {background-color:#C5C5C5;}\n"
+                + "    thead {background-color:#D5D5D5;}\n"
 //                + "tr    \n"
 //                + "{ \n"
 //                + "  display: table-row-group;\n"
@@ -185,264 +460,13 @@ public class PrintCharts {
                 + "  </style>\n"
                 + "</head>\n"
                 + "<body>");
+    }
 
-            for (Patient patient : patients) {
-
-                ArrayList<Encounter> encounters = new ArrayList<>(
-                    encounterService.getEncountersByPatient(patient));
-                Collections.sort(encounters, ENCOUNTER_COMPARATOR);
-                LinkedHashSet<Date> encounterDays = new LinkedHashSet<>();
-
-                List<Person> obsPatientList = new ArrayList<>();
-                obsPatientList.add(patient);
-
-                w.write("<h2>" + patient.getPatientIdentifier("MSF") + ". "
-                    + patient.getGivenName() + " " + patient.getFamilyName()
-                    + "</h2><hr/>");
-
-                for (Encounter encounter : encounters) {
-                    c.setTime(encounter.getEncounterDatetime());
-                    int year = c.get(Calendar.YEAR);
-                    int month = c.get(Calendar.MONTH);
-                    int day = c.get(Calendar.DAY_OF_MONTH);
-                    c.set(year, month, day, 0, 0, 0);
-                    encounterDays.add(c.getTime());
-                }
-
-                Date[] encounterDaysArray = encounterDays.toArray(new Date[encounterDays.size()]);
-                if (encounterDaysArray.length > 0) {
-                    c.setTime(encounterDaysArray[0]);
-                } else {
-                    w.write("<b>No encounters for this patient</b>");
-                    continue;
-                }
-
-                // For now we are expecting 3 charts: "Patient Chart", "Admission", and "Immunisations".
-                // TODO: Make it more generic.
-
-                // Admission Chart
-                w.write("<h3>PATIENT DETAILS / ADMISSION</h3>");
-                ArrayList<Concept> questionConcepts = charts.get("Admission");
-                w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
-                    + "\t<thead>\n"
-                    + "\t\t<th width=\"20%\">&nbsp;</th>\n"
-                    + "\t\t<th>&nbsp;</th>\n");
-                w.write("\t</thead>\n"
-                    + "\t<tbody>\n");
-
-                for (Concept concept : questionConcepts) {
-                    w.write("<tr><td>");
-                    w.write(NAMER.getClientName(concept));
-                    w.write("</td>");
-
-                    List<Concept> obsConceptList = new ArrayList<>();
-                    obsConceptList.add(concept);
-
-                    List<Obs> observations = obsService.getObservations(obsPatientList, null,
-                        obsConceptList, null, null, null, null, 1, null, null, null, false);
-                    String value = "&nbsp;";
-                    if (!observations.isEmpty()) {
-                        value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
-                    }
-                    w.write("<td>" + value + "</td></tr>");
-                }
-
-                w.write("\t</tbody>\n"
-                    + "</table>\n");
-                // End of Admission Chart
-
-                // Patient Chart
-                w.write("<h3>PATIENT CHART</h3>");
-                questionConcepts = charts.get("Patient Chart");
-                int dayCount = 1;
-                Date today = encounterDaysArray[0];
-                Date lastDay = encounterDaysArray[encounterDaysArray.length - 1];
-                do {
-                    w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
-                        + "\t<thead>\n"
-                        + "\t\t<th width=\"20%\">&nbsp;</th>\n");
-                    c.setTime(today);
-                    for (int i = dayCount; i < (dayCount + 7); i++) {
-                        w.write("<th width=\"10%\">Day " + i + "<br/>"
-                            + HEADER_DATE_FORMAT.format(c.getTime()) + "</th>");
-                        c.add(c.DAY_OF_MONTH, 1);
-                    }
-                    w.write("\t</thead>\n"
-                        + "\t<tbody>\n");
-
-                    for (Concept concept : questionConcepts) {
-
-                        List<Concept> obsConceptList = new ArrayList<>();
-                        obsConceptList.add(concept);
-
-                        int obsCount = obsService.getObservationCount(obsPatientList, null,
-                            obsConceptList, null, null, null, null, null, null, false);
-                        if (obsCount == 0) {
-                            continue;
-                        }
-
-                        w.write("<tr><td>");
-                        w.write(NAMER.getClientName(concept));
-                        w.write("</td>");
-
-                        c.setTime(today);
-                        for (int i = 1; i < 8; i++) {
-                            Date dayStart = c.getTime();
-                            Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
-                            List<Obs> observations = obsService.getObservations(obsPatientList, null,
-                                obsConceptList, null, null, null, null, 1, null, dayStart, dayEnd,
-                                false);
-                            String value = "&nbsp;";
-                            if (!observations.isEmpty()) {
-                                value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
-                            }
-                            w.write("<td>" + value + "</td>");
-                            c.add(c.DAY_OF_MONTH, 1);
-                        }
-                        w.write("</tr>");
-                    }
-
-                    w.write("\t</tbody>\n"
-                        + "</table>\n");
-
-                    dayCount += 7;
-                    c.setTime(today);
-                    c.add(Calendar.DAY_OF_MONTH, 7);
-                    today = c.getTime();
-                } while (today.before(lastDay) || today.equals(lastDay));
-                // End of Patient Chart
-
-                // Immunisations Chart
-                w.write("<h3>IMMUNISATIONS</h3>");
-                questionConcepts = charts.get("Immunisations");
-                w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
-                    + "\t<thead>\n"
-                    + "\t\t<th width=\"20%\">&nbsp;</th>\n"
-                    + "\t\t<th>&nbsp;</th>\n");
-                w.write("\t</thead>\n"
-                    + "\t<tbody>\n");
-
-                for (Concept concept : questionConcepts) {
-                    w.write("<tr><td>");
-                    w.write(NAMER.getClientName(concept));
-                    w.write("</td>");
-
-                    List<Concept> obsConceptList = new ArrayList<>();
-                    obsConceptList.add(concept);
-
-                    List<Obs> observations = obsService.getObservations(obsPatientList, null,
-                        obsConceptList, null, null, null, null, 1, null, null, null, false);
-                    String value = "&nbsp;";
-                    if (!observations.isEmpty()) {
-                        value = (String) VisitObsValue.visit(observations.get(0), stringVisitor);
-                    }
-                    w.write("<td>" + value + "</td></tr>");
-                }
-
-                w.write("\t</tbody>\n"
-                    + "</table>\n");
-                // End of Immunisations Chart
-
-                // Orders Chart
-                w.write("<h3>TREATMENT</h3>");
-                List<Order> orders = orderService.getAllOrdersByPatient(patient);
-                if (orders.size() == 0) {
-                    w.write("<h3>This patient has no orders.</h3>");
-                    continue;
-                }
-
-                Date start = new Date();
-                Date stop = new Date();
-                for (Order order : orders) {
-                    if (order.getScheduledDate().before(start)) {
-                        start = order.getScheduledDate();
-                    }
-                    if (order.getAutoExpireDate() != null) {
-                        if (order.getAutoExpireDate().after(stop)) {
-                            stop = order.getAutoExpireDate();
-                        }
-                    }
-                }
-
-                int day = 1;
-
-                c.setTime(start);
-                c.set(Calendar.HOUR_OF_DAY, 0);
-                c.set(Calendar.MINUTE, 0);
-                c.set(Calendar.SECOND, 0);
-                c.set(Calendar.MILLISECOND, 0);
-
-                today = c.getTime();
-                lastDay = stop;
-                do {
-                    w.write("<table cellpadding=\"2\" cellspacing=\"0\" border=\"1\" width=\"100%\">\n"
-                        + "\t<thead>\n"
-                        + "\t\t<th width=\"20%\">&nbsp;</th>\n");
-                    c.setTime(today);
-                    for (int i = day; i < (day + 7); i++) {
-                        w.write("<th width=\"10%\">Day " + i + "<br/>"
-                            + HEADER_DATE_FORMAT.format(c.getTime()) + "</th>");
-                        c.add(c.DAY_OF_MONTH, 1);
-                    }
-                    w.write("\t</thead>\n"
-                        + "\t<tbody>\n");
-
-                    for (Order order : orders) {
-                        List<Concept> obsConceptList = new ArrayList<>();
-                        obsConceptList.add(orderExecutedConcept);
-
-                        int obsCount = obsService.getObservationCount(obsPatientList, null,
-                            obsConceptList, null, null, null, null, null, null, false);
-                        if (obsCount == 0) {
-                            continue;
-                        }
-
-                        w.write("<tr><td>");
-                        w.write(order.getInstructions());
-                        w.write("</td>");
-
-                        c.setTime(today);
-                        for (int i = 1; i < 8; i++) {
-                            Date dayStart = c.getTime();
-                            Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
-                            List<Obs> observations = obsService.getObservations(obsPatientList, null,
-                                obsConceptList, null, null, null, null, null, null, dayStart, dayEnd,
-                                false);
-                            String value = "&nbsp;";
-                            if (!observations.isEmpty()) {
-                                int numGiven = 0;
-                                for (Obs observation : observations) {
-                                    if (observation.getOrder().equals(order)) {
-                                        numGiven++;
-                                    }
-                                }
-                                if (numGiven > 0) {
-                                    value = String.valueOf(numGiven);
-                                }
-                            }
-                            w.write("<td>" + value + "</td>");
-                            c.add(c.DAY_OF_MONTH, 1);
-                        }
-                        w.write("</tr>");
-                    }
-
-                    w.write("\t</tbody>\n"
-                        + "</table>\n");
-
-                    day += 7;
-                    c.setTime(today);
-                    c.add(Calendar.DAY_OF_MONTH, 7);
-                    today = c.getTime();
-                } while (today.before(lastDay) || today.equals(lastDay));
-                // End of Orders Chart
-
-            }
-            w.write("</body>\n"
+    private void writeFooter(PrintWriter w) {
+        w.write("</body>\n"
                 + "</html>");
+    }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+    private static class NoProfileException extends Exception {
     }
 }
