@@ -118,12 +118,18 @@ public class PrintCharts {
     @ModelAttribute
     public void onStart() {}
 
-    @RequestMapping(value = "/module/projectbuendia/openmrs/print-charts", method = RequestMethod.GET)
-    public void get(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
-        post(request, response, model);
+    @RequestMapping(
+            value = "/module/projectbuendia/openmrs/print-charts",
+            method = RequestMethod.GET)
+    public void get(HttpServletRequest request, ModelMap model) {
+        model.addAttribute("authorized", authorized());
     }
 
-    @RequestMapping(value = "/module/projectbuendia/openmrs/printable", method = RequestMethod.POST)
+
+
+    @RequestMapping(
+            value = "/module/projectbuendia/openmrs/printable",
+            method = {RequestMethod.POST, RequestMethod.GET})
     public void post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
         model.addAttribute("authorized", authorized());
         try {
