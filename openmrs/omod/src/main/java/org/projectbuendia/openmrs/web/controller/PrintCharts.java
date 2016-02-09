@@ -34,6 +34,7 @@ import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.projectbuendia.webservices.rest.DbUtil;
+import org.openmrs.projectbuendia.webservices.rest.OrderResource;
 import org.openmrs.util.FormUtil;
 import org.openmrs.util.OpenmrsUtil;
 import org.springframework.stereotype.Controller;
@@ -53,10 +54,12 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -253,7 +256,8 @@ public class PrintCharts {
     private void printOrdersChart(ObsService obsService, OrderService orderService, Concept orderExecutedConcept, PrintWriter w, Patient patient) {
         Calendar calendar = Calendar.getInstance();
         w.write("<h3>TREATMENT</h3>");
-        List<Order> orders = orderService.getAllOrdersByPatient(patient);
+
+        Set<Order> orders = obtainOrders(orderService, patient);
         if (orders.size() == 0) {
             w.write("<h3>This patient has no treatments.</h3>");
             return;
@@ -331,6 +335,21 @@ public class PrintCharts {
         } while (today.before(stop) || today.equals(stop));
     }
 
+    /**
+     * Because we abstract editable orders as chains of orders (see {@link OrderResource}), the
+     * printed patient charts will show all orders, and all edits, unless we do some filtering.
+     * This method filters out the orders that were past incarnations of the current orders.
+     */
+    private Set<Order> obtainOrders(OrderService orderService, Patient patient) {
+        List<Order> orders = orderService.getAllOrdersByPatient(patient);
+        HashSet<Order> filteredOrders = new HashSet<>();
+        for (Order order : orders) {
+            Order newest = OrderResource.getLatestVersion(order);
+            filteredOrders.add(newest);
+        }
+        return filteredOrders;
+    }
+
     private String formatStartAndEndDatesForOrder(Order order) {
         if (order.getScheduledDate() == null) {
             // Shouldn't occur, but fail safe.
@@ -344,8 +363,8 @@ public class PrintCharts {
     }
 
     private Pair<Date, Date> getStartAndEndDateForOrders(
-            List<Order> orders,
-            List<Obs> orderExecutedObs) {
+            Iterable<Order> orders,
+            Iterable<Obs> orderExecutedObs) {
         Date start = null;
         Date stop = null;
         for (Order order : orders) {
