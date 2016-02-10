@@ -115,7 +115,11 @@ def read_csv(filename, tab=None):
     """Returns a dictionary mapping tab names to lists of row dictionaries."""
     infile = open(filename)
     tabs = {}
+    # Strip whitespace from every field. For a user-created CSV, it's almost
+    # certainly accidental whitespace.
     for row in csv.DictReader(infile):
+        for k, v in row.iteritems():
+            row[k] = v.strip()
         tab = row['tab'] or tab
         tabs.setdefault(tab, []).append(row)
     return tabs
