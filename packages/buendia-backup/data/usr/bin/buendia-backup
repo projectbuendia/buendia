@@ -107,6 +107,11 @@ echo "Backing up to $final_dir..."
 touch "$new_dir/keep"
 sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
+# --- Dump the printable version of the patient charts.
+curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" \
+  http://127.0.0.1:9000/openmrs/module/projectbuendia/openmrs/printable.form \
+  > "$new_dir/patient_charts.html"
+
 # ---- Back up the Buendia configuration.
 
 echo "Saving Buendia configuration..."

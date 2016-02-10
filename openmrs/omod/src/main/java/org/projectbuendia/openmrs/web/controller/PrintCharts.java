@@ -11,6 +11,7 @@
 
 package org.projectbuendia.openmrs.web.controller;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
@@ -29,6 +30,7 @@ import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
+import org.openmrs.api.context.ContextAuthenticationException;
 import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
@@ -89,6 +91,7 @@ public class PrintCharts {
     private static final DateFormat ORDER_DATE_FORMAT = HEADER_DATE_FORMAT;
 
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.FRENCH);
+    private static final String BASIC_AUTH_MODE = "Basic ";
 
     private static final VisitObsValue.ObsValueVisitor<String> STRING_VISITOR =
         new VisitObsValue.ObsValueVisitor<String>() {
@@ -134,6 +137,10 @@ public class PrintCharts {
             value = "/module/projectbuendia/openmrs/printable",
             method = {RequestMethod.POST, RequestMethod.GET})
     public void post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
+        // Attempt authentication if basic HTML auth is available.
+        // TODO: it would be better to do this in a more legitimate part of the stack, but I've got
+        // no idea where that would be.
+        tryBasicAuth(request);
         model.addAttribute("authorized", authorized());
         try {
             try {
@@ -145,6 +152,27 @@ public class PrintCharts {
         } catch (IOException e) {
             // OpenMRS prints the stack trace when this happens. WIN.
             throw new RuntimeException(e);
+        }
+    }
+
+    private void tryBasicAuth(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null) {
+            return;
+        }
+        if (!header.startsWith(BASIC_AUTH_MODE)) {
+            return;
+        }
+        String base64 = header.substring(BASIC_AUTH_MODE.length());
+        String authString = new String(Base64.decodeBase64(base64));
+        String[] credentials = authString.split(":");
+        if (credentials.length != 2) {
+            return;
+        }
+        try {
+            Context.authenticate(credentials[0], credentials[1]);
+        } catch (ContextAuthenticationException ex) {
+            // Ignore, the user might be logged in through another means already
         }
     }
 
