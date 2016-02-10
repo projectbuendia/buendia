@@ -116,6 +116,9 @@ tar cfz "$new_dir/buendia.tar.gz" \
     --exclude /usr/share/buendia/db \
     --exclude /usr/share/buendia/diversions \
     --exclude /usr/share/buendia/openmrs/modules \
+    # Exclude the openmrs log because it changes frequently and tar fails if
+    # a file changes whilst it's being compressed.
+    --exclude /usr/share/buendia/openmrs/openmrs.log \
     --exclude /usr/share/buendia/packages
 ls -l "$new_dir/buendia.tar.gz"
 
