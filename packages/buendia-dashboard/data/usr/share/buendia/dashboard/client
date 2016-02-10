@@ -10,6 +10,9 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
+# Used to get IP address for making hrefs.
+. /usr/share/buendia/utils.sh
+
 cd /usr/share/buendia/packages
 latest=$(ls -t buendia-client*.apk | head -1)
 
@@ -19,7 +22,7 @@ Content-Type: text/html
 <link rel="stylesheet" href="style.css">
 <h1>Client app</h1>
 
-<p>Latest version: <a href="http://packages:9001/$latest">$latest</a>
+<p>Latest version: <a href="http://$NETWORKING_IP_ADDRESS:9001/$latest">$latest</a>
 
 <p>All files:
 <ul>
@@ -27,7 +30,7 @@ EOF
 
 for file in $(ls -t *.apk); do
     cat <<EOF
-<li><a href="http://packages:9001/$file">$file</a>
+<li><a href="http://$NETWORKING_IP_ADDRESS:9001/$file">$file</a>
 EOF
 done
 
