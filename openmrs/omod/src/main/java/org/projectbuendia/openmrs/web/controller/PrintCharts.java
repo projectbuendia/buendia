@@ -56,12 +56,10 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -90,7 +88,10 @@ public class PrintCharts {
     public static final DateFormat HEADER_DATE_FORMAT = new SimpleDateFormat("d MMM");
     private static final DateFormat ORDER_DATE_FORMAT = HEADER_DATE_FORMAT;
 
-    private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.FRENCH);
+    /** Use the client (profile) strings if we can. */
+    private static final ClientConceptNamer NAMER =
+            new ClientConceptNamer(ClientConceptNamer.DEFAULT_CLIENT);
+
     private static final String BASIC_AUTH_MODE = "Basic ";
 
     private static final VisitObsValue.ObsValueVisitor<String> STRING_VISITOR =
@@ -283,9 +284,9 @@ public class PrintCharts {
 
     private void printOrdersChart(ObsService obsService, OrderService orderService, Concept orderExecutedConcept, PrintWriter w, Patient patient) {
         Calendar calendar = Calendar.getInstance();
-        w.write("<h3>TREATMENT</h3>");
+        w.write("<h3>Treatment</h3>");
 
-        Set<Order> orders = obtainOrders(orderService, patient);
+        Map<Order, String> orders = obtainOrders(orderService, patient);
         if (orders.size() == 0) {
             w.write("<h3>This patient has no treatments.</h3>");
             return;
@@ -296,7 +297,7 @@ public class PrintCharts {
                 null, null, null, null, null, null, null, null, false);
 
         Pair<Date, Date> dates = getStartAndEndDateForOrders(
-                orders, orderExecutedObs);
+                orders.keySet(), orderExecutedObs);
         Date start = dates.getLeft();
         Date stop = dates.getRight();
 
@@ -315,14 +316,15 @@ public class PrintCharts {
                     + "\t\t<th width=\"20%\">&nbsp;</th>\n");
             calendar.setTime(today);
             for (int i = day; i < (day + 7); i++) {
-                w.write("<th width=\"10%\">Day " + i + "<br/>"
-                        + HEADER_DATE_FORMAT.format(calendar.getTime()) + "</th>");
+                w.write("<th width=\"10%\">" + HEADER_DATE_FORMAT.format(calendar.getTime()) + "</th>");
                 calendar.add(Calendar.DAY_OF_MONTH, 1);
             }
             w.write("\t</thead>\n"
                     + "\t<tbody>\n");
 
-            for (Order order : orders) {
+            for (Map.Entry<Order, String> entry : orders.entrySet()) {
+                Order order = entry.getKey();
+                String executedUuid = entry.getValue();
                 w.write("<tr><td>");
                 w.write(order.getInstructions());
                 w.write(" " + formatStartAndEndDatesForOrder(order));
@@ -339,7 +341,7 @@ public class PrintCharts {
                     if (!observations.isEmpty()) {
                         int numGiven = 0;
                         for (Obs observation : observations) {
-                            if (observation.getOrder().equals(order)) {
+                            if (observation.getOrder().getUuid().equals(executedUuid)) {
                                 numGiven++;
                             }
                         }
@@ -366,14 +368,15 @@ public class PrintCharts {
     /**
      * Because we abstract editable orders as chains of orders (see {@link OrderResource}), the
      * printed patient charts will show all orders, and all edits, unless we do some filtering.
-     * This method filters out the orders that were past incarnations of the current orders.
+     * This method returns a Map of the lastest revised orders to their root Orders' UUIDs. The root
+     * Order's UUID is used as a stable identifier for the Order Execution concept.
      */
-    private Set<Order> obtainOrders(OrderService orderService, Patient patient) {
+    private Map<Order, String> obtainOrders(OrderService orderService, Patient patient) {
         List<Order> orders = orderService.getAllOrdersByPatient(patient);
-        HashSet<Order> filteredOrders = new HashSet<>();
+        HashMap<Order, String> filteredOrders = new HashMap<>();
         for (Order order : orders) {
             Order newest = OrderResource.getLatestVersion(order);
-            filteredOrders.add(newest);
+            filteredOrders.put(newest, OrderResource.getEarliestVersion(order).getUuid());
         }
         return filteredOrders;
     }
@@ -440,7 +443,7 @@ public class PrintCharts {
             Calendar calendar = Calendar.getInstance();
             calendar.setTime(today);
             for (int i = dayCount; i < (dayCount + 7); i++) {
-                w.write("<th width=\"10%\">Day " + i + "<br/>"
+                w.write("<th width=\"10%\">"
                         + HEADER_DATE_FORMAT.format(calendar.getTime()) + "</th>");
                 calendar.add(Calendar.DAY_OF_MONTH, 1);
             }
@@ -464,11 +467,13 @@ public class PrintCharts {
                 for (int i = 1; i < 8; i++) {
                     Date dayStart = calendar.getTime();
                     Date dayEnd = OpenmrsUtil.getLastMomentOfDay(dayStart);
-                    // These are sorted by date / time by default.
+                    // These are sorted by date / time DESC by default, so we have to reverse the
+                    // list.
                     List<Obs> observations = obsService.getObservations(
                             Collections.<Person>singletonList(patient), null,
                             Collections.singletonList(concept), null, null, null, null, null, null,
                             dayStart, dayEnd, false);
+                    Collections.reverse(observations);
                     ArrayList<String> values = new ArrayList<>();
                     for (Obs obs : observations) {
                         values.add(VisitObsValue.visit(obs, STRING_VISITOR));
