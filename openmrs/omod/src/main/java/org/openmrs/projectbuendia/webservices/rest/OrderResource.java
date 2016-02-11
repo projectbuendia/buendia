@@ -257,6 +257,16 @@ public class OrderResource implements
         return Context.getOrderService().getOrderByUuid(uuid);
     }
 
+    public static Order getEarliestVersion(Order order) {
+        while (true) {
+            Order prevOrder = order.getPreviousOrder();
+            if (prevOrder == null) {
+                return order;
+            }
+            order = prevOrder;
+        }
+    }
+
     /**
      * Populates data for an order that was created with the Buendia API. This should be done for
      * both new orders and revisions.
