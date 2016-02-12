@@ -50,6 +50,8 @@ Content-Type: text/html
 
 <p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
 
+<p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs/module/projectbuendia/openmrs/printable.form">Print patient charts</a>
+
 <p><a href="stats.zip">Download usage stats</a>
 
 
