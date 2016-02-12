@@ -107,11 +107,10 @@ touch "$new_dir/keep"
 sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 # --- Dump the printable version of the patient charts.
+echo "Creating printable patient charts"
 curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" \
   http://127.0.0.1:9000/openmrs/module/projectbuendia/openmrs/printable.form \
   > "$tmp/patient_charts.html"
-
-status=$?
 
 # Junk paths, password protect with the OpenMRS password.
 zip -j --password="$SERVER_OPENMRS_PASSWORD" \
@@ -120,6 +119,7 @@ zip -j --password="$SERVER_OPENMRS_PASSWORD" \
 # ---- Back up the Buendia configuration.
 
 echo "Saving Buendia configuration..."
+# Tar will keep going if a file was changed. We're ok with this because it's usually log files.
 tar cfz "$new_dir/buendia.tar.gz" \
     /usr/share/buendia \
     --exclude /usr/share/buendia/config.d \
@@ -129,7 +129,7 @@ tar cfz "$new_dir/buendia.tar.gz" \
     # Exclude the openmrs log because it changes frequently and tar fails if
     # a file changes whilst it's being compressed.
     --exclude /usr/share/buendia/openmrs/openmrs.log \
-    --exclude /usr/share/buendia/packages
+    --exclude /usr/share/buendia/packages || true
 ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.
