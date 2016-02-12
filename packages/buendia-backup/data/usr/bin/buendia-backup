@@ -110,7 +110,13 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 # --- Dump the printable version of the patient charts.
 curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" \
   http://127.0.0.1:9000/openmrs/module/projectbuendia/openmrs/printable.form \
-  > "$new_dir/patient_charts.html"
+  > "$tmp/patient_charts.html"
+
+status=$?
+
+# Junk paths, password protect with the OpenMRS password.
+zip -j --password="$SERVER_OPENMRS_PASSWORD" \
+  "$new_dir/patient_charts.zip" "$tmp/patient_charts.html"
 
 # ---- Back up the Buendia configuration.
 
