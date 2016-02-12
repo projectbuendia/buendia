@@ -107,16 +107,17 @@ touch "$new_dir/keep"
 sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 # --- Dump the printable version of the patient charts.
+# Don't quit backup if this fails - we can restore from MySQL maybe.
 PRINT_PATIENT_CHARTS=true
 if $PRINT_PATIENT_CHARTS ; then
   echo "Creating printable patient charts"
   curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" \
     http://127.0.0.1:9000/openmrs/module/projectbuendia/openmrs/printable.form \
-    > "$tmp/patient_charts.html"
+    > "$tmp/patient_charts.html" || true
 
   # Junk paths, password protect with the OpenMRS password.
   zip -j --password="$SERVER_OPENMRS_PASSWORD" \
-    "$new_dir/patient_charts.zip" "$tmp/patient_charts.html"
+    "$new_dir/patient_charts.zip" "$tmp/patient_charts.html" || true
 fi
 
 # ---- Back up the Buendia configuration.
