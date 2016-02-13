@@ -28,3 +28,6 @@ NETWORKING_DHCP_DNS_SERVER=1
 
 # Keep the Edison up to date.
 UPDATE_AUTOUPDATE=1
+
+# Back up patient charts
+BACKUP_PRINT_PATIENT_CHARTS=1

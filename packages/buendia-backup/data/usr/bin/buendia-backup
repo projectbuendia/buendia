@@ -108,8 +108,7 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 # --- Dump the printable version of the patient charts.
 # Don't quit backup if this fails - we can restore from MySQL maybe.
-PRINT_PATIENT_CHARTS=true
-if $PRINT_PATIENT_CHARTS ; then
+if bool $BACKUP_PRINT_PATIENT_CHARTS ; then
   echo "Creating printable patient charts"
   curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" \
     http://127.0.0.1:9000/openmrs/module/projectbuendia/openmrs/printable.form \
