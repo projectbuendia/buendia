@@ -94,30 +94,30 @@ public class DataExportServlet extends HttpServlet {
 
     private final VisitObsValue.ObsValueVisitor stringVisitor =
         new VisitObsValue.ObsValueVisitor<String>() {
-        @Override public String visitCoded(Concept value) {
-            return NAMER.getClientName(value);
-        }
+            @Override public String visitCoded(Concept value) {
+                return NAMER.getClientName(value);
+            }
 
-        @Override public String visitNumeric(Double value) {
-            return Double.toString(value);
-        }
+            @Override public String visitNumeric(Double value) {
+                return Double.toString(value);
+            }
 
-        @Override public String visitBoolean(Boolean value) {
-            return Boolean.toString(value);
-        }
+            @Override public String visitBoolean(Boolean value) {
+                return Boolean.toString(value);
+            }
 
-        @Override public String visitText(String value) {
-            return value;
-        }
+            @Override public String visitText(String value) {
+                return value;
+            }
 
-        @Override public String visitDate(Date d) {
-            return Utils.YYYYMMDD_UTC_FORMAT.format(d);
-        }
+            @Override public String visitDate(Date d) {
+                return Utils.YYYYMMDD_UTC_FORMAT.format(d);
+            }
 
-        @Override public String visitDateTime(Date d) {
-            return Utils.SPREADSHEET_FORMAT.format(d);
-        }
-    };
+            @Override public String visitDateTime(Date d) {
+                return Utils.SPREADSHEET_FORMAT.format(d);
+            }
+        };
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
@@ -240,7 +240,7 @@ public class DataExportServlet extends HttpServlet {
 
                     // All the values fo the fixed columns saved in the current encounter line
                     // will also be saved to the merged line.
-                    System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
+                    //System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
 
                     // Loop through all the observations for this encounter
                     for (Obs obs : encounter.getAllObs()) {
@@ -263,14 +263,17 @@ public class DataExportServlet extends HttpServlet {
                                 // the previous one get the previous value and see if it had
                                 // something in it.
                                 String previousValue = (String) mergedCSVLine[valueColumn];
-                                if ((previousValue == null) || (previousValue.isEmpty())) {
-                                    // If the previous value was empty copy the current value into it.
+                                if ((previousValue == null) || (previousValue.isEmpty())
+                                    || (previousValue.equals(currentCSVLine[valueColumn].toString()))) {
+                                    // If the previous value was empty or equal to the current one
+                                    // copy the current value into it.
                                     mergedCSVLine[valueColumn] = currentCSVLine[valueColumn];
                                     mergedCSVLine[valueColumn + 1] = currentCSVLine[valueColumn + 1];
                                     mergedCSVLine[valueColumn + 2] = currentCSVLine[valueColumn + 2];
                                 } else {
                                     // If the previous encounter have values stored for this
-                                    // observation we cannot merge them anymore.
+                                    // observation and the value is different from the previous one
+                                    // we cannot merge them anymore.
                                     useMerged = false;
                                 }
                             }
@@ -294,13 +297,14 @@ public class DataExportServlet extends HttpServlet {
                                         // Yes, we had information stored for this observation on
                                         // the previous encounter
                                         if (obs.getValueText() != null) {
-                                            // We only continue merging if the observation is of
+                                            // We continue merging if the observation is of
                                             // type text, so we concatenate it.
                                             // TODO: add timestamps to the merged values that are of type text
                                             previousValue += "\n" + value;
                                             value = previousValue;
-                                        } else {
-                                            // Any other type of value we stop the merging.
+                                        } else if (!previousValue.equals(currentCSVLine[valueColumn].toString())) {
+                                            // If the previous value is different from the current
+                                            // one we stop merging.
                                             useMerged = false;
                                         }
                                     }
