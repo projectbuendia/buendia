@@ -42,10 +42,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -125,6 +124,7 @@ public class DataExportServlet extends HttpServlet {
 
         // Set the default merge mode
         boolean merge = true;
+        boolean sort = false;
 
         // Defines the interval in minutes that will be used to merge encounters.
         int interval = DEFAULT_INTERVAL_MINS;
@@ -139,6 +139,13 @@ public class DataExportServlet extends HttpServlet {
             } else {
                 log.error("Interval value is less then 0. Default used.");
             }
+        }
+
+        // Defaults to chart order of concepts but if true the ordering will be defined by
+        // concept UUID.
+        String sortParameter = request.getParameter("sortByUUID");
+        if ((sortParameter != null) && (sortParameter.equals("true"))){
+            sort = true;
         }
 
         CSVPrinter printer = new CSVPrinter(response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
@@ -158,25 +165,15 @@ public class DataExportServlet extends HttpServlet {
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
-        // We may want to get the observations displayed in the chart/xform, in which case there
-        // are a few
-        // sensible orders:
-        // 1: UUID
-        // 2: Order in chart
-        // 3: Order in Xform
-
-        // Order in Xform/chart is not good as stuff changes every time we change xform
-        // So instead we will use UUID order, but use the Chart form to use the concepts to display.
-        Set<Concept> questionConcepts = new HashSet<>();
-        for (Form form : ChartResource.getCharts(Context.getFormService())) {
-            TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-            for (FormField groupField : formStructure.get(0)) {
-                for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                    questionConcepts.add(fieldInGroup.getField().getConcept());
-                }
+        LinkedHashSet<Concept> questionConcepts = new LinkedHashSet<>();
+        Form form = ChartResource.getCharts(Context.getFormService()).get(0);
+        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+        for (FormField groupField : formStructure.get(0)) {
+            for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
+                questionConcepts.add(fieldInGroup.getField().getConcept());
             }
         }
-        FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts);
+        FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts, sort);
 
         // Write English headers.
         writeHeaders(printer, indexer);
@@ -357,9 +354,15 @@ public class DataExportServlet extends HttpServlet {
     private static class FixedSortedConceptIndexer {
         final Concept[] concepts;
 
-        public FixedSortedConceptIndexer(Collection<Concept> concepts) {
+        public FixedSortedConceptIndexer(Collection<Concept> concepts, boolean sort) {
             this.concepts = concepts.toArray(new Concept[concepts.size()]);
-            Arrays.sort(this.concepts, CONCEPT_COMPARATOR);
+            if (sort) {
+                Arrays.sort(this.concepts, CONCEPT_COMPARATOR);
+            }
+        }
+
+        public FixedSortedConceptIndexer(Collection<Concept> concepts) {
+            this(concepts, true);
         }
 
         public Integer getIndex(Concept concept) {
