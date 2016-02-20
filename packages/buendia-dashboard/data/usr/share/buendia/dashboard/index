@@ -72,6 +72,8 @@ Content-Type: text/html
 
 <p><a href="status">System status</a>
 
+<p><a href="backups">Backup and restore status</a>
+
 <p><a href="//$NETWORKING_IP_ADDRESS:9001">Package repository</a>
 
 <p><a href="reboot">Reboot server</a>
