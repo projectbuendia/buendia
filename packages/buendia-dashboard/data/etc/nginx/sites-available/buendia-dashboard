@@ -37,6 +37,14 @@ server {
         fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;
     }
+    location /shutdown {
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        fastcgi_param SCRIPT_NAME shutdown;
+        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/shutdown;
+        fastcgi_param REQUEST_METHOD $request_method;
+        fastcgi_param REQUEST_URI $request_uri;
+        fastcgi_param QUERY_STRING $query_string;
+    }
     location /clock {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         fastcgi_param SCRIPT_NAME clock;

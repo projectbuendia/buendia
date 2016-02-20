@@ -22,7 +22,6 @@ down_count=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status 1)' | 
 downtimes=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status ' | sed -e 's/:[0-9][0-9]\W*[0-9]*> .*/<br\/>/')
 
 # I would just use bc but it's not installed on Debian so we're constrained to integer arithmetic
-# This will give a 'percentage' between 0 and 100,000
 if echo $(( ($up_count + $down_count) > 0 )); then
 	up_percent=$(($up_count*100000 / ($up_count + $down_count) ))
 	up_percent_1=$(( $up_percent/1000 ))
@@ -77,6 +76,8 @@ Content-Type: text/html
 <p><a href="//$NETWORKING_IP_ADDRESS:9001">Package repository</a>
 
 <p><a href="reboot">Reboot server</a>
+
+<p><a href="shutdown">Shutdown server</a>
 
 
 <h2>Currently $updown</h2>

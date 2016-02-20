@@ -8,6 +8,6 @@ p { margin: 0.7em 0; }
 .item { font-weight: 400; margin: 0 12px; display: inline-block; }
 .date { font-weight: 100; opacity: 0.5; }
 a, .item a { text-decoration: none; color: inherit; }
-a:hover, .item a:hover { color: #000000; opacity: 1; }
+a:hover, .item a:hover { text-decoration:underline; color: #000000; opacity: 1; }
 ul { margin: 0; }
 li { margin: 0.5em 0; }

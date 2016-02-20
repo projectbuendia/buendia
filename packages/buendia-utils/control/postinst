@@ -19,9 +19,12 @@ case $1 in
             cp /debian/usr/share/buendia/systemd/* /lib/systemd/system
             systemctl enable reboot-check.timer
             systemctl start reboot-check.timer
+            systemctl enable shutdown-check.timer
+            systemctl start shutdown-check.timer
         fi
 EOF
         buendia-divert $1 /sbin/reboot
+        buendia-divert $1 /sbin/shutdown
         update-rc.d buendia-utils defaults
         ;;
 
