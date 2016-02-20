@@ -19,7 +19,6 @@ uptime=$(uptime | sed -e 's/.* up//' -e 's/, *[0-9][0-9]* *user.*//')
 
 up_count=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status 0)' | wc -l)
 down_count=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status 1)' | wc -l)
-downtimes=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status ' | sed -e 's/:[0-9][0-9]\W*[0-9]*> .*/<br\/>/')
 
 # I would just use bc but it's not installed on Debian so we're constrained to integer arithmetic
 if echo $(( ($up_count + $down_count) > 0 )); then
@@ -92,5 +91,6 @@ Content-Type: text/html
 
 <p>Server has been up $up_count minutes and down $down_count minutes.</p>
 
+<p><a href="downtime">See downtime details</a>
 
 EOF
