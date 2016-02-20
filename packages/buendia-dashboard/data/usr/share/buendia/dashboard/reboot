@@ -23,8 +23,8 @@ if [ "$REQUEST_METHOD" == "POST" ]; then
 Rebooting now.  The server will come back up in about 5 minutes.
 
 <p>
-Please wait 1 minute before <a href="status">checking for status</a>...
-<script>setTimeout('window.location = "status"', 60000)</script>
+Redirecting in 1 minute back to <a href="/">dashboard</a>...
+<script>setTimeout('window.location = "/"', 60000)</script>
 EOF
     touch /tmp/reboot-requested
 else
