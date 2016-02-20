@@ -79,6 +79,8 @@ Content-Type: text/html
 
 <p><a href="reboot">Reboot server</a>
 
+<p><a href="shutdown">Shutdown server</a>
+
 
 <h2>Currently $updown</h2>
 

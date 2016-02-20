@@ -1,0 +1,9 @@
+[Unit]
+Description=Check for a shutdown request
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c 'if [ -e /debian/tmp/shutdown-requested ]; then rm -f /debian/tmp/shutdown-requested; /sbin/shutdown; fi'
+
+[Install]
+WantedBy=multi-user.target

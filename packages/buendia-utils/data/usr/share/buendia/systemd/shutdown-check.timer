@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodically check for a shutdown request
+
+[Timer]
+OnBootSec=30
+OnUnitActiveSec=5
+Unit=shutdown-check.service
+
+[Install]
+WantedBy=multi-user.target
