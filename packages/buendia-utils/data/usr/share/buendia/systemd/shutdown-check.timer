@@ -3,7 +3,7 @@ Description=Periodically check for a shutdown request
 
 [Timer]
 OnBootSec=30
-OnUnitActiveSec=5
+OnUnitActiveSec=30
 Unit=shutdown-check.service
 
 [Install]
