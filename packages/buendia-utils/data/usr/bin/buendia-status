@@ -75,6 +75,9 @@ if [ -n "$all" ]; then
         echo -e '\n---- buendia-backup'
         buendia-last buendia-backup
 
+        echo -e '\n---- buendia-restore'
+        buendia-last buendia-restore
+
         echo -e '\n---- buendia-pkgserver-import'
         buendia-last buendia-pkgserver-import
 
