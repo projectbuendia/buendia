@@ -46,14 +46,14 @@ else
     counts="No record counts available yet.  This server is brand new!"
 fi
 
+# TODO: Make server name dynamic, coming from a config file, instead of "Project Buendia server", below
+
 cat <<EOF
 Content-Type: text/html
 
 <link rel="stylesheet" href="style.css">
 
 <h1>Project Buendia server</h1>
-
-<h2>Bokoro Pilot - Server 9 (ATFC Simple Server)</h2>
 
 <p><a href="client">Download client app</a>
 
