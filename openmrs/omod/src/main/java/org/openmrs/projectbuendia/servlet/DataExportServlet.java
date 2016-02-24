@@ -124,7 +124,6 @@ public class DataExportServlet extends HttpServlet {
 
         // Set the default merge mode
         boolean merge = true;
-        boolean sort = false;
 
         // Defines the interval in minutes that will be used to merge encounters.
         int interval = DEFAULT_INTERVAL_MINS;
@@ -144,9 +143,7 @@ public class DataExportServlet extends HttpServlet {
         // Defaults to chart order of concepts but if true the ordering will be defined by
         // concept UUID.
         String sortParameter = request.getParameter("sortByUUID");
-        if ((sortParameter != null) && (sortParameter.equals("true"))){
-            sort = true;
-        }
+        boolean sort = (sortParameter != null) && (sortParameter.equals("true"));
 
         CSVPrinter printer = new CSVPrinter(response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
 
@@ -175,7 +172,6 @@ public class DataExportServlet extends HttpServlet {
         }
         FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts, sort);
 
-        // Write English headers.
         writeHeaders(printer, indexer);
 
         Calendar calendar = Calendar.getInstance();
@@ -234,10 +230,6 @@ public class DataExportServlet extends HttpServlet {
                     currentCSVLine[4] = encounterTime.getTime();
                     currentCSVLine[5] = Utils.toIso8601(encounterTime);
                     currentCSVLine[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
-
-                    // All the values fo the fixed columns saved in the current encounter line
-                    // will also be saved to the merged line.
-                    //System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
 
                     // Loop through all the observations for this encounter
                     for (Obs obs : encounter.getAllObs()) {
