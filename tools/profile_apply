@@ -274,6 +274,12 @@ def apply(tabs):
                 if section and section_rows:
                     sections.append((section, section_rows))
                 section, section_rows = row['section'].strip(), []
+
+            """
+            If the title column of the CSV is not blank we assume that
+            this row delimiters the start of a new chart so we create a new
+            section to represent it using a dummy concept uuid.
+            """
             if row['title'].strip():
                 sections.append(('[chart_divider]',
                      [{
