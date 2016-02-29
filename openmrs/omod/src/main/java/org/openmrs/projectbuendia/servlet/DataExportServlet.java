@@ -42,10 +42,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -94,30 +93,30 @@ public class DataExportServlet extends HttpServlet {
 
     private final VisitObsValue.ObsValueVisitor stringVisitor =
         new VisitObsValue.ObsValueVisitor<String>() {
-        @Override public String visitCoded(Concept value) {
-            return NAMER.getClientName(value);
-        }
+            @Override public String visitCoded(Concept value) {
+                return NAMER.getClientName(value);
+            }
 
-        @Override public String visitNumeric(Double value) {
-            return Double.toString(value);
-        }
+            @Override public String visitNumeric(Double value) {
+                return Double.toString(value);
+            }
 
-        @Override public String visitBoolean(Boolean value) {
-            return Boolean.toString(value);
-        }
+            @Override public String visitBoolean(Boolean value) {
+                return Boolean.toString(value);
+            }
 
-        @Override public String visitText(String value) {
-            return value;
-        }
+            @Override public String visitText(String value) {
+                return value;
+            }
 
-        @Override public String visitDate(Date d) {
-            return Utils.YYYYMMDD_UTC_FORMAT.format(d);
-        }
+            @Override public String visitDate(Date d) {
+                return Utils.YYYYMMDD_UTC_FORMAT.format(d);
+            }
 
-        @Override public String visitDateTime(Date d) {
-            return Utils.SPREADSHEET_FORMAT.format(d);
-        }
-    };
+            @Override public String visitDateTime(Date d) {
+                return Utils.SPREADSHEET_FORMAT.format(d);
+            }
+        };
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
@@ -141,6 +140,16 @@ public class DataExportServlet extends HttpServlet {
             }
         }
 
+        // Defaults to chart order of concepts but if true the ordering will be defined by
+        // concept UUID.
+        String sortParameter = request.getParameter("sortByUUID");
+        boolean sort = (sortParameter != null) && (sortParameter.equals("true"));
+
+        // Defaults to chart order of concepts but if true the ordering will be defined by
+        // concept UUID.
+        String idsAndUuidsParameter = request.getParameter("idsAndUuids");
+        boolean idsAndUuids = (idsAndUuidsParameter != null) && (idsAndUuidsParameter.equals("true"));
+
         CSVPrinter printer = new CSVPrinter(response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
 
         //check for authenticated users
@@ -158,36 +167,30 @@ public class DataExportServlet extends HttpServlet {
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
-        // We may want to get the observations displayed in the chart/xform, in which case there
-        // are a few
-        // sensible orders:
-        // 1: UUID
-        // 2: Order in chart
-        // 3: Order in Xform
-
-        // Order in Xform/chart is not good as stuff changes every time we change xform
-        // So instead we will use UUID order, but use the Chart form to use the concepts to display.
-        Set<Concept> questionConcepts = new HashSet<>();
-        for (Form form : ChartResource.getCharts(Context.getFormService())) {
-            TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-            for (FormField groupField : formStructure.get(0)) {
-                for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
-                    questionConcepts.add(fieldInGroup.getField().getConcept());
-                }
+        LinkedHashSet<Concept> questionConcepts = new LinkedHashSet<>();
+        Form form = ChartResource.getCharts(Context.getFormService()).get(0);
+        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+        for (FormField groupField : formStructure.get(0)) {
+            for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
+                questionConcepts.add(fieldInGroup.getField().getConcept());
             }
         }
-        FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts);
+        FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts, sort);
 
-        // Write English headers.
-        writeHeaders(printer, indexer);
+        writeHeaders(printer, indexer, idsAndUuids);
 
         Calendar calendar = Calendar.getInstance();
+
+        int numCols = indexer.size();
+        if (idsAndUuids) {
+            numCols *= COLUMNS_PER_OBS;
+        }
 
         // Loop through all the patients and get their encounters.
         for (Patient patient : patients) {
 
             // Define an array that will represent the line that will be inserted in the CSV.
-            Object[] previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+            Object[] previousCSVLine = new Object[FIXED_HEADERS.length + numCols];
 
             Date deadLine = new Date(0);
 
@@ -212,14 +215,14 @@ public class DataExportServlet extends HttpServlet {
                     System.arraycopy(previousCSVLine, 0, mergedCSVLine, 0, previousCSVLine.length);
 
                     // Define the array to be used to store the current encounter.
-                    Object[] currentCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                    Object[] currentCSVLine = new Object[FIXED_HEADERS.length + numCols];
 
                     // If the current encounter is more then "interval" minutes from the previous
                     // print the previous and reset it.
                     Date encounterTime = encounter.getEncounterDatetime();
                     if (encounterTime.after(deadLine)) {
                         printer.printRecord(previousCSVLine);
-                        previousCSVLine = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                        previousCSVLine = new Object[FIXED_HEADERS.length + numCols];
                         useMerged = false;
                     }
                     // Set the next deadline as the current encounter time plus "interval" minutes.
@@ -238,10 +241,6 @@ public class DataExportServlet extends HttpServlet {
                     currentCSVLine[5] = Utils.toIso8601(encounterTime);
                     currentCSVLine[6] = Utils.SPREADSHEET_FORMAT.format(encounterTime);
 
-                    // All the values fo the fixed columns saved in the current encounter line
-                    // will also be saved to the merged line.
-                    System.arraycopy(currentCSVLine, 0, mergedCSVLine, 0, 7);
-
                     // Loop through all the observations for this encounter
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
@@ -249,28 +248,39 @@ public class DataExportServlet extends HttpServlet {
                         // For each observation there are three columns: if the value of the
                         // observation is a concept, then the three columns contain the English
                         // name, the OpenMRS ID, and the UUID of the concept; otherwise all
-                        // three columns contain the formatted value.
-                        int valueColumn = FIXED_HEADERS.length + index*COLUMNS_PER_OBS;
+                        // three columns contain the formatted value (this only applies if the
+                        // idsAndUuids parameter is true.
+                        if (idsAndUuids) {
+                            index *= COLUMNS_PER_OBS;
+                        }
+                        int valueColumn = FIXED_HEADERS.length + index;
 
                         // Coded values are treated differently
                         if (obs.getValueCoded() != null) {
                             Concept value = obs.getValueCoded();
                             currentCSVLine[valueColumn] = NAMER.getClientName(value);
-                            currentCSVLine[valueColumn + 1] = value.getId();
-                            currentCSVLine[valueColumn + 2] = value.getUuid();
+                            if (idsAndUuids) {
+                                currentCSVLine[valueColumn + 1] = value.getId();
+                                currentCSVLine[valueColumn + 2] = value.getUuid();
+                            }
                             if (useMerged) {
                                 // If we are still merging the current encounter values into
                                 // the previous one get the previous value and see if it had
                                 // something in it.
                                 String previousValue = (String) mergedCSVLine[valueColumn];
-                                if ((previousValue == null) || (previousValue.isEmpty())) {
-                                    // If the previous value was empty copy the current value into it.
+                                if ((previousValue == null) || (previousValue.isEmpty())
+                                    || (previousValue.equals(currentCSVLine[valueColumn].toString()))) {
+                                    // If the previous value was empty or equal to the current one
+                                    // copy the current value into it.
                                     mergedCSVLine[valueColumn] = currentCSVLine[valueColumn];
-                                    mergedCSVLine[valueColumn + 1] = currentCSVLine[valueColumn + 1];
-                                    mergedCSVLine[valueColumn + 2] = currentCSVLine[valueColumn + 2];
+                                    if (idsAndUuids) {
+                                        mergedCSVLine[valueColumn + 1] = currentCSVLine[valueColumn + 1];
+                                        mergedCSVLine[valueColumn + 2] = currentCSVLine[valueColumn + 2];
+                                    }
                                 } else {
                                     // If the previous encounter have values stored for this
-                                    // observation we cannot merge them anymore.
+                                    // observation and the value is different from the previous one
+                                    // we cannot merge them anymore.
                                     useMerged = false;
                                 }
                             }
@@ -283,8 +293,10 @@ public class DataExportServlet extends HttpServlet {
                             if ((value != null) && (!value.isEmpty())) {
                                 // Save the value of the observation on the current encounter line.
                                 currentCSVLine[valueColumn] = value;
-                                currentCSVLine[valueColumn + 1] = value;
-                                currentCSVLine[valueColumn + 2] = value;
+                                if (idsAndUuids) {
+                                    currentCSVLine[valueColumn + 1] = value;
+                                    currentCSVLine[valueColumn + 2] = value;
+                                }
                                 if (useMerged) {
                                     // Since we are still merging this encounter with the previous
                                     // one let's get the previous value to see if it had something
@@ -294,19 +306,22 @@ public class DataExportServlet extends HttpServlet {
                                         // Yes, we had information stored for this observation on
                                         // the previous encounter
                                         if (obs.getValueText() != null) {
-                                            // We only continue merging if the observation is of
+                                            // We continue merging if the observation is of
                                             // type text, so we concatenate it.
                                             // TODO: add timestamps to the merged values that are of type text
                                             previousValue += "\n" + value;
                                             value = previousValue;
-                                        } else {
-                                            // Any other type of value we stop the merging.
+                                        } else if (!previousValue.equals(currentCSVLine[valueColumn].toString())) {
+                                            // If the previous value is different from the current
+                                            // one we stop merging.
                                             useMerged = false;
                                         }
                                     }
                                     mergedCSVLine[valueColumn] = value;
-                                    mergedCSVLine[valueColumn + 1] = value;
-                                    mergedCSVLine[valueColumn + 2] = value;
+                                    if (idsAndUuids) {
+                                        mergedCSVLine[valueColumn + 1] = value;
+                                        mergedCSVLine[valueColumn + 2] = value;
+                                    }
                                 }
                             }
                         }
@@ -332,7 +347,7 @@ public class DataExportServlet extends HttpServlet {
         }
     }
 
-    private void writeHeaders(CSVPrinter printer, FixedSortedConceptIndexer indexer) throws
+    private void writeHeaders(CSVPrinter printer, FixedSortedConceptIndexer indexer, boolean idsAndUuids) throws
         IOException {
         for (String fixedHeader : FIXED_HEADERS) {
             printer.print(fixedHeader);
@@ -340,11 +355,14 @@ public class DataExportServlet extends HttpServlet {
         for (int i = 0; i < indexer.size(); i++) {
             // For each observation there are three columns: one for the English
             // name, one for the OpenMRS ID, and one for the UUID of the concept.
+            // (only if idsAndUuids == true)
             assert COLUMNS_PER_OBS == 3;
             Concept concept = indexer.getConcept(i);
             printer.print(NAMER.getClientName(concept));
-            printer.print(concept.getId());
-            printer.print(concept.getUuid());
+            if (idsAndUuids) {
+                printer.print(concept.getId());
+                printer.print(concept.getUuid());
+            }
         }
         printer.println();
     }
@@ -353,9 +371,15 @@ public class DataExportServlet extends HttpServlet {
     private static class FixedSortedConceptIndexer {
         final Concept[] concepts;
 
-        public FixedSortedConceptIndexer(Collection<Concept> concepts) {
+        public FixedSortedConceptIndexer(Collection<Concept> concepts, boolean sort) {
             this.concepts = concepts.toArray(new Concept[concepts.size()]);
-            Arrays.sort(this.concepts, CONCEPT_COMPARATOR);
+            if (sort) {
+                Arrays.sort(this.concepts, CONCEPT_COMPARATOR);
+            }
+        }
+
+        public FixedSortedConceptIndexer(Collection<Concept> concepts) {
+            this(concepts, true);
         }
 
         public Integer getIndex(Concept concept) {
