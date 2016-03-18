@@ -4,6 +4,7 @@ script:
   - cd packages
   - make clean && PACKAGE_VERSION="0.0.$TRAVIS_BUILD_NUMBER" make
 # TODO: add after_success clause that pushes builds to our build server.
+jdk: openjdk7
 notifications:
   slack:
     # Generated using `travis encrypt "buendia:[token]#server"
