@@ -56,7 +56,6 @@ popd >/dev/null
 
 # Build the sync module and install.
 pushd third_party/openmrs-module-sync >/dev/null
-# Always skip the tests for the sync module because they're flaky on jenkins.
-mvn clean install -DskipTests "$@"
+mvn clean install "$@"
 $INSTALL -DgroupId=org.openmrs.module -DartifactId=sync -Dversion=1.3-SNAPSHOT
 popd >/dev/null
