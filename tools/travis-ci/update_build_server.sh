@@ -52,15 +52,16 @@ git clone --quiet https://${GITHUB_API_TOKEN}@github.com/projectbuendia/builds.g
 # The output debian packages from the build process are dropped in their individual source
 # directories (TODO: fix this) so we consolidate them all to the temporary directory.
 
-cp `find packages -name *.deb` dir
+cp `find packages -name *.deb` "$dir"
 # Actually run the index step.
 packages/buendia-pkgserver/data/usr/bin/buendia-pkgserver-index-debs "$dir"
-cd "$dir"
+pushd "$dir"
 git add .
 git commit -m "Autoupdate package server from Travis CI build $TRAVIS_BUILD_NUMBER."
 # The API token is encoded in the remote, so the `git push` will use the same credentials as the
 # clone.
 git push --quiet >/dev/null
+popd
 rm "$dir"
 
 echo "Successfully deployed."
