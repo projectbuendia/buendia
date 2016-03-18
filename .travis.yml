@@ -1,0 +1,8 @@
+language: java
+script:
+  - tools/openmrs_build
+# TODO: add after_success clause that pushes builds to our build server.
+#notifications:
+#  slack:
+#    # Generated using `travis encrypt "buendia:[token]#app" --add notifications.slack`
+#    secure: oIZdRrPSuxhiAuVfxFO6IIdaWLTzkkWF+PwwExx6dgrju6UjgxzzQCUnfr1NhofeIJqee4jkDP6fIgu4s9VIGxozGAd0xFrx+rE+xrSPom+67oWJ6wDBgUh5nNDXqF+k5IO+P8ltxIZOSDUU0iuxTodEy6wBMiFBQF/zmVq3Fmo=
