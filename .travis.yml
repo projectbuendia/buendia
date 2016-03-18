@@ -1,0 +1,11 @@
+language: java
+script:
+  - tools/openmrs_build
+  - cd packages
+  - make clean && PACKAGE_VERSION="0.0.$TRAVIS_BUILD_NUMBER" make
+# TODO: add after_success clause that pushes builds to our build server.
+jdk: openjdk7
+notifications:
+  slack:
+    # Generated using `travis encrypt "buendia:[token]#server"
+    secure: "Vmk7XmLRhzVfS9hAy6slF9YTPurO07cSj2Qny6lhjMN7P8Q+7Ty6TF9gXyfMBvgXXG7EF7EzKDC+PLu1Rq6bQI39ESaq2Pn2Uh/sSVXERhXMqyDNy7GWscExRtpC8iytaS9dmXTfv7kArgnINyXRztLIyeRQSOjMQH30ZDsLnag="
