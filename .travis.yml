@@ -1,6 +1,8 @@
 language: java
 script:
   - tools/openmrs_build
+  - cd packages
+  - make clean && PACKAGE_VERSION="0.0.$TRAVIS_BUILD_NUMBER" make
 # TODO: add after_success clause that pushes builds to our build server.
 #notifications:
 #  slack:
