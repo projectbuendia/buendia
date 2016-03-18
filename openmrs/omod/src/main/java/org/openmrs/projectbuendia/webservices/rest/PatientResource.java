@@ -105,6 +105,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private static final int MAX_PATIENTS_PER_PAGE = 500;
 
+    // Fake values
+    private static final User CREATOR = new User(1);
     private static final String FACILITY_NAME = "Kailahun";  // TODO: Use a real facility name.
     static final RequestLogger logger = RequestLogger.LOGGER;
 
@@ -299,7 +301,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     protected static Patient jsonToPatient(SimpleObject json) {
         Patient patient = new Patient();
-        patient.setCreator(Context.getAuthenticatedUser());
+        // TODO: do this properly from authentication
+        patient.setCreator(CREATOR);
         patient.setDateCreated(new Date());
 
         if (json.containsKey(UUID)) {

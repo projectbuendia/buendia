@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<dataset>
-  <privilege privilege="Add Concepts" description="Same privilege as in SyncCreateTest.xml but different uuid for the parent" uuid="22222222-144e-102b-8d9c-e44ed545d86c"/>
-  <role role="Anonymous" description="Same role as in SyncCreateTest.xml but different uuid for the parent" uuid="11111111-144e-102b-8d9c-e44ed545d86c"/>
-  
-  <sync_server server_id="1" nickname="Parent Server" address="" server_type="PARENT" username="admin" password="test" last_sync="2008-01-01 15:38:35.0" disabled="false" child_username="admin" uuid="12316ac6-144e-102b-8d9c-e44ed545d777"/>
-  
-</dataset>
