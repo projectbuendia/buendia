@@ -46,7 +46,8 @@ git config --global user.name "Travis CI"
 # Make a working directory to create the file structure in.
 dir=`mktemp -d`
 # Clone the build server repo.
-git clone https://${GITHUB_API_TOKEN}@github.com:projectbuendia/builds.git --depth=1 --single-branch --branch=gh-pages "$dir"
+# Use --quiet and /dev/null because we don't want to leak the API token.
+git clone --quiet https://${GITHUB_API_TOKEN}@github.com/projectbuendia/builds.git --depth=1 --single-branch --branch=gh-pages "$dir" > /dev/null
 
 # The output debian packages from the build process are dropped in their individual source
 # directories (TODO: fix this) so we consolidate them all to the temporary directory.
@@ -59,7 +60,7 @@ git add .
 git commit -m "Autoupdate package server from Travis CI build $TRAVIS_BUILD_NUMBER."
 # The API token is encoded in the remote, so the `git push` will use the same credentials as the
 # clone.
-git push
+git push --quiet >/dev/null
 rm "$dir"
 
 echo "Successfully deployed."

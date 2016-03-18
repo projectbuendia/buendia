@@ -16,4 +16,4 @@ notifications:
 env:
   global:
     # Generated using `travis encrypt GITHUB_API_TOKEN=[token]`
-    secure: C4kgvqQh1qI3GUIK2QpOHR8y0QB5Rl8sP1RxV1L3MalfSep4lANqmli4k2WlIp616rwSImcdcSzddSgaYuB2pPW38GqopxTo3vK2UFAu8KILOD1sWQfGqOMjP7wKBBEyiTw7Tm3XtPu86u/ilcksZ2IbMMPdKT1Z+NTPAueieJo=
+    secure: "BUmzNNVlB05bjweFS16gp6OpDViBnuhhW9GyyfSF7zcdlOmNmgN/JaEMqqqsAx42jmmQhikjoSScEE/CuGlhI8ljsbD5R5yqLs9zKI1GNwMZvpz0DX7LyimnT55sPBZEoDRQGhQEp6Ph+DDaKjqgE3ujlJu6IyEfIM7jM3eOON4="
