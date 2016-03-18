@@ -52,7 +52,8 @@ git clone --quiet https://${GITHUB_API_TOKEN}@github.com/projectbuendia/builds.g
 # The output debian packages from the build process are dropped in their individual source
 # directories (TODO: fix this) so we consolidate them all to the temporary directory.
 
-cp `find packages -name *.deb` "$dir"
+mkdir -p "$dir/packages"
+cp `find packages -name *.deb` "$dir/packages"
 # Actually run the index step.
 packages/buendia-pkgserver/data/usr/bin/buendia-pkgserver-index-debs "$dir"
 pushd "$dir"
@@ -62,6 +63,6 @@ git commit -m "Autoupdate package server from Travis CI build $TRAVIS_BUILD_NUMB
 # clone.
 git push --quiet >/dev/null
 popd
-rm "$dir"
+rm -rf "$dir"
 
 echo "Successfully deployed."
