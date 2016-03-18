@@ -55,7 +55,7 @@ git clone --quiet https://${GITHUB_API_TOKEN}@github.com/projectbuendia/builds.g
 mkdir -p "$dir/packages"
 cp `find packages -name *.deb` "$dir/packages"
 # Actually run the index step.
-packages/buendia-pkgserver/data/usr/bin/buendia-pkgserver-index-debs "$dir"
+packages/buendia-pkgserver/data/usr/bin/buendia-pkgserver-index-debs "$dir/packages"
 pushd "$dir"
 git add .
 git commit -m "Autoupdate package server from Travis CI build $TRAVIS_BUILD_NUMBER."
