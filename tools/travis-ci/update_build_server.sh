@@ -15,13 +15,6 @@ if [ "$TRAVIS_REPO_SLUG" != "projectbuendia/buendia" ]; then
   exit 0
 fi
 
-# Check that GITHUB_API_TOKEN is set. We do this before other checks because if this isn't set, we
-# want early notification - that is, we want the CI to fail on all builds, not just releases.
-if [ -z "$GITHUB_API_TOKEN" ]; then
-  echo "No GITHUB_API_TOKEN environment variable set, we require one to push builds."
-  exit 1
-fi
-
 if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo "This is a pull request, not deploying to build server."
   # Shouldn't count as failure
