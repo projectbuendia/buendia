@@ -16,7 +16,7 @@ source remote-execution.sh
 password=$1
 setup_ssid_psk=$2
 site_id=$3
-repo_url=${REPO_URL:-http://packages.projectbuendia.org:9001}
+repo_url=${REPO_URL:-http://projectbuendia.org/builds/packages}
 
 if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
     echo "

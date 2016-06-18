@@ -13,7 +13,7 @@
 set -e
 cd $(dirname $0)
 setup_ssid_psk=$1
-repo_url=${REPO_URL:-http://packages.projectbuendia.org:9001}
+repo_url=${REPO_URL:-http://projectbuendia.org/builds/packages}
 
 if [ "$1" = "-h" -o ! -n "$setup_ssid_psk" ]; then
     echo "
