@@ -37,6 +37,13 @@ case "$TRAVIS_BRANCH" in
       ;;
 esac
 
+# Decrypt the SSH key, and add it.
+pushd tools/travis-ci
+openssl aes-256-cbc -K $encrypted_af6db2c7ae31_key -iv $encrypted_af6db2c7ae31_iv -in ssh-key.enc -out ssh-key -d
+ssh-add ssh-key
+popd
+
+
 echo "Deploying to build server."
 
 # Configure git so that commits look sensible.
@@ -46,8 +53,8 @@ git config --global user.name "Travis CI"
 # Make a working directory to create the file structure in.
 dir=`mktemp -d`
 # Clone the build server repo.
-# Use --quiet and /dev/null because we don't want to leak the API token.
-git clone --quiet https://${GITHUB_API_TOKEN}@github.com/projectbuendia/builds.git --depth=1 --single-branch --branch=gh-pages "$dir" > /dev/null
+# This uses the key added above.
+git clone git@github.com:projectbuendia/builds.git --depth=1 --single-branch --branch=gh-pages "$dir"
 
 # The output debian packages from the build process are dropped in their individual source
 # directories (TODO: fix this) so we consolidate them all to the temporary directory.

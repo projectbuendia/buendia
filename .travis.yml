@@ -13,7 +13,3 @@ notifications:
   slack:
     # Generated using `travis encrypt "buendia:[token]#server"
     secure: "Vmk7XmLRhzVfS9hAy6slF9YTPurO07cSj2Qny6lhjMN7P8Q+7Ty6TF9gXyfMBvgXXG7EF7EzKDC+PLu1Rq6bQI39ESaq2Pn2Uh/sSVXERhXMqyDNy7GWscExRtpC8iytaS9dmXTfv7kArgnINyXRztLIyeRQSOjMQH30ZDsLnag="
-env:
-  global:
-    # Generated using `travis encrypt GITHUB_API_TOKEN=[token]`
-    secure: "BUmzNNVlB05bjweFS16gp6OpDViBnuhhW9GyyfSF7zcdlOmNmgN/JaEMqqqsAx42jmmQhikjoSScEE/CuGlhI8ljsbD5R5yqLs9zKI1GNwMZvpz0DX7LyimnT55sPBZEoDRQGhQEp6Ph+DDaKjqgE3ujlJu6IyEfIM7jM3eOON4="
