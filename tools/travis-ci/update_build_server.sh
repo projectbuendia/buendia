@@ -33,6 +33,8 @@ esac
 # Decrypt the SSH key, and add it.
 pushd tools/travis-ci
 openssl aes-256-cbc -K $encrypted_af6db2c7ae31_key -iv $encrypted_af6db2c7ae31_iv -in ssh-key.enc -out ssh-key -d
+# Start SSH agent and add key
+eval `ssh-agent -s`
 ssh-add ssh-key
 popd
 
