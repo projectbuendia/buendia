@@ -16,7 +16,7 @@ set -e
 SERVER_ID=server
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
 MODULE_DIR=$SERVER_DIR/modules
-INSTALL="mvn openmrs-sdk:install -DserverId=$SERVER_ID"
+INSTALL="mvn openmrs-sdk:setup-sdk -DserverId=$SERVER_ID"
 cd $(dirname $0)
 cd ..  # go to the root of the Buendia repository
 
