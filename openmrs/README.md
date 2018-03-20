@@ -17,7 +17,7 @@ Follow the instructions below to get your system set up to do Buendia server dev
 
 ##### Apache Maven
 
-  * AMI Linux: `sudo yum install -y apache-maven`
+  * AMI Linux: `sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo; sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo; sudo yum install -y apache-maven`
   * Debian Linux: `sudo apt-get install maven`
   * Mac OS:
       * Visit https://maven.apache.org/download.cgi and download the **Binary zip archive**.
@@ -27,7 +27,7 @@ Follow the instructions below to get your system set up to do Buendia server dev
 
 ##### MySQL Server 5.6
 
-**Note:** it's critical that MySQL 5.6 is installed, and not a newer version. The version of OpenMRS we're currently using hardcodes `storage_engine=InnoDB` into the connection parameters, and that parameter was [removed in 5.7.5](http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine), so OpenMRS never connects to the database if a newer version is installed.
+**Note:** It's critical that MySQL 5.6 is installed, and not a newer version. The version of OpenMRS we're currently using hardcodes `storage_engine=InnoDB` into the connection parameters, and that parameter was [removed in 5.7.5](http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine), so OpenMRS never connects to the database if a newer version is installed.
 
   * AMI Linux: `sudo yum install -y mysql56-server; sudo mysql_install_db; sudo chown -R mysql.mysql /var/lib/mysql; service mysqld start`
   * Debian Linux: `sudo apt-get install mysql-server`
