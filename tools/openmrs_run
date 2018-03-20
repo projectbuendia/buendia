@@ -22,7 +22,7 @@ PORT_OPTS="-Djetty.port=9000"
 MEMORY_OPTS="-Xmx2G -XX:MaxPermSize=128m"
 
 # Enable remote debugging.
-DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+# DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 
 # Go to the OpenMRS installation directory.
 if [ ! -d $HOME/openmrs/$SERVER_ID ]; then
