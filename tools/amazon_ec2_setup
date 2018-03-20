@@ -15,3 +15,6 @@ sudo service mysqld start
 tools/openmrs_setup dev
 tools/openmrs_build
 tools/openmrs_run
+
+# If you want your server to accept external requests, remember to add a rule
+# to your EC2 instance's security group that allows TCP traffic on port 8080.
