@@ -56,7 +56,7 @@ fi
 server_dir=$HOME/openmrs/$SERVER_ID
 if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
     mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
-    echo 'Creating empty "openmrs" database...'
+    echo "Enter the MySQL root password, or just hit Enter if no password."
     mysql -uroot -p <<< "
       create database openmrs;
       grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
@@ -64,9 +64,18 @@ if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
       flush privileges;
     "
     echo
-    echo 'At the following prompts, please select "2" for platform, then enter'
-    echo 'version number "'$OPENMRS_PLATFORM_VERSION'", then choose MySQL 5.6,'
-    echo 'then enter "jdbc:msyql://localhost:3306/openmrs" as the database URL.'
+    echo 'At the following prompts:'
+    echo '  - Select "2" for platform'
+    echo '  - Choose platform version "'$OPENMRS_PLATFORM_VERSION'"'
+    echo '  - Accept the default port number'
+    echo '  - Accept no debugging by default'
+    echo '  - Choose MySQL 5.6'
+    echo '  - Enter "jdbc:mysql://localhost:3306/openmrs" as the database URI'
+    echo '  - Accept the default database username "root"'
+    echo '  - Accept the default database password ""'
+    echo
+    echo -n 'Please make a note of the above.  Ready? '
+    read
     mvn openmrs-sdk:setup -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION
 else
     # Create the openmrs_user account in MySQL.
