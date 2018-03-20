@@ -16,7 +16,7 @@ set -e
 SERVER_ID=server
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
 MODULE_DIR=$SERVER_DIR/modules
-INSTALL="mvn openmrs-sdk:setup-sdk -DserverId=$SERVER_ID"
+INSTALL="mvn openmrs-sdk:deploy -DserverId=$SERVER_ID"
 cd $(dirname $0)
 cd ..  # go to the root of the Buendia repository
 
@@ -40,8 +40,8 @@ fi
 
 # Install the module dependencies in the OpenMRS development server.
 # These version numbers are duplicated in [git root]/openmrs/pom.xml
-$INSTALL -DartifactId=xforms -Dversion=4.3.5
-$INSTALL -DartifactId=webservices.rest -Dversion=2.6
+$INSTALL -DgroupId=org.openmrs.module -DartifactId=xforms -Dversion=4.3.5
+$INSTALL -DgroupId=org.openmrs.module -DartifactId=webservices.rest -Dversion=2.6
 
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
 # given to this script.
@@ -49,5 +49,4 @@ cd openmrs
 mvn clean install "$@"
 
 # Install the module in the OpenMRS development server.
-$INSTALL -DgroupId=org.projectbuendia \
-    -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT
+$INSTALL -DgroupId=org.projectbuendia -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT
