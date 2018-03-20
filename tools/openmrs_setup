@@ -73,7 +73,7 @@ if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
     echo
     echo -n 'Please make a note of the above.  Ready? '
     read
-    mvn openmrs-sdk:setup -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION -DdbUri jdbc:mysql://localhost:3306/openmrs -DdbUser openmrs_user -DdbPassword openmrs
+    mvn openmrs-sdk:setup -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION -DdbUri=jdbc:mysql://localhost:3306/openmrs -DdbUser=openmrs_user -DdbPassword=openmrs
 else
     # Create the openmrs_user account in MySQL.
     echo "Enter the MySQL root password, or just hit Enter if no password."
