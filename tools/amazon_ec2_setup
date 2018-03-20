@@ -4,6 +4,7 @@ set -e
 cd $(dirname "$0"); cd ..
 
 # Run this script to install the necessary dependencies on AMI Linux.
+# A t2.medium instance is recommended; t2.micro lacks enough memory to work.
 
 sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
 sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
