@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+cd $(dirname "$0"); cd ..
+
+# Run this script to install the necessary dependencies on AMI Linux.
+
+sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
+sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
+sudo yum install -y git gcc apache-maven mysql56-server python-devel mysql-devel MySQL-python
+sudo easy_install MySQL-python
+sudo chown -R mysql.mysql /var/lib/mysql
+sudo service mysqld start
+
+tools/openmrs_setup dev
+tools/openmrs_build
+tools/openmrs_run
