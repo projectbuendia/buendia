@@ -16,5 +16,10 @@ tools/openmrs_setup dev
 tools/openmrs_build
 tools/openmrs_run
 
+# The next step is to apply a profile.  Go to http://localhost:8080/openmrs/,
+# log in as "buendia" with password "buendia", go to the Administration page,
+# and select "Manage Buendia profiles".  Upload one of the CSV files from
+# https://github.com/projectbuendia/profiles/.
+#
 # If you want your server to accept external requests, remember to add a rule
 # to your EC2 instance's security group that allows TCP traffic on port 8080.
