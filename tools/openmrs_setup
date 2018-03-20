@@ -59,7 +59,7 @@ if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
     mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
     echo "Enter the MySQL root password, or just hit Enter if no password."
     mysql -uroot -p <<< "
-      create database openmrs;
+      create database if not exists openmrs;
       grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
       grant file on *.* to openmrs_user@localhost;
       flush privileges;
