@@ -16,7 +16,7 @@ set -e
 SERVER_ID=server
 
 # Serve on port 9000 to match production.
-PORT_OPTS="-Djetty.port=9000"
+PORT_OPTS="-Djetty.port=9000 -Dserver.port=9000 -Dport=9000"
 
 # Increase memory limits.
 MEMORY_OPTS="-Xmx2G -XX:MaxPermSize=128m"
