@@ -24,6 +24,11 @@ MEMORY_OPTS="-Xmx2G -XX:MaxPermSize=128m"
 # Enable remote debugging.
 # DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
 
+# On MacOS, select JDK version 1.7.
+if [ -x /usr/libexec/java_home ]; then
+    export JAVA_HOME=$(/usr/libexec/java_home -v 1.7)
+fi
+
 # Go to the OpenMRS installation directory.
 if [ ! -d $HOME/openmrs/$SERVER_ID ]; then
     echo "OpenMRS server not installed; run openmrs_setup first."
