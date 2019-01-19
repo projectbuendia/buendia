@@ -13,7 +13,7 @@ sudo easy_install MySQL-python
 sudo chown -R mysql.mysql /var/lib/mysql
 sudo service mysqld start
 
-tools/openmrs_setup dev
+tools/openmrs_setup msf-geneva
 tools/openmrs_build
 tools/openmrs_run
 
