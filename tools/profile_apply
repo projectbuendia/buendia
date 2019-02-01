@@ -514,7 +514,9 @@ def apply(tabs):
 
     def validate_range(range):
         try:
-            low, high = re.split(r'\.\.+', range or '', 1)
+            # Separator can be '-' or '..' for backward compatibility.
+            range = re.sub(r'(.)(-|\.\.+)', r'\1 ', (range or '').strip())
+            low, high = range.split(' ', 1)
             low = low.strip() and float(low) or None
             high = high.strip() and float(high) or None
             return low, high
