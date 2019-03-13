@@ -1,0 +1,16 @@
+language: java
+script:
+  - set -e
+  - export PACKAGE_VERSION=`tools/travis-ci/choose_version_number.sh`
+  - echo "Assigning package version $PACKAGE_VERSION"
+ - yes | tools/openmrs_build -X 
+  # Spawn this in a subshell so we don't need to push / pop directories.
+  # Note that `make` makes use of $PACKAGE_VERSION.
+  - ( cd packages && make clean && make )
+  - tools/travis-ci/update_build_server.sh
+# TODO: add after_success clause that pushes builds to our build server.
+jdk: openjdk7
+notifications:
+  slack:
+    # Generated using `travis encrypt "buendia:[token]#server"
+    secure: "Vmk7XmLRhzVfS9hAy6slF9YTPurO07cSj2Qny6lhjMN7P8Q+7Ty6TF9gXyfMBvgXXG7EF7EzKDC+PLu1Rq6bQI39ESaq2Pn2Uh/sSVXERhXMqyDNy7GWscExRtpC8iytaS9dmXTfv7kArgnINyXRztLIyeRQSOjMQH30ZDsLnag="
