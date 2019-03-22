@@ -3,7 +3,7 @@ script:
   - set -e
   - export PACKAGE_VERSION=`tools/travis-ci/choose_version_number.sh`
   - echo "Assigning package version $PACKAGE_VERSION"
- - yes | tools/openmrs_build -X 
+  - yes | tools/openmrs_build -X
   # Spawn this in a subshell so we don't need to push / pop directories.
   # Note that `make` makes use of $PACKAGE_VERSION.
   - ( cd packages && make clean && make )
