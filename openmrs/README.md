@@ -14,6 +14,8 @@ Follow the instructions below to get your system set up to do Buendia server dev
   * If `java -version` does not report version 1.7.x, install JDK 7:
       * Debian Linux: `sudo apt-get install openjdk-7-jdk`
       * Mac OS: Download from [Oracle](https://www.oracle.com/technetwork/java/javase/downloads/java-archive-downloads-javase7-521261.html)
+  * At this point, JDK 7 is almost certainly not the default on your system.
+      * `export JAVA_HOME=$(/usr/libexec/java_home -v1.7)` works in bash to fix this -- then run `java -version` to confirm
 
 ##### Apache Maven
 
