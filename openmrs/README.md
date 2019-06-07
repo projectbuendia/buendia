@@ -21,7 +21,8 @@ Follow the instructions below to get your system set up to do Buendia server dev
 
   * AMI Linux: `sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo; sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo; sudo yum install -y apache-maven`
   * Debian Linux: `sudo apt-get install maven`
-  * Mac OS:
+  * Mac OS: `brew install maven`
+  * Mac OS (alternate):
       * Visit https://maven.apache.org/download.cgi and download the **Binary zip archive**.
       * Unzip the archive in your home directory.
       * Add the `bin` subdirectory of the unpacked archive (e.g. `$HOME/apache-maven-3.3.3/bin`) to your shell's `PATH`.
