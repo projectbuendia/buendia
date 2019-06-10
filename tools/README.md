@@ -117,6 +117,10 @@ Builds the Buendia module and installs it in an OpenMRS development server.
 Dumps an entire MySQL database as a zip file containing a SQL dump of each
 table and a SQL script to load all the tables into a database.
 
+#### `openmrs_ensure_sdk`
+
+Ensures that the OpenMRS SDK has been installed and configured.
+
 #### `openmrs_load`
 
 Loads a dump file (produced by `openmrs_dump`) into a MySQL database.
