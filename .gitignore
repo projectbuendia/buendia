@@ -43,3 +43,4 @@ packages/**/*.deb
 
 # Vagrant directories
 .vagrant/
+tools/**/*.box
