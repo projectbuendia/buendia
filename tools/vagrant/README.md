@@ -32,7 +32,8 @@ for setting up the server database, building Buendia, and running the server.
 ## Connect to Buendia from your web browser
 
 Open [http://localhost:9000/openmrs/](http://localhost:9000/openmrs/) in your
-web browswer and log in as buendia/buendia.
+web browswer and log in as buendia/buendia. The web page will take a few
+seconds to load the first time.
 
 ## Shut down (and restart) your VM
 
@@ -47,3 +48,8 @@ You can bring it back with:
 Finally you can get rid of it permanently with:
 
     vagrant destroy
+
+## [ADVANCED] Set up an Alpine Linux dev environment
+
+    vagrant up alpine
+    vagrant ssh alpine

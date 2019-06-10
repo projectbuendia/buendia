@@ -10,13 +10,6 @@ Vagrant.configure("2") do |config|
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
 
-  # debian/contrib-stretch64 includes the vboxsf guest additions
-  config.vm.box = "debian/contrib-stretch64"
-
-  config.vm.provider "virtualbox" do |v|
-    v.name = "buendia-dev"
-  end
-
   # Disable automatic box update checking. If you disable this, then
   # boxes will only be checked for updates when the user runs
   # `vagrant box outdated`. This is not recommended.
@@ -66,10 +59,20 @@ Vagrant.configure("2") do |config|
   # Enable provisioning with a shell script. Additional provisioners such as
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
-  config.vm.provision "shell", inline: <<-SHELL
-    cp -av /mnt/buendia/tools/apt/* /etc/apt/
-    apt-get update
-    apt-get install -y openjdk-7-jdk
-    apt-get install -y maven mysql-server python-mysqldb zip unzip git
-  SHELL
+  config.vm.define "debian", primary: true do |node|
+    # debian/contrib-stretch64 includes the vboxsf guest additions
+    node.vm.box = "debian/contrib-stretch64"
+    node.vm.provider "virtualbox" do |v|
+      v.name = "buendia-debian"
+    end
+    node.vm.provision "shell", path: "./provision-debian.sh"
+  end 
+
+  config.vm.define "alpine", autostart: false do |node|
+    node.vm.box = "maier/alpine-3.8-x86_64"
+    node.vm.provider "virtualbox" do |v|
+      v.name = "buendia-alpine"
+    end
+    node.vm.provision "shell", path: "./provision-alpine.sh"
+  end
 end
