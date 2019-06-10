@@ -56,7 +56,7 @@ fi
 # Ensure that the openmrs database exists.
 if ! mysql -uopenmrs_user -popenmrs -e '' openmrs; then
     echo "Enter the MySQL root password, or just hit Enter if no password."
-    mysql -uroot -p <<< "
+    sudo mysql -uroot -p <<< "
       create database if not exists openmrs;
       grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
       grant file on *.* to openmrs_user@localhost;
