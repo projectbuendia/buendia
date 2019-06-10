@@ -8,6 +8,8 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
 
 Follow the instructions below to get your system set up to do Buendia server development.
 
+You can also refer to the following notes on [setting up Buendia on a fresh Debian stretch install](README-Debian.md).
+
 ### Prerequisites
 
 ##### JDK 7 (note OpenMRS does not work with JDK 8!)
@@ -57,7 +59,6 @@ Most likely, you already have Python 2 installed with your operating system, so 
 
         git clone https://github.com/projectbuendia/buendia
         cd buendia
-        git checkout ping/updated-setup-scripts
 
 2.  Set up a OpenMRS server configured to use MySQL and initialize the MySQL database with the "dev" site configuration:
 
