@@ -1,0 +1,3 @@
+# Installing OpenJDK 7 on Stretch requires including these repos
+deb http://deb.debian.org/debian experimental main
+deb http://deb.debian.org/debian sid main
