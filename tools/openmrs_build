@@ -17,11 +17,19 @@ SERVER_ID=server
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
 MODULE_DIR=$SERVER_DIR/modules
 INSTALL="mvn openmrs-sdk:deploy -DserverId=$SERVER_ID"
+
 cd $(dirname $0)
 cd ..  # go to the root of the Buendia repository
 
-# Install the OpenMRS SDK.
-mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+# Ensure that the OpenMRS SDK is installed and configured.
+# 
+# Rather than doing it the canonical way:
+#   mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+#
+# We instead run a helper script that doesn't require manual configuration. If
+# the manual configuration has already been done with openmrs_setup, this is a
+# no-op.
+tools/openmrs_ensure_sdk
 
 # Clean out any old modules, leaving an empty server module directory.
 rm -rf $MODULE_DIR

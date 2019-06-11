@@ -1,15 +1,20 @@
 include ../Makefile.inc
 
 SOURCE_DIR=$(HOME)/openmrs/server/modules
+MAIN_MODULE_BUILD=$(SOURCE_DIR)/projectbuendia.openmrs-1.0-SNAPSHOT.omod
+
 TARGET_DIR=$(EXTRA_DATA)/usr/share/buendia/openmrs/modules
 MAIN_MODULE=$(TARGET_DIR)/buendia-server.omod
 OTHER_MODULES=$(TARGET_DIR)/xforms-4.3.5.omod $(TARGET_DIR)/webservices.rest-2.6.omod
 
 $(EXTRA_DATA): $(MAIN_MODULE) $(OTHER_MODULES) $(EXTRA_DATA)/usr/bin/buendia-openmrs-account-setup $(EXTRA_DATA)/usr/bin/buendia-profile-apply $(EXTRA_DATA)/usr/bin/buendia-profile-validate
 
-$(MAIN_MODULE):
+$(MAIN_MODULE_BUILD):
+	../../tools/openmrs_build
+
+$(MAIN_MODULE): $(MAIN_MODULE_BUILD)
 	mkdir -p $(TARGET_DIR)
-	cp $(SOURCE_DIR)/projectbuendia.openmrs-1.0-SNAPSHOT.omod $@
+	cp $(MAIN_MODULE_BUILD) $@
 
 $(OTHER_MODULES):
 	mkdir -p $(TARGET_DIR)
