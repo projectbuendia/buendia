@@ -14,8 +14,18 @@ jobs:
               - buendia-v1-{{ .Branch }}-{{ .Revision }}
               - buendia-v1-{{ .Branch }}
               - buendia-v1-
+
+      - run:
+          # The package version is set to n.n-b or n.n.n-b if the current Git
+          # tag is "vn.n" or "vn.n.n" and the current build number is b; else
+          # it is 0.0.0-b
+          name: Determine package version number
+          command: |
+              perl -e 'print(($ENV{"CIRCLE_TAG"} =~ /^v([0-9]+(\.[0-9]+){0,2})$/ ? $1 : "0.0.0"), "-", $ENV{"CIRCLE_BUILD_NUM"})' > /tmp/buendia-version
           
-      - run: make -C packages PACKAGE_VERSION=1.0.${CIRCLE_BUILD_NUM}
+      - run:
+          name: Build all Debian packages
+          command: make -C packages PACKAGE_VERSION=$(cat /tmp/buendia-version)
 
       - save_cache:
           key: buendia-v1-{{ .Branch }}-{{ .Revision }}
@@ -23,18 +33,19 @@ jobs:
             - ~/.m2
             - /tmp/buendia-fetched
 
-      # Collect and store test results
-      - run: >
-          mkdir -p /tmp/test-results &&
-          cp -a openmrs/api/target/surefire-reports /tmp/test-results/api &&
-          cp -a openmrs/omod/target/surefire-reports /tmp/test-results/omod
+      - run:
+          name: Collect and store test results
+          command: |
+              mkdir -p /tmp/test-results &&
+              cp -a openmrs/api/target/surefire-reports /tmp/test-results/api &&
+              cp -a openmrs/omod/target/surefire-reports /tmp/test-results/omod
 
       - store_test_results:
           path: /tmp/test-results
              
-      # Collect and store artifacts
-      - run: >
-            mkdir -p /tmp/packages && cp $(find packages -name '*.deb') /tmp/packages
+      - run: 
+          name: Collect and store built packages
+          command: mkdir -p /tmp/packages && cp $(find packages -name '*.deb') /tmp/packages
 
       - store_artifacts:
           path: /tmp/packages
