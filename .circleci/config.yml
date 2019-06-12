@@ -4,7 +4,7 @@ jobs:
     working_directory: ~/buendia
 
     docker:
-      - image: projectbuendia/debian-stretch:1.0.0
+      - image: projectbuendia/debian-stretch:1.0.1
 
     steps:
       - checkout # check out the code in the project directory
@@ -29,6 +29,17 @@ jobs:
           paths:
             - ~/.m2
             - /tmp/buendia-fetched
+
+      - run:
+          name: Install test site locally for verification
+          command: |
+                echo "buendia-utils buendia-monitoring buendia-mysql
+                      buendia-tomcat7 buendia-openmrs buendia-site-test
+                      buendia-db-init buendia-db-migrate buendia-db
+                      buendia-server" > /tmp/package-list.txt
+                for pkg in $(cat /tmp/package-list.txt); do
+                    dpkg -i $(ls packages/$pkg/$pkg*.deb | head -1) || exit -1
+                done
 
       - run:
           name: Collect and store test results
