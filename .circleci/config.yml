@@ -37,18 +37,18 @@ jobs:
           name: Collect and store test results
           command: |
               mkdir -p /tmp/test-results &&
-              cp -a openmrs/api/target/surefire-reports /tmp/test-results/api &&
-              cp -a openmrs/omod/target/surefire-reports /tmp/test-results/omod
+              cp -a openmrs/api/target/surefire-reports /tmp/build/results/api &&
+              cp -a openmrs/omod/target/surefire-reports /tmp/build/results/omod
 
       - store_test_results:
-          path: /tmp/test-results
+          path: /tmp/build/results
              
       - run: 
           name: Collect and store built packages
-          command: mkdir -p /tmp/packages && cp $(find packages -name '*.deb') /tmp/packages
+          command: mkdir -p /tmp/build/packages && cp $(find packages -name '*.deb') /tmp/build/packages
 
       - store_artifacts:
-          path: /tmp/packages
+          path: /tmp/build/packages
 
 workflows:
   version: 2
