@@ -16,12 +16,9 @@ jobs:
               - buendia-v1-
 
       - run:
-          # The package version is set to n.n-b or n.n.n-b if the current Git
-          # tag is "vn.n" or "vn.n.n" and the current build number is b; else
-          # it is 0.0.0-b
           name: Determine package version number
           command: |
-              perl -e 'print(($ENV{"CIRCLE_TAG"} =~ /^v([0-9]+(\.[0-9]+){0,2})$/ ? $1 : "0.0.0"), "-", $ENV{"CIRCLE_BUILD_NUM"})' > /tmp/buendia-version
+              tools/get_package_version.sh > /tmp/buendia-version
           
       - run:
           name: Build all Debian packages
