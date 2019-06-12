@@ -42,5 +42,5 @@ fi
 # Otherwise, we're building locally, so the version should be "x.y.z~g<commit>"
 # where <commit> is the latest unambiguous commit identifier. This version is
 # actually treated by Debian as _less_ recent than "x.y.z".
-COMMIT=$(git describe --abbrev)
-echo "${TAG#v}~g${COMMIT#*g}"
+COMMIT=$(git describe --abbrev --dirty=+dirty)
+echo "${TAG#v}~${COMMIT#*g}"
