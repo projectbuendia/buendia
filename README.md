@@ -1,5 +1,7 @@
 # buendia
 
+**Build status:** [![CircleCI](https://circleci.com/gh/projectbuendia/buendia/tree/dev.svg?style=svg)](https://circleci.com/gh/projectbuendia/buendia/tree/dev)
+
 The main repository for Project Buendia. See the
 [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for details.
 
@@ -10,7 +12,6 @@ The main repository for Project Buendia. See the
  - **tools**: Data management and server administration utilities.
 
 To set up an Edison as a new demo server, run `./setup-demo`.
-
 
 #### Copyright notice
 
