@@ -1,6 +1,6 @@
 # Set the environment variable PACKAGE_VERSION before running make.
 ifeq ($(strip $(PACKAGE_VERSION)),)
-    PACKAGE_VERSION := 0
+    PACKAGE_VERSION := $(shell ../tools/get_package_version.sh)
 endif
 export PACKAGE_VERSION
 
