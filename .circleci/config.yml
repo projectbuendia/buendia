@@ -52,17 +52,4 @@ workflows:
   version: 2
   normal-build:
     jobs:
-      - build:
-          filters:
-            tags:
-              ignore: /.*/
-  release-build:
-    # Ensure that tagged releases get their own CircleCI build:
-    # https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
-    jobs:
-      - build:
-          filters:
-            tags:
-              only: /^v.*/
-            branches:
-              ignore: /.*/
+      - build
