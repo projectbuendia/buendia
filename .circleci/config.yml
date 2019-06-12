@@ -35,20 +35,21 @@ jobs:
 
       - run:
           name: Collect and store test results
+          # https://circleci.com/docs/2.0/collect-test-data/#maven-surefire-plugin-for-java-junit-results
           command: |
-              mkdir -p /tmp/test-results &&
-              cp -a openmrs/api/target/surefire-reports /tmp/build/results/api &&
-              cp -a openmrs/omod/target/surefire-reports /tmp/build/results/omod
+            mkdir -p /tmp/artifacts/tests/junit
+            find . -type f -regex ".*/target/surefire-reports/.*xml" -exec cp {} /tmp/artifacts/tests/junit/ \;
+          when: always
 
       - store_test_results:
-          path: /tmp/build/results
+          path: /tmp/artifacts/tests
              
       - run: 
           name: Collect and store built packages
-          command: mkdir -p /tmp/build/packages && cp $(find packages -name '*.deb') /tmp/build/packages
+          command: mkdir -p /tmp/artifacts/packages && cp $(find packages -name '*.deb') /tmp/artifacts/packages
 
       - store_artifacts:
-          path: /tmp/build/packages
+          path: /tmp/artifacts
 
 workflows:
   version: 2
