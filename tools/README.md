@@ -77,6 +77,11 @@ A script that was never written.
 Given a directory full of `*.sql` table schemas, produces the SQL commands to
 replace all the foreign key references to `users.user_id` with `@buendia_admin`.
 
+#### `get_package_version.sh`
+
+Print a suitable Debian package version number based on the current build
+situation.
+
 #### `get_patients`
 
 Uses HTTP to fetch all the patients from an OpenMRS server using the Buendia
