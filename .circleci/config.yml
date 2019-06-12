@@ -18,7 +18,7 @@ jobs:
       - run:
           name: Determine package version number
           command: |
-              tools/get_package_version.sh > /tmp/buendia-version
+              tools/get_package_version > /tmp/buendia-version
           
       - run:
           name: Build all Debian packages
