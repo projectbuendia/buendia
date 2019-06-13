@@ -58,7 +58,7 @@ jobs:
       - image: projectbuendia/debian-stretch:1.0.2
       - image: mariadb:10.4.5
         environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ROOT_PASSWORD: continuous-integration
 
     steps:
       - attach_workspace:
@@ -74,6 +74,7 @@ jobs:
                       buendia-tomcat7 buendia-openmrs buendia-site-test
                       buendia-db-init buendia-db-migrate buendia-db
                       buendia-server" > /tmp/package-list.txt
+                # Do the installation
                 for pkg in $(cat /tmp/package-list.txt); do
                     dpkg -i /tmp/artifacts/packages/${pkg}_*_all.deb
                 done
