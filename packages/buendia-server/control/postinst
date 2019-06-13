@@ -25,6 +25,8 @@ case $1 in
         # Make the warmup script run once on startup
         update-rc.d buendia-server defaults
 
+        [ -n "$CI" ] && exit 0 # if we're running CI, stop now
+
         # Restart Tomcat (necessary even if no changes!) and warm it up now
         service tomcat7 stop
         service tomcat7 start

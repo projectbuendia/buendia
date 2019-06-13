@@ -12,6 +12,8 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
+[ -n "$CI" ] && exit 0 # if we're running in CI, stop now
+
 case $1 in
     configure)
         buendia-reconfigure mysql

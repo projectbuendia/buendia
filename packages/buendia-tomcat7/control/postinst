@@ -16,6 +16,9 @@ buendia-divert $1 /etc/default/tomcat7
 buendia-divert $1 /etc/tomcat7/server.xml
 buendia-divert $1 /etc/tomcat7/tomcat-users.xml
 
+# If we're running in a CircleCI container, don't try to start tomcat.
+[ -n "$CI" ] && exit 0 # if we're running CI, stop now
+
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
         service tomcat7 start

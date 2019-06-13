@@ -25,7 +25,9 @@ case $1 in
         # Create a fresh new database populated with the initial data.
         export MYSQL_USER=root
         export MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD
-        service mysql start
+        if [ -z "$CI" ]; do # if we're not running in CI
+            service mysql start
+        done
         echo "Loading initial OpenMRS database..."
         buendia-mysql-load -f openmrs /usr/share/buendia/db/init.zip
 

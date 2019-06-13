@@ -12,9 +12,9 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-# Provide a randomly generated MySQL root password.
+# Provide a randomly generated MySQL root password if we're not running in CI.
 generated=/usr/share/buendia/site/20-mysql
-if [ ! -e $generated ]; then
+if [ -z "$CI" -a ! -e $generated ]; then
     echo "MYSQL_ROOT_PASSWORD=$(buendia-mkpass)" > $generated
     . /usr/share/buendia/utils.sh  # reload settings
 fi
