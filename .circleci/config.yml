@@ -67,7 +67,9 @@ jobs:
       - run:
           name: Install test site locally for verification
           command: |
-                echo -e "[client]\nprotocol=tcp" >.my.cnf
+                # Connect to MySQL over localhost
+                echo -e "[client]\nprotocol=tcp" > ~/.my.cnf
+                # Install packages in this order
                 echo "buendia-utils buendia-monitoring buendia-mysql
                       buendia-tomcat7 buendia-openmrs buendia-site-test
                       buendia-db-init buendia-db-migrate buendia-db
