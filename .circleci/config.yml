@@ -67,6 +67,7 @@ jobs:
       - run:
           name: Install test site locally for verification
           command: |
+                echo -e "[client]\nprotocol=tcp" >.my.cnf
                 echo "buendia-utils buendia-monitoring buendia-mysql
                       buendia-tomcat7 buendia-openmrs buendia-site-test
                       buendia-db-init buendia-db-migrate buendia-db
