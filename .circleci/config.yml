@@ -31,17 +31,6 @@ jobs:
             - /tmp/buendia-fetched
 
       - run:
-          name: Install test site locally for verification
-          command: |
-                echo "buendia-utils buendia-monitoring buendia-mysql
-                      buendia-tomcat7 buendia-openmrs buendia-site-test
-                      buendia-db-init buendia-db-migrate buendia-db
-                      buendia-server" > /tmp/package-list.txt
-                for pkg in $(cat /tmp/package-list.txt); do
-                    dpkg -i $(ls packages/$pkg/$pkg*.deb | head -1) || exit -1
-                done
-
-      - run:
           name: Collect and store test results
           # https://circleci.com/docs/2.0/collect-test-data/#maven-surefire-plugin-for-java-junit-results
           command: |
@@ -59,8 +48,38 @@ jobs:
       - store_artifacts:
           path: /tmp/artifacts
 
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - packages
+
+  check-install:
+    docker:
+      - image: projectbuendia/debian-stretch:1.0.2
+      - image: mariadb:10.4.5
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+
+    steps:
+      - attach_workspace:
+          at: /tmp/artifacts
+
+      - run:
+          name: Install test site locally for verification
+          command: |
+                echo "buendia-utils buendia-monitoring buendia-mysql
+                      buendia-tomcat7 buendia-openmrs buendia-site-test
+                      buendia-db-init buendia-db-migrate buendia-db
+                      buendia-server" > /tmp/package-list.txt
+                for pkg in $(cat /tmp/package-list.txt); do
+                    dpkg -i /tmp/artifacts/packages/${pkg}_*_all.deb
+                done
+
 workflows:
   version: 2
   normal-build:
     jobs:
       - build
+      - check-install:
+          requires:
+            - build
