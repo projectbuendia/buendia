@@ -1,0 +1,70 @@
+#!/bin/bash
+# Copyright 2019 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+set -e
+
+if [ "$1" = "-h" -o -z "$1" -o -z "$2" -o -z "$3" ]; then
+    echo "Usage: $0 <repository-dir> <branch> <artifact-dir>"
+    echo
+    echo "Updates the apt archive in projectbuendia/builds with the latest"
+    echo "CircleCI build artifacts for a given branch of the"
+    echo "projectbuendia/buendia project."
+    echo
+    echo "<branch> can be either 'master' or 'dev'."
+    exit 1
+fi
+
+apt_repo=$(cd "$1" && pwd)
+branch=$2
+artifacts=$3
+tools=$(cd $(dirname $0) && pwd)
+
+if [ "$branch" = "master" ]; then
+    suite=stable
+elif [ "$branch" = "dev" ]; then
+    suite=unstable
+else
+    echo "Branch must be either 'master' or 'dev'!"
+    exit 1
+fi
+
+if [ ! -r ~/.gitconfig ]; then
+    echo "~/.gitconfig is missing; you need this to commit updates."
+    exit 1
+fi
+
+echo "- Fetching build artifacts for ${branch}"
+mkdir -p $apt_repo/$suite
+cp -v $(find $artifacts -name '*.deb') $apt_repo/$suite
+
+echo
+echo "- De-duplicating packages in ${suite}"
+$tools/dedupdeb $apt_repo/$suite
+
+echo
+echo "- Indexing packages in ${suite}"
+$tools/index_debs $apt_repo $suite
+
+echo
+echo "- Committing changes to git"
+cd $apt_repo
+git add $suite
+git add dists/$suite
+if [ -n "$CI" ]; then
+    git commit -m "Automated update from CircleCI build #${CIRCLE_BUILD_NUM} (${CIRCLE_BUILD_URL})"
+else
+    git commit
+fi
+
+echo
+echo "- Pushing changes to Github"
+git push --all
