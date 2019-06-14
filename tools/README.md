@@ -92,6 +92,11 @@ API, and prints out each patient record as a JSON object.
 Installs a Buendia OMOD on an OpenMRS server, replacing any existing Buendia
 module, and restarts the server to apply the change.
 
+#### `index_debs`
+
+Indexes a particular suite of Debian packages within a given apt repository
+directory.
+
 #### `make_fresh_dump.sh`
 
 Produces a cleaned snapshot of an entire OpenMRS database as a zip file of
@@ -181,6 +186,15 @@ A Buendia profile containing a form with some basic fields for testing.
 A stress-testing script that attempts to rapidly and concurrently post
 patients with duplicate IDs to a Buendia API, to verify that the Buendia
 server correctly enforces uniqueness of patient IDs in its database.
+
+#### `update_apt_archive`
+
+Copies Debian packages into an apt repository which is also a Github repository
+from a given source path, deduplicates the packages, re-indexes the apt
+repository, then commits the changes to git and pushes the whole mess up to
+Github. Currently, we are using the `gh-pages` branch of the
+[projectbuendia/builds](https://github.com/projectbuendia/builds) project,
+which points to https://projectbuendia.github.io/builds/.
 
 #### `warmup`
 
