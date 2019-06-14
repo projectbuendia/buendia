@@ -72,12 +72,12 @@ jobs:
             - buendia-builds-v1-
 
       - add_ssh_keys:
+          ### NOTE: this job must have a key that can read AND write to projectbuendia/builda
           fingerprints:
             - "18:e2:e2:8e:12:49:a1:ca:e6:6f:e1:30:08:02:ae:43"
 
       - run:
           name: Get the latest builds repository
-          ### NOTE: this job must have a key that can read AND write to projectbuendia/builda
           command: |
             [ -d builds ] || git clone git@github.com:projectbuendia/builds
             (cd builds && git checkout gh-pages)
@@ -94,7 +94,8 @@ jobs:
 
       - run:
           name: Update the package archive
-          command: tools/update_apt_archive builds/packages ${CIRCLECI_BRANCH} /tmp/artifacts/packages
+          # command: tools/update_apt_archive builds/packages ${CIRCLECI_BRANCH} /tmp/artifacts/packages
+          command: tools/update_apt_archive builds/packages dev /tmp/artifacts/packages
 
       - save_cache:
           key: buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
@@ -109,8 +110,8 @@ workflows:
       - apt-archive:
           requires:
             - build
-          filters:
-            branches:
-              only:
-                - master
-                - dev
+        # filters:
+        #    branches:
+        #      only:
+        #        - master
+        #        - dev
