@@ -1,0 +1,52 @@
+#!/bin/bash
+# Copyright 2015, 2019 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+set -e
+
+if [ "$1" = "-h" -o -z "$1" -o -z "$2" ]; then
+    echo "Usage: $0 <repository-dir> <suite>"
+    echo
+    echo "Creates or updates the Release and Package indexes for the pool"
+    echo "of .deb files located at the given directory."
+    exit 1
+fi
+
+repo=$1
+suite=$2
+
+# This is a slow operation; each index takes a couple of minutes to build.
+cd $repo
+rm -rf dists/${suite}
+for arch in i386 amd64 all; do
+    echo "Indexing packages for architecture '$arch'..."
+    packages=dists/${suite}/main/binary-$arch/Packages
+    mkdir -p $(dirname $packages)
+    apt-ftparchive --arch $arch packages ${suite} > $packages
+done
+
+# Create the overall index of indexes.
+release=dists/${suite}/Release
+cat <<END > $release
+Origin: Buendia
+Label: Buendia Debian Packages
+Architectures: all
+Components: main
+Description: Buendia Debian Packages
+END
+
+echo "Suite: ${suite}" >> $release
+
+apt-ftparchive release dists/${suite} >>$release
+
+ls -l $(find dists -type f)
+du -d 0
+echo "Done."
