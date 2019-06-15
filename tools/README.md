@@ -46,6 +46,12 @@ Minimal demo data.  Input for `generate_site_sql.py`.
 Compares two .deb files to see if they are the same in all their contents
 except for the version number declared in the control file.  Used by `dedupdeb`.
 
+#### `download_java_deps`
+
+Download the various OpenJDK package dependencies to a given directory.
+Currently, this gets openjdk-7 from experimental, tomcat7 from jessie, and some
+of their dependencies from sid. Downloads files for both amd64 and i386.
+
 #### `dump_new_concepts_sql.py`
 
 Examines an OpenMRS database, using some heuristics to find all the concepts
