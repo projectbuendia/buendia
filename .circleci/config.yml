@@ -60,19 +60,29 @@ jobs:
       - image: circleci/buildpack-deps:stretch
 
     steps:
-      - checkout # check out the code in the project directory
-
       - run:
-          name: Determine which Debian package suite to build
+          name: Determine build branch and package suite
+          # Decide which branch of projectbuendia/buendia to build from, by
+          # checking $TARGET_BRANCH and then falling back to $CIRCLE_BRANCH.
+          #
+          # Then, choose the target Debian package suite based on the given
+          # branch.
+          #
+          # See `tools/rebuild_apt_repo` for a usage example.
+          #
+          # https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
           command: |
-              if [ "${CIRCLE_BRANCH}" = "master" ]; then
+              TARGET_BRANCH=${BUENDIA_BRANCH:-$CIRCLE_BRANCH}
+              if [ "${TARGET_BRANCH}" = "master" ]; then
                 echo "export BUENDIA_SUITE=stable" >> $BASH_ENV
-              elif [ "${CIRCLE_BRANCH}" = "dev" ]; then
+              elif [ "${TARGET_BRANCH}" = "dev" ]; then
                 echo "export BUENDIA_SUITE=unstable" >> $BASH_ENV
               else
                 echo "Can only rebuild the apt archive for the 'master' or 'dev' branch!"
                 exit 1
               fi
+
+      - checkout # check out the code in the project directory
 
       - attach_workspace:
           at: /tmp/artifacts
