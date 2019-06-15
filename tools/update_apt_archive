@@ -44,7 +44,12 @@ fi
 
 echo "- Fetching build artifacts for ${branch}"
 mkdir -p $apt_repo/$suite
-cp -v $(find $artifacts -name '*.deb') $apt_repo/$suite
+if [ -d "$artifacts" ]; then
+    cp -v $(find $artifacts -name '*.deb') $apt_repo/$suite
+else
+    # The artifacts might not be here, if this build was triggered manually
+    echo "Running without CircleCI workspace from the previous build; no artifacts to copy"
+fi
 
 echo
 echo "- De-duplicating packages in ${suite}"
