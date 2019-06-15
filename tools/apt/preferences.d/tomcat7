@@ -1,0 +1,11 @@
+# buendia-openmrs requires tomcat7.
+#
+# The only tomcat7 packages currently available are in jessie.
+
+Package: *
+Pin: release o=Debian,n=jessie
+Pin-Priority: -1
+
+Package: *tomcat7*
+Pin: release o=Debian,n=jessie
+Pin-Priority: 999
