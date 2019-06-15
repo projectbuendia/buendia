@@ -187,6 +187,11 @@ A stress-testing script that attempts to rapidly and concurrently post
 patients with duplicate IDs to a Buendia API, to verify that the Buendia
 server correctly enforces uniqueness of patient IDs in its database.
 
+#### `trigger_archive_update`
+
+Manually triggers a rebuild for the projectbuendia.github.io apt repo in
+CircleCI. Intended as an aid to CI development.
+
 #### `update_apt_archive`
 
 Copies Debian packages into an apt repository which is also a Github repository
