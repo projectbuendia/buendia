@@ -1,0 +1,3 @@
+# Installing Tomcat 7 on Stretch requires including these repos
+# https://packages.debian.org/search?keywords=tomcat7
+deb http://deb.debian.org/debian jessie main
