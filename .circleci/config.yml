@@ -94,7 +94,7 @@ jobs:
 
       - run:
           name: Update the package archive
-          command: tools/update_apt_archive builds/packages ${CIRCLECI_BRANCH} /tmp/artifacts/packages
+          command: tools/update_apt_archive builds/packages ${CIRCLE_BRANCH} /tmp/artifacts/packages
 
       - save_cache:
           key: buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
