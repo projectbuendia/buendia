@@ -80,7 +80,7 @@ jobs:
           ### NOTE: this job must have a key that can read AND write to projectbuendia/builda
           command: |
             [ -d builds ] || git clone git@github.com:projectbuendia/builds
-            (cd builds && git checkout gh-pages)
+            (cd builds && git checkout gh-pages && git pull --ff-only origin gh-pages)
 
       - run:
           name: Configure the Git user
