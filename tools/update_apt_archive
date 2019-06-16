@@ -62,8 +62,7 @@ $tools/index_debs $apt_repo $suite
 echo
 echo "- Committing changes to git"
 cd $apt_repo
-git add $suite
-git add dists/$suite
+git add .
 if [ -n "$CI" ]; then
     git commit -m "Automated update from CircleCI build #${CIRCLE_BUILD_NUM} (${CIRCLE_BUILD_URL})"
 else
