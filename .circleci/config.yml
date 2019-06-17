@@ -73,6 +73,7 @@ jobs:
           # https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
           command: |
               TARGET_BRANCH=${BUENDIA_BRANCH:-$CIRCLE_BRANCH}
+              echo "export BUENDIA_BRANCH=${TARGET_BRANCH}" >> $BASH_ENV
               if [ "${TARGET_BRANCH}" = "master" ]; then
                 echo "export BUENDIA_SUITE=stable" >> $BASH_ENV
               elif [ "${TARGET_BRANCH}" = "dev" ]; then
@@ -86,6 +87,16 @@ jobs:
 
       - attach_workspace:
           at: /tmp/artifacts
+
+      - run:
+          name: Fetch latest artifacts (if not already present)
+          command: |
+              PACKAGES=/tmp/artifacts/packages
+              if [ ! -d $PACKAGES -a -n "${CIRCLE_API_TOKEN}" ]; then
+                echo "Build triggered manually by ${CIRCLE_USERNAME}; fetching artifacts from latest ${BUENDIA_BRANCH} build job."
+                mkdir -p $PACKAGES && cd $PACKAGES
+                $HOME/buendia/tools/fetch_circleci_artifacts projectbuendia/buendia ${BUENDIA_BRANCH} '*.deb'
+              fi
 
       - restore_cache:
           keys:
