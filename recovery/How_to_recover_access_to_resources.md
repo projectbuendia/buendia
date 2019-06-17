@@ -33,7 +33,7 @@ check the git status:
 *Git should list only one file as new if you followed the above steps.* 
 
 Push the newly encrypted file to github: 
-    $git push filename.txt.gpg -m “update to credentials recovery”
+    $git commit -a -m “update to credentials recovery”
 
 
 # Cloud Accounts
