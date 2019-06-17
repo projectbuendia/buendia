@@ -74,5 +74,5 @@ unpack_and_remove_version
 if [ -n "$verbose" ]; then
     diff -r $atmp $btmp
 else
-    diff $quietly -r $atmp $btmp >/dev/null
+    diff -q -r $atmp $btmp >/dev/null
 fi
