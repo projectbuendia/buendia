@@ -13,27 +13,26 @@
 set -e
 
 if [ "$1" = "-h" -o -z "$1" -o -z "$2" -o -z "$3" ]; then
-    echo "Usage: $0 <repository-dir> <branch> <artifact-dir>"
+    echo "Usage: $0 <packages-dir> <suite> [<artifact-dir>]"
     echo
-    echo "Updates the apt archive in projectbuendia/builds with the latest"
-    echo "CircleCI build artifacts for a given branch of the"
-    echo "projectbuendia/buendia project."
+    echo "Updates the apt archive in github.com/projectbuendia/builds/packages"
+    echo "with the latest CircleCI build artifacts for a given package suite of"
+    echo "the projectbuendia/buendia project."
     echo
-    echo "<branch> can be either 'master' or 'dev'."
+    echo "<suite> can be either 'stable' or 'unstable'."
+    echo
+    echo "If <artifact-dir> is empty or the path does not exist, then the"
+    echo "addition of new packages to the archive is skipped."
     exit 1
 fi
 
 apt_repo=$(cd "$1" && pwd)
-branch=$2
+suite=$2
 artifacts=$3
 tools=$(cd $(dirname $0) && pwd)
 
-if [ "$branch" = "master" ]; then
-    suite=stable
-elif [ "$branch" = "dev" ]; then
-    suite=unstable
-else
-    echo "Branch must be either 'master' or 'dev'!"
+if [ "$suite" != "unstable" -a "$suite" != "stable" ]; then
+    echo "Suite must be either 'stable' or 'unstable'."
     exit 1
 fi
 
@@ -42,7 +41,7 @@ if [ ! -r ~/.gitconfig ]; then
     exit 1
 fi
 
-echo "- Fetching build artifacts for ${branch}"
+echo "- Fetching build artifacts for ${suite}"
 mkdir -p $apt_repo/$suite
 if [ -d "$artifacts" ]; then
     cp -v $(find $artifacts -name '*.deb') $apt_repo/$suite

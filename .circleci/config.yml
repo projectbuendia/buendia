@@ -62,6 +62,18 @@ jobs:
     steps:
       - checkout # check out the code in the project directory
 
+      - run:
+          name: Determine which Debian package suite to build
+          command: |
+              if [ "${CIRCLE_BRANCH}" = "master" ]; then
+                echo "export BUENDIA_SUITE=stable" >> $BASH_ENV
+              elif [ "${CIRCLE_BRANCH}" = "dev" ]; then
+                echo "export BUENDIA_SUITE=unstable" >> $BASH_ENV
+              else
+                echo "Can only rebuild the apt archive for the 'master' or 'dev' branch!"
+                exit 1
+              fi
+
       - attach_workspace:
           at: /tmp/artifacts
 
@@ -77,7 +89,8 @@ jobs:
 
       - run:
           name: Get the latest builds repository
-          ### NOTE: this job must have a key that can read AND write to projectbuendia/builda
+          ### NOTE: this job must have a key that can read AND write to
+          ### github.com/projectbuendia/builds
           command: |
             [ -d builds ] || git clone git@github.com:projectbuendia/builds
             cd builds && \
@@ -97,7 +110,7 @@ jobs:
 
       - run:
           name: Update the package archive
-          command: tools/update_apt_archive builds/packages ${CIRCLE_BRANCH} /tmp/artifacts/packages
+          command: tools/update_apt_archive builds/packages ${BUENDIA_SUITE} /tmp/artifacts/packages
 
       - save_cache:
           key: buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
