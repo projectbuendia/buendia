@@ -48,8 +48,85 @@ jobs:
       - store_artifacts:
           path: /tmp/artifacts
 
+      - persist_to_workspace:
+          root: /tmp/artifacts
+          paths:
+            - packages
+
+  apt-archive:
+    working_directory: ~/buendia
+
+    docker:
+      - image: circleci/buildpack-deps:stretch
+
+    steps:
+      - checkout # check out the code in the project directory
+
+      - run:
+          name: Determine which Debian package suite to build
+          command: |
+              if [ "${CIRCLE_BRANCH}" = "master" ]; then
+                echo "export BUENDIA_SUITE=stable" >> $BASH_ENV
+              elif [ "${CIRCLE_BRANCH}" = "dev" ]; then
+                echo "export BUENDIA_SUITE=unstable" >> $BASH_ENV
+              else
+                echo "Can only rebuild the apt archive for the 'master' or 'dev' branch!"
+                exit 1
+              fi
+
+      - attach_workspace:
+          at: /tmp/artifacts
+
+      - restore_cache:
+          keys:
+            - buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
+            - buendia-builds-v1-{{ .Branch }}
+            - buendia-builds-v1-
+
+      - add_ssh_keys:
+          fingerprints:
+            - "18:e2:e2:8e:12:49:a1:ca:e6:6f:e1:30:08:02:ae:43"
+
+      - run:
+          name: Get the latest builds repository
+          ### NOTE: this job must have a key that can read AND write to
+          ### github.com/projectbuendia/builds
+          command: |
+            [ -d builds ] || git clone git@github.com:projectbuendia/builds
+            cd builds && \
+                  git fetch --force origin gh-pages && \
+                  git reset --hard origin/gh-pages && \
+                  git checkout -q -B gh-pages
+
+      - run:
+          name: Configure the Git user
+          command: |
+              git config --global user.name "CircleCI Build Process"
+              git config --global user.email "zestybuendia@gmail.com"
+
+      - run:
+          name: Install apt-utils
+          command: sudo apt-get update && sudo apt-get -y install apt-utils
+
+      - run:
+          name: Update the package archive
+          command: tools/update_apt_archive builds/packages ${BUENDIA_SUITE} /tmp/artifacts/packages
+
+      - save_cache:
+          key: buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - ~/buendia/builds/.git
+
 workflows:
   version: 2
   normal-build:
     jobs:
       - build
+      - apt-archive:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+                - dev
