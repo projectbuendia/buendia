@@ -117,6 +117,10 @@ jobs:
           paths:
             - ~/buendia/builds/.git
 
+      - store_artifacts:
+          # Carry forward the artifacts from the previous build job
+          path: /tmp/artifacts
+
 workflows:
   version: 2
   normal-build:
