@@ -155,7 +155,10 @@ workflows:
           requires:
             - build
           filters:
+            # If we allow dev to build packages on every merge, our repo will fill up with possibly
+            # meaningless non-changes to the buendia-server package (specifically the .omod inside).
+            # If you want a dev build for now, use the `tools/trigger_archive_update` tool.
             branches:
               only:
                 - master
-                - dev
+                # - dev
