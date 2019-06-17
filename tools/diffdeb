@@ -42,20 +42,18 @@ if [ -z "$verbose" ]; then
 fi
 
 # Unpacks a .deb file into a directory ready for comparison.  The file named
-# "deb" is destructively unpacked into the current directory.  The final
-# directory contains the original data.tar.gz, uncompressed to data.tar
-# (which is compared directly, thus comparing timestamps, permissions,
-# symlinks, etc.) and control.tar, which is a repacking of control.tar.gz
-# except with the control file edited to remove the Version line.
+# "deb" is destructively unpacked into the current directory, and the contents
+# of data.tar.gz and control.tar.gz are destructively unpacked as well.
+# The control file is then edited to remove the Version line.
 function unpack_and_remove_version() {
     # Unpack deb -> control.tar.gz, data.tar.gz, debian-binary
     ar x deb
     rm deb
 
-    # Unzip data.tar to remove the gzip timestamp from the header
+    # Unzip data.tar so that we can diff independently of stored timestamps.
     $TAR xfz data.tar.gz
 
-    # Unpack control.tar.gz and delete the "Version:" line
+    # Unpack control.tar.gz for same, and delete the "Version:" line
     $TAR xfz control.tar.gz
     grep -v '^Version: ' control > control.unversioned
     touch -t 197001010000 control.unversioned
