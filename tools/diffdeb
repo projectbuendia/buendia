@@ -53,16 +53,13 @@ function unpack_and_remove_version() {
     rm deb
 
     # Unzip data.tar to remove the gzip timestamp from the header
-    gunzip data.tar.gz
+    $TAR xfz data.tar.gz
 
     # Unpack control.tar.gz and delete the "Version:" line
-    mkdir control
-    cd control
-    $TAR xfz ../control.tar.gz
+    $TAR xfz control.tar.gz
     grep -v '^Version: ' control > control.unversioned
     touch -t 197001010000 control.unversioned
-    rm control ../control.tar.gz
-    $TAR cf ../control.tar *
+    rm control control.tar.gz data.tar.gz
 }
 
 mkdir -p $atmp $btmp
