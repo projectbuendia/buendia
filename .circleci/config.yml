@@ -4,7 +4,7 @@ jobs:
     working_directory: ~/buendia
 
     docker:
-      - image: projectbuendia/debian-stretch:1.0.0
+      - image: projectbuendia/debian-stretch:1.1.0
 
     steps:
       - checkout # check out the code in the project directory
@@ -19,6 +19,10 @@ jobs:
           name: Determine package version number
           command: |
               tools/get_package_version > /tmp/buendia-version
+
+      - run:
+          name: Restore file mtimes for later package comparison
+          command: git restore-mtime
           
       - run:
           name: Build all Debian packages
