@@ -57,6 +57,11 @@ data to a SQL file (see `buendia_concept_dictionary.sql`).
 Fetches a file from a URL to a local path.  Files are cached in /tmp and
 the network download is skipped if the requested file is already in the cache.
 
+#### `fetch_circleci_artifacts`
+
+Downloads the artifacts from the latest successful build of a given project and
+branch on CircleCI.
+
 #### `generate_concept_remapping_sql`
 
 Given a directory full of `*.sql` table schemas, produces the SQL commands to
@@ -186,6 +191,11 @@ A Buendia profile containing a form with some basic fields for testing.
 A stress-testing script that attempts to rapidly and concurrently post
 patients with duplicate IDs to a Buendia API, to verify that the Buendia
 server correctly enforces uniqueness of patient IDs in its database.
+
+#### `trigger_archive_update`
+
+Manually triggers a rebuild for the projectbuendia.github.io apt repo in
+CircleCI. Intended as an aid to CI development.
 
 #### `update_apt_archive`
 
