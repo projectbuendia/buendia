@@ -13,7 +13,7 @@
 set -e
 
 if [ "$1" = "-h" -o -z "$1" -o -z "$2" ]; then
-    echo "Usage: $0 <repository-dir> <suite>"
+    echo "Usage: $0 <packages-dir> <suite>"
     echo
     echo "Creates or updates the Release and Package indexes for the pool"
     echo "of .deb files located at the given directory."
