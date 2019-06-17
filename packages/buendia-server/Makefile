@@ -14,11 +14,11 @@ $(MAIN_MODULE_BUILD):
 
 $(MAIN_MODULE): $(MAIN_MODULE_BUILD)
 	mkdir -p $(TARGET_DIR)
-	cp $(MAIN_MODULE_BUILD) $@
+	cp -p $(MAIN_MODULE_BUILD) $@
 
 $(OTHER_MODULES):
 	mkdir -p $(TARGET_DIR)
-	cp $(SOURCE_DIR)/$(notdir $@) $@
+	cp -p $(SOURCE_DIR)/$(notdir $@) $@
 
 $(EXTRA_DATA)/usr/bin/buendia-openmrs-account-setup:
 	mkdir -p $$(dirname $@)
