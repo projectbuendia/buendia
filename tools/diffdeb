@@ -10,20 +10,36 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
+verbose=$1
+if [ "$verbose" == "-v" ]; then
+    shift
+else
+    verbose=""
+fi
 a=$1
 b=$2
 if [ "$b" = "" ]; then
-    echo "Usage: $0 <file1.deb> <file2.deb>"
+    echo "Usage: $0 [-v] <file1.deb> <file2.deb>"
     echo "Exits with status 0 if two .deb files are identical in all aspects"
     echo "except for the declared version number ("Version:") in the control"
     echo "file.  Otherwise exits with status 1."
+    echo
+    echo "Appending the -v flag causes the script to display the differences"
+    echo "between packages."
     exit 1
+fi
+
+if [ -n "$verbose" ]; then
+    echo "comparing $a <> $b"
 fi
 
 TAR=$(which gtar || which tar)  # we need GNU tar for a proper comparison
 atmp=/tmp/diffdeb.$$.1
 btmp=/tmp/diffdeb.$$.2
-trap 'rm -rf $atmp $btmp' EXIT
+
+if [ -z "$verbose" ]; then
+    trap 'rm -rf $atmp $btmp' EXIT
+fi
 
 # Unpacks a .deb file into a directory ready for comparison.  The file named
 # "deb" is destructively unpacked into the current directory.  The final
@@ -37,16 +53,13 @@ function unpack_and_remove_version() {
     rm deb
 
     # Unzip data.tar to remove the gzip timestamp from the header
-    gunzip data.tar.gz
+    $TAR xfz data.tar.gz
 
     # Unpack control.tar.gz and delete the "Version:" line
-    mkdir control
-    cd control
-    $TAR xfz ../control.tar.gz
+    $TAR xfz control.tar.gz
     grep -v '^Version: ' control > control.unversioned
     touch -t 197001010000 control.unversioned
-    rm control ../control.tar.gz
-    $TAR cf ../control.tar *
+    rm control control.tar.gz data.tar.gz
 }
 
 mkdir -p $atmp $btmp
@@ -58,4 +71,8 @@ unpack_and_remove_version
 cd $btmp
 unpack_and_remove_version
 
-diff -q -r $atmp $btmp >/dev/null
+if [ -n "$verbose" ]; then
+    diff -r $atmp $btmp
+else
+    diff -q -r $atmp $btmp >/dev/null
+fi
