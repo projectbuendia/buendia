@@ -57,6 +57,11 @@ data to a SQL file (see `buendia_concept_dictionary.sql`).
 Fetches a file from a URL to a local path.  Files are cached in /tmp and
 the network download is skipped if the requested file is already in the cache.
 
+#### `fetch_circleci_artifacts`
+
+Downloads the artifacts from the latest successful build of a given project and
+branch on CircleCI.
+
 #### `generate_concept_remapping_sql`
 
 Given a directory full of `*.sql` table schemas, produces the SQL commands to
