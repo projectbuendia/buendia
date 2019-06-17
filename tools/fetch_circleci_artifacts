@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # Copyright 2019 The Project Buendia Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -10,7 +10,12 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-import sys, json, os, os.path, urllib.request, fnmatch
+import sys, json, os, os.path, fnmatch
+try:
+    from urllib.request import Request, urlopen, urlretrieve  # Python 3
+except ImportError:
+    from urllib2 import Request, urlopen  # Python 2
+    from urllib import urlretrieve
 
 def usage():
     print("""
@@ -30,8 +35,8 @@ environment variable.
     sys.exit(-1)
 
 latest_artifacts = \
-    "https://circleci.com/api/v1.1/project/github/{project}/latest/artifacts?" + \
-        "circle-token={token}&branch={branch}&filter=successful"
+    "https://circleci.com/api/v1.1/project/github/%(project)s/latest/artifacts?" + \
+        "circle-token=%(token)s&branch=%(branch)s&filter=successful"
 
 if len(sys.argv) < 3:
     usage()
@@ -43,13 +48,15 @@ token = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("CIRCLE_API_TOKEN")
 if not all((token, match, branch)):
     usage()
 
-query = latest_artifacts.format(token=token, project=project, branch=branch)
-request = urllib.request.Request(query, headers={"Accept": "application/json"})
-with urllib.request.urlopen(request) as response:
-    content = response.read()
-    artifacts = json.loads(content.decode())
-    for artifact in artifacts:
-        if fnmatch.fnmatch(artifact["path"], match):
-            filename = os.path.basename(artifact["path"])
-            urllib.request.urlretrieve(artifact["url"], filename)
-            print(filename)
+query = latest_artifacts % {"token":token, "project":project, "branch":branch}
+request = Request(query)
+request.add_header("Accept", "application/json")
+
+response = urlopen(request)
+content = response.read()
+artifacts = json.loads(content.decode())
+for artifact in artifacts:
+    if fnmatch.fnmatch(artifact["path"], match):
+        filename = os.path.basename(artifact["path"])
+        urlretrieve(artifact["url"], filename)
+        print(filename)
