@@ -14,7 +14,7 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     install|upgrade)
-        service nginx stop
+        service nginx stop || true
         ;;
 
     *) exit 1
