@@ -1,5 +1,18 @@
 # buendia
 
+**Build status:** [![CircleCI](https://circleci.com/gh/projectbuendia/buendia/tree/dev.svg?style=svg)](https://circleci.com/gh/projectbuendia/buendia/tree/dev)
+
+The latest stable release is **v0.10.0**.
+
+You can install Buendia on a stock Debian stretch instance as follows:
+
+```
+sudo apt-get install apt-transport-https
+echo "deb [trusted=yes] https://projectbuendia.github.io/builds/packages unstable main java" >/etc/apt/sources.list.d/buendia.list
+sudo apt-get update
+sudo apt-get install -y buendia-server buendia-site-test
+```
+
 The main repository for Project Buendia. See the
 [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for details.
 
@@ -10,7 +23,6 @@ The main repository for Project Buendia. See the
  - **tools**: Data management and server administration utilities.
 
 To set up an Edison as a new demo server, run `./setup-demo`.
-
 
 #### Copyright notice
 

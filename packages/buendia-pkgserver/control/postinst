@@ -13,7 +13,7 @@
 set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
-    configure|abort-upgrade|abort-remove|abort-deconfigure)
+    install|upgrade|configure|abort-upgrade|abort-remove|abort-deconfigure)
         # Make all subdirectories executable and readable
         chmod -R +rX /usr/share/buendia/packages
 
@@ -24,7 +24,7 @@ case $1 in
         ln -sf ../sites-available/buendia-packages /etc/nginx/sites-enabled
 
         # Bring services back up
-        service nginx start
+        service nginx restart
         ;;
 
     *) exit 1

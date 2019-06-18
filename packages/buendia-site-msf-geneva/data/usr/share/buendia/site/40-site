@@ -1,0 +1,29 @@
+# msf-geneva site configuration
+
+SERVER_OPENMRS_USER=buendia
+SERVER_OPENMRS_PASSWORD=buendia
+
+# Standard Edison limits.
+MONITORING_LIMITS='
+100000 /var/log/large/requests
+30000 /var/log/tomcat7
+200000 /var/log
+
+300000 /var/cache
+
+50000 /var/backups/buendia/packages
+50000 /var/backups/buendia/backup*
+100000 /var/backups/buendia
+
+100000 /usr/share/buendia/packages
+
+20000 /usr/share/buendia/openmrs/openmrs.log /usr/share/buendia/openmrs/formentry /usr/share/buendia/openmrs/xforms
+'
+
+# Join and provide DHCP/DNS to the buendia wifi network.
+NETWORKING_AP=0
+NETWORKING_SSID=buendia
+NETWORKING_DHCP_DNS_SERVER=1
+
+# Keep the Edison up to date.
+UPDATE_AUTOUPDATE=1

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+cd $(dirname "$0"); cd ..
+
+# Run this script to install the necessary dependencies on AMI Linux.
+# A t2.medium instance is recommended; t2.micro lacks enough memory to work.
+
+sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo
+sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo
+sudo yum install -y git gcc apache-maven mysql56-server python-devel mysql56-devel MySQL-python
+sudo easy_install MySQL-python
+sudo chown -R mysql.mysql /var/lib/mysql
+sudo service mysqld start
+
+tools/openmrs_setup msf-geneva
+tools/openmrs_build
+tools/openmrs_run
+
+# The next step is to apply a profile.  Go to http://localhost:8080/openmrs/,
+# log in as "buendia" with password "buendia", go to the Administration page,
+# and select "Manage Buendia profiles".  Upload one of the CSV files from
+# https://github.com/projectbuendia/profiles/.
+#
+# If you want your server to accept external requests, remember to add a rule
+# to your EC2 instance's security group that allows TCP traffic on port 8080.
