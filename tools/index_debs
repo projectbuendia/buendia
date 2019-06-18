@@ -13,24 +13,36 @@
 set -e
 
 if [ "$1" = "-h" -o -z "$1" -o -z "$2" ]; then
-    echo "Usage: $0 <packages-dir> <suite>"
+    echo "Usage: $0 <packages-dir> <suite> [<component>]"
     echo
     echo "Creates or updates the Release and Package indexes for the pool"
-    echo "of .deb files located at the given directory."
+    echo "of .deb files located at the given directory. <component> defaults"
+    echo "to 'main'."
     exit 1
 fi
 
-repo=$1
+repo=$(cd "$1" && pwd)
 suite=$2
 
-# This is a slow operation; each index takes a couple of minutes to build.
+# $pool in this context is "which directory of packages are we indexing right now?"
+if [ -n "$3" ]; then
+    # If "java" was specified as the component, index the Java deps.
+    # For now, the java component for stable *and* unstable is OpenJDK 7 et al
+    component=$3
+    pool=$component
+else
+    # Otherwise index the packages for the relevant suite (stable/unstable)
+    component=main
+    pool=$suite
+fi
+
 cd $repo
-rm -rf dists/${suite}
+rm -rf dists/${suite}/${component}
 for arch in i386 amd64 all; do
     echo "Indexing packages for architecture '$arch'..."
-    packages=dists/${suite}/main/binary-$arch/Packages
+    packages=dists/${suite}/${component}/binary-$arch/Packages
     mkdir -p $(dirname $packages)
-    apt-ftparchive --arch $arch packages ${suite} > $packages
+    apt-ftparchive --arch $arch packages $pool > $packages
 done
 
 # Create the overall index of indexes.
@@ -39,7 +51,7 @@ cat <<END > $release
 Origin: Buendia
 Label: Buendia Debian Packages
 Architectures: all
-Components: main
+Components: main java
 Description: Buendia Debian Packages
 END
 
