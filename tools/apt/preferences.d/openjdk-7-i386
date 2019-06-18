@@ -1,0 +1,32 @@
+# Installing openjdk-7 on Debian 9 (Stretch) requires the openjdk-7-* packages
+# from experimental, as well as certain prerequisites at suitable versions
+# (available in Sid)
+#
+# https://askubuntu.com/questions/761127/how-do-i-install-openjdk-7-on-ubuntu-16-04-or-higher
+#
+# Note the use of priority 999 to ensure that the sid versions (or better) are installed,
+# in preference to what's in stretch. https://gist.github.com/JPvRiel/8ae81e21ce6397a0502fedddca068507
+
+Package: openjdk-7-jdk:i386
+Pin: release o=Debian,n=experimental
+Pin-Priority: 500
+
+Package: openjdk-7-jre:i386
+Pin: release o=Debian,n=experimental
+Pin-Priority: 500
+
+Package: openjdk-7-jre-headless:i386
+Pin: release o=Debian,n=experimental
+Pin-Priority: 500
+
+Package: libjpeg62-turbo:i386
+Pin: release o=Debian,n=sid
+Pin-Priority: 999
+
+Package: libfontconfig1:i386
+Pin: release o=Debian,n=sid
+Pin-Priority: 999
+
+Package: fontconfig-config:i386
+Pin: release o=Debian,n=sid
+Pin-Priority: 999

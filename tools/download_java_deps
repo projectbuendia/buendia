@@ -1,0 +1,50 @@
+#!/bin/bash
+# Copyright 2019 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+architectures="i386 amd64"
+
+set -e
+
+if [ "$1" = "-h" -o $EUID != 0 ]; then
+    echo "Usage: $0 [<path>]"
+    echo
+    echo "Downloads the Java 7 dependencies for Buendia for all architectures"
+    echo "to <path>. Defaults to pwd."
+    echo 
+    echo "This command must be run as root."
+    echo 
+    echo "This command is meant to be run on disposable Debian instances,"
+    echo "so don't expect it to clean up after itself perfectly."
+    exit 1
+fi
+
+tools=$(cd $(dirname "$0") && pwd)
+if [ -n "$1" ]; then
+    mkdir -p "$1"
+    cd "$1"
+fi
+
+cat $tools/apt/preferences.d/* >/etc/apt/preferences.d/tmp
+cat $tools/apt/sources.list.d/* >/etc/apt/sources.list.d/tmp.list
+
+for arch in $architectures; do
+    echo "Fetching packages for $arch..."
+    dpkg --add-architecture $arch
+    apt-get update
+    apt-get download openjdk-7-jdk:$arch openjdk-7-jre:$arch openjdk-7-jre-headless:$arch
+    apt-get download libjpeg62-turbo:$arch libfontconfig1:$arch
+    dpkg --remove-architecture $arch || true
+done
+apt-get download fontconfig-config tomcat7 tomcat7-admin tomcat7-common libtomcat7-java
+
+rm -f /etc/apt/preferences.d/tmp /etc/apt/sources.list.d/tmp.list
+apt-get update

@@ -53,24 +53,35 @@ if [ ! -f "$site_sql" ]; then
     exit 1
 fi
 
+# Ensure that the openmrs database exists.
+if ! mysql -uopenmrs_user -popenmrs -e '' openmrs; then
+    echo "Enter the MySQL root password, or just hit Enter if no password."
+    sudo mysql -uroot -p <<< "
+      create database if not exists openmrs;
+      grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
+      grant file on *.* to openmrs_user@localhost;
+      flush privileges;
+    "
+    echo "Created empty openmrs database."
+    force_flag=-f
+fi
+
 # Set up the OpenMRS platform if needed.
 server_dir=$HOME/openmrs/$SERVER_ID
 if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
     mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
     echo
-    echo "Installing OpenMRS platform $OPENMRS_PLATFORM_VERSION..."
-    mvn openmrs-sdk:setup-platform \
-        -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION
+    echo 'At the following prompts:'
+    echo '  - Select "2" for platform'
+    echo '  - Choose platform version "'$OPENMRS_PLATFORM_VERSION'"'
+    echo '  - Accept the default port number'
+    echo '  - Accept no debugging by default'
+    echo '  - Choose MySQL 5.6'
+    echo
+    echo -n 'Please make a note of the above.  Ready? '
+    read
+    mvn openmrs-sdk:setup -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION -DdbUri=jdbc:mysql://localhost:3306/openmrs -DdbUser=openmrs_user -DdbPassword=openmrs
 fi
-
-# Create the openmrs_user account in MySQL.
-echo "Enter the MySQL root password, or just hit Enter if there is no password."
-mysql -uroot -p <<< "
-    grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
-    grant file on *.* to openmrs_user@localhost;
-    flush privileges;
-"
-echo 'Added MySQL user "openmrs_user" with password "openmrs".'
 
 # Running from Linux or Mac? Set the appropriate path.
 buendia_dir='/usr/share/buendia'
@@ -84,7 +95,7 @@ profiles_dir="$buendia_dir/profiles"
 
 # TODO: remove the need for sudo
 # Create directories and copy scripts
-echo "Please, enter your sudo password to create buendia directories and scripts:"
+echo "If prompted, please enter your sudo password:"
 sudo mkdir -p $profiles_dir
 sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
 sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/utils.sh"

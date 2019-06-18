@@ -13,9 +13,10 @@
 set -e; . /usr/share/buendia/utils.sh
 name=$(basename $0)
 source="$1"
+suite=${2:-stable}
 
 if [ "$1" = "-h" -o "$source" = "" ]; then
-    echo "Usage: $0 [<device>|<directory>]"
+    echo "Usage: $0 [<device>|<directory>] [<suite>]"
     echo
     echo "Imports Buendia bundle files into the local package server."
     echo "Searches for files named projectbuendia-all-<anything>.zip or"
@@ -36,6 +37,9 @@ if [ "$1" = "-h" -o "$source" = "" ]; then
     echo "installed again.  However, bundles whose names contain '-reuse-'"
     echo "are special and get renamed by incrementing a number in the"
     echo "filename, and nothing is prepended, so they can be used again."
+    echo 
+    echo "<suite> is the Debian package suite in which to perform the import."
+    echo "Defaults to 'stable'."
     exit 1
 fi
 
@@ -150,7 +154,7 @@ if [ -n "$unpacked" ]; then
             fi
 
             # Regenerate indexes.
-            buendia-pkgserver-index-debs || true
+            buendia-pkgserver-index-debs $pkgdir $suite || true
             buendia-pkgserver-index-apks || true
             chmod -R a+rX /usr/share/buendia/packages || true
         fi

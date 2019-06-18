@@ -8,17 +8,23 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
 
 Follow the instructions below to get your system set up to do Buendia server development.
 
+You can also refer to the following notes on [setting up Buendia on a fresh Debian stretch install](README-Debian.md).
+
 ### Prerequisites
 
 ##### JDK 7 (note OpenMRS does not work with JDK 8!)
   * If `java -version` does not report version 1.7.x, install JDK 7:
-      * Linux: `sudo apt-get install openjdk-7-jdk`
-      * Mac OS: Download from [Oracle](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
+      * Debian Linux: `sudo apt-get install openjdk-7-jdk`
+      * Mac OS: Download from [Oracle](https://www.oracle.com/technetwork/java/javase/downloads/java-archive-downloads-javase7-521261.html)
+  * At this point, JDK 7 is almost certainly not the default on your system.
+      * `export JAVA_HOME=$(/usr/libexec/java_home -v1.7)` works in bash to fix this -- then run `java -version` to confirm
 
 ##### Apache Maven
 
-  * Linux: `sudo apt-get install maven`
-  * Mac OS:
+  * AMI Linux: `sudo wget http://repos.fedorapeople.org/repos/dchen/apache-maven/epel-apache-maven.repo -O /etc/yum.repos.d/epel-apache-maven.repo; sudo sed -i s/\$releasever/6/g /etc/yum.repos.d/epel-apache-maven.repo; sudo yum install -y apache-maven`
+  * Debian Linux: `sudo apt-get install maven`
+  * Mac OS: `brew install maven`
+  * Mac OS (alternate):
       * Visit https://maven.apache.org/download.cgi and download the **Binary zip archive**.
       * Unzip the archive in your home directory.
       * Add the `bin` subdirectory of the unpacked archive (e.g. `$HOME/apache-maven-3.3.3/bin`) to your shell's `PATH`.
@@ -26,18 +32,22 @@ Follow the instructions below to get your system set up to do Buendia server dev
 
 ##### MySQL Server 5.6
 
-**Note:** it's critical that MySQL 5.6 is installed, and not a newer version. The version of OpenMRS we're currently using hardcodes `storage_engine=InnoDB` into the connection parameters, and that parameter was [removed in 5.7.5](http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine), so OpenMRS never connects to the database if a newer version is installed.
+**Note:** It's critical that MySQL 5.6 is installed, and not a newer version. The version of OpenMRS we're currently using hardcodes `storage_engine=InnoDB` into the connection parameters, and that parameter was [removed in 5.7.5](http://dev.mysql.com/doc/refman/5.7/en/server-system-variables.html#sysvar_storage_engine), so OpenMRS never connects to the database if a newer version is installed.
 
-  * Linux: `sudo apt-get install mysql-server`
+  * AMI Linux: `sudo yum install -y mysql56-server; sudo mysql_install_db; sudo chown -R mysql.mysql /var/lib/mysql; service mysqld start`
+  * Debian Linux: `sudo apt-get install mysql-server`
   * Mac OS:
       * Go to http://dev.mysql.com/downloads/mysql/ and download the **DMG Archive** for your Mac OS version.
       * Open the downloaded file and then open the .pkg file within to install it.
       * Open System Preferences > MySQL and click **Start MySQL Server** to bring the server up.
 
-##### Python and python-mysqldb
-You might already have python pre-installed on your OS. If so you only need to add the mysql connector.
-* Linux: `sudo apt-get install python python-mysqldb`
-* Mac OS: There are different ways of installing mysql connector. Please refer to this [Mysql Page](https://dev.mysql.com/doc/connector-python/en/)
+##### Python 2.6 or 2.7 and the MySQLdb Python module
+
+Most likely, you already have Python 2 installed with your operating system, so you only need to add the MySQLdb module.
+
+  * AMI Linux: `sudo yum install -y mysql-devel python-devel MySQL-python gcc; sudo easy_install MySQL-python`
+  * Debian Linux: `sudo apt-get install python python-mysqldb`
+  * Mac OS: `sudo pip install mysqlclient`
 
 ##### IntelliJ IDEA
   * Download the Community Edition at https://www.jetbrains.com/idea/download/ and follow the [setup instructions](https://www.jetbrains.com/idea/help/basics-and-installation.html#d1847332e131).
@@ -64,10 +74,10 @@ You might already have python pre-installed on your OS. If so you only need to a
 
 5.  When you see the line:
 
-        [INFO] Started Jetty Server
+        [INFO] Starting ProtocolHandler ["http-bio-8080"]
 
     the server is ready, and you can log in at [[http://localhost:9000/openmrs/]] as "buendia" with password "buendia".
-    
+
 6.  Apply a buendia profile. See [Setting Up A Buendia Profile](https://github.com/projectbuendia/buendia/wiki/Setting-Up-a-Buendia-profile) for more information.
 
 After `tools/openmrs_build` is done, your freshly built module will be an `.omod` file in `openmrs-project/server/openmrs/RELEASE/modules`.  If you need to install it into an OpenMRS server running elsewhere, you can upload this file using the Administration > Manage Modules page.

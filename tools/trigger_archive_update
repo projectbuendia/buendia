@@ -1,0 +1,48 @@
+#!/bin/bash
+# Copyright 2019 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+PROJECT=projectbuendia/buendia
+
+if [ "$1" == "-h" -o -z "$1" ]; then
+    echo "Usage: $0 <ci_branch> [<target_branch>]"
+    echo
+    echo "Manually triggers a rebuild for the projectbuendia.github.io apt"
+    echo "repo in CircleCI, using the .circleci/config.yml from <ci_branch>."
+    echo 
+    echo "<target_branch> is the project branch against which the repo will be"
+    echo "rebuilt; it must be either 'master' or 'dev' and it defaults to"
+    echo "'dev'. You must have \$CIRCLE_API_TOKEN set in your environment"
+    echo "with a valid CircleCI API token for the $PROJECT project."
+    exit 1
+fi
+
+if [ -z "$CIRCLE_API_TOKEN" ]; then
+    echo 'You must have $CIRCLE_API_TOKEN set in order to trigger a build!'
+    exit 1
+fi
+
+CI_BRANCH=$1
+TARGET_BRANCH=${2:-dev}
+CIRCLE_API=https://circleci.com/api/v1.1/project
+
+# https://circleci.com/docs/api/#trigger-a-new-build-with-a-branch
+#
+curl -X POST --header "Content-Type: application/json" -d @- \
+    -u $CIRCLE_API_TOKEN: \
+	$CIRCLE_API/github/$PROJECT/tree/$CI_BRANCH <<DATA
+{
+    "build_parameters": {
+        "CIRCLE_JOB": "apt-archive", 
+        "BUENDIA_BRANCH": "$TARGET_BRANCH"
+    }
+}
+DATA

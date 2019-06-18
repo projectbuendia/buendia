@@ -40,3 +40,7 @@ proguard/
 
 # Built .deb packages
 packages/**/*.deb
+
+# Vagrant directories
+.vagrant/
+tools/**/*.box
