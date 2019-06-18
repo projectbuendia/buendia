@@ -159,6 +159,23 @@ workflows:
             # meaningless non-changes to the buendia-server package (specifically the .omod inside).
             # If you want a dev build for now, use the `tools/trigger_archive_update` tool.
             branches:
+              ignore: /.*/
+            tags:
+              ignore: /.*/
+  release-build:
+    # Ensure that tagged releases get their own CircleCI build:
+    # https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+      - apt-archive:
+          requires:
+            - build
+          filters:
+            branches:
               only:
                 - master
-                # - dev
