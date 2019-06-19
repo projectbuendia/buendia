@@ -18,7 +18,7 @@ jobs:
       - run:
           name: Determine package version number
           command: |
-              tools/get_package_version > /tmp/buendia-version
+              tools/get_package_version | tee /tmp/buendia-version
 
       - run:
           name: Restore file mtimes for later package comparison
@@ -97,9 +97,15 @@ jobs:
           command: |
               PACKAGES=/tmp/artifacts/packages
               if [ ! -d $PACKAGES -a -n "${CIRCLE_API_TOKEN}" ]; then
-                echo "Build triggered manually by ${CIRCLE_USERNAME}; fetching artifacts from latest ${BUENDIA_BRANCH} build job."
+                echo -n "Build triggered manually by ${CIRCLE_USERNAME}; "
                 mkdir -p $PACKAGES && cd $PACKAGES
-                $HOME/buendia/tools/fetch_circleci_artifacts projectbuendia/buendia ${BUENDIA_BRANCH} '*.deb'
+                if [ -n "${BUENDIA_TARGET_JOB}" ]; then
+                    echo "fetching artifacts from job #${BUENDIA_TARGET_JOB}"
+                else
+                    echo "fetching artifacts from latest ${BUENDIA_BRANCH} build."
+                    BUENDIA_TARGET_JOB=latest
+                fi
+                $HOME/buendia/tools/fetch_circleci_artifacts -j ${BUENDIA_TARGET_JOB} -g '*.deb' projectbuendia/buendia ${BUENDIA_BRANCH}
               fi
 
       - restore_cache:
@@ -150,7 +156,14 @@ workflows:
   version: 2
   normal-build:
     jobs:
-      - build
+      - build:
+          filters:
+            branches:
+              # Don't do a normal build for master; instead let the
+              # release-build job do the builds off master iff that branch is
+              # tagged as part of the documented release process.
+              ignore:
+                - master
       - apt-archive:
           requires:
             - build
@@ -175,7 +188,3 @@ workflows:
       - apt-archive:
           requires:
             - build
-          filters:
-            branches:
-              only:
-                - master
