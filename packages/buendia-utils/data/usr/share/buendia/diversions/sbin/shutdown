@@ -10,30 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-cat <<EOF
-Content-Type: text/html
+echo 'Shutting down in 5 seconds!' | wall
 
-<link rel="stylesheet" href="style.css">
-<h1>Reboot</h1>
-EOF
-
-if [ "$REQUEST_METHOD" == "POST" ]; then
-    cat <<EOF
-<p>
-Rebooting now.  The server will come back up in about 5 minutes.
-
-<p>
-Redirecting in 1 minute back to <a href="/">dashboard</a>...
-<script>setTimeout('window.location = "/"', 60000)</script>
-EOF
-    touch /tmp/reboot-requested
-else
-    cat <<EOF
-<form method="POST">
-<p>
-After reboot, the server will take about 5 minutes to come up.
-<p>
-<input type="submit" value="Reboot now">
-</form>
-EOF
-fi
+sleep 5
+echo 'shutdown -hP now' | buendia-enter-yocto

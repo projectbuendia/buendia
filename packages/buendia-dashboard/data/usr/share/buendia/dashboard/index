@@ -17,6 +17,17 @@ tail -5 /var/log/buendia/buendia-warmup.log | grep -q Success && updown=SERVING 
 
 uptime=$(uptime | sed -e 's/.* up//' -e 's/, *[0-9][0-9]* *user.*//')
 
+up_count=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status 0)' | wc -l)
+down_count=$(cat /var/log/buendia/buendia-warmup.log | grep '(end, status 1)' | wc -l)
+
+# I would just use bc but it's not installed on Debian so we're constrained to integer arithmetic
+if echo $(( ($up_count + $down_count) > 0 )); then
+	up_percent=$(($up_count*100000 / ($up_count + $down_count) ))
+	up_percent_1=$(( $up_percent/1000 ))
+	up_percent_2=$(( $up_percent - $up_percent_1*1000 ))
+	up_percent=$(echo "$up_percent_1.$up_percent_2%")
+fi
+
 cd /usr/share/buendia/counts
 latest=$(ls -t *.count | head -1)
 cdot='&#xb7;'
@@ -35,6 +46,8 @@ else
     counts="No record counts available yet.  This server is brand new!"
 fi
 
+# TODO: Make server name dynamic, coming from a config file, instead of "Project Buendia server", below
+
 cat <<EOF
 Content-Type: text/html
 
@@ -42,13 +55,13 @@ Content-Type: text/html
 
 <h1>Project Buendia server</h1>
 
-<h2>Staff access</h2>
-
 <p><a href="client">Download client app</a>
 
 <p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs">Login to OpenMRS</a></p>
 
 <p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
+
+<p><a href="//$NETWORKING_IP_ADDRESS:9000/openmrs/module/projectbuendia/openmrs/printable.form">Print patient charts</a>
 
 <p><a href="stats.zip">Download usage stats</a>
 
@@ -59,9 +72,13 @@ Content-Type: text/html
 
 <p><a href="status">System status</a>
 
+<p><a href="backups">Backup and restore status</a>
+
 <p><a href="//$NETWORKING_IP_ADDRESS:9001">Package repository</a>
 
 <p><a href="reboot">Reboot server</a>
+
+<p><a href="shutdown">Shutdown server</a>
 
 
 <h2>Currently $updown</h2>
@@ -69,5 +86,13 @@ Content-Type: text/html
 <p>$(date +'%Y-%m-%d at %H:%M:%S') UTC $cdot $uptime since boot
 
 <p>$counts
+
+<h2>Uptime</h2>
+
+<p>Uptime is $up_percent</p>
+
+<p>Server has been up $up_count minutes and down $down_count minutes.</p>
+
+<p><a href="downtime">See downtime details</a>
 
 EOF

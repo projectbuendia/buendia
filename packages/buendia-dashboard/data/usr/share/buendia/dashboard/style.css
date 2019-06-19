@@ -1,4 +1,5 @@
 * { font-family: helvetica, arial; font-size: 24px; line-height: 1.2; }
+small { font-size:16px; }
 body { background: #93a1a1; color: #113355; margin: 2em 2em; opacity: 0.8; }
 h1 { font-weight: 300; font-size: 48px; margin: 0 0 1em; }
 h2 { margin: 2em 0 0; text-transform: uppercase; }
@@ -8,6 +9,6 @@ p { margin: 0.7em 0; }
 .item { font-weight: 400; margin: 0 12px; display: inline-block; }
 .date { font-weight: 100; opacity: 0.5; }
 a, .item a { text-decoration: none; color: inherit; }
-a:hover, .item a:hover { color: #000000; opacity: 1; }
+a:hover, .item a:hover { text-decoration:underline; color: #000000; opacity: 1; }
 ul { margin: 0; }
 li { margin: 0.5em 0; }

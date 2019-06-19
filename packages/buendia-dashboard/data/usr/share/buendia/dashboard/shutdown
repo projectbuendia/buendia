@@ -14,26 +14,34 @@ cat <<EOF
 Content-Type: text/html
 
 <link rel="stylesheet" href="style.css">
-<h1>Reboot</h1>
+<h1>Shutdown</h1>
 EOF
 
 if [ "$REQUEST_METHOD" == "POST" ]; then
     cat <<EOF
 <p>
-Rebooting now.  The server will come back up in about 5 minutes.
+Shutting down...
 
 <p>
-Redirecting in 1 minute back to <a href="/">dashboard</a>...
-<script>setTimeout('window.location = "/"', 60000)</script>
+This will take about 1 minute.
+
+<p>
+Once status page cannot be reached, wait 10 seconds and then switch the server off.
+
+<p>
+Remember to set the server clock after you switch it back on!
+
+<p><a href="status">Check system status now</a>
+
 EOF
-    touch /tmp/reboot-requested
+    touch /tmp/shutdown-requested
 else
     cat <<EOF
+<p>
+This will safely shut down the server so you can switch it off.
+
 <form method="POST">
-<p>
-After reboot, the server will take about 5 minutes to come up.
-<p>
-<input type="submit" value="Reboot now">
+<input type="submit" value="Shutdown now">
 </form>
 EOF
 fi

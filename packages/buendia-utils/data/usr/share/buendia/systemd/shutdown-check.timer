@@ -1,10 +1,10 @@
 [Unit]
-Description=Periodically check for a reboot request
+Description=Periodically check for a shutdown request
 
 [Timer]
 OnBootSec=30
 OnUnitActiveSec=30
-Unit=reboot-check.service
+Unit=shutdown-check.service
 
 [Install]
 WantedBy=multi-user.target
