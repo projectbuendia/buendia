@@ -10,45 +10,45 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-import sys, json, os, os.path, fnmatch
+import sys, json, os, os.path, fnmatch, argparse
 try:
     from urllib.request import Request, urlopen, urlretrieve  # Python 3
 except ImportError:
     from urllib2 import Request, urlopen  # Python 2
     from urllib import urlretrieve
 
-def usage():
-    print("""
-Usage: fetch_circleci_artifacts <project> <branch> [<glob>] [<token>]
+parser = argparse.ArgumentParser(description="""Fetches all artifacts matching
+a particular filename glob from a CircleCI job for the given Github project and
+branch to the current directory.""")
 
-Fetches all artifacts matching a particular filename glob from the latest
-CircleCI build for the given Github project and branch to the current
-directory. Prints the names of all files fetched.
+parser.add_argument("project", metavar="project",
+    help="<project> should be of the form '<username>/<repo>'")
 
-<project> should be of the form '<username>/<repo>'.
+parser.add_argument("branch", metavar="branch")
 
-<glob> defaults to '*'.
+parser.add_argument("-j", "--job", metavar="job", default="latest",
+    help="if present, the artifacts from <job> are fetched; otherwise, " + \
+         "the latest successful build on <branch> is used.")
+parser.add_argument("-g", "--glob", metavar="glob", default="*")
+parser.add_argument("-t", "--token", metavar="token",
+    help="If not set, the script will look in the $CIRCLE_API_TOKEN " + \
+         "environment variable.")
 
-If <token> is not set, the script will look in the $CIRCLE_API_TOKEN
-environment variable.
-""")
-    sys.exit(-1)
+args = parser.parse_args()
 
 latest_artifacts = \
-    "https://circleci.com/api/v1.1/project/github/%(project)s/latest/artifacts?" + \
+    "https://circleci.com/api/v1.1/project/github/%(project)s/%(job)s/artifacts?" + \
         "circle-token=%(token)s&branch=%(branch)s&filter=successful"
 
-if len(sys.argv) < 3:
-    usage()
+project, branch, job, match = args.project, args.branch, args.job, args.glob
+token = args.token or os.environ.get("CIRCLE_API_TOKEN")
 
-project, branch = sys.argv[1:3]
-match = sys.argv[3] if len(sys.argv) > 3 else "*"
-token = sys.argv[4] if len(sys.argv) > 4 else os.environ.get("CIRCLE_API_TOKEN")
+if not all((project, token, match, branch, job)):
+    args.print_help()
+    args.exit(1)
 
-if not all((token, match, branch)):
-    usage()
-
-query = latest_artifacts % {"token":token, "project":project, "branch":branch}
+query = latest_artifacts % {
+        "token":token, "project":project, "branch":branch, "job": job}
 request = Request(query)
 request.add_header("Accept", "application/json")
 
