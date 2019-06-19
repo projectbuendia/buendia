@@ -175,7 +175,3 @@ workflows:
       - apt-archive:
           requires:
             - build
-          filters:
-            branches:
-              only:
-                - master
