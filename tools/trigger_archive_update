@@ -13,14 +13,20 @@
 PROJECT=projectbuendia/buendia
 
 if [ "$1" == "-h" -o -z "$1" ]; then
-    echo "Usage: $0 <ci_branch> [<target_branch>]"
+    echo "Usage: $0 <ci_branch> [<target_branch>] [<job>]"
     echo
     echo "Manually triggers a rebuild for the projectbuendia.github.io apt"
     echo "repo in CircleCI, using the .circleci/config.yml from <ci_branch>."
     echo 
     echo "<target_branch> is the project branch against which the repo will be"
     echo "rebuilt; it must be either 'master' or 'dev' and it defaults to"
-    echo "'dev'. You must have \$CIRCLE_API_TOKEN set in your environment"
+    echo "'dev'."
+    echo
+    echo "If <job> is set, trigger the rebuild against the specific CircleCI"
+    echo "job; otherwise rebuild against the latest successful build on"
+    echo "<branch>."
+    echo
+    echo "You must have \$CIRCLE_API_TOKEN set in your environment"
     echo "with a valid CircleCI API token for the $PROJECT project."
     exit 1
 fi
@@ -32,6 +38,7 @@ fi
 
 CI_BRANCH=$1
 TARGET_BRANCH=${2:-dev}
+TARGET_JOB=$3
 CIRCLE_API=https://circleci.com/api/v1.1/project
 
 # https://circleci.com/docs/api/#trigger-a-new-build-with-a-branch
@@ -42,7 +49,8 @@ curl -X POST --header "Content-Type: application/json" -d @- \
 {
     "build_parameters": {
         "CIRCLE_JOB": "apt-archive", 
-        "BUENDIA_BRANCH": "$TARGET_BRANCH"
+        "BUENDIA_BRANCH": "$TARGET_BRANCH",
+        "BUENDIA_TARGET_JOB": "$TARGET_JOB"
     }
 }
 DATA

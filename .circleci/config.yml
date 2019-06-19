@@ -97,9 +97,15 @@ jobs:
           command: |
               PACKAGES=/tmp/artifacts/packages
               if [ ! -d $PACKAGES -a -n "${CIRCLE_API_TOKEN}" ]; then
-                echo "Build triggered manually by ${CIRCLE_USERNAME}; fetching artifacts from latest ${BUENDIA_BRANCH} build job."
+                echo -n "Build triggered manually by ${CIRCLE_USERNAME}; "
                 mkdir -p $PACKAGES && cd $PACKAGES
-                $HOME/buendia/tools/fetch_circleci_artifacts projectbuendia/buendia ${BUENDIA_BRANCH} '*.deb'
+                if [ -n "${BUENDIA_TARGET_JOB}" ]; then
+                    echo "fetching artifacts from job #${BUENDIA_TARGET_JOB}"
+                else
+                    echo "fetching artifacts from latest ${BUENDIA_BRANCH} build."
+                    BUENDIA_TARGET_JOB=latest
+                fi
+                $HOME/buendia/tools/fetch_circleci_artifacts -j ${BUENDIA_TARGET_JOB} -g '*.deb' projectbuendia/buendia ${BUENDIA_BRANCH}
               fi
 
       - restore_cache:
