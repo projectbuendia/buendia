@@ -1,0 +1,98 @@
+#!/bin/bash
+# Copyright 2019 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# BFG is a utility for removing files from a Git repository
+# https://rtyley.github.io/bfg-repo-cleaner/
+BFG_VERSION=1.13.0
+BFG_JAR_MD5=f437b07a4651c8b549703940de6ce1d2 
+
+set -e
+
+usage() {
+    echo "Usage: $0 --manual <builds repo> [<suite directory>] [<keep-n>]"
+    echo
+    echo "Aggressively removes all trace of all but the n newest Debian"
+    echo "packages from a particular suite of a builds repository."
+    echo
+    echo "USE WITH CAUTION! This script can cause serious damage to your Git"
+    echo "repo!"
+    echo
+    echo "Suite defaults to 'packages/unstable'. N defaults to 3."
+    exit 1
+}
+
+if [ "$1" = "--manual" ]; then
+    shift
+elif [ -z "$CI" ]; then
+    echo "*** Not running in CI; try again with --manual if you're certain."
+    echo
+    usage
+fi
+
+TOOLS=$(cd $(dirname $0) && pwd)
+repo=$(cd "$1" && pwd)
+subdir=${2:-packages/unstable}
+keep_newest=${3:-3}
+
+if [ ! -d "$repo" -o ! -d "$repo/.git" -o ! -d "$repo/$subdir" ]; then
+    usage
+fi
+
+older_files=$(mktemp)
+original_du=$(mktemp)
+trap "rm -f $older_files $original_du" EXIT
+
+cd $repo
+du -sm | cut -f1 > $original_du
+
+packages=$(ls $subdir | grep '\.deb$' | sed -e 's/_.*//' | sort -u)
+for name in $packages; do
+    ls ${subdir}/${name}_*.deb | sort -bt. -k1,1r -k2,2nr -k3,3r | \
+        tail +$(($keep_newest + 1)) >> $older_files
+done
+
+if [ -s $older_files ]; then
+    xargs git rm < $older_files
+else
+    echo "No older packages to remove."
+    exit 0
+fi
+
+if [ -n "$CI" ]; then
+    msg="Removing older packages in CircleCI job #${CIRCLE_BUILD_NUM} (${CIRCLE_BUILD_URL})"
+else
+    msg="Older packages removed using '$0 $repo $subdir $keep_newest'"
+fi
+git commit -m "$msg"
+
+BFG=$(pwd)/bfg.jar
+$TOOLS/fetch https://repo1.maven.org/maven2/com/madgag/bfg/$BFG_VERSION/bfg-${BFG_VERSION}.jar \
+    $BFG_JAR_MD5 $BFG
+
+trap "rm -rf $BFG *.bfg-report" EXIT
+
+cat $older_files | while read older_file; do
+    echo "Removing $older_file from repo..."
+    java -jar $BFG --delete-files $(basename $older_file) >/dev/null
+done
+
+echo "Purge complete; now collecting garbage..."
+git reflog expire --expire=now --all && git gc --prune=now --aggressive
+
+echo -n "Original repo size (in MB): "
+cat $original_du
+echo -n "Current repo size (in MB): "
+du -sm | cut -f1
+
+echo "Attempting to push with a dry run..."
+git push --all --force --dry-run origin
+echo "Run 'cd $repo && git push --all --force origin' if everything went as planned."
