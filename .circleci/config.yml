@@ -161,6 +161,70 @@ jobs:
               ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
               ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y -f install && sudo apt-get -y upgrade"
 
+  purge-unstable-repo:
+    working_directory: ~/buendia
+
+    docker:
+      - image: circleci/openjdk:stretch
+
+    steps:
+      - checkout # check out the code in the project directory
+
+      - restore_cache:
+          keys:
+            - buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
+            - buendia-builds-v1-{{ .Branch }}
+            - buendia-builds-v1-
+
+      - add_ssh_keys:
+          fingerprints:
+            # github.com/projectbuendia/builds read-write key
+            - "18:e2:e2:8e:12:49:a1:ca:e6:6f:e1:30:08:02:ae:43"
+
+      - run:
+          name: Get the latest builds repository
+          ### NOTE: this job must have a key that can read AND write to
+          ### github.com/projectbuendia/builds
+          command: |
+            [ -d builds ] || git clone git@github.com:projectbuendia/builds
+            cd builds && \
+                  git fetch --force origin gh-pages && \
+                  git reset --hard origin/gh-pages && \
+                  git checkout -q -B gh-pages
+
+      - run:
+          name: Configure the Git user
+          command: |
+              git config --global user.name "CircleCI Build Process"
+              git config --global user.email "zestybuendia@gmail.com"
+
+      - run:
+          name: Install apt-utils
+          command: sudo apt-get update && sudo apt-get -y install apt-utils
+
+      - run:
+          ### NOTE: this step requires Java 8
+          name: Purge older unstable packages
+          command: tools/purge_older_packages builds packages/unstable
+
+      - run:
+          name: Re-index the unstable package suite
+          command: |
+              cd builds
+              ../tools/index_debs packages unstable
+              git add packages/dists/unstable
+              git commit -m "Automated re-indexing from CircleCI build #${CIRCLE_BUILD_NUM} (${CIRCLE_BUILD_URL})"
+
+      - run:
+          name: Force-push the package repo
+          command: cd builds && git push --force --all origin
+
+      - save_cache:
+          key: buendia-builds-v1-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - ~/buendia/builds/.git
+            - /tmp/buendia-fetched
+
 workflows:
   version: 2
   normal-build:
@@ -210,3 +274,19 @@ workflows:
       - apt-archive:
           requires:
             - build
+
+  clean-apt-archive:
+    # Eliminate older unstable packages every night at 2am. This is intended to
+    # keep the projectbuendia.github.io/builds repo from spiraling out of
+    # control in size.
+    #
+    # https://circleci.com/docs/2.0/workflows/#nightly-example
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"
+          filters:
+            branches:
+              only:
+                - dev
+    jobs:
+      - purge-unstable-repo
