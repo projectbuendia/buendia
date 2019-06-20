@@ -80,7 +80,7 @@ jobs:
               echo "export BUENDIA_BRANCH=${TARGET_BRANCH}" >> $BASH_ENV
               if [ "${TARGET_BRANCH}" = "master" ]; then
                 echo "export BUENDIA_SUITE=stable" >> $BASH_ENV
-              elif [ "${TARGET_BRANCH}" = "dev" -o "$TARGET_BRANCH" = "schuyler/staging-deploy" ]; then
+              elif [ "${TARGET_BRANCH}" = "dev" ]; then
                 echo "export BUENDIA_SUITE=unstable" >> $BASH_ENV
               else
                 echo "Can only rebuild the apt archive for the 'master' or 'dev' branch!"
@@ -186,11 +186,16 @@ workflows:
             branches:
               only:
                 - dev
-                - schuyler/staging-deploy
       - apt-archive:
           requires:
             - build
             - proceed
+          filters:
+            branches:
+              only:
+                - dev
+            tags:
+              ignore: /.*/
 
   release-build:
     # Ensure that tagged releases get their own CircleCI build:
