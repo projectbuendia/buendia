@@ -17,8 +17,11 @@ case $1 in
         if [ -e /etc/buendia-db-init-installed ]; then
             echo "buendia-db-init has been previously installed!"
             echo "Not configuring, as there is a risk of destroying user data!"
-            echo "If you are sure you want to wipe the database,"
-            echo "rm /etc/buendia-db-init-installed and reconfigure."
+            echo
+            echo "If you are sure you want to wipe the database, then run:"
+            echo
+            echo "rm /etc/buendia-db-init-installed && dpkg-reconfigure buendia-db-init"
+            echo
             exit 0
         fi
 
