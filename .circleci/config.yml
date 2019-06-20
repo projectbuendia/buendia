@@ -116,7 +116,10 @@ jobs:
 
       - add_ssh_keys:
           fingerprints:
+            # github.com/projectbuendia/builds read-write key
             - "18:e2:e2:8e:12:49:a1:ca:e6:6f:e1:30:08:02:ae:43"
+            # staging.buendia.org deploy key
+            - "99:7c:11:11:e7:7b:e8:de:c4:0c:4e:6d:1d:cc:2e:1a"
 
       - run:
           name: Get the latest builds repository
@@ -152,6 +155,12 @@ jobs:
           # Carry forward the artifacts from the previous build job
           path: /tmp/artifacts
 
+      - deploy:
+          name: Deploy to staging.buendia.org
+          command: |
+              ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
+              ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y -f install && sudo apt-get -y upgrade"
+
 workflows:
   version: 2
   normal-build:
@@ -164,17 +173,30 @@ workflows:
               # tagged as part of the documented release process.
               ignore:
                 - master
-      - apt-archive:
+      - proceed:
+          # If we allow dev to build packages on every merge, our repo will fill up with possibly
+          # meaningless non-changes to the buendia-server package (specifically the .omod inside).
+          # You can always manually trigger an archive update with the
+          # `tools/trigger_archive_update` tool, but this won't trigger the deploy-staging job
+          # afterwards.
+          type: approval
           requires:
             - build
           filters:
-            # If we allow dev to build packages on every merge, our repo will fill up with possibly
-            # meaningless non-changes to the buendia-server package (specifically the .omod inside).
-            # If you want a dev build for now, use the `tools/trigger_archive_update` tool.
             branches:
-              ignore: /.*/
+              only:
+                - dev
+      - apt-archive:
+          requires:
+            - build
+            - proceed
+          filters:
+            branches:
+              only:
+                - dev
             tags:
               ignore: /.*/
+
   release-build:
     # Ensure that tagged releases get their own CircleCI build:
     # https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
