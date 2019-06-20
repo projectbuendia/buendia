@@ -16,10 +16,10 @@ case $1 in
     configure|abort-remove|abort-deconfigure)
         if [ -e /etc/buendia-db-init-installed ]; then
             echo "buendia-db-init has been previously installed!"
-            echo "Not installing, as there is a risk of destroying user data!"
+            echo "Not configuring, as there is a risk of destroying user data!"
             echo "If you are sure you want to wipe the database,"
-            echo "rm /etc/buendia-db-init-installed and reinstall."
-            exit 1
+            echo "rm /etc/buendia-db-init-installed and reconfigure."
+            exit 0
         fi
 
         # Create a fresh new database populated with the initial data.
