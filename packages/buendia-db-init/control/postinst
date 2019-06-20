@@ -16,10 +16,13 @@ case $1 in
     configure|abort-remove|abort-deconfigure)
         if [ -e /etc/buendia-db-init-installed ]; then
             echo "buendia-db-init has been previously installed!"
-            echo "Not installing, as there is a risk of destroying user data!"
-            echo "If you are sure you want to wipe the database,"
-            echo "rm /etc/buendia-db-init-installed and reinstall."
-            exit 1
+            echo "Not configuring, as there is a risk of destroying user data!"
+            echo
+            echo "If you are sure you want to wipe the database, then run:"
+            echo
+            echo "rm /etc/buendia-db-init-installed && dpkg-reconfigure buendia-db-init"
+            echo
+            exit 0
         fi
 
         # Create a fresh new database populated with the initial data.
@@ -41,9 +44,10 @@ case $1 in
         # Reapply the OpenMRS user account setup used by the Buendia server.
         buendia-reconfigure server
 
-        # Mark that the database has been fully initialized once, so we can
-        # avoid doing it again by mistake.
-        touch /etc/buendia-db-init-installed
+        # Note the package version used to fully initialized the database, so
+        # we can avoid doing it again by mistake.
+        PKG_VERSION=$(dpkg -s $DPKG_MAINTSCRIPT_PACKAGE | sed -n 's/^Version: //p')
+        echo $PKG_VERSION > /etc/buendia-db-init-installed
         ;;
 
     *) exit 1
