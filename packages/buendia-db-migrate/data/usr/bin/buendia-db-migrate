@@ -52,5 +52,10 @@ if [ "$current_minor/$target_minor" = "0.3/0.4" ]; then
     exit 0
 fi
 
+if [ "$current_minor/$target_minor" = "0.9/0.10" ]; then
+    echo "$0: Migrated from $current to $target (no-op: no schema changes in 0.10)."
+    exit 0
+fi
+
 echo "$0: Don't know how to migrate from version $current to version $target."
 exit 1
