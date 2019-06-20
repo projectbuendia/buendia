@@ -41,9 +41,10 @@ case $1 in
         # Reapply the OpenMRS user account setup used by the Buendia server.
         buendia-reconfigure server
 
-        # Mark that the database has been fully initialized once, so we can
-        # avoid doing it again by mistake.
-        touch /etc/buendia-db-init-installed
+        # Note the package version used to fully initialized the database, so
+        # we can avoid doing it again by mistake.
+        PKG_VERSION=$(dpkg -s $DPKG_MAINTSCRIPT_PACKAGE | sed -n 's/^Version: //p')
+        echo $PKG_VERSION > /etc/buendia-db-init-installed
         ;;
 
     *) exit 1
