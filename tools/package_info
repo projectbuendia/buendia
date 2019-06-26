@@ -6,7 +6,7 @@ if [ -z "$1" ]; then
     echo "Usage: $0 <grep-options> <keyword>"
     echo
     echo "Shows all the lines in the Buendia package control files that"
-    echo "contain the keyword.  Examples:"
+    echo "contain the (case-insensitive) keyword.  Examples:"
     echo
     echo "    pkginfo depend - shows you all the dependencies"
     echo "    pkginfo description - shows you all the descriptions"
