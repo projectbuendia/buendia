@@ -3,7 +3,7 @@ Description=Check for a reboot request
 
 [Service]
 Type=simple
-ExecStart=/bin/sh -c 'if [ -e /debian/tmp/reboot-requested ]; then rm -f /debian/tmp/reboot-requested; /sbin/reboot; fi'
+ExecStart=/bin/sh -c 'if [ -e /tmp/reboot-requested ]; then rm -f /tmp/reboot-requested; /sbin/shutdown -r now "Remote Reboot Requested"; fi'
 
 [Install]
 WantedBy=multi-user.target
