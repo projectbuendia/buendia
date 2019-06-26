@@ -1,0 +1,18 @@
+#!/bin/bash
+
+tools=$(cd $(dirname "$0") && pwd)
+keyword=$1
+
+if [ -z $keyword ]; then
+    echo "Usage: $0 <keyword>"
+    echo
+    echo "Shows all the lines in the Buendia package control files that"
+    echo "contain the keyword."
+    echo
+    echo "    pkginfo depend - shows you all the dependencies"
+    echo "    pkginfo description - shows you all the descriptions"
+    exit 1
+fi
+
+cd $tools/../packages
+grep -i "$keyword" */control/control.template | sed -e 's#/control/control.template:#: #'
