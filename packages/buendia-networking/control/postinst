@@ -21,35 +21,21 @@ buendia-divert $1 /etc/dnsmasq.conf
 
 case $1 in
     configure)
+        interface_conf=/etc/network/interfaces
         hostapd_conf=/etc/hostapd/hostapd.conf
-        udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
-        udhcpd_service=/lib/systemd/system/udhcpd-for-hostapd.service
-        wpa_cli_actions=/etc/wpa_supplicant/wpa_cli-actions.sh
+        dhcpd_conf=/etc/dhcpcd.conf
 
         # Save a copy of the original configuration files.
         divert() {
-            [ -f "$1".pre-buendia ] || cp "$1" "$1".pre-buendia;
+            if [ -f "$1" ]; then
+              [ -f "$1".pre-buendia ] || cp "$1" "$1".pre-buendia;
+            fi
         }
+        divert $interface_conf
         divert $hostapd_conf
-        divert $udhcpd_conf
-        divert $udhcpd_service
-        divert $wpa_cli_actions
+        divert $dhcpd_conf
 
-        # Don't use udhcpd with hostapd; we are using dnsmasq instead.
-        cat $udhcpd_service.pre-buendia | grep -v ExecStartPre | sed -e 's+ExecStart=.*+ExecStart=/bin/echo+' > $udhcpd_service
         systemctl daemon-reload
-
-        # Make wpa_cli-actions.sh run only when wpa_supplicant_event is enabled.
-        wpa_cli_actions_contents=$(cat << EOF
-#!/bin/sh
-if systemctl -q is-enabled wpa_supplicant_event; then
-    $wpa_cli_actions.pre-buendia "\$@"
-else
-    echo "event \$@ ignored because wpa_supplicant_event is disabled"
-fi
-EOF
-)
-       $wpa_cli_actions_contents > $wpa_cli_actions
 
         # Do network configuration on startup.
         update-rc.d buendia-networking defaults

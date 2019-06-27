@@ -9,6 +9,14 @@
 # uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
+WIFI_INTERFACE=""
+ETHERNET_INTERFACE=eth0
+
+if [ -z $WIFI_INTERFACE ]; then
+  MAIN_INTERFACE=$ETHERNET_INTERFACE
+else
+  MAIN_INTERFACE=$WIFI_INTERFACE
+fi
 
 set -e; . /usr/share/buendia/utils.sh
 
@@ -46,29 +54,55 @@ fi
 # In case anything goes wrong, don't leave behind an indicator of success.
 rm -f $run_settings
 
+# Bring down the interface during reconfiguration
+ifdown $MAIN_INTERFACE
+
 # Apply the settings to the Debian network interface configuration.
 unindent <<< "
-    auto lo usb0 wlan0
+    auto lo usb0 $WIFI_INTERFACE $ETHERNET_INTERFACE
+
     iface lo inet loopback
 
-    iface wlan0 inet manual
-    up ifup wlan0 $NETWORKING_IP_ADDRESS
-    down ifdown wlan0
+    iface $ETHERNET_INTERFACE inet dhcp
+
+    iface $WIFI_INTERFACE inet manual
 " > /etc/network/interfaces
+
+# Apply dhcpcd configuration
+unindent <<< "
+    # Static ethernet profile
+    profile static_ethernet
+    static ip_address=$NETWORKING_IP_ADDRESS/24
+
+    # Static wireless profile
+    profile static_wifi
+    static ip_address=$NETWORKING_IP_ADDRESS/24
+
+    # fallback to static profile on $ETHERNET_INTERFACE
+    interface $ETHERNET_INTERFACE
+    fallback static_ethernet
+
+    # fallback to static profile on $WIFI_INTERFACE
+    interface $WIFI_INTERFACE
+    fallback static_wifi
+" > /etc/dhcpcd.conf
+
+# Enable the wpa_supplicant hook
+if [[ ! -d /usr/lib/dhcpcd ]]; then
+  mkdir /usr/lib/dhcpcd;
+fi
+if [[ ! -d /usr/lib/dhcpcd/dhcpcd-hooks ]]; then
+  mkdir /usr/lib/dhcpcd/dhcpcd-hooks;
+fi
+ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
 
 # Activate or deactivate the DHCP server and client according to the settings.
 if $(bool $NETWORKING_DHCP_DNS_SERVER); then
     echo 'Turning on DHCP/DNS server; disabling DHCP client.'
 
     # Turn off the local DHCP client.
-    # Disable wpa_supplicant_event so that udhcpc will not get launched.
-    systemctl disable wpa_supplicant_event
-    systemctl stop wpa_supplicant_event
-
-    killall udhcpc || true  # stop it if it's already running
-
-    # Use the IP address configured in /etc/network/interfaces.
-    ifup wlan0 $NETWORKING_IP_ADDRESS
+    systemctl stop dhcpcd
+    systemctl disable dhcpcd
 
     # Enable dnsmasq now, and also for future boots.  dnsmasq.conf is
     # managed in /usr/share/buendia/diversions, so we only need to turn it on.
@@ -78,20 +112,20 @@ if $(bool $NETWORKING_DHCP_DNS_SERVER); then
 else
     echo "Turning off DHCP/DNS server; enabling DHCP client."
 
+    # Turn on the local DHCP client.
+    systemctl enable dhcpcd
+    systemctl start dhcpcd
+
     # Disable dnsmasq now, and also for future boots.
     service dnsmasq stop
     update-rc.d dnsmasq disable
-
-    # Enable wpa_supplicant_event, which launches udhcpc.
-    systemctl enable wpa_supplicant_event
-    systemctl restart wpa_supplicant_event
 fi
 
 # Activate or deactivate access point mode according to the settings.
 if $(bool $NETWORKING_AP); then
     echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
 
-    # hostapd runs in Yocto, so this script writes to hostapd.conf directly.
+    # Configure hostapd
     cp $tmp_settings /etc/buendia-networking.settings
 
     hostapd_conf=/etc/hostapd/hostapd.conf
@@ -102,8 +136,8 @@ if $(bool $NETWORKING_AP); then
     echo "wpa_passphrase=$NETWORKING_PASSWORD" >> $hostapd_conf
 
     # Turn this machine into an access point now, and also on future boots.
-    systemctl restart hostapd
     systemctl enable hostapd
+    systemctl start hostapd
 
 else
     echo "Joining existing wifi network '$NETWORKING_SSID'."
@@ -112,18 +146,10 @@ else
     # Stop being an access point now, and do not become one on future boots.
     systemctl stop hostapd
     systemctl disable hostapd
-
-    # Connect to an existing wifi network.  This also causes the system
-    # to connect again on boot, reusing the same network SSID and password.
-    . /debian/etc/buendia-networking.settings
-    PATH=/usr/local/bin:/usr/bin:$PATH
-    wifi $NETWORKING_SSID:$NETWORKING_PASSWORD
 fi
 
-if $(bool $NETWORKING_DHCP_DNS_SERVER); then
-    # Restarting hostapd or wifi clears the wlan0 IP address, so set it again.
-    ifup wlan0 $NETWORKING_IP_ADDRESS
-fi
+# Bring back up the interface
+ifup $MAIN_INTERFACE
 
 # Record the fact that the settings that were successfully configured.
 mv $tmp_settings $run_settings || true
