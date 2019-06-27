@@ -30,10 +30,7 @@ for name in $names; do
 
     if [ -n "$last_minor" -a "$last_minor" != "$second_last_minor" ]; then
         echo "different minor versions between $last and $second_last; skipping"
-        continue
-    fi
-
-    if [ "$last" != "$second_last" ] && $TOOLS/diffdeb $last $second_last; then
+    elif [ "$last" != "$second_last" ] && $TOOLS/diffdeb $last $second_last; then
         echo "removing $last (no substantive changes from $second_last)"
         rm $last
     fi
