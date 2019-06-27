@@ -2,6 +2,6 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Pre-Depends: buendia-utils
-Depends: cron-daemon, dnsmasq
+Depends: cron-daemon, dnsmasq, hostapd, dhcpcd5, wpasupplicant
 Description: Wifi AP and DHCP/DNS service for Buendia
 Maintainer: projectbuendia.org
