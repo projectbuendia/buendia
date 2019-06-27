@@ -512,7 +512,7 @@ def apply(tabs):
         return (text or '').strip()
 
     def validate_type(type):
-        type = type.strip().lower()
+        type = (type or '').strip().lower()
         if not type:
             return None, None
         elif type in datatypes_by_type:
@@ -522,7 +522,7 @@ def apply(tabs):
 
     def validate_int(text):
         try:
-            return int(text)
+            return int(text or '')
         except ValueError:
             return None
 
@@ -530,7 +530,7 @@ def apply(tabs):
         return filter(lambda x: x, [validate_int(n) for n in text.split(',')])
 
     def validate_boolean(text):
-        # Treat "no", "none", "nil", "false", "0" etc. as false; otherwise true.
+        # Treat "no", "none", "nil", "false", "0" etc. as false; else true.
         word = str(text or '').split(' ')[0].lower()
         return re.match('[a-z1-9]', word) and word[0] not in 'nf' and 1 or 0
 
