@@ -1,6 +1,15 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+# Set BRIDGED in the shell environment to the interface name to bridge to.
+# e.g.
+#
+#   BRIDGED="en0: Wi-Fi (AirPort)" vagrant up
+#
+# Setting it to any value that isn't an interface will cause Vagrant to prompt
+# you as to which interface you want to bridge to.
+bridgedInterface = ENV["BRIDGED"]
+
 # All Vagrant configuration is done below. The "2" in Vagrant.configure
 # configures the configuration version (we support older styles for
 # backwards compatibility). Please don't change it unless you know what
@@ -66,9 +75,13 @@ Vagrant.configure("2") do |config|
       v.name = "buendia-debian"
     end
     node.vm.provision "shell", path: "./provision-debian.sh"
-    node.vm.network "forwarded_port", guest: 9000, host: 9000, host_ip: "127.0.0.1"
-    node.vm.network "forwarded_port", guest: 9001, host: 9001, host_ip: "127.0.0.1"
-    node.vm.network "forwarded_port", guest: 9999, host: 9999, host_ip: "127.0.0.1"
+    if bridgedInterface
+      node.vm.network "public_network", type: "dhcp", bridge: bridgedInterface
+    else
+      node.vm.network "forwarded_port", guest: 9000, host: 9000
+      node.vm.network "forwarded_port", guest: 9001, host: 9001
+      node.vm.network "forwarded_port", guest: 9999, host: 9999, host_ip: "127.0.0.1"
+    end
   end 
 
   config.vm.define "server", autostart: false do |node|
@@ -78,10 +91,13 @@ Vagrant.configure("2") do |config|
       v.name = "buendia-server"
     end
     node.vm.provision "shell", path: "./provision-server.sh"
-    # Allow outside clients to connect to ports 9000-9001
-    node.vm.network "forwarded_port", guest: 9000, host: 9000
-    node.vm.network "forwarded_port", guest: 9001, host: 9001
-    node.vm.network "forwarded_port", guest: 9999, host: 9999, host_ip: "127.0.0.1"
+    if bridgedInterface
+      node.vm.network "public_network", type: "dhcp", bridge: bridgedInterface
+    else
+      node.vm.network "forwarded_port", guest: 9000, host: 9000
+      node.vm.network "forwarded_port", guest: 9001, host: 9001
+      node.vm.network "forwarded_port", guest: 9999, host: 9999, host_ip: "127.0.0.1"
+    end
   end 
 
   config.vm.define "alpine", autostart: false do |node|
@@ -90,6 +106,5 @@ Vagrant.configure("2") do |config|
       v.name = "buendia-alpine"
     end
     node.vm.provision "shell", path: "./provision-alpine.sh"
-    node.vm.network "forwarded_port", guest: 9000, host: 9000, host_ip: "127.0.0.1"
   end
 end
