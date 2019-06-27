@@ -37,6 +37,8 @@ if [[ $target =~ ^([0-9]+.[0-9]+) ]]; then
     target_minor=$BASH_REMATCH
 fi
 
+echo "$0: Attempting to migrate from $current_minor to $target_minor"
+
 if [ -n "$current_minor" -a $current_minor = $target_minor ]; then
     echo "$0: Migrated from $current to $target (no-op: same minor version)."
     exit 0
