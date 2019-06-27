@@ -76,7 +76,13 @@ jobs:
           #
           # https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
           command: |
+              # Maybe we're building in CircleCI from a specific branch, or
+              # else we were given a target branch by an API call.
               TARGET_BRANCH=${BUENDIA_BRANCH:-$CIRCLE_BRANCH}
+              # If neither of those is the case, maybe we're building a release from a tag
+              if [ -z "$TARGET_BRANCH" ] && ( echo "$CIRCLE_TAG" | grep -Eq '^v([0-9]+\.?)+$' ); then
+                 TARGET_BRANCH=master
+              fi
               echo "export BUENDIA_BRANCH=${TARGET_BRANCH}" >> $BASH_ENV
               if [ "${TARGET_BRANCH}" = "master" ]; then
                 echo "export BUENDIA_SUITE=stable" >> $BASH_ENV
