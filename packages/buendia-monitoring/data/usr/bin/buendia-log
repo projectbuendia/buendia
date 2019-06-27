@@ -16,14 +16,13 @@ if [ "$1" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 [-y] <command>"
     echo
     echo "Runs a command and logs its output under /var/log/buendia, exiting"
-    echo "with the exit status of the command.  Specify -y to run the command"
-    echo "in Yocto; otherwise it will run in Debian."
+    echo "with the exit status of the command."
     exit 1
 fi
 
 if [ "$1" = "-y" ]; then
-    yocto=yes
-    shift
+    echo "Yocto is no longer supported"
+    exit 1
 fi
 
 # Name the log file after the first word in the command.
@@ -39,11 +38,7 @@ trap 'rm -f $RESULT_FILE' EXIT
 (
     echo "(start) $*"
     set +e
-    if [ -n "$yocto" ]; then
-        echo "$*" | buendia-enter-yocto
-    else
-        eval "$@"
-    fi
+    eval "$@"
     result=$?
     echo "(end, status $result)"
     echo $result > $RESULT_FILE
