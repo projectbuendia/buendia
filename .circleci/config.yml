@@ -167,7 +167,7 @@ jobs:
           name: Deploy to staging.buendia.org
           command: |
               ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
-              ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y -f install && sudo apt-get -y upgrade"
+              ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y upgrade && sudo apt-get -y -f install"
 
   purge-unstable-repo:
     working_directory: ~/buendia
