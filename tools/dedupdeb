@@ -20,7 +20,17 @@ names=$(ls | grep '\.deb' | sed -e 's/_.*//' | sort | uniq)
 for name in $names; do
     last=$(ls -t $name*.deb | head -1)
     second_last=$(ls -t $name*.deb | head -2 | tail -1)
-    if [ "$last" != "$second_last" ] && $TOOLS/diffdeb $last $second_last; then
+
+    if [[ $last =~ _([0-9]+\.[0-9]+) ]]; then
+        last_minor=$BASH_REMATCH
+    fi
+    if [[ $second_last =~ _([0-9]+\.[0-9]+) ]]; then
+        second_last_minor=$BASH_REMATCH
+    fi
+
+    if [ -n "$last_minor" -a "$last_minor" != "$second_last_minor" ]; then
+        echo "different minor versions between $last and $second_last; skipping"
+    elif [ "$last" != "$second_last" ] && $TOOLS/diffdeb $last $second_last; then
         echo "removing $last (no substantive changes from $second_last)"
         rm $last
     fi

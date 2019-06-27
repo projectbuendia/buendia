@@ -89,7 +89,8 @@ jobs:
               elif [ "${TARGET_BRANCH}" = "dev" ]; then
                 echo "export BUENDIA_SUITE=unstable" >> $BASH_ENV
               else
-                echo "Can only rebuild the apt archive for the 'master' or 'dev' branch!"
+                echo "Attempting to build on the ${TARGET_BRANCH} branch, but "
+                echo "can only rebuild the apt archive for the 'master' or 'dev' branch!"
                 exit 1
               fi
               source $BASH_ENV
@@ -166,8 +167,10 @@ jobs:
       - deploy:
           name: Deploy to staging.buendia.org
           command: |
-              ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
-              ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y -f install && sudo apt-get -y upgrade"
+            if [ "$BUENDIA_BRANCH" = "dev" ]; then
+                ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
+                ssh $SSH_USER@$STAGING_HOST "sudo apt-get update; sudo apt-get -y -f install; sudo apt-get -y upgrade; sudo apt-get -y -f install"
+            fi
 
   purge-unstable-repo:
     working_directory: ~/buendia
