@@ -9,7 +9,8 @@ apt-get update
 apt-get install apt-transport-https
 
 # Use our private archive for openjdk-7 and tomcat
-echo "deb [trusted=yes] https://projectbuendia.github.io/builds/packages stable java" > /etc/apt/sources.list.d/openjdk-7.list
+echo "deb [trusted=yes] https://projectbuendia.github.io/builds/packages stable main java" > /etc/apt/sources.list.d/openjdk-7.list
+echo "deb http://security.debian.org/debian-security stretch/updates experimental" > /etc/apt/sources.list.d/wpasupplicant.list
 apt-get update
 
 # Install OpenJDK 7 *before* installing Maven; else Maven will pull in OpenJDK 8
