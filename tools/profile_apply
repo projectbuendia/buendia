@@ -284,13 +284,16 @@ def apply(tabs):
         section_rows = []
 
         for row in rows:
-            if row['section'].strip():
+            if (row['section'] or '').strip():
                 if section and section_rows:
                     sections.append((section, section_rows))
-                section, section_rows = row['section'].strip(), []
-            if row['title'].strip():
+                section, section_rows = (row['section'] or '').strip(), []
+            if (row['title'] or '').strip():
+                if section and section_rows:
+                    sections.append((section, section_rows))
                 sections.append(('[chart_divider]',
                                  [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
+                section, section_rows = (row['section'] or '').strip(), []
             if validate_str(row['type']) and validate_ints(row['concept']):
                 section_rows.append(row)
         if section and section_rows:
@@ -335,7 +338,7 @@ def apply(tabs):
                 # Copy everything, but omit 'concept' as we have 'concepts'
                 # and omit 'required' because there's a DB column for that.
                 required = validate_boolean(row.get('required'))
-                config = dict([(normalize_name(key), value.strip())
+                config = dict([(normalize_name(key), (value or '').strip())
                                for key, value in row.items() if key],
                               concepts=concept_ids,
                               type=validate_str(row['type']))
@@ -365,7 +368,7 @@ def apply(tabs):
             put_form(form_rows)
 
     def normalize_name(name):
-        return re.sub('[\W_]+', '_', name.lower()).strip('_')
+        return re.sub('[\W_]+', '_', (name or '').lower()).strip('_')
 
     def create_uuid_from_form_name(name):
         """
@@ -446,9 +449,9 @@ def apply(tabs):
 
             type, datatype = validate_type(row['type'])
             concept_id = validate_int(row['concept'])
-            label = row['label']
+            label = row['label'] or ''
             option_concept_id = validate_int(row['option concept'])
-            option_label = row['option label']
+            option_label = row['option label'] or ''
 
             if type:
                 if type == 'select_multiple':
@@ -456,7 +459,6 @@ def apply(tabs):
                     # section with "[binary]" in its name that contains a coded
                     # yes/no field for each button.
                     fn += 1
-                    label = row['label']
                     field_id = get_field_for_section(label + '[binary]', label)
                     section_id = add_field_to_form(form_id, field_id, None, fn)
                 elif last_type == 'select_multiple':
