@@ -17,6 +17,9 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
     <changeSet id="buendia-add-person-date-updated-index" author="@capnfabs">
+        <!--
+        Note: this changeset is buggy. See `buendia-modify-person-insert-triggers` for the fix.
+        -->
         <createTable
                 tableName="buendia_patient_sync_map"
                 remarks="Records are automatically inserted by triggers on the `person` table." >
@@ -210,5 +213,33 @@
                 DROP TRIGGER IF EXISTS `buendia_order_insert_date_updated`;
             </sql>
         </rollback>
+    </changeSet>
+    <changeSet id="buendia-modify-person-insert-triggers" author="@capnfabs">
+        <!--
+        This changeset fixes a bug in `buendia-add-person-date-updated-index`. See
+        https://github.com/projectbuendia/client/issues/187
+        -->
+        <sql>
+            DROP TRIGGER IF EXISTS `buendia_patient_insert_date_updated`;
+
+            <!--
+            The `person` table gets updated for a superset of changes to the `patient` table, so for
+            UPDATES, we define a trigger on the `person` table and check that the `person` is a
+            `patient`. See `buendia-add-person-date-updated-index`.
+
+            For INSERTS, however, we can't do the check that a `person` is a `patient`, because the
+            `patient` row hasn't been inserted in the database yet. We work around this by defining
+            a trigger on the `patient` table that checks the `person` table and obtains details from
+            there if appropriate.
+            -->
+            CREATE TRIGGER `buendia_patient_insert_date_updated` AFTER INSERT
+            ON `patient` FOR EACH ROW
+            REPLACE INTO `buendia_patient_sync_map` (patient_id, date_updated, uuid)
+            VALUES (
+                NEW.patient_id,
+                NOW(),
+                (SELECT uuid FROM person WHERE person_id = NEW.patient_id)
+            );
+        </sql>
     </changeSet>
 </databaseChangeLog>
