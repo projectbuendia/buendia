@@ -181,6 +181,12 @@ This script is invoked when you click the "Apply" button on the
 Performs a cursory check that a given CSV file has the general form
 of a Buendia profile.
 
+#### `purge_older_packages`
+
+Scans a Debian apt pool stored in Git and destructively removes all but the _n_
+newest versions of each package. Intended primarily to be run from CI. Use with
+extreme caution.
+
 #### `remote-execution.sh`
 
 A collection of useful Bash functions for running shell commands on
