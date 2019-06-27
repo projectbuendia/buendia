@@ -72,7 +72,7 @@ jobs:
           # Then, choose the target Debian package suite based on the given
           # branch.
           #
-          # See `tools/rebuild_apt_repo` for a usage example.
+          # See `tools/trigger_archive_update` for a usage example.
           #
           # https://circleci.com/docs/2.0/env-vars/#using-bash_env-to-set-environment-variables
           command: |
@@ -86,6 +86,8 @@ jobs:
                 echo "Can only rebuild the apt archive for the 'master' or 'dev' branch!"
                 exit 1
               fi
+              source $BASH_ENV
+              echo "Target branch is ${BUENDIA_BRANCH}; target suite is ${BUENDIA_SUITE}"
 
       - checkout # check out the code in the project directory
 
@@ -260,6 +262,9 @@ workflows:
       - apt-archive:
           requires:
             - build
+          filters:
+            tags:
+              only: /^v.*/
 
   clean-apt-archive:
     # Eliminate older unstable packages every night at 2am. This is intended to
