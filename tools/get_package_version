@@ -29,7 +29,9 @@ if echo "$CIRCLE_TAG" | grep -Eq '^v([0-9]+\.?)+$'; then
     exit
 fi
 
-# Find the most recent release tag on master.
+# Find the most recent release tag on master. Try to get the latest from Github
+# if possible, but don't fail if we can't.
+git fetch -t origin master || true
 TAG=$(git describe --match='v*' --abbrev=0 origin/master)
 
 # If we're building in CircleCI, the version is "x.y.z+b<n>" where <n> is the
