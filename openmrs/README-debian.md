@@ -8,6 +8,9 @@
 
 ## Install apt configuration for OpenJDK 7
 
+***NOTE: As of 25 June 2019, OpenJDK 7 is no longer in Debian experimental. These docs
+need to be updated.***
+
 Copy [this file](../tools/apt/preferences.d/openjdk-7) to `/etc/apt/preferences.d/openjdk-7`,
 [this file](../tools/apt/sources.list.d/openjdk-7.list) to `/etc/apt/sources.list.d/openjdk-7.list`,
 and [this file](../tools/apt/apt.conf.d/99norecommends) to `/etc/apt/apt.conf.d/99norecommends`.

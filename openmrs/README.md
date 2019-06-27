@@ -8,7 +8,7 @@ See the [Buendia wiki](https://github.com/projectbuendia/buendia/wiki) for more 
 
 Follow the instructions below to get your system set up to do Buendia server development.
 
-You can also refer to the following notes on [setting up Buendia on a fresh Debian stretch install](README-Debian.md).
+You can also refer to the following notes on [setting up Buendia on a fresh Debian stretch install](README-debian.md).
 
 ### Prerequisites
 

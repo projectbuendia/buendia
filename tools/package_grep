@@ -1,0 +1,13 @@
+#!/bin/bash
+
+tools=$(cd $(dirname "$0") && pwd)
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <grep-options> <keyword>"
+    echo
+    echo "Searches the contents of all the Buendia packages."
+    exit 1
+fi
+
+cd $tools/../packages
+grep -r "$@" */data | sed -e 's#/control/control.template:#: #'
