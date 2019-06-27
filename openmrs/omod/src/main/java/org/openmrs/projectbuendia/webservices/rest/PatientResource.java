@@ -276,7 +276,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         ObservationsHandler.addEncounter(
             (List) json.get("observations"), null,
             patient, patient.getDateCreated(), "Initial triage",
-            "ADULTINITIAL", LocationResource.TRIAGE_UUID, (String) json.get("enterer_id"));
+            "ADULTINITIAL", LocationResource.TRIAGE_UUID);
         return patientToJson(patient);
     }
 

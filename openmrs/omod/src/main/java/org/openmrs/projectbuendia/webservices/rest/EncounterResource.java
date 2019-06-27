@@ -110,7 +110,10 @@ public class EncounterResource implements Creatable {
             (List) post.get("observations"), (List) post.get("order_uuids"),
             patient, encounterTime, "new observation", "ADULTRETURN",
             // TODO: Consider using patient's location instead of the root location.
-            LocationResource.ROOT_UUID, (String) post.get("enterer_uuid"));
+            LocationResource.ROOT_UUID);
+        if (encounter == null) {
+            throw new InvalidObjectDataException("No observations specified");
+        }
         SimpleObject simpleObject = new SimpleObject();
         populateJsonProperties(encounter, simpleObject);
         return simpleObject;
@@ -130,7 +133,7 @@ public class EncounterResource implements Creatable {
         encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
         encounterJson.put("uuid", encounter.getUuid());
 
-        ArrayList<SimpleObject> observations = new ArrayList<>();
+        SimpleObject observations = new SimpleObject();
         List<String> orderUuids = new ArrayList<>();
         for (Obs obs : encounter.getObs()) {
             Concept concept = obs.getConcept();
@@ -140,7 +143,7 @@ public class EncounterResource implements Creatable {
                 continue;
             }
 
-            observations.add(ObservationsHandler.obsToJson(obs));
+            observations.put(obs.getConcept().getUuid(), ObservationsHandler.obsValueToString(obs));
         }
         if (!observations.isEmpty()) {
             encounterJson.put("observations", observations);
