@@ -47,14 +47,11 @@ if [ "$current_minor" = "0.0" -o "$target_minor" = "0.0" ]; then
     exit 0
 fi
 
-if [ "$current_minor/$target_minor" = "0.9/0.10" ]; then
-    echo "$0: Migrated from $current to $target (no-op: no schema changes in 0.10)."
-    exit 0
-fi
-
-if [ "$current_minor/$target_minor" = "0.10/0.11" ]; then
-    echo "$0: Migrated from $current to $target (no-op: no schema changes in 0.10)."
-    exit 0
+if [[ $current_minor =~ ^(0.9|0.10|0.11|0.12)$ ]]; then
+    if [[ $target_minor =~ ^(0.9|0.10|0.11|0.12)$ ]]; then
+        echo "$0: Migrated from $current to $target (no-op: no schema changes from 0.9 through 0.12)."
+        exit 0
+    fi
 fi
 
 echo "$0: Don't know how to migrate from version $current to version $target."
