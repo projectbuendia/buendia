@@ -169,7 +169,7 @@ jobs:
           command: |
             if [ "$BUENDIA_BRANCH" = "dev" ]; then
                 ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
-                ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y -f install && sudo apt-get -y install buendia-db-migrate && sudo apt-get -y upgrade"
+                ssh $SSH_USER@$STAGING_HOST "sudo apt-get update && sudo apt-get -y install buendia-db-migrate && sudo apt-get -y -f install && sudo apt-get -y upgrade"
             fi
 
   purge-unstable-repo:
