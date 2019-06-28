@@ -79,7 +79,6 @@ Vagrant.configure("2") do |config|
       node.vm.network "public_network", type: "dhcp", bridge: bridgedInterface
     else
       node.vm.network "forwarded_port", guest: 9000, host: 9000
-      node.vm.network "forwarded_port", guest: 9001, host: 9001
       node.vm.network "forwarded_port", guest: 9999, host: 9999, host_ip: "127.0.0.1"
     end
   end 
@@ -94,9 +93,9 @@ Vagrant.configure("2") do |config|
     if bridgedInterface
       node.vm.network "public_network", type: "dhcp", bridge: bridgedInterface
     else
-      node.vm.network "forwarded_port", guest: 9000, host: 9000
-      node.vm.network "forwarded_port", guest: 9001, host: 9001
-      node.vm.network "forwarded_port", guest: 9999, host: 9999, host_ip: "127.0.0.1"
+      node.vm.network "forwarded_port", guest: 9000, host: 19000
+      node.vm.network "forwarded_port", guest: 9001, host: 19001
+      node.vm.network "forwarded_port", guest: 9999, host: 19999, host_ip: "127.0.0.1"
     end
   end 
 
