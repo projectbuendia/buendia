@@ -119,11 +119,14 @@ unindex <<< "
 # Enable the wpa_supplicant hook
 if [[ ! -d /usr/lib/dhcpcd ]]; then
   mkdir /usr/lib/dhcpcd;
+  mkdir /usr/lib/dhcpcd/dhcpcd-hooks;
 fi
 if [[ ! -d /usr/lib/dhcpcd/dhcpcd-hooks ]]; then
   mkdir /usr/lib/dhcpcd/dhcpcd-hooks;
 fi
-ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
+if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
+  ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
+fi
 
 # Activate or deactivate the DHCP server and client according to the settings.
 if $(bool $NETWORKING_DHCP_DNS_SERVER); then
