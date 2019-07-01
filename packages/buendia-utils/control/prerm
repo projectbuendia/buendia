@@ -14,3 +14,8 @@ set -e; . /usr/share/buendia/utils.sh
 
 buendia-divert $1 /sbin/reboot
 update-rc.d buendia-utils remove
+
+if grep -q '^MAILTO=$' /etc/crontab; then
+    echo "Email is still disabled in /etc/crontab; please confirm that this is"
+    echo "still desired."
+fi
