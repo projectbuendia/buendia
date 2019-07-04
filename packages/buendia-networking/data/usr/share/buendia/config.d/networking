@@ -10,7 +10,7 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 WIFI_INTERFACE=wlp2s0
-ETHERNET_INTERFACE=eth2s0
+ETHERNET_INTERFACE=enp3s0
 
 if [ -z $WIFI_INTERFACE ]; then
   MAIN_INTERFACE=$ETHERNET_INTERFACE
@@ -62,15 +62,19 @@ cp $tmp_settings /etc/buendia-networking.settings
 
 # Apply the settings to the Debian network interface configuration.
 unindent <<< "
-    auto lo usb0 $WIFI_INTERFACE $ETHERNET_INTERFACE
+    auto lo $WIFI_INTERFACE
 
     iface lo inet loopback
 
     iface $ETHERNET_INTERFACE inet dhcp
 
-    iface $WIFI_INTERFACE inet manual
+    iface $WIFI_INTERFACE inet static
+	    address $NETWORKING_IP_ADDRESS/24
         wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
 " > /etc/network/interfaces
+
+# Apply wpa_supplicant configuration.
+wpa_passphrase $NETWORKING_SSID $NETWORKING_PASSWORD > /etc/wpa_supplicant/wpa_supplicant.conf
 
 # Apply dhcpcd configuration
 unindent <<< "
@@ -109,44 +113,42 @@ unindent <<< "
     rsn_pairwise=CCMP
 " > $hostapd_conf
 
-# Apply dnsmasq configuration
-unindex <<< "
-  interface=$WIFI_INTERFACE
-  listen-address=$NETWORKING_IP_ADDRESS
-  bind-interfaces
-" > /etc/dnsmasq.conf
-
 # Enable the wpa_supplicant hook
-if [[ ! -d /usr/lib/dhcpcd ]]; then
-  mkdir /usr/lib/dhcpcd;
-  mkdir /usr/lib/dhcpcd/dhcpcd-hooks;
-fi
-if [[ ! -d /usr/lib/dhcpcd/dhcpcd-hooks ]]; then
-  mkdir /usr/lib/dhcpcd/dhcpcd-hooks;
-fi
+mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
 if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
   ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
 fi
 
 # Activate or deactivate the DHCP server and client according to the settings.
 if $(bool $NETWORKING_DHCP_DNS_SERVER); then
-    echo 'Turning on DHCP/DNS server; disabling DHCP client.'
+    echo 'Turning on DHCP and DNS server; disabling DHCP client.'
 
     # Turn off the local DHCP client.
     systemctl stop dhcpcd
     systemctl disable dhcpcd
 
-    # Enable dnsmasq now, and also for future boots.  dnsmasq.conf is
-    # managed in /usr/share/buendia/diversions, so we only need to turn it on.
+    if [ -n "$NETWORKING_DHCP_RANGE" ]; then
+        unindent <<< "
+            dhcp-authoritative
+            dhcp-range=$NETWORKING_DHCP_RANGE
+            dhcp-option=option:ntp-server,$NETWORKING_IP_ADDRESS
+        " > /etc/dnsmasq.d/buendia-dhcp.conf
+    else
+        rm -f /etc/dnsmasq.d/buendia-dhcp.conf
+    fi
+
+    ln -sf /usr/bin/buendia-update-hosts /etc/network/if-up.d/
+            
     service dnsmasq restart
     update-rc.d dnsmasq enable
-
 else
     echo "Turning off DHCP/DNS server; enabling DHCP client."
 
     # Turn on the local DHCP client.
     systemctl enable dhcpcd
     systemctl start dhcpcd
+
+    rm -f /etc/network/if-up.d/buendia-update-hosts
 
     # Disable dnsmasq now, and also for future boots.
     service dnsmasq stop
