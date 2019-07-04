@@ -62,14 +62,14 @@ cp $tmp_settings /etc/buendia-networking.settings
 
 # Apply the settings to the Debian network interface configuration.
 unindent <<< "
-    auto lo usb0 $WIFI_INTERFACE $ETHERNET_INTERFACE
+    auto lo $WIFI_INTERFACE
 
     iface lo inet loopback
 
     iface $ETHERNET_INTERFACE inet dhcp
 
     iface $WIFI_INTERFACE inet static
-	address $NETWORKING_IP_ADDRESS/24
+	    address $NETWORKING_IP_ADDRESS/24
         wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
 " > /etc/network/interfaces
 
