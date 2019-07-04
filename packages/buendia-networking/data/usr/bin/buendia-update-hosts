@@ -39,5 +39,5 @@ mv $tmp /etc/hosts
 
 # Tell dnsmasq to reload the hosts file, if it's running.
 if [ -e /var/run/dnsmasq/dnsmasq.pid ]; then
-    kill -HUP $(cat /var/run/dnsmasq/dnsmasq.pid)
+    service dnsmasq restart
 fi
