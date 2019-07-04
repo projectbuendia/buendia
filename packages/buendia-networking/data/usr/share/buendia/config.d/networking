@@ -136,6 +136,8 @@ if $(bool $NETWORKING_DHCP_DNS_SERVER); then
     else
         rm -f /etc/dnsmasq.d/buendia-dhcp.conf
     fi
+
+    ln -sf /usr/bin/buendia-update-hosts /etc/network/if-up.d/
             
     service dnsmasq restart
     update-rc.d dnsmasq enable
@@ -145,6 +147,8 @@ else
     # Turn on the local DHCP client.
     systemctl enable dhcpcd
     systemctl start dhcpcd
+
+    rm -f /etc/network/if-up.d/buendia-update-hosts
 
     # Disable dnsmasq now, and also for future boots.
     service dnsmasq stop
