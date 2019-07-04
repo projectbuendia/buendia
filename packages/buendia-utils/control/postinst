@@ -21,6 +21,15 @@ case $1 in
         fi
 
         update-rc.d buendia-utils defaults
+
+        # Ensure that cron doesn't fill up root's mail spool (or that any other
+        # user in /etc/aliases) by setting MAILTO= empty in /etc/crontab.
+        if ! grep -q MAILTO= /etc/crontab; then
+            echo "Disabling email output from /etc/crontab..."
+            sed -re 's/(PATH=.*)/\1\nMAILTO=/g' /etc/crontab > /tmp/crontab.$$
+            mv /tmp/crontab.$$ /etc/crontab
+            systemctl restart cron
+        fi
         ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
