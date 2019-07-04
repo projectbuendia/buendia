@@ -30,6 +30,9 @@ case $1 in
         revert $hostapd_conf
         revert $dhcpd_conf
 
+        # Remove added configuration files, if present
+        rm -f /etc/dnsmasq.d/buendia-dhcp.conf
+
         # Restore the original setup (DHCP client enabled, not an AP)
         systemctl disable hostapd
         systemctl stop hostapd || true

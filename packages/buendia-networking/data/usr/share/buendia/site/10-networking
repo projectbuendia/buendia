@@ -10,5 +10,8 @@ NETWORKING_PASSWORD=password
 # provide DHCP and DNS service for the network.
 NETWORKING_DHCP_DNS_SERVER=0
 
+# Set to provide DHCP (if NETWORKING_DHCP_DNS_SERVER is set); otherwise none is provided.
+NETWORKING_DHCP_RANGE=10.0.0.100,10.0.0.199,12h
+
 # This host's IP address.  Only used if NETWORKING_DHCP_DNS_SERVER is 1.
 NETWORKING_IP_ADDRESS=10.0.0.50
