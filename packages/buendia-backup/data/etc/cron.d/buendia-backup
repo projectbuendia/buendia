@@ -1,6 +1,5 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-MAILTO=
 
 # Back up to the first /dev/sd* partition we can find.
 0 * * * * root . /usr/share/buendia/utils.sh; if bool "$BACKUP_EXTERNAL"; then for dev in /dev/sd?[0-9]*; do [ -e $dev ] && buendia-log buendia-backup $dev $BACKUP_EXTERNAL_LIMIT_PERCENT && break; done; fi
