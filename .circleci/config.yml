@@ -211,7 +211,10 @@ jobs:
 
       - run:
           name: Install apt-utils
-          command: sudo apt-get update && sudo apt-get -y install apt-utils
+          # The double `apt-get update` seems to fix an issue with the CircleCI image:
+          # https://github.com/CircleCI-Public/gcp-cli-orb/issues/5#issuecomment-467616061
+          # ¯\_(ツ)_/¯ 
+          command: ( sudo apt-get update || sudo apt-get update ) && sudo apt-get -y install apt-utils
 
       - run:
           ### NOTE: this step requires Java 8
