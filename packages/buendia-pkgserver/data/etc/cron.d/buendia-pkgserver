@@ -1,5 +1,5 @@
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-MAILTO=
+MAILTO=""
 
 * * * * * root sleep 5; for i in $(seq 6); do for dev in /dev/sd?1; do [ -e $dev ] && buendia-log buendia-pkgserver-import $dev; done; sleep 10; done
