@@ -18,6 +18,11 @@ else
   MAIN_INTERFACE=$WIFI_INTERFACE
 fi
 
+if ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
+    echo "Main interface $MAIN_INTERFACE not found. Skipping network configuration."
+    exit 0
+fi
+
 set -e; . /usr/share/buendia/utils.sh
 
 # Update the /etc/hosts file with mappings for this machine's IP addresses.
