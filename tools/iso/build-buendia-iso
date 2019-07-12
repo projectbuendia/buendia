@@ -89,8 +89,11 @@ MBR_FILE=$(mktemp -t buendia.XXXXX)
 trap "rm -f $MBR_FILE" EXIT
 dd if="$ISO_FILE" bs=1 count=432 of="$MBR_FILE"
 
-# Create the new ISO image
-IMAGE_NAME="Buendia $(git describe --tags master) $(git show HEAD | head -1 | cut -b8-14)"
+echo + Create the new ISO image
+cd $BASE
+IMAGE_NAME="Buendia Server $(git describe --tags master) $(git show HEAD | head -1 | cut -b8-14)"
+chmod -R u+w $BUILD/.disk
+echo -n "$IMAGE_NAME" > $BUILD/.disk/info
 xorriso -as mkisofs \
    -r -V "$IMAGE_NAME" \
    -o "$DEST_ISO" \
