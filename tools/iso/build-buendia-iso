@@ -25,8 +25,9 @@ set -e
 
 PREREQS="cpio xorriso git wget"
 BASE=$(cd $(dirname $0) && pwd)
-DEST_ISO=$BASE/buendia-install.iso
+DEST_ISO=${1:-$BASE/buendia-install.iso}
 
+echo "+ Installing prerequisites"
 sudo apt-get install -y $PREREQS
 
 ISO_URL=http://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/archive/9.9.0+nonfree/amd64/iso-cd/firmware-9.9.0-amd64-netinst.iso
@@ -45,13 +46,17 @@ cleanup() {
 }
 trap cleanup EXIT
 
+
 echo + Building in $BUILD
 xorriso -osirrox on -indev $ISO_FILE -extract / $BUILD
 
-echo + Adding apt-transport-https to udeb_include
+echo + Adding apt-transport-https to base_include
 cd $BUILD/.disk
-chmod +w udeb_include
-echo apt-transport-https >> udeb_include
+chmod +w .
+cat >base_include <<END
+apt-transport-https
+ca-certificates
+END
 
 echo + Unpacking initrd
 cd $BUILD/install.amd
@@ -65,27 +70,9 @@ echo preseed.cfg | cpio -H newc -o -A -F initrd
 echo + Repacking initrd
 gzip initrd
 
-# echo + Update apt-setup udeb
-# cd $BUILD/pool/main/a/apt-setup
-# chmod -R +w .
-# rm -f *.udeb
-# UDEBS="apt-setup-udeb_0.150_amd64 apt-cdrom-setup_0.150_all apt-mirror-setup_0.150_all"
-# MIRROR=http://http.us.debian.org/debian/
-# for pkg in $UDEBS; do
-#     wget $MIRROR/pool/main/a/apt-setup/$pkg.udeb
-# done
-# 
-# echo + Update udeb release file
-# cd $BUILD
-# sudo apt-ftparchive generate $BASE/config-udeb
-
-echo + Updat isolinux.cfg
+echo + Update isolinux.cfg
 chmod u+w $BUILD/isolinux/isolinux.cfg
 cp $BASE/isolinux.cfg $BUILD/isolinux/
-
-echo + Add installer script
-chmod u+w $BUILD
-cp $BASE/buendia-installer $BUILD
 
 echo + Fix MD5 sums
 cd $BUILD
