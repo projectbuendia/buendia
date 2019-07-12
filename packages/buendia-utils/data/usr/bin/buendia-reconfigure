@@ -25,6 +25,11 @@ if [ "$1" = "-h" ]; then
     echo "reconfiguration from scratch without this optimization."
 fi
 
+if [ -e /etc/buendia-defer-reconfigure ]; then
+    echo "Deferring Buendia reconfiguration until next boot."
+    exit 0
+fi
+
 errors=
 if [ "$1" == "-f" ]; then
     force=yes
