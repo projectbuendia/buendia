@@ -50,6 +50,10 @@ trap cleanup EXIT
 echo + Building in $BUILD
 xorriso -osirrox on -indev $ISO_FILE -extract / $BUILD
 
+echo + Removing graphical components
+chmod -R u+w $BUILD/install.amd
+rm -rf $BUILD/install.amd/{gtk,xen}
+
 echo + Adding apt-transport-https to base_include
 cd $BUILD/.disk
 chmod +w .
