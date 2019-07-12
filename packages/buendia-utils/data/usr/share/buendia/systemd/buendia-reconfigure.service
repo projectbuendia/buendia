@@ -1,0 +1,10 @@
+[Unit]
+Description=Buendia reconfigure on boot
+ConditionPathExists=/etc/buendia-defer-reconfigure
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'rm -f /etc/buendia-defer-reconfigure; buendia-reconfigure'
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,7 @@ case $1 in
             cp /usr/share/buendia/systemd/* /lib/systemd/system
             systemctl enable reboot-check.timer
             systemctl start reboot-check.timer
+            systemctl enable buendia-configure.service
         fi
 
         update-rc.d buendia-utils defaults
