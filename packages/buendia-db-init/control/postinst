@@ -25,6 +25,11 @@ case $1 in
             exit 0
         fi
 
+        if [ -d /usr/share/buendia/systemd ]; then
+            cp /usr/share/buendia/systemd/* /lib/systemd/system
+            systemctl enable buendia-db-init.service
+        fi
+
         if [ -r /etc/buendia-defer-reconfigure ]; then
             echo "Deferring database setup until after reboot."
             exit 0
