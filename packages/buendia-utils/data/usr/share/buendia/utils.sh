@@ -34,7 +34,7 @@ function bool() {
 # Starts, stops, or restarts a service, without failing if it doesn't exist.
 # Skips the service operation if a reconfiguration is pending.
 function service_if_exists() {
-    if [ -e /etc/init.d/$1 && ! -e /etc/buendia-defer-reconfigure ]; then
+    if [ -e /etc/init.d/$1 -a ! -e /etc/buendia-defer-reconfigure ]; then
         service $1 $2
     fi
 }
