@@ -4,7 +4,7 @@ ConditionPathExists=/etc/buendia-defer-reconfigure
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'rm -f /etc/buendia-defer-reconfigure; buendia-reconfigure'
+ExecStart=/bin/sh -c 'rm -f /etc/buendia-defer-reconfigure; dpkg-reconfigure buendia-db-init; buendia-reconfigure'
 
 [Install]
 WantedBy=multi-user.target

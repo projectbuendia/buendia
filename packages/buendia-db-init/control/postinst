@@ -25,6 +25,11 @@ case $1 in
             exit 0
         fi
 
+        if [ -r /etc/buendia-defer-reconfigure ]; then
+            echo "Deferring database setup until after reboot."
+            exit 0
+        fi
+
         # Create a fresh new database populated with the initial data.
         export MYSQL_USER=root
         export MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD
