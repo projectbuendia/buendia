@@ -6,7 +6,7 @@ After=mysql.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'rm -f /etc/buendia-defer-reconfigure; buendia-reconfigure'
+ExecStart=/bin/sh -c 'rm -f /etc/buendia-defer-reconfigure; buendia-reconfigure -f'
 
 [Install]
 WantedBy=multi-user.target
