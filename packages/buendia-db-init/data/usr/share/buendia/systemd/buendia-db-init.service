@@ -1,13 +1,15 @@
 [Unit]
 Description=Buendia datbase reconfigure on boot
 ConditionPathExists=!/etc/buendia-db-installed
-Wants=mysql.service buendia-reconfigure.service
+Wants=mysql.service
+Wants=buendia-reconfigure.service
 After=mysql.service
 Before=buendia-reconfigure.service
+Before=buendia-server.service
 
 [Service]
 Type=oneshot
-ExecStart=dpkg-reconfigure buendia-db-init
+ExecStart=/usr/sbin/dpkg-reconfigure buendia-db-init
 
 [Install]
 WantedBy=multi-user.target
