@@ -74,7 +74,7 @@ echo preseed.cfg | cpio -H newc -o -A -F initrd
 echo + Repacking initrd
 gzip initrd
 
-echo + Update isolinux.cfg
+echo + Update isolinux.cfg to make the automated installer the default
 chmod u+w $BUILD/isolinux/isolinux.cfg
 cp $BASE/isolinux.cfg $BUILD/isolinux/
 
