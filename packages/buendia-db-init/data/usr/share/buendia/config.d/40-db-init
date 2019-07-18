@@ -1,0 +1,45 @@
+#!/bin/bash
+# Copyright 2019 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+set -e; . /usr/share/buendia/utils.sh
+
+if [ -e /etc/buendia-db-init-installed ]; then
+    echo "buendia-db-init has been previously installed!"
+    echo "Not configuring, as there is a risk of destroying user data!"
+    echo
+    echo "If you are sure you want to wipe the database, then run:"
+    echo
+    echo "rm /etc/buendia-db-init-installed && buendia-reconfigure db-init"
+    echo
+    exit 0
+fi
+
+# Create a fresh new database populated with the initial data.
+export MYSQL_USER=root
+export MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD
+service mysql start
+echo "Loading initial OpenMRS database..."
+buendia-mysql-load -f openmrs /usr/share/buendia/db/init.zip
+
+# Add site-specific initial data.
+site_sql=/usr/share/buendia/db/site-${SITE_ID}.sql
+if [ -f $site_sql ]; then
+    echo "Applying data initialization for site ${SITE_ID}..."
+    mysql -uroot -p$MYSQL_ROOT_PASSWORD openmrs < $site_sql
+else
+    echo "No site-specific data for ${SITE_ID}."
+fi
+
+# Note the package version used to fully initialized the database, so
+# we can avoid doing it again by mistake.
+PKG_VERSION=$(dpkg -s buendia-db-init | sed -n 's/^Version: //p')
+echo $PKG_VERSION > /etc/buendia-db-init-installed
