@@ -1,8 +1,9 @@
 [Unit]
 Description=Buendia reconfigure on boot
 ConditionPathExists=/etc/buendia-defer-reconfigure
-Wants=mysql.service
-After=mysql.service
+Wants=mysql.service tomcat7.service
+After=mysql.service tomcat7.service
+Before=getty.service
 
 [Service]
 Type=oneshot
