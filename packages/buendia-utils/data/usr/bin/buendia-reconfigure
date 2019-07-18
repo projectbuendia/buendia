@@ -38,8 +38,8 @@ fi
 
 function reconfigure_package() {
     package=$1
-    config=/usr/share/buendia/config.d/$package
-    if [ -f $config ]; then
+    config=$(ls /usr/share/buendia/config.d/??-$package)
+    if [ -f "$config" ]; then
         if [ -n "$force" ]; then
             echo "Force-reconfiguring buendia-$package..."
             flags="-f"
@@ -66,10 +66,11 @@ if [ -n "$1" ]; then
         reconfigure_package $package
     done
 else
-    for config in /usr/share/buendia/config.d/*; do
-        if [ -f $config -a -x $config ]; then
-            reconfigure_package $(basename $config)
-        fi
+    # Find executable scripts in config.d and sort them
+    for config in $(find /usr/share/buendia/config.d -type f -executable | sort); do
+        # Take the filename and strip the leading NN-
+        package=$(basename $config)
+        reconfigure_package ${package#??-}
     done
 fi
 
