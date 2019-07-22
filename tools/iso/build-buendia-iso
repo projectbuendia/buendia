@@ -1,0 +1,111 @@
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+if [ "$1" = "-h" ]; then
+    echo "$0 [<buendia-install.iso>]"
+    echo
+    echo "Builds a Buendia installer ISO. Takes an optional path to the final"
+    echo "ISO file."
+fi
+
+set -e
+
+# https://www.debian.org/releases/stretch/amd64/apbs02.html.en
+# https://wiki.debian.org/DebianInstaller/Preseed/EditIso
+# https://wiki.debian.org/RepackBootableISO
+
+PREREQS="cpio xorriso git wget"
+BASE=$(cd $(dirname $0) && pwd)
+DEST_ISO=${1:-$BASE/buendia-install.iso}
+
+echo "+ Installing prerequisites"
+sudo apt-get install -y $PREREQS
+
+ISO_URL=http://cdimage.debian.org/cdimage/unofficial/non-free/cd-including-firmware/archive/9.9.0+nonfree/amd64/iso-cd/firmware-9.9.0-amd64-netinst.iso
+ISO_MD5=0adef101fb0e9c9d5a495008bc7128ed
+ISO_FILE=$BASE/$(basename $ISO_URL)
+
+if [ ! -r $ISO_FILE -o "$(md5sum $ISO_FILE | cut -d' ' -f1)" != "$ISO_MD5" ]; then
+    echo + Downloading $ISO_URL
+    wget -c -O $ISO_FILE $ISO_URL
+fi
+
+BUILD=$(mktemp -d -t buendia.XXXXX)
+cleanup() {
+    sudo chmod -R +w $BUILD
+    rm -rf $BUILD
+}
+trap cleanup EXIT
+
+
+echo + Building in $BUILD
+xorriso -osirrox on -indev $ISO_FILE -extract / $BUILD
+
+echo + Removing graphical components
+chmod -R u+w $BUILD/install.amd
+rm -rf $BUILD/install.amd/{gtk,xen}
+
+echo + Adding apt-transport-https to base_include
+cd $BUILD/.disk
+chmod +w .
+cat >base_include <<END
+apt-transport-https
+ca-certificates
+END
+
+echo + Unpacking initrd
+cd $BUILD/install.amd
+chmod -R u+w .
+gunzip initrd.gz
+
+echo + Adding preseed.cfg to initrd
+cp $BASE/preseed.cfg .
+echo preseed.cfg | cpio -H newc -o -A -F initrd
+
+echo + Repacking initrd
+gzip initrd
+
+echo + Update isolinux.cfg to make the automated installer the default
+chmod u+w $BUILD/isolinux/isolinux.cfg
+cp $BASE/isolinux.cfg $BUILD/isolinux/
+
+echo + Fix MD5 sums
+cd $BUILD
+chmod u+w md5sum.txt
+rm -f md5sum.txt
+md5sum $(find -follow -type f) > md5sum.txt
+
+echo + Extract MBR template file to disk
+MBR_FILE=$(mktemp -t buendia.XXXXX)
+trap "rm -f $MBR_FILE" EXIT
+dd if="$ISO_FILE" bs=1 count=432 of="$MBR_FILE"
+
+echo + Create the new ISO image
+cd $BASE
+IMAGE_NAME="Buendia Server $(git describe --tags master) $(git show HEAD | head -1 | cut -b8-14)"
+chmod -R u+w $BUILD/.disk
+echo -n "$IMAGE_NAME" > $BUILD/.disk/info
+xorriso -as mkisofs \
+   -r -V "$IMAGE_NAME" \
+   -o "$DEST_ISO" \
+   -J -J -joliet-long -cache-inodes \
+   -isohybrid-mbr "$MBR_FILE" \
+   -b isolinux/isolinux.bin \
+   -c isolinux/boot.cat \
+   -boot-load-size 4 -boot-info-table -no-emul-boot \
+   -eltorito-alt-boot \
+   -e boot/grub/efi.img \
+   -no-emul-boot -isohybrid-gpt-basdat -isohybrid-apm-hfsplus \
+   "$BUILD"
+
+echo + Cleaning up
+cleanup
