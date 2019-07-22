@@ -52,9 +52,11 @@ firmware needed by the Intel NUC wireless card.
 
 The script adds `apt-transport-https` to the list of packages to add to the
 base system, and then adds a [Debian preseed file](preseed.cfg) to seed most of
-the netinst prompts. This preseed configuration adds our
-projectbuendia.github.io _unstable_ repository to the list of apt sources, and
-then appends the following packages to the default server installation:
+the netinst prompts.
+
+The preseed configuration adds our projectbuendia.github.io _unstable_
+repository to the list of apt sources, and then appends the following packages
+to the default server installation:
 
 * `buendia-site-test`
 * `buendia-server`
@@ -68,3 +70,15 @@ the first time and both MySQL and Tomcat are running.
 
 Finally, the installer sets the automated curses installer to be the default,
 and then rebuilds the ISO image into a new file.
+
+## Preseeding
+
+The preseed file was created by running a Debian installation to completion on
+a NUC, and then installing `debconf-tools` and running `debconf-get-selections
+--installer` and `debconf-get-selections`, and saving the result as a starting
+point. 
+
+Some options related to disk partitioning and bootloader installation
+were removed as these seemed to be causing problems when booting in a virtual
+machine, at least. The omission of these options is most of why the installer
+is not fully automated. Fixing this might be a worthwhile future task.
