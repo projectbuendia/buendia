@@ -70,11 +70,20 @@ unindent <<< "
     iface lo inet loopback
 
     iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
-
-    iface $NETWORKING_WIFI_INTERFACE inet static
-	    address $NETWORKING_IP_ADDRESS/24
-        wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
 " > /etc/network/interfaces
+
+if [ -n "$NETWORKING_IP_ADDRESS" ]; then
+    unindent <<< "
+        iface $NETWORKING_WIFI_INTERFACE inet static
+            address $NETWORKING_IP_ADDRESS/24
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    " >> /etc/network/interfaces
+else
+    unindent <<< "
+        iface $NETWORKING_WIFI_INTERFACE inet dhcp
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    " >> /etc/network/interfaces
+fi
 
 # Apply wpa_supplicant configuration.
 wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
