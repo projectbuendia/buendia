@@ -1,6 +1,10 @@
 # 0 to join an existing wifi network; 1 to become an AP and create a network.
 NETWORKING_AP=0
 
+# Default network interfaces on the Intel NUC
+NETWORKING_WIFI_INTERFACE=wlp2s0
+NETWORKING_ETHERNET_INTERFACE=enp3s0
+
 # SSID and WPA password for the network to join or create.
 NETWORKING_SSID=buendia
 # Default password must be at least 8 characters for the client
