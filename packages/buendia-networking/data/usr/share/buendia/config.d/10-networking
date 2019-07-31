@@ -77,7 +77,7 @@ unindent <<< "
 " > /etc/network/interfaces
 
 # Apply wpa_supplicant configuration.
-wpa_passphrase $NETWORKING_SSID $NETWORKING_PASSWORD > /etc/wpa_supplicant/wpa_supplicant.conf
+wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
 
 # Apply dhcpcd configuration
 unindent <<< "
