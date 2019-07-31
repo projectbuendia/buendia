@@ -57,8 +57,8 @@ fi
 # In case anything goes wrong, don't leave behind an indicator of success.
 rm -f $run_settings
 
-# Bring down the interface during reconfiguration
-ifdown $MAIN_INTERFACE
+# Bring down the interface during reconfiguration, but don't fail if we can't.
+ifdown $MAIN_INTERFACE || true
 
 cp $tmp_settings /etc/buendia-networking.settings
 . /etc/buendia-networking.settings
