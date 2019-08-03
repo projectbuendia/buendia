@@ -107,7 +107,7 @@ public class ObservationResource implements Listable, Searchable {
             // want that to mean that an order execution gets missed.
             object.add("value", Utils.getRootOrder(obs.getOrder()).getUuid());
         } else {
-            object.add("value", ObservationsHandler.obsValueToString(obs));
+            object.add("value", ObservationUtils.obsValueToString(obs));
         }
 
         return object;

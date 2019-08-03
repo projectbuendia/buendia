@@ -33,8 +33,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-/** Utility for adding observations parsed from JSON. */
-public class ObservationsHandler {
+/** Utility methods for dealing with observations. */
+public class ObservationUtils {
     /**
      * For consistency these should be accepted as XForm instances, but as a
      * short-term fix we allow observations to be expressed in this JSON format:
@@ -51,7 +51,7 @@ public class ObservationsHandler {
      * </pre>
      */
 
-    private static Log log = LogFactory.getLog(ObservationsHandler.class);
+    private static Log log = LogFactory.getLog(ObservationUtils.class);
     private static final String OBSERVATIONS = "observations";
     private static final String QUESTION_UUID = "question_uuid";
     private static final String ANSWER_DATE = "answer_date";
@@ -70,17 +70,19 @@ public class ObservationsHandler {
      * @param locationUuid      the UUID of the location where the encounter happened
      */
     public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
-                                         Date encounterTime, String changeMessage, String
-                                             encounterTypeName,
-                                         String locationUuid) {
+                                         Date encounterTime, String changeMessage,
+                                         String encounterTypeName, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = Utils.fixEncounterDateTime(encounterTime);
 
         EncounterService encounterService = Context.getEncounterService();
-        final Location location = Context.getLocationService().getLocationByUuid(locationUuid);
-        if (location == null) {
-            throw new InvalidObjectDataException("Location not found: " + locationUuid);
+        Location location = null;
+        if (locationUuid != null) {
+            location = Context.getLocationService().getLocationByUuid(locationUuid);
+            if (location == null) {
+                throw new InvalidObjectDataException("Location not found: " + locationUuid);
+            }
         }
         EncounterType encounterType = encounterService.getEncounterType(encounterTypeName);
         if (encounterType == null) {
