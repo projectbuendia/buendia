@@ -220,5 +220,6 @@
     <location location_id="3" parent_location="2" name="Never Never Land" description="A mythical place" address1="" address2="" city_village="Peter" state_province="Pan" postal_code="" country="Wendy" latitude="" longitude="" creator="1" date_created="2008-08-15 15:28:54.0" retired="true" retired_by="1" date_retired="2008-08-15 00:00:00.0" retire_reason="test" uuid="167ce20c-4785-4285-9119-d197268f7f4a"/>
     <order_type order_type_id="17" name="Plain Order" java_class_name="org.openmrs.Order" description="Plain order" creator="1" date_created="2008-08-15 15:49:04.0" retired="0" uuid="dd3fb1d0-ae06-11e3-a5e2-0800200c9a77"/>
     <order_type order_type_id="1" name="Drug order" parent="17" java_class_name="org.openmrs.DrugOrder" description="Categorises medication orders for the patient" date_created="2008-08-15 13:49:47.0" retired="false" uuid="131168f4-15f5-102d-96e4-000c29c2a5d7" creator="1" />
+    <encounter_type encounter_type_id="76" name="ADULTINITIAL" description="Outpatient Adult Initial Visit" creator="1" date_created="2005-02-24 00:00:00" retired="0" uuid="8d5b2be0-c2cc-11de-8d13-0010c6dffd11" />
     <encounter_type encounter_type_id="77" name="ADULTRETURN" description="Outpatient Adult Return Visit" creator="1" date_created="2005-02-24 00:00:00" retired="0" uuid="8d5b2be0-c2cc-11de-8d13-0010c6dffd0f" />
 </dataset>
