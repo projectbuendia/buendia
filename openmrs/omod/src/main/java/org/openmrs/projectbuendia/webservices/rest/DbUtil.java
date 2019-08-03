@@ -32,11 +32,14 @@ import java.util.Locale;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtil {
-    // OpenMRS object names
+    // The names of these two PatientIdentifierTypes are hardcoded.  If rows don't
+    // exist in the database with these names, they will be created.  Clients don't
+    // need to know these constants because the server handles them internally when
+    // interpreting and returning a patient's "id" field.
     public static final String MSF_IDENTIFIER = "MSF";
     public static final String TIMESTAMP_IDENTIFIER = "Timestamp";
 
-    // OpenMRS object UUIDs
+    // This UUID is hardcoded; clients must use the same UUID for this field.
     public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID =
         "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
 
