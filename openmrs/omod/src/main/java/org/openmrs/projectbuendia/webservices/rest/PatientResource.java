@@ -490,8 +490,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     newGivenName = (String) entry.getValue();
                     break;
                 case ASSIGNED_LOCATION:
-                    Map assignedLocation = (Map) entry.getValue();
-                    setLocation(patient, (String) assignedLocation.get(UUID));
+                    Object value = entry.getValue();
+                    if (value instanceof String) {
+                        setLocation(patient, (String) value);
+                    } else if (value instanceof Map) {
+                        setLocation(patient, (String) ((Map) value).get(UUID));
+                    }
                     break;
                 case BIRTHDATE:
                     patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue(), BIRTHDATE));
