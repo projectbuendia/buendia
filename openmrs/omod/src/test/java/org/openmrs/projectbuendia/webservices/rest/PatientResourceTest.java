@@ -16,6 +16,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.openmrs.Patient;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 /** Tests for PatientResource. */
@@ -44,6 +46,7 @@ public class PatientResourceTest extends MainResourceControllerTest {
 
     // These constants should match the values in the BASE_TEST_DATA file.
     String PETER_PAN_UUID = "f6f74ed9-5681-482a-9aa5-c3192579fa59";
+    String XANADU_UUID = "9356400c-a5a2-4532-8f2b-2361b3446eb8";
 
     private PatientService patientService;
 
@@ -98,5 +101,45 @@ public class PatientResourceTest extends MainResourceControllerTest {
         assertEquals("Pan", response.get("family_name"));
         assertEquals("M", response.get("sex"));
         assertEquals("ABC123", response.get("id"));
+    }
+
+    @Test
+    public void testCreatePatient() throws Exception {
+        SimpleObject input = new SimpleObject();
+        input.add("id", "XYZ");
+        input.add("given_name", "Mary");
+        input.add("family_name", "Poppins");
+        input.add("sex", "F");
+        input.add("birthdate", "1970-01-01");
+
+        MockHttpServletRequest request = newPostRequest(getURI(), input);
+        SimpleObject response = deserialize(handle(request));
+
+        String uuid = (String) response.get("uuid");
+        assertEquals("XYZ", response.get("id"));
+        assertEquals("Mary", response.get("given_name"));
+        assertEquals("Poppins", response.get("family_name"));
+        assertEquals("F", response.get("sex"));
+        assertEquals("1970-01-01", response.get("birthdate"));
+        assertFalse(response.containsKey("assigned_location"));
+
+        Patient patient = patientService.getPatientByUuid(uuid);
+        assertEquals("XYZ", patient.getPatientIdentifier(2).getIdentifier());
+    }
+
+    @Test
+    public void testMovePatient() throws Exception {
+        // Post an edit that sets the location of a patient.
+        SimpleObject input = new SimpleObject();
+        input.add("assigned_location", XANADU_UUID);
+
+        MockHttpServletRequest request = newPostRequest(getURI() + "/" + PETER_PAN_UUID, input);
+        SimpleObject response = deserialize(handle(request));
+
+        // Fetch the patient record and expect to see the updated location.
+        request = this.request(RequestMethod.GET, this.getURI() + "/" + PETER_PAN_UUID);
+        response = this.deserialize(this.handle(request));
+
+        assertEquals(XANADU_UUID, ((Map<String, Object>) response.get("assigned_location")).get("uuid"));
     }
 }
