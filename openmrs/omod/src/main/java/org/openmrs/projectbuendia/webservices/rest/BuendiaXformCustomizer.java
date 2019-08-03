@@ -34,18 +34,6 @@ public class BuendiaXformCustomizer extends XformCustomizer {
         return namer.getClientName(c);
     }
 
-    @Override public List<Location> getEncounterLocations() {
-        Location root = Context.getLocationService().getLocationByUuid(LocationResource.ROOT_UUID);
-
-        ArrayList<Location> result = new ArrayList<>();
-        for (Location child : root.getChildLocations()) {
-            if (!child.isRetired()) {
-                result.add(child);
-            }
-        }
-        return result;
-    }
-
     @Override public String getLabel(Location location) {
         return location.getName();
     }
