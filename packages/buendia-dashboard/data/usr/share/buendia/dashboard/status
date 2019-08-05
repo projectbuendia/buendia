@@ -10,7 +10,8 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-echo 'Content-Type: text/html'
+echo 'Content-Type: text/html; charset=utf-8'
+echo 'Refresh: 10'
 echo
 echo -n '<xmp style="display: inline-block">'
 buendia-status -a 2>&1
