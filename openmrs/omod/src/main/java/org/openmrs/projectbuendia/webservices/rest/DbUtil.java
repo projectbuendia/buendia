@@ -27,7 +27,11 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
+import org.openmrs.projectbuendia.Utils;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Locale;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
@@ -36,7 +40,7 @@ public class DbUtil {
     // exist in the database with these names, they will be created.  Clients don't
     // need to know these constants because the server handles them internally when
     // interpreting and returning a patient's "id" field.
-    public static final String MSF_IDENTIFIER = "MSF";
+    public static final String MSF_IDENTIFIER_TYPE_NAME = "MSF";
     public static final String TIMESTAMP_IDENTIFIER = "Timestamp";
 
     // This UUID is hardcoded; clients must use the same UUID for this field.
@@ -58,8 +62,8 @@ public class DbUtil {
     }
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
-    public static PatientIdentifierType getMsfIdentifierType() {
-        return getIdentifierType(MSF_IDENTIFIER, "MSF patient identifier");
+    public static PatientIdentifierType getIdentifierTypeMsf() {
+        return getIdentifierType(MSF_IDENTIFIER_TYPE_NAME, "MSF patient identifier");
     }
 
     /** Gets or creates the PatientIdentifierType for timestamps (used for patients with no MSF ID). */
@@ -171,6 +175,28 @@ public class DbUtil {
             attribute.setValue(value);
         }
         personService.savePerson(patient);
+    }
+
+    public static final Comparator<Location> ALPHANUMERIC_NAME_COMPARATOR = new Comparator<Location>() {
+        @Override public int compare(Location a, Location b) {
+            return Utils.ALPHANUMERIC_COMPARATOR.compare(a.getName(), b.getName());
+        }
+    };
+
+    /**
+     * Gets the default location (where identifiers will be placed).  For consistency
+     * with the client, this is the root with the alphanumerically first (lowest) name.
+     */
+    public static Location getDefaultLocation() {
+        LocationService locationService = Context.getLocationService();
+        List<Location> locations = locationService.getAllLocations(false);
+        Collections.sort(locations, ALPHANUMERIC_NAME_COMPARATOR);
+        for (Location location : locationService.getAllLocations(false)) {
+            if (location.getParentLocation() == null) {
+                return location;
+            }
+        }
+        throw new IllegalStateException("Location tree contains a cycle");
     }
 
     /** Gets a Location entity by its exact name. */
