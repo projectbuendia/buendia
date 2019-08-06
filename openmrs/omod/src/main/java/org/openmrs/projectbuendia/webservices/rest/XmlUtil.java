@@ -30,19 +30,6 @@ import javax.xml.parsers.ParserConfigurationException;
 
 /** XML manipulation functions. */
 public class XmlUtil {
-    private static final DocumentBuilder documentBuilder;
-
-    static {
-        try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setNamespaceAware(true);
-            factory.setIgnoringComments(true);
-            documentBuilder = factory.newDocumentBuilder();
-        } catch (ParserConfigurationException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /** Converts a NodeList to an Iterable of Elements. */
     public static Iterable<Element> toElementIterable(NodeList nodeList) {
         List<Element> elements = new ArrayList<>(nodeList.getLength());
@@ -125,13 +112,23 @@ public class XmlUtil {
         return ret;
     }
 
-    /** Returns a namespace-aware DocumentBuilder. */
-    public static DocumentBuilder getDocumentBuilder() {
-        return documentBuilder;
+    /** Constructs a new namespace-aware DocumentBuilder. */
+    public static DocumentBuilder createDocumentBuilder() {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setIgnoringComments(true);
+            return factory.newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /** Parses the given XML string to produce a Document. */
     public static Document parse(String xml) throws SAXException, IOException {
-        return documentBuilder.parse(new InputSource(new StringReader(xml)));
+        // DocumentBuilder is not thread-safe; parsing multiple documents concurrently
+        // will cause the error "FWK005 parse may not be called while parsing".
+        // So, we construct a new DocumentBuilder every time we parse something.
+        return createDocumentBuilder().parse(new InputSource(new StringReader(xml)));
     }
 }
