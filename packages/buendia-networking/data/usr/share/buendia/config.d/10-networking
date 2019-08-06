@@ -9,13 +9,11 @@
 # uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
-WIFI_INTERFACE=wlp2s0
-ETHERNET_INTERFACE=enp3s0
 
-if [ -z $WIFI_INTERFACE ]; then
-  MAIN_INTERFACE=$ETHERNET_INTERFACE
+if [ -z $NETWORKING_WIFI_INTERFACE ]; then
+  MAIN_INTERFACE=$NETWORKING_ETHERNET_INTERFACE
 else
-  MAIN_INTERFACE=$WIFI_INTERFACE
+  MAIN_INTERFACE=$NETWORKING_WIFI_INTERFACE
 fi
 
 if ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
@@ -59,27 +57,36 @@ fi
 # In case anything goes wrong, don't leave behind an indicator of success.
 rm -f $run_settings
 
-# Bring down the interface during reconfiguration
-ifdown $MAIN_INTERFACE
+# Bring down the interface during reconfiguration, but don't fail if we can't.
+ifdown $MAIN_INTERFACE || true
 
 cp $tmp_settings /etc/buendia-networking.settings
 . /etc/buendia-networking.settings
 
 # Apply the settings to the Debian network interface configuration.
 unindent <<< "
-    auto lo $WIFI_INTERFACE
+    auto lo $NETWORKING_WIFI_INTERFACE
 
     iface lo inet loopback
 
-    iface $ETHERNET_INTERFACE inet dhcp
-
-    iface $WIFI_INTERFACE inet static
-	    address $NETWORKING_IP_ADDRESS/24
-        wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
 " > /etc/network/interfaces
 
+if [ -n "$NETWORKING_IP_ADDRESS" ]; then
+    unindent <<< "
+        iface $NETWORKING_WIFI_INTERFACE inet static
+            address $NETWORKING_IP_ADDRESS/24
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    " >> /etc/network/interfaces
+else
+    unindent <<< "
+        iface $NETWORKING_WIFI_INTERFACE inet dhcp
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    " >> /etc/network/interfaces
+fi
+
 # Apply wpa_supplicant configuration.
-wpa_passphrase $NETWORKING_SSID $NETWORKING_PASSWORD > /etc/wpa_supplicant/wpa_supplicant.conf
+wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
 
 # Apply dhcpcd configuration
 unindent <<< "
@@ -91,19 +98,19 @@ unindent <<< "
     profile static_wifi
     static ip_address=$NETWORKING_IP_ADDRESS/24
 
-    # fallback to static profile on $ETHERNET_INTERFACE
-    interface $ETHERNET_INTERFACE
+    # fallback to static profile on $NETWORKING_ETHERNET_INTERFACE
+    interface $NETWORKING_ETHERNET_INTERFACE
     fallback static_ethernet
 
-    # fallback to static profile on $WIFI_INTERFACE
-    interface $WIFI_INTERFACE
+    # fallback to static profile on $NETWORKING_WIFI_INTERFACE
+    interface $NETWORKING_WIFI_INTERFACE
     fallback static_wifi
 " > /etc/dhcpcd.conf
 
 # Apply hostadp configuration
 hostapd_conf=/etc/hostapd/hostapd.conf
 unindent <<< "
-    interface=$WIFI_INTERFACE
+    interface=$NETWORKING_WIFI_INTERFACE
     ssid=$NETWORKING_SSID
     wpa=2
     wpa_key_mgmt=WPA-PSK
