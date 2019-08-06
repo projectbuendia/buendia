@@ -43,12 +43,23 @@ if [ -n "$all" ]; then
         echo -e '\n---- buendia-warmup'
         buendia-last buendia-warmup
 
+        echo -e '\n---- catalina.out (tail -12)'
+        cat /var/log/tomcat7/catalina.out | \
+            sed -E 's:\x1b\[[0-9;]*[mK]::g' | \
+            sed -E '/^[A-Z][a-z][a-z] [0-9][0-9], 20[0-9][0-9]/N;s/\n/ - /' | \
+            tail -12
+
+        echo -e '\n---- catalina.out (filtered)'
+        cat /var/log/tomcat7/catalina.out | \
+            sed -E 's:\x1b\[[0-9;]*[mK]::g' | \
+            sed -E '/^[A-Z][a-z][a-z] [0-9][0-9], 20[0-9][0-9]/N;s/\n/ - /' | \
+            sed -nE '/^\t| \[HTTP\] |AbstractProtocol|Exception|Error|ERROR|SEVERE|In method /p' | \
+            tail -80
+
         echo -e '\n---- free'
         free
 
-        # TODO: execute wpa_cli status in Yocto
-
-        echo -e '\n---- df /'  # TODO: execute in Yocto
+        echo -e '\n---- df /'
         df /
 
         echo -e '\n---- du /var/log'
