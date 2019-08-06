@@ -41,7 +41,7 @@ public class DbUtil {
     // need to know these constants because the server handles them internally when
     // interpreting and returning a patient's "id" field.
     public static final String MSF_IDENTIFIER_TYPE_NAME = "MSF";
-    public static final String TIMESTAMP_IDENTIFIER = "Timestamp";
+    public static final String LOCAL_IDENTIFIER_TYPE_NAME = "LOCAL";
 
     // This UUID is hardcoded; clients must use the same UUID for this field.
     public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID =
@@ -66,9 +66,9 @@ public class DbUtil {
         return getIdentifierType(MSF_IDENTIFIER_TYPE_NAME, "MSF patient identifier");
     }
 
-    /** Gets or creates the PatientIdentifierType for timestamps (used for patients with no MSF ID). */
-    public static PatientIdentifierType getTimestampIdentifierType() {
-        return getIdentifierType(TIMESTAMP_IDENTIFIER, "Timestamp-based patient identifier");
+    /** Gets or creates the PatientIdentifierType for local integers (used for patients with no MSF ID). */
+    public static PatientIdentifierType getIdentifierTypeLocal() {
+        return getIdentifierType(LOCAL_IDENTIFIER_TYPE_NAME, "Local numeric patient identifier");
     }
 
     public static OrderType getDrugOrderType() {

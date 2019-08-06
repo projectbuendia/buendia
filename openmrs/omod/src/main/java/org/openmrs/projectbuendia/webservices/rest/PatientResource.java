@@ -178,10 +178,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             return jsonForm;
         }
 
-        PatientIdentifier patientIdentifier =
-            patient.getPatientIdentifier(DbUtil.getIdentifierTypeMsf());
-        if (patientIdentifier != null) {
-            jsonForm.add(ID, patientIdentifier.getIdentifier());
+        PatientIdentifier ident = patient.getPatientIdentifier();  // first preferred identifier
+        if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeMsf())) {
+            jsonForm.add(ID, ident.getIdentifier());
+        } else if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
+            // Let's put a star in front to help avoid conflation with MSF identifiers.
+            // The client app doesn't allow "*" when entering an identifier, so this
+            // will distinguish identifiers that weren't created by the client.
+            jsonForm.add(ID, "*" + ident.getIdentifier());
         }
         jsonForm.add(SEX, patient.getGender());
         if (patient.getBirthdate() != null) {
@@ -270,6 +274,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
             patient = jsonToPatient(json);
             patientService.savePatient(patient);
+
+            // For LOCAL-type identifiers, we can only determine the identifier after
+            // the Patient and PatientIdentifier objects have been saved.  At this
+            // point the PatientIdentifier has a freshly-generated ID column, which
+            // we use to construct the string identifier.
+            PatientIdentifier ident = patient.getPatientIdentifier();
+            if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
+                ident.setIdentifier("" + ident.getId());
+                patientService.savePatientIdentifier(ident);
+            }
+
         }
         // Store any initial observations that are included with the new patient.
         ObservationUtils.addEncounter(
@@ -322,21 +337,30 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         pn.setDateCreated(patient.getDateCreated());
         patient.addName(pn);
 
-        // OpenMRS requires that every patient have a preferred identifier.  If no MSF identifier
-        // is specified, we use a timestamp as a stand-in unique identifier.
         PatientIdentifier identifier = new PatientIdentifier();
+        patient.addIdentifier(identifier);
         identifier.setCreator(patient.getCreator());
         identifier.setDateCreated(patient.getDateCreated());
         identifier.setLocation(DbUtil.getDefaultLocation());
-        if (json.containsKey(ID) && !((String) json.get(ID)).isEmpty()) {
-            identifier.setIdentifier((String) json.get(ID));
-            identifier.setIdentifierType(DbUtil.getIdentifierTypeMsf());
-        } else {
-            identifier.setIdentifier("" + new Date().getTime());
-            identifier.setIdentifierType(DbUtil.getTimestampIdentifierType());
-        }
         identifier.setPreferred(true);
-        patient.addIdentifier(identifier);
+
+        // OpenMRS requires that every patient have a preferred identifier.  If the
+        // incoming "id" field is non-blank, it becomes the MSF identifier; otherwise,
+        // we use our database to generate a numeric locally unique identifier.
+        if (json.containsKey(ID) && !((String) json.get(ID)).isEmpty()) {
+            identifier.setIdentifierType(DbUtil.getIdentifierTypeMsf());
+            identifier.setIdentifier((String) json.get(ID));
+        } else {
+            identifier.setIdentifierType(DbUtil.getIdentifierTypeLocal());
+            // To generate an integer ID, we need to save the patient identifier and
+            // let the table fill in the ID AUTO_INCREMENT column.  But OpenMRS will
+            // not let us save the patient identifier with a blank identifier string,
+            // so let's generate a temporary unique identifier just for this purpose.
+            // We also can't save the patient identifier until after the patient is
+            // saved, so, after that's done, we'll fix up the identifier to use the
+            // generated number in the ID column.
+            identifier.setIdentifier("temp-" + new Date().getTime());
+        }
 
         // Set assigned location last, as doing so saves the patient, which could fail
         // if performed in the middle of patient creation.
