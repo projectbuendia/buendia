@@ -146,7 +146,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         // seems
         // to do odd things... so instead, we import it into a new document.
         Document oldDoc = XmlUtil.parse(xml);
-        Document doc = XmlUtil.getDocumentBuilder().newDocument();
+        Document doc = XmlUtil.createDocumentBuilder().newDocument();
         Element root = (Element) doc.importNode(oldDoc.getDocumentElement(), true);
         root = (Element) doc.renameNode(root, HTML_NAMESPACE, "h:form");
         doc.appendChild(root);
