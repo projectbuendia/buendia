@@ -605,10 +605,7 @@ public class BuendiaXformBuilderEx {
         addSelectOption(controlNode, getLabel(conceptService.getConcept(FEMALE_CONCEPT_ID)), "F");
     }
 
-    /**
-     * Populates a UI control node with providers.
-     * @param controlNode - the UI control node.
-     */
+    /** Populates a selection node with provider options. The labels are UUIDs, understood by the client. */
     private void populateProviders(Element controlNode) {
         includesProviders = true;
         for (Provider provider : Context.getProviderService().getAllProviders()) {
@@ -617,10 +614,7 @@ public class BuendiaXformBuilderEx {
         }
     }
 
-    /**
-     * Populates a UI control node with locations.
-     * @param controlNode - the UI control node.
-     */
+    /** Populates a selection node with location options. The labels are UUIDs, understood by the client. */
     private void populateLocations(Element controlNode) {
         includesLocations = true;
         List<Location> locations = customizer.getEncounterLocations();
