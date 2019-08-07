@@ -49,8 +49,12 @@ public class RequestLogger {
         try {
             HttpServletRequest request = context.getRequest();
             String filename = request.getRemoteAddr();
-            start(filename, key, "\u001b[33m" + request.getMethod() + " "
-                + request.getRequestURI() + "\u001b[0m " + message);
+            String url = request.getRequestURI();
+            if (request.getQueryString() != null) {
+                url += "?" + request.getQueryString();
+            }
+            start(filename, key, "\u001b[33m" + request.getMethod() + " " + url
+                + "\u001b[0m " + message);
         } catch (Exception e) {
         }
     }
