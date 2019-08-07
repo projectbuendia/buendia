@@ -179,13 +179,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         PatientIdentifier ident = patient.getPatientIdentifier();  // first preferred identifier
-        if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeMsf())) {
-            jsonForm.add(ID, ident.getIdentifier());
-        } else if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
-            // Let's put a star in front to help avoid conflation with MSF identifiers.
-            // The client app doesn't allow "*" when entering an identifier, so this
-            // will distinguish identifiers that weren't created by the client.
+
+        // The client-side representation of an identifier is either:
+        // "*" followed by an integer, where the integer is a local
+        // (type "LOCAL") server-generated identifier; or otherwise
+        // it is an MSF (type "MSF") client-provided identifier.
+        if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
             jsonForm.add(ID, "*" + ident.getIdentifier());
+        } else {
+            jsonForm.add(ID, ident.getIdentifier());
         }
         jsonForm.add(SEX, patient.getGender());
         if (patient.getBirthdate() != null) {
@@ -248,18 +250,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         synchronized (createPatientLock) {
             String id = (String) json.get(ID);
             if (id != null) {
-                List<PatientIdentifierType> identifierTypes =
-                        Collections.singletonList(DbUtil.getIdentifierTypeMsf());
-                List<Patient> existing = patientService.getPatients(
-                    null, id, identifierTypes, true /* exact identifier match */);
-                if (!existing.isEmpty()) {
-                    Patient idMatch = existing.get(0);
-                    String name = getFullName(idMatch);
-                    throw new InvalidObjectDataException(
-                        String.format(
-                            "Another patient (%s) already has the ID \"%s\"",
-                            name.isEmpty() ? "with no name" : "named " + name, id));
-                }
+                requireValidUniqueMsfIdentifier(id);
             }
             String uuid = (String) json.get(UUID);
             if (uuid != null) {
@@ -426,10 +417,25 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
     }
 
+    /**
+     * The patientId is the client-side representation of an identifier.
+     * It is either "*" followed by an integer, where the integer is a
+     * local (type "LOCAL") server-generated identifier; or otherwise it
+     * is an MSF (type "MSF") client-provided identifier.
+     */
     private SimpleObject searchInner(String patientId) throws ResponseException {
-        List<PatientIdentifierType> idTypes =
-                Collections.singletonList(DbUtil.getIdentifierTypeMsf());
-        List<Patient> patients = patientService.getPatients(null, patientId, idTypes, true);
+        List<PatientIdentifierType> identTypes = new ArrayList<>();
+        String ident;
+        if (patientId.startsWith("*")) {
+            // The ID refers to a local server-generated identifier.
+            identTypes.add(DbUtil.getIdentifierTypeLocal());
+            ident = patientId.substring(1);
+        } else {
+            // The ID refers to an MSF client-provided identifier.
+            identTypes.add(DbUtil.getIdentifierTypeMsf());
+            ident = patientId;
+        }
+        List<Patient> patients = patientService.getPatients(null, ident, identTypes, true);
         return getSimpleObjectWithResults(patients);
     }
 
@@ -529,18 +535,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getIdentifierTypeMsf());
         if (newId != null && !newId.isEmpty() && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
             synchronized (createPatientLock) {
-                List<PatientIdentifierType> identifierTypes =
-                        Collections.singletonList(DbUtil.getIdentifierTypeMsf());
-                List<Patient> existing = patientService.getPatients(
-                    null, newId, identifierTypes, true /* exact identifier match */);
-                if (!existing.isEmpty()) {
-                    Patient idMatch = existing.get(0);
-                    String name = getFullName(idMatch);
-                    throw new InvalidObjectDataException(
-                        String.format(
-                            "Another patient (%s) already has the ID \"%s\"",
-                            name.isEmpty() ? "with no name" : "named " + name, newId));
-                }
+                requireValidUniqueMsfIdentifier(newId);
 
                 if (identifier != null) {
                     patient.removeIdentifier(identifier);
@@ -573,6 +568,29 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         if (changedPatient) {
             patientService.savePatient(patient);
+        }
+    }
+
+    /** Verifies that a string is acceptable as a unique, well-formed identifier. */
+    private void requireValidUniqueMsfIdentifier(String ident) {
+        // To prevent collision between identifier types, we don't permit the
+        // client to try to create an MSF identifier that starts with "*".
+        if (ident.startsWith("*")) {
+            throw new InvalidObjectDataException(String.format(
+                "\"%s\" is not a valid ID; the \"*\" prefix is reserved for server-generated IDs",
+                ident
+            ));
+        }
+        List<PatientIdentifierType> identifierTypes =
+            Collections.singletonList(DbUtil.getIdentifierTypeMsf());
+        List<Patient> existing = patientService.getPatients(
+            null, ident, identifierTypes, true /* exact identifier match */);
+        if (!existing.isEmpty()) {
+            String name = getFullName(existing.get(0));
+            throw new InvalidObjectDataException(String.format(
+                "Another patient (%s) already has the ID \"%s\"",
+                name.isEmpty() ? "with no name" : "named " + name, ident
+            ));
         }
     }
 }
