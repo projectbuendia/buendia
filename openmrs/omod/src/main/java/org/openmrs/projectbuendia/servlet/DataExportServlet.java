@@ -61,7 +61,7 @@ public class DataExportServlet extends HttpServlet {
         @Override public int compare(Patient p1, Patient p2) {
             PatientIdentifier id1 = p1.getPatientIdentifier("MSF");
             PatientIdentifier id2 = p2.getPatientIdentifier("MSF");
-            return Utils.alphanumericComparator.compare(
+            return Utils.ALPHANUMERIC_COMPARATOR.compare(
                 id1 == null ? null : id1.getIdentifier(),
                 id2 == null ? null : id2.getIdentifier()
             );
