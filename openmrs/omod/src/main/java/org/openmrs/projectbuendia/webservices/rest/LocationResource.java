@@ -165,7 +165,7 @@ public class LocationResource implements
 
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "retrieve", uuid);
+            logger.request(context, this, "retrieve");
             Object result = retrieveInner(uuid);
             logger.reply(context, this, "retrieve", result);
             return result;
@@ -210,7 +210,7 @@ public class LocationResource implements
     @Override public Object update(String uuid, SimpleObject request, RequestContext context)
         throws ResponseException {
         try {
-            logger.request(context, this, "update", uuid + ", " + request);
+            logger.request(context, this, "update", request);
             Object result = updateInner(uuid, request);
             logger.reply(context, this, "update", result);
             return result;
@@ -239,11 +239,11 @@ public class LocationResource implements
     @Override public void delete(String uuid, String reason, RequestContext context)
         throws ResponseException {
         try {
-            logger.request(context, this, "update", uuid + ", " + reason);
+            logger.request(context, this, "delete", reason);
             deleteInner(uuid);
-            logger.reply(context, this, "update", null);
+            logger.reply(context, this, "delete", null);
         } catch (Exception e) {
-            logger.error(context, this, "update", e);
+            logger.error(context, this, "delete", e);
             throw e;
         }
     }

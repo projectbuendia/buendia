@@ -41,7 +41,9 @@ public class RequestLogger {
 
     /** Emits a "start" line for an incoming request. */
     public void request(RequestContext context, Object instance, String method, Object input) {
-        request(context, formatKey(instance, method), input != null ? "(" + input + ")" : "");
+        String message = input instanceof String ? "\"" + input + "\"" :
+            input != null ? "" + input : "";
+        request(context, formatKey(instance, method), message);
     }
 
     /** Emits a "start" line for an incoming request. */
