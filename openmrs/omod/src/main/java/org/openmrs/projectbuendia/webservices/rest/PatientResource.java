@@ -107,7 +107,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     // Fake values
     private static final User CREATOR = new User(1);
-    private static final String FACILITY_NAME = "Kailahun";  // TODO: Use a real facility name.
     static final RequestLogger logger = RequestLogger.LOGGER;
 
     // JSON property names
@@ -180,7 +179,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         PatientIdentifier patientIdentifier =
-            patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
+            patient.getPatientIdentifier(DbUtil.getIdentifierTypeMsf());
         if (patientIdentifier != null) {
             jsonForm.add(ID, patientIdentifier.getIdentifier());
         }
@@ -246,7 +245,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             String id = (String) json.get(ID);
             if (id != null) {
                 List<PatientIdentifierType> identifierTypes =
-                        Collections.singletonList(DbUtil.getMsfIdentifierType());
+                        Collections.singletonList(DbUtil.getIdentifierTypeMsf());
                 List<Patient> existing = patientService.getPatients(
                     null, id, identifierTypes, true /* exact identifier match */);
                 if (!existing.isEmpty()) {
@@ -272,11 +271,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             patient = jsonToPatient(json);
             patientService.savePatient(patient);
         }
-        // Observation for first symptom date
-        ObservationsHandler.addEncounter(
+        // Store any initial observations that are included with the new patient.
+        ObservationUtils.addEncounter(
             (List) json.get("observations"), null,
-            patient, patient.getDateCreated(), "Initial triage",
-            "ADULTINITIAL", LocationResource.TRIAGE_UUID);
+            patient, patient.getDateCreated(), "New patient", "ADULTINITIAL", null);
         return patientToJson(patient);
     }
 
@@ -329,13 +327,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         PatientIdentifier identifier = new PatientIdentifier();
         identifier.setCreator(patient.getCreator());
         identifier.setDateCreated(patient.getDateCreated());
-        // TODO/generalize: Instead of getting the root location by a hardcoded
-        // name (almost certainly an inappropriate name), change the helper
-        // function to DbUtil.getRootLocation().
-        identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
-        if (json.containsKey(ID)) {
+        identifier.setLocation(DbUtil.getDefaultLocation());
+        if (json.containsKey(ID) && !((String) json.get(ID)).isEmpty()) {
             identifier.setIdentifier((String) json.get(ID));
-            identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
+            identifier.setIdentifierType(DbUtil.getIdentifierTypeMsf());
         } else {
             identifier.setIdentifier("" + new Date().getTime());
             identifier.setIdentifierType(DbUtil.getTimestampIdentifierType());
@@ -409,7 +404,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private SimpleObject searchInner(String patientId) throws ResponseException {
         List<PatientIdentifierType> idTypes =
-                Collections.singletonList(DbUtil.getMsfIdentifierType());
+                Collections.singletonList(DbUtil.getIdentifierTypeMsf());
         List<Patient> patients = patientService.getPatients(null, patientId, idTypes, true);
         return getSimpleObjectWithResults(patients);
     }
@@ -507,11 +502,11 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
         }
 
-        PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getMsfIdentifierType());
-        if (newId != null && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
+        PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getIdentifierTypeMsf());
+        if (newId != null && !newId.isEmpty() && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
             synchronized (createPatientLock) {
                 List<PatientIdentifierType> identifierTypes =
-                        Collections.singletonList(DbUtil.getMsfIdentifierType());
+                        Collections.singletonList(DbUtil.getIdentifierTypeMsf());
                 List<Patient> existing = patientService.getPatients(
                     null, newId, identifierTypes, true /* exact identifier match */);
                 if (!existing.isEmpty()) {
@@ -529,12 +524,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 identifier = new PatientIdentifier();
                 identifier.setCreator(patient.getCreator());
                 identifier.setDateCreated(patient.getDateCreated());
-                // TODO/generalize: Instead of getting the root location by a hardcoded
-                // name (almost certainly an inappropriate name), change the helper
-                // function to DbUtil.getRootLocation().
-                identifier.setLocation(DbUtil.getLocationByName(FACILITY_NAME, null));
+                identifier.setLocation(DbUtil.getDefaultLocation());
                 identifier.setIdentifier(newId);
-                identifier.setIdentifierType(DbUtil.getMsfIdentifierType());
+                identifier.setIdentifierType(DbUtil.getIdentifierTypeMsf());
                 identifier.setPreferred(true);
                 patient.addIdentifier(identifier);
                 patientService.savePatient(patient);

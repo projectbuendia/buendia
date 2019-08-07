@@ -30,7 +30,9 @@ import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -47,8 +49,7 @@ import java.util.Set;
  * <li>GET /location returns all locations ({@link #getAll(RequestContext)})
  * <li>GET /location/[UUID] returns a single location ({@link #retrieve(String, RequestContext)})
  * <li>POST /location adds a location ({@link #create(SimpleObject, RequestContext)}
- * <li>POST /location/[UUID] updates a location ({@link #update(String, SimpleObject,
- * RequestContext)})
+ * <li>POST /location/[UUID] updates a location ({@link #update(String, SimpleObject, RequestContext)})
  * <li>DELETE /location/[UUID] deletes a location ({@link #delete(String, String, RequestContext)})
  * </ul>
  * <p/>
@@ -59,7 +60,6 @@ import java.util.Set;
  *   "uuid": “12345678-1234-1234-1234-123456789abc",
  *   "names": {
  *     “en”: “Kailahun”,
- *     “fr”: “Kailahun”  // (if other locales are available in the future)
  *   }
  *   "parent_uuid": “87654321-4321-4321-4321-cba9876543210"  // parent location
  * }
@@ -80,24 +80,6 @@ import java.util.Set;
     supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class LocationResource implements
     Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {
-    // Known locations.
-    // The root location.
-    public static final String ROOT_UUID = "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf";
-    public static final String TRIAGE_UUID = "3f75ca61-ec1a-4739-af09-25a84e3dd237";
-    // TODO/generalize: The facility name should not be hardcoded here.
-    private static final String ROOT_NAME = "ROOT LOCATION";
-    // The hard-coded zones. These are (name, UUID) pairs, and are children of
-    // the root location.  TODO/generalize: Consider generalizing these zones
-    // as well.  They may be common in infectious disease deployments but don't
-    // make sense for all situations.
-    private static final String[][] ZONE_NAMES_AND_UUIDS = {
-        {"Triage Zone", TRIAGE_UUID},
-        {"Suspected Zone", "2f1e2418-ede6-481a-ad80-b9939a7fde8e"},
-        {"Probable Zone", "3b11e7c8-a68a-4a5f-afb3-a4a053592d0e"},
-        {"Confirmed Zone", "b9038895-9c9d-4908-9e0d-51fd535ddd3c"},
-        {"Morgue", "4ef642b9-9843-4d0d-9b2b-84fe1984801f"},
-        {"Discharged", "d7ca63c3-6ea0-4357-82fd-0910cc17a2cb"},
-    };
 
     private static Log log = LogFactory.getLog(PatientResource.class);
     static final RequestLogger logger = RequestLogger.LOGGER;
@@ -106,38 +88,6 @@ public class LocationResource implements
 
     public LocationResource() {
         locationService = Context.getLocationService();
-        Location root = getRootLocation(locationService);
-        ensureZonesExist(locationService, root);
-    }
-
-    private static Location getRootLocation(LocationService service) {
-        Location location = service.getLocationByUuid(ROOT_UUID);
-        if (location == null) {
-            log.info("Creating root location");
-            location = new Location();
-            location.setName(ROOT_NAME);
-            location.setUuid(ROOT_UUID);
-            location.setDescription(ROOT_NAME);
-            service.saveLocation(location);
-        }
-        return location;
-    }
-
-    private static void ensureZonesExist(LocationService service, Location root) {
-        for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
-            String name = nameAndUuid[0];
-            String uuid = nameAndUuid[1];
-            Location zone = service.getLocationByUuid(uuid);
-            if (zone == null) {
-                log.info("Creating zone location " + name);
-                zone = new Location();
-                zone.setName(name);
-                zone.setUuid(uuid);
-                zone.setDescription(name);
-                zone.setParentLocation(root);
-                service.saveLocation(zone);
-            }
-        }
     }
 
     @Override
@@ -154,13 +104,8 @@ public class LocationResource implements
     }
 
     private Object createInner(SimpleObject request) throws ResponseException {
-        if (request.containsKey("uuid")) {
-            throw new InvalidObjectDataException("\"uuid\" key is specified but not allowed");
-        }
-        String parentUuid = (String) request.get("parent_uuid");
-        if (parentUuid == null) {
-            throw new InvalidObjectDataException("Required \"parent_uuid\" key is missing");
-        }
+        Utils.requireKeyAbsent(request, "uuid");
+        String parentUuid = Utils.getRequiredString(request, "parent_uuid");
         Location parent = locationService.getLocationByUuid(parentUuid);
         if (parent == null) {
             throw new InvalidObjectDataException("No parent location found with UUID " +
@@ -177,7 +122,10 @@ public class LocationResource implements
         if (names == null || names.isEmpty()) {
             throw new InvalidObjectDataException("No name specified for new location");
         }
-        // TODO(nfortescue): work out if locations can be localized.
+        // The use of a "names" object with locale keys inside has never
+        // allowed more than one key or used any key other than "en".
+        // It now exists only for compatibility and is expected to always
+        // contain exactly one key; it is not to be used for localization.
         String name = (String) names.values().iterator().next();
         if (name.isEmpty()) {
             throw new InvalidObjectDataException("Empty name specified for new location");
@@ -229,7 +177,10 @@ public class LocationResource implements
 
     private Object retrieveInner(String uuid) throws ResponseException {
         Location location = locationService.getLocationByUuid(uuid);
-        return location == null ? null : locationToJson(location);
+        if (location == null) {
+            throw new ObjectNotFoundException();
+        }
+        return locationToJson(location);
     }
 
     private SimpleObject locationToJson(Location location) {
@@ -242,6 +193,10 @@ public class LocationResource implements
         if (parentLocation != null) {
             result.add("parent_uuid", parentLocation.getUuid());
         }
+        // The use of a "names" object with locale keys inside has never
+        // allowed more than one key or used any key other than "en".
+        // It now exists only for compatibility and is expected to always
+        // contain exactly one key; it is not to be used for localization.
         SimpleObject names = new SimpleObject();
         names.add("en", location.getDisplayString());
         result.add("names", names);
@@ -294,25 +249,13 @@ public class LocationResource implements
     }
 
     private SimpleObject getAllInner() throws ResponseException {
-        ArrayList<SimpleObject> jsonResults = new ArrayList<>();
-        // A new fetch is needed to sort out the hibernate cache.
-        Location root = locationService.getLocationByUuid(ROOT_UUID);
-        if (root == null) {
-            throw new IllegalStateException(
-                "Top-level location not found, expected UUID: " + ROOT_UUID);
+        ArrayList<SimpleObject> results = new ArrayList<>();
+        for (Location location : locationService.getAllLocations(false)) {  // false means omit retired locations
+            results.add(locationToJson(location));
         }
-        addRecursively(root, jsonResults);
         SimpleObject list = new SimpleObject();
-        list.add("results", jsonResults);
+        list.add("results", results);
         return list;
-    }
-
-    private void addRecursively(Location location, ArrayList<SimpleObject> results) {
-        if (location.isRetired()) return;
-        results.add(locationToJson(location));
-        for (Location child : location.getChildLocations()) {
-            addRecursively(child, results);
-        }
     }
 
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
@@ -320,15 +263,6 @@ public class LocationResource implements
     }
 
     private void deleteInner(String uuid) throws ResponseException {
-        if (ROOT_UUID.equals(uuid)) {
-            throw new InvalidObjectDataException("Cannot delete the root location");
-        }
-        for (String[] nameAndUuid : ZONE_NAMES_AND_UUIDS) {
-            if (nameAndUuid[1].equals(uuid)) {
-                throw new InvalidObjectDataException(
-                    "Cannot delete the zone \"" + nameAndUuid[0] + "\"");
-            }
-        }
         Location location = locationService.getLocationByUuid(uuid);
         if (location == null) {
             throw new InvalidObjectDataException("No location found with UUID " + uuid);
@@ -338,22 +272,10 @@ public class LocationResource implements
     }
 
     private void deleteLocationRecursively(Location location) {
-        // We can't rely on database constraints to fail when deleting a
-        // location, as locations are only stored as strings.  Checking all
-        // the patient attributes and child locations is really slow, and
-        // slower than it need be, but deleting locations should be rare.
-        PatientService patientService = Context.getPatientService();
-        for (Patient patient : patientService.getAllPatients()) {
-            Set<PersonAttribute> attributes = patient.getAttributes();
-            for (PersonAttribute attribute : attributes) {
-                if (attribute.getValue().equals(location.getUuid())) {
-                    throw new InvalidObjectDataException(
-                        String.format("Cannot delete the location \"%s\""
-                                + " because it has patients assigned to it",
-                            location.getDisplayString()));
-                }
-            }
-        }
+        // This may delete locations that are assigned to existing patients.
+        // The location is stored just as a string attribute on the patient,
+        // so this will not break any database constraints; it just means
+        // those patients will end up with an unknown location UUID.
         for (Location child : location.getChildLocations()) {
             deleteLocationRecursively(child);
         }

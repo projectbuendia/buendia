@@ -45,12 +45,12 @@ import static org.junit.Assert.fail;
 @SkipBaseSetup
 public class OrderResourceTest extends MainResourceControllerTest {
 
-    private static final String BASE_DATASET =
-            "org/openmrs/projectbuendia/webservices/rest/baseMetaDataSet.xml";
-    private static final String BASE_ORDER_DATASET =
-            "org/openmrs/projectbuendia/webservices/rest/order-test-base-data.xml";
-    private static final String TEST_DATASET =
-            "org/openmrs/projectbuendia/webservices/rest/single-order.xml";
+    private static final String BASE_TEST_DATA =
+        "org/openmrs/projectbuendia/webservices/rest/base-test-data.xml";
+    private static final String ORDER_TEST_DATA =
+        "org/openmrs/projectbuendia/webservices/rest/order-test-data.xml";
+    private static final String SINGLE_ORDER_DATA =
+        "org/openmrs/projectbuendia/webservices/rest/single-order.xml";
 
     private static final String BASE_URL = "/projectbuendia/orders";
     private static final String ENCOUNTERS_URL = "/projectbuendia/encounters";
@@ -80,9 +80,9 @@ public class OrderResourceTest extends MainResourceControllerTest {
             initializeInMemoryDatabase();
             authenticate();
         }
-        executeDataSet(BASE_DATASET);
-        executeDataSet(BASE_ORDER_DATASET);
-        executeDataSet(TEST_DATASET);
+        executeDataSet(BASE_TEST_DATA);
+        executeDataSet(ORDER_TEST_DATA);
+        executeDataSet(SINGLE_ORDER_DATA);
     }
 
     @Override

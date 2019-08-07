@@ -106,11 +106,9 @@ public class EncounterResource implements Creatable {
             throw new InvalidObjectDataException(
                 "Expected seconds since epoch for \"timestamp\" value: " + ex.getMessage());
         }
-        Encounter encounter = ObservationsHandler.addEncounter(
+        Encounter encounter = ObservationUtils.addEncounter(
             (List) post.get("observations"), (List) post.get("order_uuids"),
-            patient, encounterTime, "new observation", "ADULTRETURN",
-            // TODO: Consider using patient's location instead of the root location.
-            LocationResource.ROOT_UUID);
+            patient, encounterTime, "new observation", "ADULTRETURN", null);
         if (encounter == null) {
             throw new InvalidObjectDataException("No observations specified");
         }
@@ -143,7 +141,7 @@ public class EncounterResource implements Creatable {
                 continue;
             }
 
-            observations.put(obs.getConcept().getUuid(), ObservationsHandler.obsValueToString(obs));
+            observations.put(obs.getConcept().getUuid(), ObservationUtils.obsValueToString(obs));
         }
         if (!observations.isEmpty()) {
             encounterJson.put("observations", observations);
