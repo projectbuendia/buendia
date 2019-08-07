@@ -84,7 +84,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
      */
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "retrieve", uuid);
+            logger.request(context, this, "retrieve");
             Object result = retrieveInner(uuid, context, System.currentTimeMillis());
             logger.reply(context, this, "retrieve", result);
             return result;

@@ -414,7 +414,7 @@ public class OrderResource implements
     @Override
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "retrieve", uuid);
+            logger.request(context, this, "retrieve");
             Object result = retrieveInner(uuid);
             logger.reply(context, this, "retrieve", result);
             return result;
@@ -441,7 +441,7 @@ public class OrderResource implements
     public Object update(String uuid, SimpleObject simpleObject, RequestContext context) throws
         ResponseException {
         try {
-            logger.request(context, this, "update", uuid + ", " + simpleObject);
+            logger.request(context, this, "update", simpleObject);
             Object result = updateInner(uuid, simpleObject);
             logger.reply(context, this, "update", result);
             return result;
@@ -502,7 +502,7 @@ public class OrderResource implements
     public void delete(String uuid, String reason, RequestContext context)
             throws ResponseException {
         try {
-            logger.request(context, this, "delete", uuid);
+            logger.request(context, this, "delete");
             deleteInner(uuid);
             logger.reply(context, this, "delete", "returned");
         } catch (Exception e) {
