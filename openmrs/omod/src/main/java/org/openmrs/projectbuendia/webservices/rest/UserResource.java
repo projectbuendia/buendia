@@ -279,7 +279,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     /** Returns a specific Provider. */
     @Override public Object retrieve(String uuid, RequestContext context) throws ResponseException {
         try {
-            logger.request(context, this, "retrieve", uuid);
+            logger.request(context, this, "retrieve");
             Object result = retrieveInner(uuid);
             logger.reply(context, this, "retrieve", result);
             return result;
