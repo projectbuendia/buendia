@@ -49,7 +49,7 @@ public class Logger {
             if (message.length() > MAX_STDERR_LINE_LENGTH) {
                 message = message.substring(0, MAX_STDERR_LINE_LENGTH) + "...";
             }
-            System.err.println("\u001b[32m" + format.format(time) + "\u001b[0m HTTP: " + message);
+            System.err.println("\u001b[32m" + format.format(time) + "\u001b[0m [HTTP] " + message);
         } catch (Throwable t) {
         }
     }
