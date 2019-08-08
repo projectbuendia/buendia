@@ -30,7 +30,7 @@ import static org.openmrs.projectbuendia.Utils.parseLocalDate;
 @Resource(
     name = RestController.PATH + "/patients",
     supportedClass = Patient.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class PatientResource extends BaseResource<Patient> {
     private static final int MAX_PATIENTS_PER_PAGE = 100;

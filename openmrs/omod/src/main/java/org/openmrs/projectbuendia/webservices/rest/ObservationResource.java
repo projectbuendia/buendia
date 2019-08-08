@@ -18,7 +18,7 @@ import java.util.List;
 @Resource(
     name = RestController.PATH + "/observations",
     supportedClass = Obs.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class ObservationResource extends BaseResource<Obs> {
     private static final int MAX_OBSERVATIONS_PER_PAGE = 500;

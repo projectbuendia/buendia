@@ -35,10 +35,14 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescendant;
 
+/**
+ * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
+ * org.openmrs as otherwise the resource annotation isn't picked up.
+ */
 @Resource(
     name = RestController.PATH + "/xforms",
     supportedClass = Form.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class XformResource extends BaseResource<Form> {
     private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";

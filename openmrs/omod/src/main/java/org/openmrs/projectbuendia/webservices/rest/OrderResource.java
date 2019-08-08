@@ -25,7 +25,7 @@ import static org.openmrs.projectbuendia.Utils.eq;
 @Resource(
     name = RestController.PATH + "/orders",
     supportedClass = Order.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class OrderResource extends BaseResource<Order> {
     private static final int MAX_ORDERS_PER_PAGE = 100;

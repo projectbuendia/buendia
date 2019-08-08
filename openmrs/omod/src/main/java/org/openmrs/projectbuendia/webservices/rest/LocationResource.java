@@ -20,7 +20,7 @@ import java.util.Collection;
 @Resource(
     name = RestController.PATH + "/locations",
     supportedClass = Location.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class LocationResource extends BaseResource<Location> {
     public LocationResource() {

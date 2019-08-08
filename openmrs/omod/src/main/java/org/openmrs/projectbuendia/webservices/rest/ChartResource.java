@@ -27,10 +27,14 @@ import java.util.regex.Pattern;
 
 import static org.openmrs.projectbuendia.Utils.isEmpty;
 
+/**
+ * REST resource for charts. These are stored as OpenMRS forms, but that's
+ * primarily to allow for ease of maintenance (OpenMRS provides an editing UI).
+ */
 @Resource(
     name = RestController.PATH + "/charts",
     supportedClass = Form.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class ChartResource extends BaseResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");

@@ -25,10 +25,14 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+/**
+ * REST collection of all the concepts that are present in at least one of the
+ * charts returned by {@link ChartResource}.
+ */
 @Resource(
     name = RestController.PATH + "/concepts",
     supportedClass = Concept.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class ConceptResource extends BaseResource<Concept> {
     public ConceptResource() {

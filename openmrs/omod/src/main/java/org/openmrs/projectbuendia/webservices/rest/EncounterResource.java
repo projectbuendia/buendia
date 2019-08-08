@@ -15,10 +15,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * A collection where each item corresponds to one patient and contains
+ * the encounter and observation data for that patient as of a particular
+ * point in time (referred to as the "snapshot time").
+ */
 @Resource(
     name = RestController.PATH + "/encounters",
     supportedClass = Location.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class EncounterResource extends BaseResource<Encounter> {
     public EncounterResource() {
