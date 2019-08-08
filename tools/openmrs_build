@@ -13,7 +13,7 @@
 # Builds the Buendia module and installs it in an OpenMRS development server.
 
 set -e
-SERVER_ID=server
+SERVER_ID=buendia
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
 MODULE_DIR=$SERVER_DIR/modules
 INSTALL="mvn openmrs-sdk:deploy -DserverId=$SERVER_ID"
@@ -47,9 +47,7 @@ EOF
 fi
 
 # Install the module dependencies in the OpenMRS development server.
-# These version numbers are duplicated in [git root]/openmrs/pom.xml
 $INSTALL -DgroupId=org.openmrs.module -DartifactId=xforms -Dversion=4.3.12
-$INSTALL -DgroupId=org.openmrs.module -DartifactId=webservices.rest -Dversion=2.6
 
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
 # given to this script.

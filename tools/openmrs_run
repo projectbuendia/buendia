@@ -13,16 +13,21 @@
 # Starts a local OpenMRS server for development.
 
 set -e
-SERVER_ID=server
+SERVER_ID=buendia
 
 # Serve on port 9000 to match production.
 PORT_OPTS="-Djetty.port=9000 -Dserver.port=9000 -Dport=9000"
 
 # Increase memory limits.
-MEMORY_OPTS="-Xmx2G -XX:MaxPermSize=128m"
+MEMORY_OPTS="-Xmx2G"
 
 # Enable remote debugging.
 # DEBUG_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+
+# On MacOS, select JDK version 1.8.
+if [ -x /usr/libexec/java_home ]; then
+    export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+fi
 
 # Go to the OpenMRS installation directory.
 if [ ! -d $HOME/openmrs/$SERVER_ID ]; then

@@ -13,11 +13,11 @@
 # Ensure that the correct version of the OpenMRS platform WAR has been
 # downloaded and configured.
 
-SERVER_ID=server
+SERVER_ID=buendia
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
-PLATFORM_VERSION=1.10.2
+PLATFORM_VERSION=2.2.0
 WAR_URL=http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_${PLATFORM_VERSION}/openmrs.war/download
-WAR_MD5=7e8d4054d86d796018c9fca31f4d33b2
+WAR_MD5=1ab52ab8a8aeeb879161f4896d2bd415
 
 # go to the root of the Buendia repository
 cd $(dirname $0)/..
