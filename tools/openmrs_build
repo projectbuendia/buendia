@@ -31,8 +31,8 @@ cd ..  # go to the root of the Buendia repository
 # no-op.
 tools/openmrs_ensure_sdk
 
-# Clean out any old modules, leaving an empty server module directory.
-rm -rf $MODULE_DIR
+# Clean out any old buendia modules.
+rm -rf $MODULE_DIR/projectbuendia.*
 mkdir -p $MODULE_DIR
 
 # openmrs-sdk:install requires an installation.properties file containing
@@ -48,7 +48,7 @@ fi
 
 # Install the module dependencies in the OpenMRS development server.
 # These version numbers are duplicated in [git root]/openmrs/pom.xml
-$INSTALL -DgroupId=org.openmrs.module -DartifactId=xforms -Dversion=4.3.5
+$INSTALL -DgroupId=org.openmrs.module -DartifactId=xforms -Dversion=4.3.12
 $INSTALL -DgroupId=org.openmrs.module -DartifactId=webservices.rest -Dversion=2.6
 
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
