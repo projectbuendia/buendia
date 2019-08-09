@@ -44,6 +44,7 @@ public class LocationResourceTest extends MainResourceControllerTest {
         "org/openmrs/projectbuendia/webservices/rest/base-test-data.xml";
 
     // These constants should match the values in the BASE_TEST_DATA file.
+    String RETIRED_UUID = "8d6c993e-c2cc-11de-8d13-0010c6dffd0f";
     String XANADU_UUID = "9356400c-a5a2-4532-8f2b-2361b3446eb8";
     String NEVER_NEVER_UUID = "167ce20c-4785-4285-9119-d197268f7f4a";
     String NEVER_NEVER_NAME = "Never Never Land";
@@ -103,6 +104,18 @@ public class LocationResourceTest extends MainResourceControllerTest {
     @Test
     public void testGetMissingLocation() throws Exception {
         MockHttpServletRequest request = this.request(RequestMethod.GET, this.getURI() + "/" + INVALID_LOCATION_UUID);
+        try {
+            MockHttpServletResponse response = this.handle(request);
+        } catch (ObjectNotFoundException e) {
+            // success
+            return;
+        }
+        fail("ObjectNotFoundException was expected but not thrown");
+    }
+
+    @Test
+    public void testGetRetiredLocation() throws Exception {
+        MockHttpServletRequest request = this.request(RequestMethod.GET, this.getURI() + "/" + RETIRED_UUID);
         try {
             MockHttpServletResponse response = this.handle(request);
         } catch (ObjectNotFoundException e) {

@@ -255,7 +255,8 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
      * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
      */
     @Override protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
-        return formService.getFormByUuid(uuid);
+        Form form = formService.getFormByUuid(uuid);
+        return (!form.isRetired() && form.getPublished()) ? form : null;
     }
 
     /**
@@ -274,7 +275,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         // No query parameters supported - just give all the forms
         List<Form> forms = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
-            if (form.getPublished()) {
+            if (!form.isRetired() && form.getPublished()) {
                 forms.add(form);
             }
         }

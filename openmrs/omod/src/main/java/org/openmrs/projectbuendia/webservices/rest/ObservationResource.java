@@ -75,11 +75,12 @@ public class ObservationResource implements Listable, Searchable {
 
     private SimpleObject handleSync(RequestContext context) {
         SyncToken syncFrom = RequestUtil.mustParseSyncToken(context);
+        boolean includeVoided = (syncFrom != null);
         Date requestTime = new Date();
 
         SyncPage<Obs> observations =
                 buendiaService.getObservationsModifiedAtOrAfter(
-                        syncFrom, syncFrom != null, MAX_OBS_PER_PAGE);
+                        syncFrom, includeVoided, MAX_OBS_PER_PAGE);
         List<SimpleObject> jsonResults = new ArrayList<>(observations.results.size());
         for (Obs obs : observations.results) {
             jsonResults.add(obsToJson(obs));
