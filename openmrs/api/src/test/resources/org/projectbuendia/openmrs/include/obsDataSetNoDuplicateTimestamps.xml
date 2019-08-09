@@ -18,18 +18,18 @@
 This dataset requires samplePatientsDataSet.xml, which defines the patients referenced here.
 -->
 <dataset>
-    <obs obs_id="7" person_id="7" concept_id="5089" encounter_id="3" obs_datetime="2008-07-01 00:00:00.0" location_id="1" value_numeric="50.0" comments="" creator="1" date_created="2008-08-18 14:09:35.0" voided="false" value_coded="[NULL]" value_coded_name_id="[NULL]" value_complex="[NULL]" value_text="[NULL]" value_datetime="[NULL]" value_drug="[NULL]" uuid="fffffff"/>
+    <obs obs_id="7" person_id="7" concept_id="5089" encounter_id="3" obs_datetime="2008-07-01 00:00:00.0" location_id="1" value_numeric="50.0" comments="" creator="1" date_created="2008-08-18 14:09:35.0" voided="false" value_coded="[NULL]" value_coded_name_id="[NULL]" value_complex="[NULL]" value_text="[NULL]" value_datetime="[NULL]" value_drug="[NULL]" uuid="fffffff" status="FINAL"/>
     <buendia_obs_sync_map obs_id="7" date_updated="2008-08-18 14:09:35.0" uuid="fffffff" />
-    <obs obs_id="9" person_id="7" concept_id="5497" encounter_id="3" obs_datetime="2008-08-01 00:00:00.0" location_id="1" value_numeric="150.0" comments="" creator="1" date_created="2008-08-18 14:11:13.0" voided="false" uuid="aaaaaa"/>
+    <obs obs_id="9" person_id="7" concept_id="5497" encounter_id="3" obs_datetime="2008-08-01 00:00:00.0" location_id="1" value_numeric="150.0" comments="" creator="1" date_created="2008-08-18 14:11:13.0" voided="false" uuid="aaaaaa" status="FINAL"/>
     <buendia_obs_sync_map obs_id="9" date_updated="2008-08-18 14:11:35.0" uuid="aaaaaa" />
-    <obs obs_id="10" person_id="7" concept_id="5089" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_numeric="55.0" comments="" creator="1" date_created="2008-08-18 14:22:47.0" voided="false" uuid="wwwwww"/>
+    <obs obs_id="10" person_id="7" concept_id="5089" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_numeric="55.0" comments="" creator="1" date_created="2008-08-18 14:22:47.0" voided="false" uuid="wwwwww" status="FINAL"/>
     <buendia_obs_sync_map obs_id="10" date_updated="2008-08-18 14:13:35.0" uuid="wwwwww" />
-    <obs obs_id="11" person_id="7" concept_id="5497" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_numeric="175.0" comments="" creator="1" date_created="2008-08-18 14:25:29.0" voided="true" uuid="bbbbbb"/>
+    <obs obs_id="11" person_id="7" concept_id="5497" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_numeric="175.0" comments="" creator="1" date_created="2008-08-18 14:25:29.0" voided="true" uuid="bbbbbb" status="FINAL"/>
     <buendia_obs_sync_map obs_id="11" date_updated="2015-08-18 14:09:35.0" uuid="bbbbbb" />
-    <obs obs_id="12" person_id="7" concept_id="19" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_text="PB and J" comments="" creator="1" date_created="2008-08-19 12:32:03.0" voided="true" uuid="cccccc"/>
+    <obs obs_id="12" person_id="7" concept_id="19" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_text="PB and J" comments="" creator="1" date_created="2008-08-19 12:32:03.0" voided="true" uuid="cccccc" status="FINAL"/>
     <buendia_obs_sync_map obs_id="12" date_updated="2015-09-18 14:09:35.0" uuid="cccccc" />
-    <obs obs_id="13" person_id="7" concept_id="18" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_coded="7" comments="" creator="1" date_created="2008-08-19 12:32:20.0" voided="false" uuid="tttttt"/>
+    <obs obs_id="13" person_id="7" concept_id="18" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_coded="7" comments="" creator="1" date_created="2008-08-19 12:32:20.0" voided="false" uuid="tttttt" status="FINAL"/>
     <buendia_obs_sync_map obs_id="13" date_updated="2015-09-19 14:09:35.0" uuid="tttttt" />
-    <obs obs_id="14" person_id="7" concept_id="20" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_datetime="2008-08-14 00:00:00.0" comments="" creator="1" date_created="2008-08-19 12:32:38.0" voided="false" uuid="yyyyyy"/>
+    <obs obs_id="14" person_id="7" concept_id="20" encounter_id="4" obs_datetime="2008-08-15 00:00:00.0" location_id="1" value_datetime="2008-08-14 00:00:00.0" comments="" creator="1" date_created="2008-08-19 12:32:38.0" voided="false" uuid="yyyyyy" status="FINAL"/>
     <buendia_obs_sync_map obs_id="14" date_updated="2015-09-19 14:09:36.0" uuid="yyyyyy" />
 </dataset>

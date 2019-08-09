@@ -67,9 +67,9 @@ public class ChartResource extends BaseResource<Form> {
         if (context.getRepresentation() != Representation.FULL) return;
 
         List<Map> sections = new ArrayList<>();
-        SortedMap<Integer, TreeSet<FormField>> structure = FormUtil.getFormStructure(form);
         // Chart definitions are assumed to have a three-level structure: a single
         // root FormField, whose children are sections, whose children are chart rows.
+        Map<Integer, TreeSet<FormField>> structure = FormUtil.getFormStructure(form);
         for (FormField sectionFormField : structure.get(0)) {
             Field sectionField = sectionFormField.getField();
             Map<String, Object> section = parseFieldDescription(sectionField);

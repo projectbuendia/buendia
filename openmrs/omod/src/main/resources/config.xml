@@ -25,8 +25,7 @@
   </updateURL>
   <require_version>${openMRSVersion}</require_version>
   <require_modules>
-    <require_module version="${webservicesRestVersion}">org.openmrs.module.webservices.rest
-    </require_module>
+    <require_module version="${webservicesRestVersion}">org.openmrs.module.webservices.rest</require_module>
     <require_module version="${xformsVersion}">org.openmrs.module.xforms</require_module>
   </require_modules>
   <!-- / Module Properties -->
