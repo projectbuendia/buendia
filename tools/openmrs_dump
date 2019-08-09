@@ -15,6 +15,11 @@ db=$1
 dumpfile=$2
 pwd=$(pwd)
 
+eval $(buendia-settings 2>/dev/null)
+
+MYSQL_USER=${MYSQL_USER-$OPENMRS_MYSQL_USER}
+MYSQL_PASSWORD=${MYSQL_PASSWORD-$OPENMRS_MYSQL_PASSWORD}
+
 mysqldump="mysqldump"
 if [ -n "$MYSQL_USER" ]; then
     mysqldump="mysqldump -u $MYSQL_USER -p$MYSQL_PASSWORD"
