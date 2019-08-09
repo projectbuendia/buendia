@@ -81,7 +81,8 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
      */
     @Override
     protected Concept retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
-        return conceptService.getConceptByUuid(uuid);
+        Concept concept = conceptService.getConceptByUuid(uuid);
+        return concept.isRetired() ? null : concept;
     }
 
     /**
@@ -95,26 +96,27 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     @Override protected Iterable<Concept> searchImpl(RequestContext context, long snapshotTime) {
         // Retrieves all the concepts that the client needs to know about
         // (the concepts within all the charts served by ChartResource).
-        Set<Concept> ret = new HashSet<>();
+        Set<Concept> concepts = new HashSet<>();
         for (Form chart : ChartResource.getCharts(formService)) {
             for (FormField formField : chart.getFormFields()) {
                 Field field = formField.getField();
-                Concept fieldConcept = field.getConcept();
-                if (fieldConcept != null) {
-                    ret.add(fieldConcept);
-                    for (ConceptAnswer answer : fieldConcept.getAnswers(false)) {
-                        ret.add(answer.getAnswerConcept());
+                Concept concept = field.getConcept();
+                if (concept != null && !concept.isRetired()) {
+                    concepts.add(concept);
+                    for (ConceptAnswer answer : concept.getAnswers(false)) {
+                        concepts.add(answer.getAnswerConcept());
                     }
                 }
                 // Fetch and add additional concepts that might have been stored in the field
                 // description.
-                for (Concept additionalConcept :
-                        getConceptsFromFieldDescription(field.getDescription())) {
-                    ret.add(additionalConcept);
+                for (Concept extra : getConceptsFromFieldDescription(field.getDescription())) {
+                    if (extra != null && !extra.isRetired()) {
+                        concepts.add(extra);
+                    }
                 }
             }
         }
-        return ret;
+        return concepts;
     }
 
     /**
@@ -149,7 +151,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
                 // We're ok with a ClassCastException here if this isn't an Integer.
                 Integer conceptId = (Integer) obj;
                 Concept concept = Context.getConceptService().getConcept(conceptId);
-                if (concept == null) {
+                if (concept == null || concept.isRetired()) {
                     continue;
                 }
                 returnValue.add(concept);

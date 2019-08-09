@@ -140,11 +140,12 @@ public class OrderResource implements
 
     private SimpleObject handleSync(RequestContext context) throws ResponseException {
         SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        boolean includeVoided = (syncToken != null);
         Date requestTime = new Date();
 
         SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
                 syncToken,
-                syncToken != null /* includeVoided */,
+                includeVoided,
                 MAX_ORDERS_PER_PAGE /* maxResults */,
                 ALLOWABLE_ACTIONS);
 

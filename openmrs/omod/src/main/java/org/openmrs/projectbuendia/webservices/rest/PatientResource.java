@@ -137,11 +137,12 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private SimpleObject handleSync(RequestContext context) throws ResponseException {
         SyncToken syncToken = RequestUtil.mustParseSyncToken(context);
+        boolean includeVoided = (syncToken != null);
         Date requestTime = new Date();
 
         SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
                 syncToken,
-                syncToken != null /* includeVoided */,
+                includeVoided,
                 MAX_PATIENTS_PER_PAGE /* maxResults */);
 
         List<SimpleObject> jsonResults = new ArrayList<>();

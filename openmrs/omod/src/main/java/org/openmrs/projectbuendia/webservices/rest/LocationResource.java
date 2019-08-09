@@ -177,7 +177,7 @@ public class LocationResource implements
 
     private Object retrieveInner(String uuid) throws ResponseException {
         Location location = locationService.getLocationByUuid(uuid);
-        if (location == null) {
+        if (location == null || location.isRetired()) {
             throw new ObjectNotFoundException();
         }
         return locationToJson(location);
@@ -250,8 +250,10 @@ public class LocationResource implements
 
     private SimpleObject getAllInner() throws ResponseException {
         ArrayList<SimpleObject> results = new ArrayList<>();
-        for (Location location : locationService.getAllLocations(false)) {  // false means omit retired locations
-            results.add(locationToJson(location));
+        for (Location location : locationService.getAllLocations()) {
+            if (!location.isRetired()) {
+                results.add(locationToJson(location));
+            }
         }
         SimpleObject list = new SimpleObject();
         list.add("results", results);
@@ -259,7 +261,7 @@ public class LocationResource implements
     }
 
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        return getAll(requestContext);
+        return getAllInner();
     }
 
     private void deleteInner(String uuid) throws ResponseException {

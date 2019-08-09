@@ -140,7 +140,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         // Returning providers is not a thread-safe operation as it may add the guest user
         // to the database, which is not idempotent.
         synchronized (this) {
-            providers = providerService.getAllProviders(false); // omit retired
+            providers = providerService.getAllProviders();
             addGuestIfNotPresent(providers);
         }
         return getSimpleObjectWithResults(providers);
@@ -183,7 +183,9 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private SimpleObject getSimpleObjectWithResults(List<Provider> providers) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Provider provider : providers) {
-            jsonResults.add(providerToJson(provider));
+            if (!provider.isRetired()) {
+                jsonResults.add(providerToJson(provider));
+            }
         }
         SimpleObject list = new SimpleObject();
         list.add("results", jsonResults);

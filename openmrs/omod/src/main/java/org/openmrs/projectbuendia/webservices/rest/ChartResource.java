@@ -64,7 +64,8 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
      */
     @Override public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime)
         throws ResponseException {
-        return formService.getFormByUuid(uuid);
+        Form form = formService.getFormByUuid(uuid);
+        return form.isRetired() ? null : form;
     }
 
     /**
@@ -175,9 +176,8 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
             .split(",");
         for (String uuid : uuids) {
             Form form = formService.getFormByUuid(uuid);
-            if (form == null) {
-                throw new ConfigurationException(GlobalProperties.CHART_UUIDS +
-                    " property is incorrect; cannot find form " + uuid);
+            if (form == null || form.isRetired()) {
+                continue;
             }
             charts.add(form);
         }
