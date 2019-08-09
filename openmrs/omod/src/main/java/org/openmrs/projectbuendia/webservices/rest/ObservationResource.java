@@ -13,6 +13,8 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.openmrs.Obs;
 import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
@@ -42,6 +44,8 @@ import java.util.List;
     supportedClass = Obs.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ObservationResource implements Listable, Searchable {
+    private static final RequestLogger logger = RequestLogger.LOGGER;
+    private static final Log log = LogFactory.getLog(OrderResource.class);
 
     private static final int MAX_OBS_PER_PAGE = 500;
 
@@ -53,12 +57,20 @@ public class ObservationResource implements Listable, Searchable {
 
     @Override
     public SimpleObject getAll(RequestContext context) throws ResponseException {
-        return handleSync(context);
+        return search(context);
     }
 
     @Override
     public SimpleObject search(RequestContext context) throws ResponseException {
-        return handleSync(context);
+        try {
+            logger.request(context, this, "handleSync");
+            SimpleObject result = handleSync(context);
+            logger.reply(context, this, "handleSync", abbreviateResult(result));
+            return result;
+        } catch (Exception e) {
+            logger.error(context, this, "handleSync", e);
+            throw e;
+        }
     }
 
     private SimpleObject handleSync(RequestContext context) {
@@ -77,6 +89,28 @@ public class ObservationResource implements Listable, Searchable {
         // If we fetched a full page, there's probably more data available.
         boolean more = observations.results.size() == MAX_OBS_PER_PAGE;
         return ResponseUtil.createIncrementalSyncResults(jsonResults, newToken, more);
+    }
+
+    private SimpleObject abbreviateResult(SimpleObject result) {
+        final int MAX_ITEMS = 10;
+        List<SimpleObject> items = (List<SimpleObject>) result.get("results");
+        List<Object> abbrevItems = new ArrayList<>();
+        Object resultsValue = items;
+
+        if (items.size() > MAX_ITEMS) {
+            int omitted = items.size() - MAX_ITEMS;
+            abbrevItems.add(String.format(
+                "...only logging last %d of %d items (%d omitted)...",
+                items.size(), MAX_ITEMS, omitted
+            ));
+            abbrevItems.addAll(items.subList(omitted, items.size()));
+            resultsValue = abbrevItems;
+        }
+
+        return new SimpleObject()
+            .add("results", resultsValue)
+            .add("syncToken", result.get("syncToken"))
+            .add("more", result.get("more"));
     }
 
     private SimpleObject obsToJson(Obs obs) {
