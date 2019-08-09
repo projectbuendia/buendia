@@ -111,7 +111,7 @@ public class OrderResource implements
     public static final String VOIDED = "voided";
     public static final String ORDERER_UUID = "orderer_uuid";
 
-    private static final String FREE_TEXT_ORDER_UUID = "buendia-concept-free_text_order";
+    private static final String FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
 
     private static final int MAX_ORDERS_PER_PAGE = 500;
 
