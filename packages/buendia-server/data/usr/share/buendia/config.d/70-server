@@ -12,6 +12,14 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
+# Ensure that /dev/random points to a fast source of entropy.  If it points
+# to the blocking device, Catalina may take 5-10 minutes to start up!
+if [ ! -L /dev/random ]; then
+    mv -f /dev/random /dev/blocking-random
+fi
+rm -f /dev/random
+ln -sf /dev/urandom /dev/random
+
 # Provide a randomly generated password for the Buendia user, if necessary.
 generated=/usr/share/buendia/site/20-server
 if [ ! -e $generated -o -z "$SERVER_OPENMRS_PASSWORD" ]; then
