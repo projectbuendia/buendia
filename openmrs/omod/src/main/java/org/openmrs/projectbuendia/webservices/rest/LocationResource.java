@@ -251,9 +251,8 @@ public class LocationResource implements
     private SimpleObject getAllInner() throws ResponseException {
         ArrayList<SimpleObject> results = new ArrayList<>();
         for (Location location : locationService.getAllLocations()) {
-            if (!location.isRetired()) {
-                results.add(locationToJson(location));
-            }
+            if (location == null || location.isRetired()) continue;
+            results.add(locationToJson(location));
         }
         SimpleObject list = new SimpleObject();
         list.add("results", results);

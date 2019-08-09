@@ -65,7 +65,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
     @Override public Form retrieveImpl(String uuid, RequestContext context, long snapshotTime)
         throws ResponseException {
         Form form = formService.getFormByUuid(uuid);
-        return form.isRetired() ? null : form;
+        return (form == null || form.isRetired()) ? null : form;
     }
 
     /**

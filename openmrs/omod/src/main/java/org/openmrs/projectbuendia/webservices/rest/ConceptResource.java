@@ -82,7 +82,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     @Override
     protected Concept retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
         Concept concept = conceptService.getConceptByUuid(uuid);
-        return concept.isRetired() ? null : concept;
+        return (concept == null || concept.isRetired()) ? null : concept;
     }
 
     /**

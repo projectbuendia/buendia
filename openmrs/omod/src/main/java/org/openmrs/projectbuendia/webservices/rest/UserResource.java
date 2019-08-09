@@ -183,9 +183,8 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private SimpleObject getSimpleObjectWithResults(List<Provider> providers) {
         List<SimpleObject> jsonResults = new ArrayList<>();
         for (Provider provider : providers) {
-            if (!provider.isRetired()) {
-                jsonResults.add(providerToJson(provider));
-            }
+            if (provider == null || provider.isRetired()) continue;
+            jsonResults.add(providerToJson(provider));
         }
         SimpleObject list = new SimpleObject();
         list.add("results", jsonResults);
