@@ -15,8 +15,9 @@ set -e; . /usr/share/buendia/utils.sh
 case $1 in
     configure|abort-remove|abort-deconfigure)
         /usr/bin/buendia-reconfigure db-init
-        # Reapply the OpenMRS user account setup used by the Buendia server.
-        /usr/bin/buendia-reconfigure server
+        # Reapply the OpenMRS user account setup used by the Buendia server,
+        # but don't fail if the server hasn't been installed yet.
+        /usr/bin/buendia-reconfigure server || true
         ;;
 
     *) exit 1
