@@ -42,10 +42,12 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Rest API for patients.
@@ -180,16 +182,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
 
         PatientIdentifier ident = patient.getPatientIdentifier();  // first preferred identifier
-
-        // The client-side representation of an identifier is either:
-        // "*" followed by an integer, where the integer is a local
-        // (type "LOCAL") server-generated identifier; or otherwise
-        // it is an MSF (type "MSF") client-provided identifier.
-        if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
-            jsonForm.add(ID, "*" + ident.getIdentifier());
-        } else {
-            jsonForm.add(ID, ident.getIdentifier());
-        }
+        jsonForm.add(ID, toClientIdent(ident));
         jsonForm.add(SEX, patient.getGender());
         if (patient.getBirthdate() != null) {
             jsonForm.add(BIRTHDATE, PATIENT_BIRTHDATE_FORMAT.format(patient.getBirthdate()));
@@ -419,24 +412,15 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     /**
-     * The patientId is the client-side representation of an identifier.
+     * The clientIdent is the client-side representation of an identifier.
      * It is either "*" followed by an integer, where the integer is a
      * local (type "LOCAL") server-generated identifier; or otherwise it
      * is an MSF (type "MSF") client-provided identifier.
      */
-    private SimpleObject searchInner(String patientId) throws ResponseException {
-        List<PatientIdentifierType> identTypes = new ArrayList<>();
-        String ident;
-        if (patientId.startsWith("*")) {
-            // The ID refers to a local server-generated identifier.
-            identTypes.add(DbUtil.getIdentifierTypeLocal());
-            ident = patientId.substring(1);
-        } else {
-            // The ID refers to an MSF client-provided identifier.
-            identTypes.add(DbUtil.getIdentifierTypeMsf());
-            ident = patientId;
-        }
-        List<Patient> patients = patientService.getPatients(null, ident, identTypes, true);
+    private SimpleObject searchInner(String clientIdent) throws ResponseException {
+        PatientIdentifier key = fromClientIdent(clientIdent);
+        List<Patient> patients = patientService.getPatients(
+            null, key.getIdentifier(), Arrays.asList(key.getIdentifierType()), true);
         return getSimpleObjectWithResults(patients);
     }
 
@@ -506,6 +490,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         String newGivenName = null;
         String newFamilyName = null;
         String newId = null;
+        PatientIdentifier newIdent = null;
         for (Map.Entry<String, Object> entry : edits.entrySet()) {
             switch (entry.getKey()) {
                 // ==== JSON keys that update attributes of the Patient entity.
@@ -530,6 +515,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     break;
                 case ID:
                     newId = (String) entry.getValue();
+                    if (newId.trim().length() > 0) {
+                        newIdent = fromClientIdent(newId);
+                    }
                     break;
                 default:
                     log.warn("Property is nonexistent or not updatable; ignoring: " + entry);
@@ -537,22 +525,18 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
         }
 
-        PatientIdentifier identifier = patient.getPatientIdentifier(DbUtil.getIdentifierTypeMsf());
-        if (newId != null && !newId.isEmpty() && (identifier == null || !newId.equals(identifier.getIdentifier()))) {
+        PatientIdentifier ident = patient.getPatientIdentifier();
+        if (newIdent != null && (ident == null || !identEquals(newIdent, ident))) {
             synchronized (createPatientLock) {
                 requireValidUniqueMsfIdentifier(newId);
 
-                if (identifier != null) {
-                    patient.removeIdentifier(identifier);
+                if (ident != null) {
+                    patient.removeIdentifier(ident);
                 }
-                identifier = new PatientIdentifier();
-                identifier.setCreator(patient.getCreator());
-                identifier.setDateCreated(patient.getDateCreated());
-                identifier.setLocation(DbUtil.getDefaultLocation());
-                identifier.setIdentifier(newId);
-                identifier.setIdentifierType(DbUtil.getIdentifierTypeMsf());
-                identifier.setPreferred(true);
-                patient.addIdentifier(identifier);
+                newIdent.setCreator(patient.getCreator());
+                newIdent.setDateCreated(patient.getDateCreated());
+                newIdent.setPreferred(true);
+                patient.addIdentifier(newIdent);
                 patientService.savePatient(patient);
             }
             changedPatient = true;
@@ -573,6 +557,33 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         }
         if (changedPatient) {
             patientService.savePatient(patient);
+        }
+    }
+
+    private static boolean identEquals(PatientIdentifier a, PatientIdentifier b) {
+        return Objects.equals(a.getIdentifierType(), b.getIdentifierType()) &&
+            Objects.equals(a.getIdentifier(), b.getIdentifier());
+    }
+
+    private static PatientIdentifier fromClientIdent(String clientIdent) {
+        if (clientIdent.startsWith("*")) {
+            return new PatientIdentifier(clientIdent.substring(1),
+                DbUtil.getIdentifierTypeLocal(), DbUtil.getDefaultLocation());
+        } else {
+            return new PatientIdentifier(clientIdent,
+                DbUtil.getIdentifierTypeMsf(), DbUtil.getDefaultLocation());
+        }
+    }
+
+    private static String toClientIdent(PatientIdentifier ident) {
+        // The client-side representation of an identifier is either:
+        // "*" followed by an integer, where the integer is a local
+        // (type "LOCAL") server-generated identifier; or otherwise
+        // it is an MSF (type "MSF") client-provided identifier.
+        if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
+            return "*" + ident.getIdentifier();
+        } else {
+            return ident.getIdentifier();
         }
     }
 
