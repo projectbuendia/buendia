@@ -9,6 +9,9 @@ import sys
 import uuid
 import warnings
 
+# Dump SQL commands (for debugging).
+VERBOSE = False
+
 # The UUID of the single OpenMRS form that defines all our charts.
 CHART_UUID = 'buendia_chart'
 LOCALE = 'en_GB_client'
@@ -20,6 +23,14 @@ LOCALE = 'en_GB_client'
 XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
 XSLT_DATATYPE = 'org.openmrs.customdatatype.datatype.LongFreeTextDatatype'
 XSLT_HANDLER = 'org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler'
+
+try:
+    INT_TYPES = (int, long)
+except:
+    INT_TYPES = (int,)
+
+def sqlrepr(x):
+    return x if isinstance(x, INT_TYPES) else repr(str(x))
 
 class Database:
     def __init__(self, database, user, password):
@@ -33,14 +44,18 @@ class Database:
         cursor.close()
         self.commit = self.db.commit
 
-    def iter(self, query, *params):
+    def iter(self, query, *args):
+        if VERBOSE:
+            sys.stderr.write('sql> %s\n' % (query % tuple(map(sqlrepr, args))))
         cursor = self.db.cursor()
-        cursor.execute(query, params)
+        cursor.execute(query, args)
         return iter(cursor)
 
-    def execute(self, query, *params):
+    def execute(self, query, *args):
+        if VERBOSE:
+            sys.stderr.write('sql> %s\n' % (query % tuple(map(sqlrepr, args))))
         cursor = self.db.cursor()
-        cursor.execute(query, params)
+        cursor.execute(query, args)
         cursor.close()
 
     def get(self, field, table=None, **constraints):
@@ -56,6 +71,8 @@ class Database:
         for row in self.iter(
             'select %s from %s where %s' % (field, table, condition),
             *(constraints[key] for key in keys)):
+            if VERBOSE:
+                sys.stderr.write('-> %s\n' % sqlrepr(row[0]))
             return row[0]
 
 class OpenmrsDatabase:
@@ -76,9 +93,7 @@ class OpenmrsDatabase:
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
         if 'uuid' in self.get_columns(table):
-            generated_uuid = (table == 'concept' and
-                (str(kwargs['concept_id']) + 'A'*36)[:36] or uuid.uuid4())
-            kwargs.setdefault('uuid', generated_uuid)
+            kwargs.setdefault('uuid', uuid.uuid4())
 
         columns = kwargs.keys()
         values = kwargs.values()
@@ -86,12 +101,22 @@ class OpenmrsDatabase:
         if 'date_created' in self.get_columns(table):
             columns += ['date_created']
             placeholders += ['now()']
-
         self.db.execute(
             'insert into %s (%s) values (%s)' %
             (table, ', '.join(columns), ', '.join(placeholders)), *values)
-        if table + '_id' in self.get_columns(table):
-            return self.db.get(table + '_id', uuid=kwargs['uuid'])
+
+        # Retrieve the generated primary key.
+        id = None
+        id_column = table + '_id'
+        if id_column in self.get_columns(table):
+            id = self.db.get(id_column, uuid=kwargs['uuid'])
+
+        # In concept and concept_name, the uuid column is based on the id.
+        if table == 'concept' or table == 'concept_id':
+            pseudo_uuid = str(id).ljust(36, table == 'concept' and 'A' or 'B')
+            self.db.execute('update %s set uuid = %s where %s = %s' %
+                (table, '%s', id_column, '%s'), pseudo_uuid, id)
+        return id
 
     def update(self, table, id, **kwargs):
         """Updates a row, filling in metadata if needed."""
@@ -208,9 +233,13 @@ def apply(tabs):
         if name:
             concept_name_id = get_or_insert(
                 'concept_name', concept_id=concept_id, locale=locale, voided=0)
+            db.execute('update concept_name set locale_preferred = 0'
+                       ' where concept_id = %s and locale = %s',
+                       concept_id, locale)
             odb.update('concept_name', concept_name_id,
                        name=name, locale_preferred=1,
                        concept_name_type='FULLY_SPECIFIED')
+            '''
             # Adjust any other names to ensure there are no duplicates.
             dup = 1
             for (id, dup_concept_id, dup_name, dup_voided) in db.iter(
@@ -225,6 +254,7 @@ def apply(tabs):
                     # Ensure this concept has exactly one unvoided concept_name.
                     if dup_concept_id == concept_id and not dup_voided:
                         odb.void('concept_name', id)
+            '''
             return concept_name_id
 
     def set_concept_numeric(concept_id, (normal_low, normal_high),
@@ -232,9 +262,12 @@ def apply(tabs):
                             (absolute_low, absolute_high), units, precise=1):
         db.execute('delete from concept_numeric'
                    ' where concept_id = %s', concept_id)
+        p = 'precise'
+        if p not in odb.get_columns('concept_numeric'):
+            p = 'allow_decimal'
         db.execute('insert into concept_numeric'
                    ' (concept_id, low_normal, hi_normal, low_critical,'
-                   ' hi_critical, low_absolute, hi_absolute, units, precise)'
+                   ' hi_critical, low_absolute, hi_absolute, units, ' + p + ')'
                    ' values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                    concept_id, normal_low, normal_high, noncritical_low,
                    noncritical_high, absolute_low, absolute_high,
@@ -558,4 +591,11 @@ def apply(tabs):
 
 
 if __name__ == '__main__':
-    apply(read_csv(sys.argv[1]))
+    args = sys.argv[1:]
+    if args and args[0] == '-v':
+        VERBOSE = True
+        args.pop(0)
+    if not args:
+        raise SystemExit('Usage: %s [-v] <filename.csv>' % sys.argv[0])
+
+    apply(read_csv(args[0]))
