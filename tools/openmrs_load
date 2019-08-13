@@ -32,6 +32,11 @@ if [ -z "$dumpfile" ]; then
     exit 1
 fi
 
+eval $(buendia-settings 2>/dev/null)
+
+MYSQL_USER=${MYSQL_USER-$OPENMRS_MYSQL_USER}
+MYSQL_PASSWORD=${MYSQL_PASSWORD-$OPENMRS_MYSQL_PASSWORD}
+
 if [ -z "$MYSQL_USER" ]; then
     echo '$MYSQL_USER is not set; please set $MYSQL_USER and $MYSQL_PASSWORD.'
     exit 1
