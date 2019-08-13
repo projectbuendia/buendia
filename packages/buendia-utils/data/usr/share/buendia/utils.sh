@@ -39,5 +39,18 @@ function service_if_exists() {
     fi
 }
 
+# Print a list of external file systems. If $EXTERNAL_BLOCK_DEVICES is set in
+# /usr/share/buendia/site/*, list the partitions on those devices only.
+# Otherwise, default to listing partitions on all block devices connected via
+# USB.
+function external_file_systems() {
+    if [ -z "$EXTERNAL_BLOCK_DEVICES" ]; then
+        EXTERNAL_BLOCK_DEVICES=$(lsblk -Sno NAME,TRAN | grep usb | cut -d' ' -f1)
+    fi
+    for device in $EXTERNAL_BLOCK_DEVICES; do
+        ls /dev/${device}[0-9]
+    done
+}
+
 # A handy shortcut, just for typing convenience.
 usb=usr/share/buendia
