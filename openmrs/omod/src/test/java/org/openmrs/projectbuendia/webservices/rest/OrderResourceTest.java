@@ -140,6 +140,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
             handle(request);
             fail("Expected handling this request to throw an exception");
         } catch (Exception ignored) {
+            System.err.println("Exception due to missing patient was expected: " + ignored);
         }
     }
 
@@ -155,6 +156,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
             handle(request);
             fail("Expected handling this request to throw an exception");
         } catch (Exception ignored) {
+            System.err.println("Exception due to missing start date was expected: " + ignored);
         }
     }
 

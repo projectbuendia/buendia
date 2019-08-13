@@ -83,8 +83,8 @@ public class Utils {
     }
 
     /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
-    public static String toIso8601(Date dateTime) {
-        return FORMAT.format(dateTime);
+    public static String toIso8601(Date datetime) {
+        return FORMAT.format(datetime);
     }
 
     /** Parses an ISO 8601-formatted date into a {@link Date}. */
@@ -208,7 +208,7 @@ public class Utils {
      * @param datetime The date and time of an encounter.
      * @return
      */
-    public static Date fixEncounterDateTime(Date datetime) {
+    public static Date fixEncounterDatetime(Date datetime) {
         Date now = new Date();
         if (datetime.after(now)) {
             datetime = now;
@@ -263,10 +263,10 @@ public class Utils {
         }
     }
 
-    public static void requireKeyAbsent(SimpleObject obj, String key) {
+    public static void requirePropertyAbsent(SimpleObject obj, String key) {
         if (obj.containsKey(key)) {
             throw new InvalidObjectDataException(String.format(
-                "\"%s\" key is specified but not allowed", key));
+                "Property \"%s\" is not allowed", key));
         }
     }
 
@@ -274,13 +274,13 @@ public class Utils {
         Object value = obj.get(key);
         if (obj == null) {
             throw new InvalidObjectDataException(String.format(
-                "Required key \"%s\" is missing", key));
+                "Required property \"%s\" is missing", key));
         }
         try {
             return (String) value;
         } catch (ClassCastException e) {
             throw new InvalidObjectDataException(String.format(
-                "Need a String value for key \"%s\", not %s", key, value.getClass()));
+                "Required property \"%s\" should be a String, not %s", key, value.getClass()));
         }
     }
 }

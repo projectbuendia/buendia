@@ -41,7 +41,7 @@ public class VisitObsValue {
         public T visitDate(Date value);
 
         /** Visits a datetime value. */
-        public T visitDateTime(Date value);
+        public T visitDatetime(Date value);
     }
 
     /** Applies a visitor to an observation (we can't retrofit to Obs). */
@@ -62,7 +62,7 @@ public class VisitObsValue {
             case HL7Constants.HL7_DATE:
                 return visitor.visitDate(obs.getValueDate());
             case HL7Constants.HL7_DATETIME:
-                return visitor.visitDateTime(obs.getValueDatetime());
+                return visitor.visitDatetime(obs.getValueDatetime());
             default:
                 throw new IllegalArgumentException("Unexpected HL7 type: " + hl7Type + " for "
                     + "concept " + concept);
