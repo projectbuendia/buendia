@@ -127,7 +127,7 @@ public class ObservationResource implements Listable, Searchable {
             .add("patient_uuid", obs.getPerson().getUuid())
             .add("encounter_uuid", obs.getEncounter().getUuid())
             .add("concept_uuid", obs.getConcept().getUuid())
-            .add("timestamp", Utils.toIso8601(obs.getObsDatetime()));
+            .add("timestamp", Utils.formatUtc8601(obs.getObsDatetime()));
 
         Provider provider = Utils.getProviderFromUser(obs.getCreator());
         object.add("enterer_uuid", provider != null ? provider.getUuid() : null);

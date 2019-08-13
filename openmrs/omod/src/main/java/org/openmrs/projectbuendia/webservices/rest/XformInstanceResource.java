@@ -188,7 +188,7 @@ public class XformInstanceResource implements Creatable {
         // Modify header element
         Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
-        getElementOrThrow(header, "date_entered").setTextContent(Utils.toIso8601(dateEntered));
+        getElementOrThrow(header, "date_entered").setTextContent(Utils.formatUtc8601(dateEntered));
 
         // NOTE(ping): We use a form_resource named <form-name>.xFormXslt to alter the translation
         // from XML to HL7 so that the encounter_datetime is recorded with a date and time.

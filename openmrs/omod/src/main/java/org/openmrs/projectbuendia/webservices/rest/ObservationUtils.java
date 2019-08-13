@@ -199,7 +199,7 @@ public class ObservationUtils {
                     }
 
                     @Override public String visitDatetime(Date value) {
-                        return Utils.toIso8601(value);
+                        return Utils.formatUtc8601(value);
                     }
                 });
     }

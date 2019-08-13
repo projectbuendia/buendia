@@ -187,7 +187,7 @@ public abstract class AbstractReadOnlyResource<T extends OpenmrsObject>
         }
         SimpleObject response = new SimpleObject();
         response.put("results", results);
-        response.put("snapshotTime", Utils.toIso8601(new Date(snapshotTime)));
+        response.put("snapshotTime", Utils.formatUtc8601(new Date(snapshotTime)));
         return response;
     }
 

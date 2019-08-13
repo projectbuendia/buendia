@@ -148,7 +148,7 @@ public class DataExportServlet extends HttpServlet {
                     }
                     values[3] = encounter.getUuid();
                     values[4] = encounter.getEncounterDatetime().getTime();
-                    values[5] = Utils.toIso8601(encounter.getEncounterDatetime());
+                    values[5] = Utils.formatUtc8601(encounter.getEncounterDatetime());
                     values[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
                     Arrays.fill(values, FIXED_HEADERS.length, FIXED_HEADERS.length + indexer.size()
                         *COLUMNS_PER_OBS, "");

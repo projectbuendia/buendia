@@ -21,7 +21,6 @@ import org.projectbuendia.openmrs.api.SyncToken;
 import javax.annotation.Nullable;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.Objects;
 
 /**
  * Utilities for working with requests and request parameters.
@@ -40,7 +39,7 @@ public class RequestUtil {
         if (param == null) {
             return null;
         }
-        return Utils.fromIso8601(param);
+        return Utils.parse8601(param);
     }
 
     /**
