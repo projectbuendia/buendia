@@ -128,7 +128,7 @@ public class EncounterResource implements Creatable {
      */
     protected void populateJsonProperties(Encounter encounter, SimpleObject encounterJson) {
         encounterJson.put("patient_uuid", encounter.getPatient().getUuid());
-        encounterJson.put("timestamp", Utils.toIso8601(encounter.getEncounterDatetime()));
+        encounterJson.put("timestamp", Utils.formatUtc8601(encounter.getEncounterDatetime()));
         encounterJson.put("uuid", encounter.getUuid());
 
         SimpleObject observations = new SimpleObject();

@@ -70,7 +70,7 @@ public class Utils {
     // ==== Dates and times ====
 
     /** ISO 8601 format for a complete date and time in UTC. */
-    public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
     /** A SimpleDateFormat that formats as "yyyy-MM-dd" in UTC. */
     public static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     /** A SimpleDateFormat that formats a date and time to be auto-parsed in a spreadsheet. */
@@ -83,22 +83,29 @@ public class Utils {
     }
 
     /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
-    public static String toIso8601(Date datetime) {
+    public static String formatUtc8601(Date datetime) {
         return FORMAT.format(datetime);
     }
 
     /** Parses an ISO 8601-formatted date into a {@link Date}. */
-    public static Date fromIso8601(String iso8601) throws ParseException {
-        return FORMAT.parse(iso8601);
+    public static Date parse8601(String iso8601) {
+        try {
+            return FORMAT.parse(iso8601);
+        } catch (ParseException e) {
+            throw new InvalidObjectDataException(e.getMessage());
+        }
+    }
+
+    public static String formatUtcDate(Date date) {
+        return YYYYMMDD_UTC_FORMAT.format(date);
     }
 
     /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
-    public static Date parseLocalDate(String text, String fieldName) {
+    public static Date parseLocalDate(String text) {
         try {
             return YYYYMMDD_UTC_FORMAT.parse(text);
         } catch (ParseException e) {
-            throw new InvalidObjectDataException(String.format(
-                "The %s field should be in yyyy-MM-dd format", fieldName));
+            throw new InvalidObjectDataException(e.getMessage());
         }
     }
 

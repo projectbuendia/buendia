@@ -11,7 +11,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.junit.Test;
-import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.Utils;
 
 import java.util.Date;
@@ -24,7 +23,7 @@ public class XformInstanceResourceTest {
     @Test public void addForm() throws Exception {
         String input = readResourceAsString(getClass(), "original-instance-add.xml");
         String expected = readResourceAsString(getClass(), "expected-instance-add.xml");
-        Date dateEntered = Utils.fromIso8601("2014-11-15T12:34:56.789Z");
+        Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
         String actual = XformInstanceResource.completeXform(input, null, 1, dateEntered);
         assertXmlEqual(expected, actual);
     }
@@ -32,7 +31,7 @@ public class XformInstanceResourceTest {
     @Test public void editForm() throws Exception {
         String input = readResourceAsString(getClass(), "original-instance-edit.xml");
         String expected = readResourceAsString(getClass(), "expected-instance-edit.xml");
-        Date dateEntered = Utils.fromIso8601("2014-11-15T12:34:56.789Z");
+        Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
         String actual = XformInstanceResource.completeXform(input, 10, 1, dateEntered);
         assertXmlEqual(expected, actual);
     }
@@ -40,7 +39,7 @@ public class XformInstanceResourceTest {
     @Test public void moveGroupsIntoObs() throws Exception {
         String input = readResourceAsString(getClass(), "original-grouped.xml");
         String expected = readResourceAsString(getClass(), "expected-grouped.xml");
-        Date dateEntered = Utils.fromIso8601("2014-11-15T12:34:56.789Z");
+        Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
         String actual = XformInstanceResource.completeXform(input, null, 1, dateEntered);
         assertXmlEqual(expected, actual);
     }
@@ -48,14 +47,14 @@ public class XformInstanceResourceTest {
     @Test public void parseNonstandardTimestamp() {
         String input = "20141120T092547.373Z";
         String expected = "2014-11-20T09:25:47.373Z";
-        String actual = Utils.toIso8601(XformInstanceResource.parseTimestamp(input));
+        String actual = Utils.formatUtc8601(XformInstanceResource.parseTimestamp(input));
         assertEquals(expected, actual);
     }
 
     @Test public void parseStandardTimestamp() {
         String input = "2014-11-20T09:25:47.373Z";
         String expected = "2014-11-20T09:25:47.373Z";
-        String actual = Utils.toIso8601(XformInstanceResource.parseTimestamp(input));
+        String actual = Utils.formatUtc8601(XformInstanceResource.parseTimestamp(input));
         assertEquals(expected, actual);
     }
 }
