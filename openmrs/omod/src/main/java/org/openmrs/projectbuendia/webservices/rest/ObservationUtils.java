@@ -74,7 +74,7 @@ public class ObservationUtils {
                                          String encounterTypeName, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
-        encounterTime = Utils.fixEncounterDateTime(encounterTime);
+        encounterTime = Utils.fixEncounterDatetime(encounterTime);
 
         EncounterService encounterService = Context.getEncounterService();
         Location location = null;
@@ -198,7 +198,7 @@ public class ObservationUtils {
                         return Utils.YYYYMMDD_UTC_FORMAT.format(value);
                     }
 
-                    @Override public String visitDateTime(Date value) {
+                    @Override public String visitDatetime(Date value) {
                         return Utils.toIso8601(value);
                     }
                 });
