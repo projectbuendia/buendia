@@ -15,7 +15,7 @@ import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
-import org.openmrs.User;
+import org.openmrs.Provider;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
 import org.openmrs.api.UserService;
@@ -26,7 +26,7 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
@@ -83,6 +83,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
     supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
     static final RequestLogger logger = RequestLogger.LOGGER;
+    private static final Log LOG = LogFactory.getLog(XformInstanceResource.class);
 
     // Everything not in this set is assumed to be a group of observations.
     private static final Set<String> KNOWN_CHILD_ELEMENTS = new HashSet<>();
@@ -128,8 +129,7 @@ public class XformInstanceResource implements Creatable {
     /** Accepts a submitted form instance. */
     private Object createInner(SimpleObject post, RequestContext context) throws ResponseException {
         try {
-            // We have to fix a few things before OpenMRS will accept the form.
-            String xml = completeXform(convertUuidsToIds(post));
+            String xml = getPreparedXml(post);
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
@@ -144,25 +144,36 @@ public class XformInstanceResource implements Creatable {
         return post;
     }
 
+    /** Fills in and makes adjustments to the form instance XML so that OpenMRS will accept it. */
+    public String getPreparedXml(SimpleObject post) throws IOException, SAXException {
+        String xml = Utils.getRequiredString(post, "xml");
+
+        String patientUuid = Utils.getRequiredString(post, "patient_uuid");
+        Patient patient = patientService.getPatientByUuid(patientUuid);
+        if (patient == null) throw new ObjectNotFoundException();
+
+        String entererUuid = Utils.getRequiredString(post, "enterer_uuid");
+        Provider enterer = providerService.getProviderByUuid(entererUuid);
+        if (enterer == null) throw new ObjectNotFoundException();
+
+        Date dateEntered =  parseTimestamp(Utils.getRequiredString(post, "date_entered"));
+        if (dateEntered == null) throw new InvalidObjectDataException("Invalid timestamp in date_entered");
+
+        return completeXform(xml, patient.getId(), enterer.getId(), dateEntered);
+    }
+
     /**
      * Fixes up the received XForm instance with various adjustments and additions
      * needed to get the observations into OpenMRS, e.g. include Patient ID, adjust
      * datetime formats, etc.
      */
-    static String completeXform(SimpleObject post) throws SAXException, IOException {
-        String xml = (String) post.get("xml");
-        Integer patientId = (Integer) post.get("patient_id");
-
-        int entererId = (Integer) post.get("enterer_id");
-        String dateEntered = (String) post.get("date_entered");
-        dateEntered = workAroundClientIssue(dateEntered);
+    static String completeXform(String xml, Integer patientId, Integer entererId, Date dateEntered) throws SAXException, IOException {
         Document doc = XmlUtil.parse(xml);
 
         // If we haven't been given a patient id, then the XForms processor will
-        // create a patient then fill in the patient.patient_id in the DOM.
+        // create a patient and fill in the patient.patient_id in the DOM.
         // However, it won't actually create the node, just fill it in.
         // So whatever the case, make sure a patient.patient_id node exists.
-
         Element root = doc.getDocumentElement();
         Element patient = getFirstElementOrCreate(doc, root, "patient");
         Element patientIdElement = getFirstElementOrCreate(doc, patient, "patient.patient_id");
@@ -177,25 +188,19 @@ public class XformInstanceResource implements Creatable {
         // Modify header element
         Element header = getElementOrThrow(root, "header");
         getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
-        getElementOrThrow(header, "date_entered").setTextContent(dateEntered);
+        getElementOrThrow(header, "date_entered").setTextContent(Utils.toIso8601(dateEntered));
 
-        // NOTE(kpy): We use a form_resource named <form-name>.xFormXslt to alter the translation
+        // NOTE(ping): We use a form_resource named <form-name>.xFormXslt to alter the translation
         // from XML to HL7 so that the encounter_datetime is recorded with a date and time.
         // (The default XSLT transform records only the date, not the time.)  This means that
         // IF THE FORM IS RENAMED, THE FORM_RESOURCE MUST ALSO BE RENAMED, or the encounter
         // datetime will be recorded with only a date and the time will always be 00:00.
 
-        // Extract the datetime and set it back, to reformat it to a format that OpenMRS
-        // will accept, ensure it has a value that OpenMRS will accept, and also to
-        // ensure that a datetime is filled in if missing.
-        Date datetime = Utils.fixEncounterDateTime(getEncounterDatetime(doc));
+        // TODO(ping): We should have some code here to ensure that the correct XSLT exists
+        // for every form; otherwise, we will lose it when a form is renamed.
 
-        // OpenMRS has trouble handling the encounter_datetime in the format we receive.
-        // We must set the encounter_datetime to ensure it is properly formatted.
-        setEncounterDatetime(doc, datetime);
-
-        // TODO: we should also have some code here to ensure that the correct XSLT exists
-        // for every form; otherwise we lose it on form rename.
+        // OpenMRS can't handle the encounter_datetime in the format we receive.
+        fixEncounterDatetimeElement(doc);
 
         // Make sure that all observations are under the obs element, with appropriate attributes
         Element obs = getFirstElementOrCreate(doc, root, "obs");
@@ -209,72 +214,8 @@ public class XformInstanceResource implements Creatable {
                 removeNode(element);
             }
         }
-
         return XformsUtil.doc2String(doc);
     }
-
-    /**
-     * Fill in any missing "id" property by converting the UUID to a person_id.
-     * <p>
-     * <b>NOTE:</b> We're moving away from this model of allowing either {@code patient_id} or
-     * {@code patient_uuid}, because {@code patient_id} is an internal-only identifier and shouldn't
-     * be known by the client under any circumstances. We keep this behavior for the time being
-     * because the tests currently depend on it.
-     * <p>
-     * TODO: replace this conversion logic with a hard requirement for both patient_uuid and
-     * enterer_uuid.
-     */
-    private SimpleObject convertUuidsToIds(SimpleObject post) {
-        if (!post.containsKey("patient_id")) {
-            String uuid = (String) post.get("patient_uuid");
-            if (uuid != null) {
-                Patient patient = patientService.getPatientByUuid(uuid);
-                if (patient == null) {
-                    throw new IllegalPropertyException("Patient UUID does not exist: " + uuid);
-                }
-                post.put("patient_id", patient.getPatientId());
-            }
-        }
-
-        if (!post.containsKey("enterer_id")) {
-            String uuid = (String) post.get("enterer_uuid");
-            if (uuid == null) {
-                throw new IllegalPropertyException("Enterer UUID must be set.");
-            }
-            User user = Utils.getUserFromProviderUuid(uuid);
-            if (user == null) {
-                throw new IllegalPropertyException("Provider UUID does not exist: " + uuid);
-            }
-            post.put("enterer_id", user.getUserId());
-        }
-
-        return post;
-    }
-
-    /**
-     * Handles the case where the Android client posts dates in
-     * yyyyMMddTHHmmss.SSSZ format, which isn't ISO 8601.
-     */
-    static String workAroundClientIssue(String fromClient) {
-        // Just detect it by the lack of hyphens...
-        if (fromClient.indexOf('-') == -1) {
-            // Convert to yyyy-MM-ddTHH:mm:ss.SSS
-            fromClient = new StringBuilder(fromClient)
-                .insert(4, '-')
-                .insert(7, '-')
-                .insert(13, ':')
-                .insert(16, ':')
-                .toString();
-        }
-        return fromClient;
-    }
-
-    // TODO: The following function is no longer used.  Previously when
-    // the tablets had better clocks than the server, we would adjust the
-    // server's clock.  Now the server is the authoritative time source, so
-    // instead of pushing the server's clock forward, we use NTP to make the
-    // tablets' clocks match the server's clock.
-    // TODO: Remove adjustSystemClock when we feel confident about the new arrangement.
 
     /**
      * Searches for an element among the descendants of a given root element,
@@ -293,97 +234,58 @@ public class XformInstanceResource implements Creatable {
         return patient;
     }
 
-    /** Extracts the encounter date from a submitted encounter. */
+    /** Fixes up the encounter_datetime element to make it acceptable to OpenMRS. */
+    private static void fixEncounterDatetimeElement(Document doc) {
+        Date datetime = getEncounterDatetime(doc);
+
+        // Work around OpenMRS's inherently client-antagonistic design.
+        datetime = Utils.fixEncounterDatetime(datetime);
+
+        // The time zone indicator must be formatted with a colon and minutes;
+        // (e.g. "+01:00" instead of "+0100"); otherwise OpenMRS fails to parse
+        // it, as Saxon datetime parsing can't handle timezones without minutes.
+        // For more details on this workaround, see
+        // https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
+        String formattedDatetime = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(datetime);
+        getElementOrThrow(
+            getElementOrThrow(doc.getDocumentElement(), "encounter"),
+            "encounter.encounter_datetime"
+        ).setTextContent(formattedDatetime);
+    }
+
+    /** Extracts and parses the encounter date from a submitted encounter. */
     private static Date getEncounterDatetime(Document doc) {
-        Element encounterDatetimeElement = getElementOrThrow(
+        Element element = getElementOrThrow(
             getElementOrThrow(doc.getDocumentElement(), "encounter"),
             "encounter.encounter_datetime");
 
-        // The code in completeXform converts the encounter_datetime using
-        // ISO_DATETIME_TIME_ZONE_FORMAT.format() to ensure that the time zone
-        // indicator contains a colon ("+01:00" instead of "+0100"); without
-        // this colon, OpenMRS fails to parse the date.  Surprisingly, a new
-        // SimpleDateFormat(ISO_DATETIME_TIME_ZONE_FORMAT.getPattern() cannot
-        // parse the string produced by ISO_DATETIME_TIME_ZONE_FORMAT.format().
-        // For safety we accept a few reasonable date formats, including
-        // "yyyy-MM-dd'T'HH:mm:ss.SSSX", which can parse both kinds of time
-        // zone indicator ("+01:00" and "+0100").
+        Date encounterDate = parseTimestamp(element.getTextContent());
+        if (encounterDate == null) {
+            LOG.warn("No encounter_datetime found; using the current time");
+            encounterDate = new Date();
+        }
+        return encounterDate;
+    }
+
+    /** Parses a timestamp in a variety of formats, returning null on failure. */
+    public static Date parseTimestamp(String timestamp) {
+        // For safety, we accept a few reasonable date formats, including
+        // non-standard formats without hyphens or colons as separators, and
+        // we use the "X" pattern code for time zones, which understands both
+        // time zone indicator formats ("+01:00" and "+0100") as well as "Z".
         List<String> acceptablePatterns = Arrays.asList(
             "yyyy-MM-dd'T'HH:mm:ss.SSSX",
             "yyyy-MM-dd'T'HH:mm:ssX",
             "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd"
+            "yyyy-MM-dd",
+            "yyyyMMdd'T'HHmmss.SSSX",
+            "yyyyMMdd"
         );
-
-        String datetimeText = encounterDatetimeElement.getTextContent();
         for (String pattern : acceptablePatterns) {
             try {
-                return new SimpleDateFormat(pattern).parse(datetimeText);
-            } catch (ParseException e) {
-            }
+                return new SimpleDateFormat(pattern).parse(timestamp);
+            } catch (ParseException e) { /* ignore and continue */ }
         }
-        getLog().warn("No encounter_datetime found; using the current time");
-        return new Date();
-    }
-
-    // VisibleForTesting
-
-    /** Sets the encounter_datetime element to the given value. */
-    private static void setEncounterDatetime(Document doc, Date datetime) {
-        // Format the encounter_datetime to ensure its timezone has a minute section.
-        // See https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
-        // for an explanation why. Saxon datetime parsing can't cope with timezones without minutes.
-        String formattedDatetime = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(datetime);
-
-        getElementOrThrow(
-            getElementOrThrow(doc.getDocumentElement(), "encounter"),
-            "encounter.encounter_datetime")
-            .setTextContent(formattedDatetime);
-    }
-
-    // VisibleForTesting
-
-    @SuppressWarnings("unused")
-    private static final Log getLog() {
-        // TODO: Figure out why getLog(XformInstanceResource.class) gives no
-        // log output.  Using "org.openmrs.api" works, though.
-        return LogFactory.getLog("org.openmrs.api");
-    }
-
-    /**
-     * Adjusts the system clock to ensure that the incoming encounter date
-     * is not in the future.  <b>This is a temporary hack</b> intended to work
-     * around the fact that the Edison system clock does not stay running
-     * while power is off; when it falls behind, a validation constraint in
-     * OpenMRS starts rejecting all incoming encounters because they have
-     * dates in the future.  To work around this, we attempt to push the
-     * system clock forward whenever we receive an encounter that appears to
-     * be in the future.  The system clock is set by a setuid executable
-     * program "/usr/bin/buendia-pushclock".
-     * @param xml
-     */
-    private void adjustSystemClock(String xml) {
-        final String PUSHCLOCK = "/usr/bin/buendia-pushclock";
-
-        if (!new File(PUSHCLOCK).exists()) {
-            getLog().warn(PUSHCLOCK + " is missing; not adjusting the clock");
-            return;
-        }
-
-        try {
-            Document doc = XmlUtil.parse(xml);
-            Date date = getEncounterDatetime(doc);
-            getLog().info("encounter_datetime parsed as " + date);
-
-            // Convert to seconds.  Allow up to 60 sec for truncation to
-            // minutes and up to 60 sec for network and server latency.
-            long timeSecs = (date.getTime()/1000) + 60 + 60;
-            Process pushClock = Runtime.getRuntime().exec(
-                new String[] {PUSHCLOCK, "" + timeSecs});
-            int code = pushClock.waitFor();
-            getLog().info("buendia-pushclock " + timeSecs + " -> exit code " + code);
-        } catch (SAXException | IOException | InterruptedException e) {
-            getLog().error("adjustSystemClock failed:", e);
-        }
+        return null;
     }
 }

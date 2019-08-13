@@ -107,7 +107,7 @@ public class RequestLogger {
         try {
             HttpServletRequest request = context.getRequest();
             String filename = request.getRemoteAddr();
-            end(filename, key, ExceptionUtils.getMessage(error) + ":\n"
+            end(filename, key, "\u001b[31m" + ExceptionUtils.getMessage(error) + "\u001b[0m:\n"
                 + ExceptionUtils.getStackTrace(error));
         } catch (Exception e) {
         }

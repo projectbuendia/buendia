@@ -384,10 +384,10 @@ public class OrderResource implements
         return millis == null ? null : new Date(millis);
     }
 
-    private Encounter createEncounter(Patient patient, User creator, Date encounterDateTime) {
+    private Encounter createEncounter(Patient patient, User creator, Date encounterDatetime) {
         Encounter encounter = new Encounter();
         encounter.setCreator(creator);
-        encounter.setEncounterDatetime(encounterDateTime);
+        encounter.setEncounterDatetime(encounterDatetime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());
         encounter.setEncounterType(encounterService.getEncounterType("ADULTRETURN"));
@@ -505,7 +505,7 @@ public class OrderResource implements
         try {
             logger.request(context, this, "delete");
             deleteInner(uuid);
-            logger.reply(context, this, "delete", "returned");
+            logger.reply(context, this, "delete", null);
         } catch (Exception e) {
             logger.error(context, this, "delete", e);
             throw e;
