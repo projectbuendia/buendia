@@ -17,16 +17,14 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlE
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.readResourceAsString;
 
 public class XformResourceTest {
-    @Test
-    public void convertToOdkCollect() throws Exception {
+    @Test public void convertToOdkCollect() throws Exception {
         String input = readResourceAsString(getClass(), "sample-original-form1.xml");
         String expected = readResourceAsString(getClass(), "expected-result-form1.xml");
         String actual = XformResource.convertToOdkCollect(input, "Form title");
         assertXmlEqual(expected, actual);
     }
 
-    @Test
-    public void removeRelationshipNodes() throws Exception {
+    @Test public void removeRelationshipNodes() throws Exception {
         String input = readResourceAsString(getClass(), "relationships-original-form1.xml");
         String expected = readResourceAsString(getClass(), "relationships-result-form1.xml");
         String actual = XformResource.removeRelationshipNodes(input);
