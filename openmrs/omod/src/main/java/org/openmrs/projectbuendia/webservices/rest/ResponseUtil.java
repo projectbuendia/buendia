@@ -30,7 +30,7 @@ public class ResponseUtil {
             List<SimpleObject> results, Date newSyncToken) {
         return new SimpleObject()
                 .add("results", results)
-                .add("snapshotTime", Utils.toIso8601(newSyncToken));
+                .add("snapshotTime", Utils.formatUtc8601(newSyncToken));
     }
 
     public static SimpleObject createIncrementalSyncResults(
