@@ -13,46 +13,22 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.Order;
-import org.openmrs.api.OrderService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceControllerTest;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.annotation.Nullable;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-/**
- * Tests for {@link OrderResource}.
- *
- * This test class is unusual in that it has two purposes:
- * - it incorporates some smoke tests for querying as a result of inheriting from
- *   {@link MainResourceControllerTest}. We don't bother testing any further here; our main query
- *   tests are in {@code HibernateProjectBuendiaDAOTest} and subclasses.
- * - Testing that updates, deletions and revisions work correctly.
- */
-@SkipBaseSetup
-public class OrderResourceTest extends MainResourceControllerTest {
-
-    private static final String BASE_TEST_DATA =
-        "org/openmrs/projectbuendia/webservices/rest/base-test-data.xml";
-    private static final String ORDER_TEST_DATA =
-        "org/openmrs/projectbuendia/webservices/rest/order-test-data.xml";
-    private static final String SINGLE_ORDER_DATA =
-        "org/openmrs/projectbuendia/webservices/rest/single-order.xml";
-
-    private static final String BASE_URL = "/projectbuendia/orders";
+/** REST API tests for OrderResource */
+@SkipBaseSetup public class OrderResourceTest extends BaseApiRequestTest {
     private static final String ENCOUNTERS_URL = "/projectbuendia/encounters";
 
     private static final long ONE_DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
@@ -62,57 +38,31 @@ public class OrderResourceTest extends MainResourceControllerTest {
     private static final String SAMPLE_INSTRUCTIONS = "Paracetamol 1000mg 4x daily";
     private static final long SAMPLE_START_DATE = 1420602264000L;
     private static final long SAMPLE_END_DATE = SAMPLE_START_DATE + ONE_WEEK_IN_MILLIS;
-    private OrderService orderService;
 
-    /**
-     * {@link BaseModuleContextSensitiveTest} does this initialization, but also pre-loads the
-     * database with a bunch of records. We don't want to load those records,
-     * because we'd then have to augment them with `buendia_[type]_sync_map` records, which would
-     * couple our test integrity to the records in OpenMRS' test data. For this reason, we disable
-     * {@link BaseModuleContextSensitiveTest}'s setup by putting the {@link SkipBaseSetup}
-     * annotation on the class, but then we've got to explicitly init the database and authenticate
-     * ourselves.
-     */
-    @Before
-    public void setUp() throws Exception {
-        orderService = Context.getOrderService();
-        if (useInMemoryDatabase()) {
-            initializeInMemoryDatabase();
-            authenticate();
-        }
-        executeDataSet(BASE_TEST_DATA);
-        executeDataSet(ORDER_TEST_DATA);
-        executeDataSet(SINGLE_ORDER_DATA);
+    @Override public String[] getInitialDataFiles() {
+        return new String[] {
+            "org/openmrs/projectbuendia/webservices/rest/base-test-data.xml",
+            "org/openmrs/projectbuendia/webservices/rest/order-test-data.xml",
+            "org/openmrs/projectbuendia/webservices/rest/single-order.xml"
+        };
+    };
+
+    @Override public String getURI() {
+        return "/projectbuendia/orders";
     }
 
-    @Override
-    public String getURI() {
-        return "projectbuendia/orders";
+    @Override public long getAllCount() {
+        return 1; // orders in the dataset file
     }
 
-    @Override
-    public String getUuid() {
-        // From the dataset file.
-        return "aaaaa";
+    @Override public String getUuid() {
+        return "aaaaa"; // from the dataset file
     }
 
-    @Override
-    public long getAllCount() {
-        // From the dataset file.
-        return 1;
-    }
-
-    @Test
-    public void testOrderCreationWithAllDataPopulated() throws Exception {
+    @Test public void testOrderCreationWithAllDataPopulated() throws Exception {
         SimpleObject input = newOrderJson(
-                SAMPLE_PATIENT_UUID,
-                SAMPLE_INSTRUCTIONS,
-                SAMPLE_START_DATE,
-                SAMPLE_END_DATE);
-        MockHttpServletRequest request = newPostRequest(BASE_URL, input);
-        SimpleObject response = deserialize(handle(request));
-
-        String uuid = (String) response.get(OrderResource.UUID);
+            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
+        SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
 
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
@@ -121,6 +71,7 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(SAMPLE_END_DATE, response.get(OrderResource.STOP_MILLIS));
 
         // Check that these fields match the object stored.
+        String uuid = (String) response.get(OrderResource.UUID);
         Order stored = orderService.getOrderByUuid(uuid);
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
@@ -128,47 +79,23 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(SAMPLE_END_DATE, stored.getAutoExpireDate().getTime());
     }
 
-    @Test
-    public void testOrderCreationWithoutPatientThrowsException() throws Exception {
+    @Test public void testOrderCreationWithoutPatientThrowsException() throws Exception {
         SimpleObject input = newOrderJson(
-                null,
-                SAMPLE_INSTRUCTIONS,
-                SAMPLE_START_DATE,
-                SAMPLE_END_DATE);
-        MockHttpServletRequest request = newPostRequest(BASE_URL, input);
-        try {
-            handle(request);
-            fail("Expected handling this request to throw an exception");
-        } catch (Exception ignored) {
-            System.err.println("Exception due to missing patient was expected: " + ignored);
-        }
+            null, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
+        assertExceptionOnRequest(newPostRequest(getURI(), input), "missing patient");
     }
 
-    @Test
-    public void testOrderCreationWithoutStartDateReturnsThrowsException() throws Exception {
+    @Test public void testOrderCreationWithoutStartDateReturnsThrowsException() throws Exception {
         SimpleObject input = newOrderJson(
-                SAMPLE_PATIENT_UUID,
-                SAMPLE_INSTRUCTIONS,
-                null,
-                SAMPLE_END_DATE);
-        MockHttpServletRequest request = newPostRequest(BASE_URL, input);
-        try {
-            handle(request);
-            fail("Expected handling this request to throw an exception");
-        } catch (Exception ignored) {
-            System.err.println("Exception due to missing start date was expected: " + ignored);
-        }
+            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, null, SAMPLE_END_DATE);
+        assertExceptionOnRequest(newPostRequest(getURI(), input), "missing start date");
     }
 
     @Test
     public void testOrderCreationWithoutEndDateIsAccepted() throws Exception {
         SimpleObject input = newOrderJson(
-                SAMPLE_PATIENT_UUID,
-                SAMPLE_INSTRUCTIONS,
-                SAMPLE_START_DATE,
-                null);
-        MockHttpServletRequest request = newPostRequest(BASE_URL, input);
-        SimpleObject response = deserialize(handle(request));
+            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, null);
+        SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
 
         String uuid = (String) response.get(OrderResource.UUID);
 
@@ -188,13 +115,12 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertNull(stored.getAutoExpireDate());
     }
 
-    @Test
-    public void testUpdateForOrderOlderThan24HrsIsARevision() throws Exception {
+    @Test public void testUpdateForOrderOlderThan24HrsIsARevision() throws Exception {
         String newInstructions = "Some instructions?";
         Order baseOrder = createExpiredOrderOlderThan24Hrs();
         SimpleObject newDetails = newOrderJson(null, newInstructions, null, null);
         MockHttpServletRequest request =
-                newPostRequest(BASE_URL + "/" + baseOrder.getUuid(), newDetails);
+            newPostRequest(getURI() + "/" + baseOrder.getUuid(), newDetails);
         SimpleObject response = deserialize(handle(request));
 
         String uuid = (String) response.get(OrderResource.UUID);
@@ -216,23 +142,20 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(SAMPLE_END_DATE, stored.getAutoExpireDate().getTime());
     }
 
-    @Test
-    public void testUpdateForExecutedOrderIsARevision() throws Exception {
+    @Test public void testUpdateForExecutedOrderIsARevision() throws Exception {
         Order baseOrder = createOrderStartingNow();
         executeOrder(baseOrder);
         long startTime = baseOrder.getScheduledDate().getTime();
-
         long newEndTime = System.currentTimeMillis() + 2 * ONE_WEEK_IN_MILLIS;
 
         SimpleObject newDetails = newOrderJson(null, null, null, newEndTime);
         MockHttpServletRequest request =
-                newPostRequest(BASE_URL + "/" + baseOrder.getUuid(), newDetails);
+            newPostRequest(getURI() + "/" + baseOrder.getUuid(), newDetails);
 
         SimpleObject response = deserialize(handle(request));
 
-        String uuid = (String) response.get(OrderResource.UUID);
-
         // The client should get the same UUID, but in storage, it should be a different order.
+        String uuid = (String) response.get(OrderResource.UUID);
         assertEquals(baseOrder.getUuid(), uuid);
 
         // Check that fields are correctly set in response
@@ -249,43 +172,30 @@ public class OrderResourceTest extends MainResourceControllerTest {
         assertEquals(newEndTime, stored.getAutoExpireDate().getTime());
     }
 
-    @Test
-    public void testDeleteForNewNonExecutedOrderVoids() throws Exception {
-        Order order = createOrderStartingNow();
-        String uuid = order.getUuid();
-        MockHttpServletRequest request =
-                newDeleteRequest(BASE_URL + "/" + uuid);
-        handle(request);
+    @Test public void testDeleteForNewNonExecutedOrderVoids() throws Exception {
+        String uuid = createOrderStartingNow().getUuid();
+        handle(newDeleteRequest(getURI() + "/" + uuid));
         assertTrue("Order is voided", orderService.getOrderByUuid(uuid).isVoided());
     }
 
-    @Test
-    public void testDeleteForExecutedOrderVoids() throws Exception {
+    @Test public void testDeleteForExecutedOrderVoids() throws Exception {
         Order baseOrder = createOrderStartingNow();
         executeOrder(baseOrder);
         String uuid = baseOrder.getUuid();
-        MockHttpServletRequest request =
-                newDeleteRequest(BASE_URL + "/" + uuid);
-        handle(request);
-        OrderService service = orderService;
-        Order order = service.getOrderByUuid(uuid);
+        handle(newDeleteRequest(getURI() + "/" + uuid));
+        Order order = orderService.getOrderByUuid(uuid);
         assertTrue("Order is voided", order.isVoided());
     }
 
-    @Test
-    public void testDeleteForRevisedOrderVoidsAll() throws Exception {
+    @Test public void testDeleteForRevisedOrderVoidsAll() throws Exception {
         Order baseOrder = createOrderStartingNow();
         String baseUuid = baseOrder.getUuid();
 
-        SimpleObject newDetails = newOrderJson(null, "New instructions!", null, null);
-        MockHttpServletRequest request =
-                newPostRequest(BASE_URL + "/" + baseUuid, newDetails);
-
         // Make the update.
-        handle(request);
+        SimpleObject newDetails = newOrderJson(null, "New instructions!", null, null);
+        handle(newPostRequest(getURI() + "/" + baseUuid, newDetails));
+        handle(newDeleteRequest(getURI() + "/" + baseUuid));
 
-        request = newDeleteRequest(BASE_URL + "/" + baseUuid);
-        handle(request);
         // Reload the base order from storage
         baseOrder = orderService.getOrderByUuid(baseUuid);
         assertTrue("Base order is voided", baseOrder.isVoided());
@@ -297,8 +207,8 @@ public class OrderResourceTest extends MainResourceControllerTest {
 
     private Order createExpiredOrderOlderThan24Hrs() throws Exception {
         SimpleObject input = newOrderJson(
-                SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
-        SimpleObject response = deserialize(handle(newPostRequest(BASE_URL, input)));
+            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
+        SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
         String uuid = (String) response.get(OrderResource.UUID);
         return orderService.getOrderByUuid(uuid);
     }
@@ -306,17 +216,17 @@ public class OrderResourceTest extends MainResourceControllerTest {
     private Order createOrderStartingNow() throws Exception {
         long now = System.currentTimeMillis();
         SimpleObject input = newOrderJson(
-                SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, now, now + ONE_WEEK_IN_MILLIS);
-        SimpleObject response = deserialize(handle(newPostRequest(BASE_URL, input)));
+            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, now, now + ONE_WEEK_IN_MILLIS);
+        SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
         String uuid = (String) response.get(OrderResource.UUID);
         return orderService.getOrderByUuid(uuid);
     }
 
     private void executeOrder(Order order) throws Exception {
-        SimpleObject input = new SimpleObject()
-                .add("uuid", order.getPatient().getUuid())
-                .add("order_uuids", new String[]{order.getUuid()});
-        handle(newPostRequest(ENCOUNTERS_URL, input));
+        handle(newPostRequest(ENCOUNTERS_URL, new SimpleObject()
+            .add("uuid", order.getPatient().getUuid())
+            .add("order_uuids", new String[] {order.getUuid()})
+        ));
     }
 
     // Other test cases:
@@ -330,8 +240,8 @@ public class OrderResourceTest extends MainResourceControllerTest {
     // - Delete, order has expired
 
     private static SimpleObject newOrderJson(
-            @Nullable String patientUuid, @Nullable String instructions,
-            @Nullable Long startMillis, @Nullable Long stopMillis) {
+        @Nullable String patientUuid, @Nullable String instructions,
+        @Nullable Long startMillis, @Nullable Long stopMillis) {
         SimpleObject order = new SimpleObject();
         if (patientUuid != null) {
             order.add(OrderResource.PATIENT_UUID, patientUuid);
