@@ -13,10 +13,12 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.openmrs.Concept;
+import org.openmrs.EncounterType;
 import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.api.ConceptService;
+import org.openmrs.api.EncounterService;
 import org.openmrs.api.FormService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -47,6 +49,7 @@ import java.util.regex.Pattern;
     supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
+    private static final String CHART_ENCOUNTER_TYPE_NAME = "CHART";
     private final FormService formService;
     private final ConceptService conceptService;
 
@@ -171,15 +174,12 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
 
     public static List<Form> getCharts(FormService formService) {
         List<Form> charts = new ArrayList<>();
-        String[] uuids = Context.getAdministrationService()
-            .getGlobalProperty(GlobalProperties.CHART_UUIDS)
-            .split(",");
-        for (String uuid : uuids) {
-            Form form = formService.getFormByUuid(uuid);
-            if (form == null || form.isRetired()) {
-                continue;
+
+        for (Form form : formService.getAllForms()) {
+            if (form.isRetired()) continue;
+            if (form.getEncounterType().getName().equals(CHART_ENCOUNTER_TYPE_NAME)) {
+                charts.add(form);
             }
-            charts.add(form);
         }
         return charts;
     }

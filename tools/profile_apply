@@ -9,7 +9,8 @@ import sys
 import uuid
 import warnings
 
-CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
+# The UUID of the single OpenMRS form that defines all our charts.
+CHART_UUID = 'buendia_chart'
 LOCALE = 'en_GB_client'
 
 # This is a modified copy of the "OpenMRS FormEntry Form HL7 Translation" XSLT
@@ -138,6 +139,7 @@ def apply(tabs):
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
     section_field_type = db.get('field_type_id', name='Section')
+    adult_return = db.get('encounter_type_id', name='ADULTRETURN')
 
     coded_datatype = db.get('concept_datatype_id', name='Coded')
     numeric_datatype = db.get('concept_datatype_id', name='Numeric')
@@ -160,7 +162,11 @@ def apply(tabs):
         if 'form' in tabs:
             apply_forms(tabs['form'])
         if 'chart' in tabs:
-            apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
+            chart_enctype = get_or_insert('encounter_type', name='CHART')
+            odb.update('encounter_type', chart_enctype, retired=1,
+                description='Reserved for patient chart definitions')
+            form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
+            apply_chart(tabs['chart'], form_id)
         db.commit()
 
     def get_or_insert(table, **values):
@@ -264,9 +270,6 @@ def apply(tabs):
         set_concept_name(concept_id, name, locale)
 
     def apply_charts(rows):
-        chart_layout = get_or_insert(
-            'encounter_type', name='buendia-chart_layout',
-            description='Buendia: patient chart layout definition')
         for chart_rows in split_by_title(rows):
             put_chart(chart_rows)
 
@@ -365,7 +368,7 @@ def apply(tabs):
     def apply_forms(rows):
         db.execute('update form set published = 0')
         for form_rows in split_by_title(rows):
-            put_form(form_rows)
+            put_form_with_rows(form_rows)
 
     def normalize_name(name):
         return re.sub('[\W_]+', '_', (name or '').lower()).strip('_')
@@ -375,30 +378,34 @@ def apply(tabs):
         Construct a UUID from a form name, and issue a warning if we can't
         guarantee that the UUID will be unique.
         """
-        prefix = 'buendia-form-'
+        prefix = 'buendia_form_'
         max_uuid_len = 38
         max_name_len = max_uuid_len - len(prefix)
         if len(name) > max_name_len:
             warnings.warn(
-            "The form name '%s' has been clipped to create a unique form ID. "
-            "Note that if you have another form that starts with the same %d "
-            "characters as this form, the form IDs will collide and only one "
-            "form will be displayed. To fix this, ensure that the first %d "
-            "characters of each form name are unique."
-            % (name, max_name_len, max_name_len) )
+                "The form name '%s' has been clipped to create the UUID for "
+                "this form.  Note that if there is another form that starts "
+                "with the same %d characters as this form, the form UUIDs "
+                "will collide and only one of the forms will be available. "
+                "To fix this, ensure that the first %d characters of each "
+                "form name are unique." % (name, max_name_len, max_name_len)
+            )
         return prefix + normalize_name(name[:max_name_len])
 
-    def put_form(rows):
-        adult_return = db.get('encounter_type_id', name='ADULTRETURN')
+    def put_form(uuid, title, encounter_type):
+        form_id = db.get('form_id', uuid=uuid)
+        if form_id:
+            odb.update('form', form_id, name=title)
+        else:
+            form_id = odb.insert(
+                'form', name=title, version='1',
+                encounter_type=encounter_type, uuid=uuid)
+        return form_id
 
+    def put_form_with_rows(rows):
         title = rows[0]['title']
         uuid = create_uuid_from_form_name(title)
-        form_id = db.get('form_id', uuid=uuid)
-        if not form_id:
-            form_id = odb.insert('form', name=title, version='1',
-                                 encounter_type=adult_return, uuid=uuid)
-        else:
-            odb.update('form', form_id, name=title)
+        form_id = put_form(uuid, title, adult_return)
         apply_form(rows, form_id)
         init_form_xslt(form_id)
         db.execute('update form set published = 1 where form_id = %s', form_id)
