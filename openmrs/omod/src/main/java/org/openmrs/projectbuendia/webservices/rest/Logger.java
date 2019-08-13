@@ -21,7 +21,7 @@ import java.util.Map;
 
 /** Writes out timestamped HTTP request logs. */
 public class Logger {
-    private static final int MAX_STDERR_LINE_LENGTH = 240;
+    private static final int MAX_STDERR_LINE_LENGTH = 480;
     private Map<String, Date> startTimes = new HashMap<String, Date>();
     private String filename;
     private SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
