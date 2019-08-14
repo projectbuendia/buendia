@@ -152,14 +152,7 @@ public class XformInstanceResource implements Creatable {
         Patient patient = patientService.getPatientByUuid(patientUuid);
         if (patient == null) throw new ObjectNotFoundException();
 
-        String entererUuid = Utils.getRequiredString(post, "enterer_uuid");
-        Provider enterer = providerService.getProviderByUuid(entererUuid);
-        if (enterer == null) throw new ObjectNotFoundException();
-
-        Date dateEntered =  parseTimestamp(Utils.getRequiredString(post, "date_entered"));
-        if (dateEntered == null) throw new InvalidObjectDataException("Invalid timestamp in date_entered");
-
-        return completeXform(xml, patient.getId(), enterer.getId(), dateEntered);
+        return completeXform(xml, patient.getId());
     }
 
     /**
@@ -167,7 +160,7 @@ public class XformInstanceResource implements Creatable {
      * needed to get the observations into OpenMRS, e.g. include Patient ID, adjust
      * datetime formats, etc.
      */
-    static String completeXform(String xml, Integer patientId, Integer entererId, Date dateEntered) throws SAXException, IOException {
+    static String completeXform(String xml, Integer patientId) throws SAXException, IOException {
         Document doc = XmlUtil.parse(xml);
 
         // If we haven't been given a patient id, then the XForms processor will
@@ -184,11 +177,6 @@ public class XformInstanceResource implements Creatable {
         if (patientId != null) {
             patientIdElement.setTextContent(String.valueOf(patientId));
         }
-
-        // Modify header element
-        Element header = getElementOrThrow(root, "header");
-        getElementOrThrow(header, "enterer").setTextContent(entererId + "^");
-        getElementOrThrow(header, "date_entered").setTextContent(Utils.formatUtc8601(dateEntered));
 
         // NOTE(ping): We use a form_resource named <form-name>.xFormXslt to alter the translation
         // from XML to HL7 so that the encounter_datetime is recorded with a date and time.
