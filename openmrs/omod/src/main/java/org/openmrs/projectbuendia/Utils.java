@@ -207,6 +207,11 @@ public class Utils {
 
     // ==== OpenMRS ====
 
+    /** Returns the currently authenticated user. */
+    public static User getAuthenticatedUser() {
+        return Context.getUserContext().getAuthenticatedUser();
+    }
+
     /**
      * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
      * The OpenMRS core is not designed for a client-server setup -- it will
