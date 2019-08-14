@@ -11,14 +11,17 @@
 
 package org.openmrs.projectbuendia;
 
+import org.openmrs.EncounterRole;
 import org.openmrs.Order;
 import org.openmrs.Person;
 import org.openmrs.Provider;
 import org.openmrs.User;
+import org.openmrs.api.EncounterService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import java.math.BigInteger;
@@ -66,6 +69,10 @@ public class Utils {
         return null;
     }
 
+    /** Converts nulls to empty strings. */
+    public static @Nonnull String toNonnull(String str) {
+        return str == null ? "" : str;
+    }
 
     // ==== Dates and times ====
 
@@ -212,6 +219,19 @@ public class Utils {
         return Context.getUserContext().getAuthenticatedUser();
     }
 
+    public static EncounterRole getUnknownEncounterRole() {
+        EncounterService encounterService = Context.getEncounterService();
+        for (EncounterRole role : encounterService.getAllEncounterRoles(true)) {
+            if (!role.isRetired() && role.getName().equalsIgnoreCase("unknown")) {
+                return role;
+            }
+        }
+        EncounterRole unknownRole = new EncounterRole();
+        unknownRole.setName("Unknown");
+        encounterService.saveEncounterRole(unknownRole);
+        return unknownRole;
+    }
+
     /**
      * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
      * The OpenMRS core is not designed for a client-server setup -- it will
@@ -234,45 +254,6 @@ public class Utils {
             order = order.getPreviousOrder();
         }
         return order;
-    }
-
-    public static @Nullable User getUserFromProvider(@Nullable Provider provider) {
-        if (provider == null) {
-            return null;
-        }
-        Person person = provider.getPerson();
-        if (person == null) {
-            throw new IllegalStateException(
-                    "Should not be possible to get null person from provider.");
-        }
-        List<User> users = Context.getUserService().getUsersByPerson(person, false);
-        if (users.size() < 1) {
-            // This is a server error.
-            throw new IllegalStateException("There is no user for the associated provider");
-        }
-        return users.get(0);
-    }
-
-    public static @Nullable User getUserFromProviderUuid(@Nullable String providerUuid) {
-        if (providerUuid == null) {
-            return null;
-        }
-        Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
-        return getUserFromProvider(provider);
-    }
-
-    public static @Nullable Provider getProviderFromUser(@Nullable User user) {
-        if (user == null) {
-            return null;
-        }
-        Person person = user.getPerson();
-        Iterator<Provider> providers =
-                Context.getProviderService().getProvidersByPerson(person).iterator();
-        if (providers.hasNext()) {
-            return providers.next();
-        } else {
-            return null;
-        }
     }
 
     public static void requirePropertyAbsent(SimpleObject obj, String key) {

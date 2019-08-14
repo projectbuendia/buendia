@@ -15,6 +15,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.EncounterProvider;
 import org.openmrs.Obs;
 import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
@@ -115,22 +116,21 @@ public class ObservationResource implements Listable, Searchable {
     }
 
     private SimpleObject obsToJson(Obs obs) {
-        SimpleObject object = new SimpleObject()
-            .add("uuid", obs.getUuid())
-            .add("voided", obs.isVoided());
-
         if (obs.isVoided()) {
-            return object;
+            return new SimpleObject().add("uuid", obs.getUuid()).add("voided", true);
         }
 
-        object
+        SimpleObject object = new SimpleObject()
+            .add("uuid", obs.getUuid())
             .add("patient_uuid", obs.getPerson().getUuid())
             .add("encounter_uuid", obs.getEncounter().getUuid())
             .add("concept_uuid", obs.getConcept().getUuid())
             .add("timestamp", Utils.formatUtc8601(obs.getObsDatetime()));
 
-        Provider provider = Utils.getProviderFromUser(obs.getCreator());
-        object.add("enterer_uuid", provider != null ? provider.getUuid() : null);
+        for (EncounterProvider ep : obs.getEncounter().getEncounterProviders()) {
+            object.add("enterer_uuid", ep.getProvider().getUuid());
+            break;
+        }
 
         boolean isExecutedOrder =
                 DbUtil.getOrderExecutedConcept().equals(obs.getConcept()) && obs.getOrder() != null;
