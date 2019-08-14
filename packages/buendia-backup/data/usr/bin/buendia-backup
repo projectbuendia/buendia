@@ -53,7 +53,8 @@ if [ -b "$root" ]; then
     old_dir="$root/old-$$.$backup_id"
     final_deb="$root/packages"
     new_deb="$new_dir/packages"
-    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; cd /; fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
+
+    trap 'cd; fuser -m "$mnt_dir"; umount "$mnt_dir"; rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb" "$mnt_dir"' EXIT
 
     if [ -n "$limit" ]; then
         percent=limit
