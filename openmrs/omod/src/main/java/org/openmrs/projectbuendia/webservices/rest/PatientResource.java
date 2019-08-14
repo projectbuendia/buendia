@@ -109,7 +109,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
-    private static final String PARENT_UUID = "parent_uuid";
+    private static final String ENTERER_UUID = "enterer_uuid";
     private static final String VOIDED = "voided";
 
     private static Log log = LogFactory.getLog(PatientResource.class);
@@ -197,9 +197,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             if (location != null) {
                 SimpleObject locationJson = new SimpleObject();
                 locationJson.add(UUID, location.getUuid());
-                if (location.getParentLocation() != null) {
-                    locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
-                }
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
         }
@@ -262,9 +259,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         }
         // Store any initial observations that are included with the new patient.
+        String entererUuid = (String) json.get(ENTERER_UUID);
         ObservationUtils.addEncounter(
             (List) json.get("observations"), null,
-            patient, patient.getDateCreated(), "New patient", "ADULTINITIAL", null);
+            patient, patient.getDateCreated(), "ADULTINITIAL", entererUuid, null);
         return patientToJson(patient);
     }
 

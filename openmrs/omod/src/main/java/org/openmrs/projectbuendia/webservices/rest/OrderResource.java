@@ -269,8 +269,7 @@ public class OrderResource implements
             order.setOrderer(getProvider());
         }
         // Will be null if `orderer` is null.
-        User creator = Utils.getUserFromProvider(orderer);
-        order.setEncounter(createEncounter(order.getPatient(), creator, new Date()));
+        order.setEncounter(createEncounter(order.getPatient(), new Date()));
     }
 
     /**
@@ -382,9 +381,9 @@ public class OrderResource implements
         return millis == null ? null : new Date(millis);
     }
 
-    private Encounter createEncounter(Patient patient, User creator, Date encounterDatetime) {
+    private Encounter createEncounter(Patient patient, Date encounterDatetime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(creator);
+        encounter.setCreator(Utils.getAuthenticatedUser());
         encounter.setEncounterDatetime(encounterDatetime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());
