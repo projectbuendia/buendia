@@ -34,6 +34,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -213,6 +214,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         userService.saveUser(user, (String) simpleObject.get(PASSWORD));
 
         Provider provider = new Provider();
+        provider.setCreator(Utils.getAuthenticatedUser());
         provider.setPerson(person);
         provider.setName(fullName);
         providerService.saveProvider(provider);
