@@ -13,9 +13,12 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
+import org.openmrs.EncounterProvider;
+import org.openmrs.EncounterRole;
 import org.openmrs.Obs;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.Patient;
+import org.openmrs.Person;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -86,10 +89,8 @@ public class EncounterResource implements Creatable {
         // the wire format. So instead, there is this comment.
         // TODO: refactor the wire format for getEncounters so it matches the create format.
 
-        if (!post.containsKey("uuid")) {
-            throw new InvalidObjectDataException("Missing \"uuid\" key for patient");
-        }
-        Patient patient = patientService.getPatientByUuid(post.get("uuid").toString());
+        String patientUuid = Utils.getRequiredString(post, "uuid");
+        Patient patient = patientService.getPatientByUuid(patientUuid);
         if (patient == null) {
             throw new InvalidObjectDataException("Patient not found: " + post.get("uuid"));
         }
@@ -108,10 +109,7 @@ public class EncounterResource implements Creatable {
         }
         Encounter encounter = ObservationUtils.addEncounter(
             (List) post.get("observations"), (List) post.get("order_uuids"),
-            patient, encounterTime, "new observation", "ADULTRETURN", null);
-        if (encounter == null) {
-            throw new InvalidObjectDataException("No observations specified");
-        }
+            patient, encounterTime, "ADULTRETURN", (String) post.get("enterer_uuid"), null);
         SimpleObject simpleObject = new SimpleObject();
         populateJsonProperties(encounter, simpleObject);
         return simpleObject;
