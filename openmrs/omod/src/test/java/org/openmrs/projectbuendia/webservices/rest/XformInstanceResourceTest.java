@@ -10,8 +10,12 @@
 // specific language governing permissions and limitations under the License.
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.openmrs.api.context.Context;
+import org.openmrs.api.context.UserContext;
 import org.openmrs.projectbuendia.Utils;
+import org.openmrs.test.BaseContextSensitiveTest;
 
 import java.util.Date;
 
@@ -24,7 +28,7 @@ public class XformInstanceResourceTest {
         String input = readResourceAsString(getClass(), "original-instance-add.xml");
         String expected = readResourceAsString(getClass(), "expected-instance-add.xml");
         Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
-        String actual = XformInstanceResource.completeXform(input, null, 1, dateEntered);
+        String actual = XformInstanceResource.completeXform(input, null, dateEntered);
         assertXmlEqual(expected, actual);
     }
 
@@ -32,7 +36,7 @@ public class XformInstanceResourceTest {
         String input = readResourceAsString(getClass(), "original-instance-edit.xml");
         String expected = readResourceAsString(getClass(), "expected-instance-edit.xml");
         Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
-        String actual = XformInstanceResource.completeXform(input, 10, 1, dateEntered);
+        String actual = XformInstanceResource.completeXform(input, 10, dateEntered);
         assertXmlEqual(expected, actual);
     }
 
@@ -40,7 +44,7 @@ public class XformInstanceResourceTest {
         String input = readResourceAsString(getClass(), "original-grouped.xml");
         String expected = readResourceAsString(getClass(), "expected-grouped.xml");
         Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
-        String actual = XformInstanceResource.completeXform(input, null, 1, dateEntered);
+        String actual = XformInstanceResource.completeXform(input, null, dateEntered);
         assertXmlEqual(expected, actual);
     }
 
