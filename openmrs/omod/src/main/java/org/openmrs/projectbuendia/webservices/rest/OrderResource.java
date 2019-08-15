@@ -34,10 +34,10 @@ import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
+import org.openmrs.module.webservices.rest.web.response
+    .IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
@@ -49,9 +49,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
+import static org.openmrs.projectbuendia.Utils.asLong;
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /**
  * Rest API for orders.
@@ -305,7 +306,7 @@ public class OrderResource implements
                     }
                     String patientUuid = (String) value;
                     if (order.getPatient() != null) {
-                        if (Objects.equals(order.getPatient().getUuid(), patientUuid)) {
+                        if (eq(order.getPatient().getUuid(), patientUuid)) {
                             // Patient hasn't changed, keep going
                             continue;
                         }
@@ -325,7 +326,7 @@ public class OrderResource implements
                         throw new IllegalPropertyException(
                                 "Illegal format for " + INSTRUCTIONS + ", expected string");
                     }
-                    if (Objects.equals(order.getInstructions(), value)) {
+                    if (eq(order.getInstructions(), value)) {
                         // No change
                         continue;
                     }
@@ -335,7 +336,7 @@ public class OrderResource implements
 
                 case START_MILLIS: {
                     Date dateVal = objectToDate(value, START_MILLIS);
-                    if (Objects.equals(order.getScheduledDate(), dateVal)) {
+                    if (eq(order.getScheduledDate(), dateVal)) {
                         // No change
                         continue;
                     }
@@ -345,7 +346,7 @@ public class OrderResource implements
 
                 case STOP_MILLIS: {
                     Date dateVal = objectToDate(value, STOP_MILLIS);
-                    if (Objects.equals(order.getAutoExpireDate(), dateVal)) {
+                    if (eq(order.getAutoExpireDate(), dateVal)) {
                         // No change
                         continue;
                     }
@@ -373,7 +374,7 @@ public class OrderResource implements
     private static Date objectToDate(Object value, String fieldName) {
         Long millis;
         try {
-            millis = Utils.asLong(value);
+            millis = asLong(value);
         } catch (ClassCastException ex) {
             throw new IllegalPropertyException(
                     "Illegal format for " + fieldName + ", expected number");

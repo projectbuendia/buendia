@@ -19,6 +19,8 @@ import org.springframework.util.ObjectUtils;
 
 import java.util.Locale;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /**
  * A class to get a String representing a concept in the client. See the wiki
  * page explaining why this is hard and why we made these design decisions:
@@ -70,10 +72,10 @@ public class ClientConceptNamer {
     public String getClientName(Concept concept) {
         String variant = locale.getVariant();
         Locale.Builder builder = new Locale.Builder().setLocale(locale);
-        if (!VARIANT.equals(variant)) {
+        if (!eq(variant, VARIANT)) {
             builder.setVariant(VARIANT);
             // getCountry() and setRegion() refer to the same field.  Oy.
-            if ("".equals(locale.getCountry())) {
+            if (eq(locale.getCountry(), "")) {
                 builder.setRegion(CLIENT_REGION);
             }
         }
@@ -87,7 +89,7 @@ public class ClientConceptNamer {
         if (name != null) return name;
 
         // If the requested had a country/region, try it without the region
-        if ("".equals(locale.getCountry())) {
+        if (eq(locale.getCountry(), "")) {
             name = getPreferredStringInLocaleOrNull(concept, new Locale(locale.getLanguage()));
             if (name != null) return name;
         }

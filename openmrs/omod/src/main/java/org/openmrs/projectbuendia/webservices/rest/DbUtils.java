@@ -31,14 +31,15 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
-import org.openmrs.projectbuendia.Utils;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
+
+import static org.openmrs.projectbuendia.Utils.ALPHANUMERIC_COMPARATOR;
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
@@ -77,7 +78,7 @@ public class DbUtils {
             identifierType.setName(name);
             identifierType.setDescription(description);
             service.savePatientIdentifierType(identifierType);
-        } else if (!Objects.equals(identifierType.getName(), name)) {
+        } else if (!eq(identifierType.getName(), name)) {
             identifierType.setName(name);
             service.savePatientIdentifierType(identifierType);
         }
@@ -246,7 +247,7 @@ public class DbUtils {
 
     public static final Comparator<Location> ALPHANUMERIC_NAME_COMPARATOR = new Comparator<Location>() {
         @Override public int compare(Location a, Location b) {
-            return Utils.ALPHANUMERIC_COMPARATOR.compare(a.getName(), b.getName());
+            return ALPHANUMERIC_COMPARATOR.compare(a.getName(), b.getName());
         }
     };
 

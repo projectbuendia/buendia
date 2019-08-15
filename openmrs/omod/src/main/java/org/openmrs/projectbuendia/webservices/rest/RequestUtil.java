@@ -22,6 +22,8 @@ import javax.annotation.Nullable;
 import java.text.ParseException;
 import java.util.Date;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /**
  * Utilities for working with requests and request parameters.
  */
@@ -67,7 +69,7 @@ public class RequestUtil {
     public static SyncToken getSyncToken(RequestContext context) throws
             ParseException, JsonParseException, JsonMappingException {
         String param = context.getParameter("since");
-        if (param == null || "".equals(param)) {
+        if (param == null || eq(param, "")) {
             return null;
         }
         return SyncTokenUtils.jsonToSyncToken(param);

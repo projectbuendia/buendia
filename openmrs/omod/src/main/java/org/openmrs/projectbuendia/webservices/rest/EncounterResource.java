@@ -31,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /**
  * A collection where each item corresponds to one patient and contains
  * the encounter and observation data for that patient as of a particular
@@ -130,8 +132,7 @@ public class EncounterResource implements Creatable {
         List<String> orderUuids = new ArrayList<>();
         for (Obs obs : encounter.getObs()) {
             Concept concept = obs.getConcept();
-            if (concept != null &&
-                concept.getUuid().equals(DbUtils.getOrderExecutedConcept().getUuid())) {
+            if (concept != null && eq(concept.getUuid(), DbUtils.CONCEPT_ORDER_EXECUTED_UUID)) {
                 orderUuids.add(obs.getOrder().getUuid());
                 continue;
             }
