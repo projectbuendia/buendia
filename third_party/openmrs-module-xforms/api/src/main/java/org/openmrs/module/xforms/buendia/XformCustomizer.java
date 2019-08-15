@@ -32,17 +32,17 @@ public class XformCustomizer {
     }
 
     public String getLabel(Location loc) {
-        // We make sure to hide the location question on the client side; the
-        // location labels are never shown to the user.  This lets us use the
-        // UUID as the label, so the client can identify the location options.
-        return loc.getUuid();
+        return loc.getName() + " [" + loc.getLocationId() + "]";
     }
 
     public String getLabel(Provider provider) {
-        // We make sure to hide the provider question on the client side; the
-        // provider labels are never shown to the user.  This lets us use the
-        // UUID as the label, so the client can identify the provider options.
-        return provider.getUuid();
+        String name = provider.getName();
+        if (name == null) {
+            Person person = provider.getPerson();
+            name = person.getPersonName().toString();
+        }
+        String identifier = provider.getIdentifier();
+        return name + " [" + identifier + "]";
     }
 
     public String getGroupLabel(FormField formField) {
