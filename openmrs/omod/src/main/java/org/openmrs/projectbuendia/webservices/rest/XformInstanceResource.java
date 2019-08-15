@@ -120,7 +120,6 @@ public class XformInstanceResource implements Creatable {
         try {
             Document doc = getPreparedXformDocument(post);
             String xml = XformsUtil.doc2String(doc);
-            System.err.println("==== prepared XML ====\n\n" + xml + "\n\n==== end ====\n");
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {

@@ -609,9 +609,7 @@ public class BuendiaXformBuilderEx {
     private void populateProviders(Element controlNode) {
         includesProviders = true;
         for (Provider provider : Context.getProviderService().getAllProviders()) {
-            Integer providerId = provider.getId();
-            System.out.println("provider option: " + customizer.getLabel(provider) + " / " + providerId);
-            addSelectOption(controlNode, customizer.getLabel(provider), providerId.toString());
+            addSelectOption(controlNode, customizer.getLabel(provider), "" + provider.getId());
         }
     }
 
@@ -619,10 +617,8 @@ public class BuendiaXformBuilderEx {
     private void populateLocations(Element controlNode) {
         includesLocations = true;
         List<Location> locations = customizer.getEncounterLocations();
-        for (Location loc : locations) {
-            Integer id = loc.getLocationId();
-            System.out.println("location option: " + customizer.getLabel(loc) + " / " + id);
-            addSelectOption(controlNode, customizer.getLabel(loc), id.toString());
+        for (Location location : locations) {
+            addSelectOption(controlNode, customizer.getLabel(location), "" + location.getId());
         }
     }
 }
