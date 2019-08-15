@@ -37,16 +37,17 @@ public class BuendiaXformCustomizer extends XformCustomizer {
     }
 
     @Override public String getLabel(Location location) {
-        return location.getName();
+        // We make sure to hide the location question on the client side; the
+        // location labels are never shown to the user.  This lets us use the
+        // UUID as the label, so the client can identify the location options.
+        return location.getUuid();
     }
 
     @Override public String getLabel(Provider provider) {
-        String name = provider.getName();
-        if (name == null) {
-            Person person = provider.getPerson();
-            name = person.getPersonName().toString();
-        }
-        return name;
+        // We make sure to hide the provider question on the client side; the
+        // provider labels are never shown to the user.  This lets us use the
+        // UUID as the label, so the client can identify the provider options.
+        return provider.getUuid();
     }
 
     @Override public String getAppearanceAttribute(FormField formField) {
