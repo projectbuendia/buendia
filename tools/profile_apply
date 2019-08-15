@@ -10,7 +10,7 @@ import uuid
 import warnings
 
 # The UUID of the single OpenMRS form that defines all our charts.
-CHART_UUID = 'buendia_chart'
+CHART_UUID = 'buendia_form_chart'
 LOCALE = 'en_GB_client'
 
 class Database:
