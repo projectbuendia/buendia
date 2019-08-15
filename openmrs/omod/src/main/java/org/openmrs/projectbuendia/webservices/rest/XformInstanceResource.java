@@ -144,13 +144,24 @@ public class XformInstanceResource implements Creatable {
         Element formElement = XmlUtils.requireElementTagName(doc.getDocumentElement(), "form");
         ensureFormHasXsltResource(formElement.getAttribute("uuid"));
 
-        adjustXformDocument(doc, patient.getId());
+        adjustXformDocument(doc, patient.getId(), new Date());
         return doc;
     }
 
     /** Fixes up a received XForm instance document so that OpenMRS will accept it. */
-    static void adjustXformDocument(Document doc, int patientId) throws SAXException, IOException {
+    static void adjustXformDocument(Document doc, int patientId, Date dateEntered) throws SAXException, IOException {
         Element root = doc.getDocumentElement();
+
+        // Fill in a reference to the patient.
+        XmlUtils.getOrCreatePath(doc, root, "patient", "patient.patient_id")
+            .setTextContent("" + patientId);
+
+        // Fill in the date that the form was entered.
+        XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
+            .setTextContent(Utils.formatUtc8601(dateEntered));
+
+        // OpenMRS can't handle the encounter_datetime in the format we receive.
+        setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
 
         // Make sure that all observations are under the obs element, with appropriate attributes.
         Element obs = XmlUtils.getOrCreateChild(doc, root, "obs");
@@ -165,12 +176,6 @@ public class XformInstanceResource implements Creatable {
                 removeNode(element);
             }
         }
-
-        // Fill in a reference to the patient.
-        XmlUtils.getOrCreatePath(doc, root, "patient", "patient.patient_id").setTextContent("" + patientId);
-
-        // OpenMRS can't handle the encounter_datetime in the format we receive.
-        setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
     }
 
     private static void ensureFormHasXsltResource(String formUuid) {
