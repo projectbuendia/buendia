@@ -15,13 +15,13 @@ specific language governing permissions and limitations under the License.
     version="1">
   <header>
     <enterer/>
-    <date_entered>2014-11-15T12:34:56.789Z</date_entered>
+    <date_entered>2014-11-15T12:34:56.789+00:00</date_entered>
     <session/>
     <uid/>
   </header>
   <encounter>
     <encounter.encounter_datetime
-        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T12:34:56.000Z
+        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T12:34:56.000+00:00
     </encounter.encounter_datetime>
     <encounter.location_id openmrs_attribute="location_id"
                            openmrs_table="encounter">1
