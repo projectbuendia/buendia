@@ -156,17 +156,19 @@ public class XformInstanceResource implements Creatable {
     static void adjustXformDocument(Document doc, int patientId, int userId, Date dateEntered) throws SAXException, IOException {
         Element root = doc.getDocumentElement();
 
-        // Fill in a reference to the patient; this becomes the encounter's patient_id.
+        // This element sets the encounter's patient_id column.
         XmlUtils.getOrCreatePath(doc, root, "patient", "patient.patient_id")
             .setTextContent("" + patientId);
 
-        // Fill in the user account that entered the form; this becomes the encounter's creator.
+        // The <enterer> element sets the encounter's creator column; without
+        // this element, the encounter can end up with the wrong creator.
         XmlUtils.getOrCreatePath(doc, root, "header", "enterer")
             .setTextContent("" + userId);
 
         // Fill in the date that the form was entered; this becomes the encounter's date_created.
+        // If this field is missing, saxon will crash with "Invalid dateTime value. too short".
         XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
-            .setTextContent(Utils.formatUtc8601(dateEntered));
+            .setTextContent("2019-08-14T12:34:56.789Z"); // Utils.formatUtc8601(dateEntered));
 
         // OpenMRS can't handle the encounter_datetime in the format we receive.
         setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
