@@ -16,6 +16,7 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.Form;
 import org.openmrs.FormResource;
 import org.openmrs.Patient;
+import org.openmrs.User;
 import org.openmrs.api.FormService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
@@ -153,11 +154,19 @@ public class XformInstanceResource implements Creatable {
     static void adjustXformDocument(Document doc, int patientId, Date dateEntered) throws SAXException, IOException {
         Element root = doc.getDocumentElement();
 
-        // Fill in a reference to the patient.
+        // Fill in a reference to the patient; this becomes the encounter's patient_id.
+        System.out.println("patient_id: " + patientId);
         XmlUtils.getOrCreatePath(doc, root, "patient", "patient.patient_id")
             .setTextContent("" + patientId);
 
-        // Fill in the date that the form was entered.
+        // Fill in the user account that entered the form; this becomes the encounter's creator.
+        User user = DbUtils.getAuthenticatedUser();
+        System.out.println("enterer: " + user.getId());
+        XmlUtils.getOrCreatePath(doc, root, "header", "enterer")
+            .setTextContent("" + user.getId());
+
+        // Fill in the date that the form was entered; this becomes the encounter's date_created.
+        System.out.println("date_entered: " + dateEntered);
         XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
             .setTextContent(Utils.formatUtc8601(dateEntered).replace("Z", "+00:00"));
 

@@ -610,6 +610,7 @@ public class BuendiaXformBuilderEx {
         includesProviders = true;
         for (Provider provider : Context.getProviderService().getAllProviders()) {
             Integer providerId = provider.getId();
+            System.out.println("provider option: " + customizer.getLabel(provider) + " / " + providerId);
             addSelectOption(controlNode, customizer.getLabel(provider), providerId.toString());
         }
     }
@@ -620,6 +621,7 @@ public class BuendiaXformBuilderEx {
         List<Location> locations = customizer.getEncounterLocations();
         for (Location loc : locations) {
             Integer id = loc.getLocationId();
+            System.out.println("location option: " + customizer.getLabel(loc) + " / " + id);
             addSelectOption(controlNode, customizer.getLabel(loc), id.toString());
         }
     }
