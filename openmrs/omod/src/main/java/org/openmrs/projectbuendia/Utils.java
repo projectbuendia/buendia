@@ -11,18 +11,8 @@
 
 package org.openmrs.projectbuendia;
 
-import org.openmrs.EncounterRole;
-import org.openmrs.Order;
-import org.openmrs.Person;
-import org.openmrs.Provider;
-import org.openmrs.User;
-import org.openmrs.api.EncounterService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import java.math.BigInteger;
 import java.text.DateFormat;
@@ -32,11 +22,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.annotation.Nonnull;
 
 public class Utils {
     // ==== Basic types ====

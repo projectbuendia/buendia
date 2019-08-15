@@ -11,7 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
@@ -26,6 +25,7 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
+import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
@@ -229,30 +229,16 @@ public class XformInstanceResource implements Creatable {
         // Work around OpenMRS's inherently client-antagonistic design.
         datetime = Utils.fixEncounterDatetime(datetime);
 
-        // The time zone indicator must be formatted with a colon and minutes;
-        // (e.g. "+01:00" instead of "+0100"); otherwise OpenMRS fails to parse
-        // it, as Saxon datetime parsing can't handle timezones without minutes.
-        // For more details on this workaround, see
+        // Saxon cannot parse timestamps with timezones that don't include a
+        // a colon and minutes (e.g. "+0100"), so OpenMRS cannot handle them
+        // either.  Details on the history of this workaround are here:
         // https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
-        String formattedDatetime = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(datetime);
+        // To avoid this problem entirely, we always format the timestamp in UTC.
+        String formattedDatetime = Utils.formatUtc8601(datetime);
         getElementOrThrow(
             getElementOrThrow(doc.getDocumentElement(), "encounter"),
             "encounter.encounter_datetime"
         ).setTextContent(formattedDatetime);
-    }
-
-    /** Extracts and parses the encounter date from a submitted encounter. */
-    private static Date getEncounterDatetime(Document doc) {
-        Element element = getElementOrThrow(
-            getElementOrThrow(doc.getDocumentElement(), "encounter"),
-            "encounter.encounter_datetime");
-
-        Date encounterDate = parseTimestamp(element.getTextContent());
-        if (encounterDate == null) {
-            LOG.warn("No encounter_datetime found; using the current time");
-            encounterDate = new Date();
-        }
-        return encounterDate;
     }
 
     /** Parses a timestamp in a variety of formats, returning null on failure. */
@@ -267,6 +253,7 @@ public class XformInstanceResource implements Creatable {
             "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd",
             "yyyyMMdd'T'HHmmss.SSSX",
+            "yyyyMMdd'T'HHmmssX",
             "yyyyMMdd"
         );
         for (String pattern : acceptablePatterns) {
