@@ -15,7 +15,7 @@ specific language governing permissions and limitations under the License.
     version="1">
   <header>
     <enterer/>
-    <date_entered/>
+    <date_entered>2014-11-15T12:34:56.789Z</date_entered>
     <session/>
     <uid/>
   </header>

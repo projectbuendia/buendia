@@ -22,21 +22,21 @@ public class XformInstanceResourceTest {
     @Test public void addForm() throws Exception {
         Document expected = getXmlResource(getClass(), "expected-instance-add.xml");
         Document doc = getXmlResource(getClass(), "original-instance-add.xml");
-        XformInstanceResource.adjustXformDocument(doc, 8);
+        XformInstanceResource.adjustXformDocument(doc, 8, Utils.parse8601("2014-11-15T12:34:56.789Z"));
         assertXmlEqual(expected, doc);
     }
 
     @Test public void editForm() throws Exception {
         Document expected = getXmlResource(getClass(), "expected-instance-edit.xml");
         Document doc = getXmlResource(getClass(), "original-instance-edit.xml");
-        XformInstanceResource.adjustXformDocument(doc, 9);
+        XformInstanceResource.adjustXformDocument(doc, 9, Utils.parse8601("2014-11-15T12:34:56.789Z"));
         assertXmlEqual(expected, doc);
     }
 
     @Test public void moveGroupsIntoObs() throws Exception {
         Document expected = getXmlResource(getClass(), "expected-grouped.xml");
         Document doc = getXmlResource(getClass(), "original-grouped.xml");
-        XformInstanceResource.adjustXformDocument(doc, 10);
+        XformInstanceResource.adjustXformDocument(doc, 10, Utils.parse8601("2014-11-15T12:34:56.789Z"));
         assertXmlEqual(expected, doc);
     }
 
