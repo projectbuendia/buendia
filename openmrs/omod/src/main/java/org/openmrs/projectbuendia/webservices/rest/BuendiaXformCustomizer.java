@@ -26,6 +26,8 @@ import org.openmrs.util.FormConstants;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /** XForm rendering customizations for Buendia. */
 public class BuendiaXformCustomizer extends XformCustomizer {
     final ClientConceptNamer namer = new ClientConceptNamer(Context.getLocale());
@@ -50,7 +52,7 @@ public class BuendiaXformCustomizer extends XformCustomizer {
     @Override public String getAppearanceAttribute(FormField formField) {
         Field field = formField.getField();
         FieldType fieldType = field.getFieldType();
-        if (fieldType.getFieldTypeId().equals(FormConstants.FIELD_TYPE_SECTION)) {
+        if (eq(fieldType.getFieldTypeId(), FormConstants.FIELD_TYPE_SECTION)) {
             String extras = "";
             // use binary anywhere in the section to add binary select 1
             String name = formField.getName();

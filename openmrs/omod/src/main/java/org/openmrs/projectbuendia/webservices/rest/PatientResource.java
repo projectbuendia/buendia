@@ -34,7 +34,6 @@ import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
@@ -46,7 +45,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.formatUtcDate;
+import static org.openmrs.projectbuendia.Utils.parseLocalDate;
 
 /**
  * Rest API for patients.
@@ -174,14 +176,14 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         jsonForm.add(ID, toClientIdent(ident));
         jsonForm.add(SEX, patient.getGender());
         if (patient.getBirthdate() != null) {
-            jsonForm.add(BIRTHDATE, Utils.formatUtcDate(patient.getBirthdate()));
+            jsonForm.add(BIRTHDATE, formatUtcDate(patient.getBirthdate()));
         }
         String givenName = patient.getGivenName();
-        if (!givenName.equals(MISSING_NAME)) {
+        if (!eq(givenName, MISSING_NAME)) {
             jsonForm.add(GIVEN_NAME, patient.getGivenName());
         }
         String familyName = patient.getFamilyName();
-        if (!familyName.equals(MISSING_NAME)) {
+        if (!eq(familyName, MISSING_NAME)) {
             jsonForm.add(FAMILY_NAME, patient.getFamilyName());
         }
 
@@ -216,9 +218,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     private String getFullName(Patient patient) {
         String given = patient.getGivenName();
-        given = given.equals(MISSING_NAME) ? "" : given;
+        given = eq(given, MISSING_NAME) ? "" : given;
         String family = patient.getFamilyName();
-        family = family.equals(MISSING_NAME) ? "" : family;
+        family = eq(family, MISSING_NAME) ? "" : family;
         return (given + " " + family).trim();
     }
 
@@ -251,7 +253,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             // point the PatientIdentifier has a freshly-generated ID column, which
             // we use to construct the string identifier.
             PatientIdentifier ident = patient.getPatientIdentifier();
-            if (ident.getIdentifierType().equals(DbUtils.getIdentifierTypeLocal())) {
+            if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeLocal())) {
                 ident.setIdentifier("" + ident.getId());
                 patientService.savePatientIdentifier(ident);
             }
@@ -299,7 +301,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.setGender(normalizeSex(sex));
 
         if (json.containsKey(BIRTHDATE)) {
-            patient.setBirthdate(Utils.parseLocalDate((String) json.get(BIRTHDATE)));
+            patient.setBirthdate(parseLocalDate((String) json.get(BIRTHDATE)));
         }
 
         PersonName pn = new PersonName();
@@ -498,7 +500,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     }
                     break;
                 case BIRTHDATE:
-                    patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue()));
+                    patient.setBirthdate(parseLocalDate((String) entry.getValue()));
                     changedPatient = true;
                     break;
                 case ID:
@@ -550,8 +552,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     private static boolean identEquals(PatientIdentifier a, PatientIdentifier b) {
-        return Objects.equals(a.getIdentifierType(), b.getIdentifierType()) &&
-            Objects.equals(a.getIdentifier(), b.getIdentifier());
+        return eq(a.getIdentifierType(), b.getIdentifierType()) &&
+            eq(a.getIdentifier(), b.getIdentifier());
     }
 
     private static PatientIdentifier fromClientIdent(String clientIdent) {
@@ -569,7 +571,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // "*" followed by an integer, where the integer is a local
         // (type "LOCAL") server-generated identifier; or otherwise
         // it is an MSF (type "MSF") client-provided identifier.
-        if (ident.getIdentifierType().equals(DbUtils.getIdentifierTypeLocal())) {
+        if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeLocal())) {
             return "*" + ident.getIdentifier();
         } else {
             return ident.getIdentifier();

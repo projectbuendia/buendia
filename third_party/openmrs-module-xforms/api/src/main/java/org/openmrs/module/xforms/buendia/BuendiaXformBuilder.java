@@ -14,6 +14,7 @@ import org.kxml2.io.KXmlParser;
 import org.kxml2.io.KXmlSerializer;
 import org.kxml2.kdom.Document;
 import org.kxml2.kdom.Element;
+import org.kxml2.kdom.Node;
 import org.openmrs.Concept;
 import org.openmrs.ConceptMap;
 import org.openmrs.ConceptReferenceTerm;
@@ -71,6 +72,7 @@ import static org.openmrs.module.xforms.XformBuilder.NODE_XFORMS_VALUE;
 import static org.openmrs.module.xforms.XformBuilder.VALUE_TRUE;
 import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_FALSE;
 import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_TRUE;
+import static org.openmrs.projectbuendia.Utils.eq;
 
 //TODO This class is too big. May need breaking into smaller ones.
 
@@ -146,7 +148,7 @@ public final class BuendiaXformBuilder {
             String name = child.getName();
 
             /* TODO(jonskeet): If we care, move this into buildUiNode.
-            if (name.equals("patient_relationship")) {
+            if (Utils.eq(name, "patient_relationship")) {
                 RelationshipBuilder.build(modelElement, bodyNode, child);
                 continue;
             }
@@ -155,11 +157,9 @@ public final class BuendiaXformBuilder {
             //If the node has an openmrs_concept attribute but is not a top-level node,
             //Or has the openmrs_attribute and openmrs_table attributes.
             if ((child.getAttributeValue(null, ATTRIBUTE_OPENMRS_CONCEPT) != null && level > 1
-            /*!child.getName().equals(NODE_OBS)*/)
-                || (child.getAttributeValue(null, ATTRIBUTE_OPENMRS_ATTRIBUTE) != null && child
-                .getAttributeValue(
-                    null,
-                    ATTRIBUTE_OPENMRS_TABLE) != null)) {
+            /*!Utils.eq(child.getName(), NODE_OBS)*/)
+                || (child.getAttributeValue(null, ATTRIBUTE_OPENMRS_ATTRIBUTE) != null
+                    && child.getAttributeValue(null, ATTRIBUTE_OPENMRS_TABLE) != null)) {
                 if (!name.equalsIgnoreCase(NODE_PROBLEM_LIST)) {
                     Element bindNode = createBindNode(
                         modelElement, child, bindings, problemList, problemListItems);
@@ -354,8 +354,11 @@ public final class BuendiaXformBuilder {
 
         bindNode.setAttribute(null, ATTRIBUTE_NODESET, nodeset);
 
-        if (!((Element) ((Element) node.getParent()).getParent())
-            .getName().equals(NODE_PROBLEM_LIST)) {
+        if (!eq(
+            ((Element)
+                ((Element) node.getParent())
+                    .getParent()
+            ).getName(), NODE_PROBLEM_LIST)) {
             modelElement.addChild(Element.ELEMENT, bindNode);
         }
 

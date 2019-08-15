@@ -42,9 +42,11 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescendant;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
+import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils
+    .requireDescendant;
 
 /**
  * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
@@ -114,9 +116,9 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
             // which is really dangerous.
             for (FormField formField : form.getFormFields()) {
                 Field field = formField.getField();
-                if (FormConstants.FIELD_TYPE_DATABASE.equals(
-                    field.getFieldType().getFieldTypeId())
-                    && "encounter".equals(field.getTableName())) {
+                if (eq(field.getFieldType().getFieldTypeId(),
+                        FormConstants.FIELD_TYPE_DATABASE)
+                    && eq(field.getTableName(), "encounter")) {
                     includesProviders = true;
                 }
                 dateChanged = maxDate(dateChanged, dateChanged(formField));
@@ -202,9 +204,9 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         for (Element label : elementsIn(doc
             .getElementsByTagNameNS(XFORMS_NAMESPACE, "label"))) {
             Element parent = (Element) label.getParentNode();
-            if (XFORMS_NAMESPACE.equals(parent.getNamespaceURI())
-                && parent.getLocalName().equals("group")
-                && "RELATIONSHIPS".equals(label.getTextContent())) {
+            if (eq(XFORMS_NAMESPACE, parent.getNamespaceURI())
+                && eq(parent.getLocalName(), "group")
+                && eq(label.getTextContent(), "RELATIONSHIPS")) {
                 removeNode(parent);
                 // We don't need to find other labels now, especially if they
                 // may already have been removed.
@@ -237,7 +239,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     private static void removeBinding(Document doc, String id) {
         for (Element binding : elementsIn(
             doc.getElementsByTagNameNS(XFORMS_NAMESPACE, "bind"))) {
-            if (binding.getAttribute("id").equals(id)) {
+            if (eq(binding.getAttribute("id"), id)) {
                 removeNode(binding);
                 return;
             }

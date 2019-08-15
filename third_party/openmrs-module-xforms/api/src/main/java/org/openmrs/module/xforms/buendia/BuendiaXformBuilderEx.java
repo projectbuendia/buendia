@@ -89,6 +89,7 @@ import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_INSTANCES;
 import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA;
 import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA2;
 import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_TRUE;
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /**
  * This is a clone of the Xforms module XformBuilderEx class, allowing us to tinker with the view
@@ -275,7 +276,7 @@ public class BuendiaXformBuilderEx {
                     formField.getParent() != null &&
                     (formField.getParent().getField().getName().contains("PROBLEM LIST"))) {
                     fieldUiNode = addProblemList(name, concept, formField, parentUiNode);
-                } else if (name.equals("problem_list")) {
+                } else if (eq(name, "problem_list")) {
                     // TODO(jonskeet): Work out what we should do here. There won't be any
                     // bindings for this.
                     // The child nodes will be covered by the case above, when we recurse down.
@@ -327,7 +328,7 @@ public class BuendiaXformBuilderEx {
                             break;
                         default:
                             // TODO(jonskeet): Remove this hack when we understand better...
-                            if (field.getName().equals("OBS")) {
+                            if (eq(field.getName(), "OBS")) {
                                 fieldUiNode = createGroupNode(formField, parentUiNode);
                             } else {
                                 // Don't understand this concept
@@ -368,7 +369,7 @@ public class BuendiaXformBuilderEx {
 
         Element controlNode = appendElement(bodyNode, NAMESPACE_XFORMS, controlName);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
-        if (DATA_TYPE_TEXT.equals(dataType)) {
+        if (eq(DATA_TYPE_TEXT, dataType)) {
             Integer rows = customizer.getRows(concept);
             if (rows != null) {
                 controlNode.setAttribute(null, ATTRIBUTE_ROWS, rows.toString());
@@ -572,23 +573,22 @@ public class BuendiaXformBuilderEx {
 
         // TODO: Set the data type on the bind node? It may already be done.
 
-        // Handle encounter provider / location: these are multiple choice questions, and we
-        // populate
-        // the options.
+        // Handle encounter provider / location: these are multiple choice questions,
+        // and we populate the options.
         Field field = formField.getField();
-        if ("patient".equals(field.getTableName())) {
-            if ("gender".equals(field.getAttributeName())) {
+        if (eq(field.getTableName(), "patient")) {
+            if (eq(field.getAttributeName(), "gender")) {
                 controlNode.setName(CONTROL_SELECT1);
                 populateGenders(controlNode);
-            } else if ("birthdate".equals(field.getAttributeName())) {
+            } else if (eq(field.getAttributeName(), "birthdate")) {
                 controlNode.setAttribute(null, ATTRIBUTE_APPEARANCE,
                     "minimal|show_years|show_months");
             }
-        } else if ("encounter".equals(field.getTableName())) {
-            if ("location_id".equals(field.getAttributeName())) {
+        } else if (eq(field.getTableName(), "encounter")) {
+            if (eq(field.getAttributeName(), "location_id")) {
                 controlNode.setName(CONTROL_SELECT1);
                 populateLocations(controlNode);
-            } else if ("provider_id".equals(field.getAttributeName())) {
+            } else if (eq(field.getAttributeName(), "provider_id")) {
                 controlNode.setName(CONTROL_SELECT1);
                 populateProviders(controlNode);
             }
