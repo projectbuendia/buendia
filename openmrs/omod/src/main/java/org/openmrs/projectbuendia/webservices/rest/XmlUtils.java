@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -154,7 +155,7 @@ public class XmlUtils {
     /* Gets a child of the given element by name, creating it if not present. */
     public static Element getOrCreateChild(Document doc, Element element, String name) {
         for (Element child : getChildren(element)) {
-            if (child.getLocalName().equals(name)) {
+            if (Objects.equals(child.getLocalName(), name)) {
                 return child;
             }
         }
