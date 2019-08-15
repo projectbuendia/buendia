@@ -16,6 +16,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.junit.Assert;
 import org.junit.Test;
 import org.openmrs.Patient;
+import org.openmrs.PatientIdentifierType;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -84,7 +85,8 @@ public class PatientResourceTest extends BaseApiRequestTest {
         assertFalse(response.containsKey("assigned_location"));
 
         Patient patient = patientService.getPatientByUuid(uuid);
-        assertEquals("XYZ", patient.getPatientIdentifier(2).getIdentifier());
+        PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtil.IDENTIFIER_TYPE_MSF_UUID);
+        assertEquals("XYZ", patient.getPatientIdentifier(identType).getIdentifier());
     }
 
     @Test public void testMovePatient() throws Exception {

@@ -33,29 +33,44 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtil {
-    // The names of these two PatientIdentifierTypes are hardcoded.  If rows don't
+    // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
+    // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
+    // facilitate readability, all UUIDs specific to Buendia are prefixed "buendia_".
+
+    // The UUIDs of these two PatientIdentifierTypes are hardcoded.  If rows don't
     // exist in the database with these names, they will be created.  Clients don't
     // need to know these constants because the server handles them internally when
     // interpreting and returning a patient's "id" field.
-    public static final String MSF_IDENTIFIER_TYPE_NAME = "MSF";
-    public static final String LOCAL_IDENTIFIER_TYPE_NAME = "LOCAL";
+    public static final String IDENTIFIER_TYPE_MSF_UUID = "buendia_identifier_type_msf";
+    public static final String IDENTIFIER_TYPE_LOCAL_UUID = "buendia_identifier_type_local";
+
+    // The concept UUID for observations that signify that an order was executed.
+    public static final String CONCEPT_ORDER_EXECUTED_UUID = "buendia_concept_order_executed";
+
+    // The concept UUID for all orders.
+    public static final String CONCEPT_FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
 
     // This UUID is hardcoded; clients must use the same UUID for this field.
     public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID =
         "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
-    public static PatientIdentifierType getIdentifierType(String name, String description) {
+    public static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
         PatientService service = Context.getPatientService();
         PatientIdentifierType identifierType =
-            service.getPatientIdentifierTypeByName(name);
+            service.getPatientIdentifierTypeByUuid(uuid);
         if (identifierType == null) {
             identifierType = new PatientIdentifierType();
+            identifierType.setUuid(uuid);
             identifierType.setName(name);
             identifierType.setDescription(description);
+            service.savePatientIdentifierType(identifierType);
+        } else if (!Objects.equals(identifierType.getName(), name)) {
+            identifierType.setName(name);
             service.savePatientIdentifierType(identifierType);
         }
         return identifierType;
@@ -63,12 +78,12 @@ public class DbUtil {
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
     public static PatientIdentifierType getIdentifierTypeMsf() {
-        return getIdentifierType(MSF_IDENTIFIER_TYPE_NAME, "MSF patient identifier");
+        return getIdentifierType(IDENTIFIER_TYPE_MSF_UUID, "MSF", "MSF patient identifier");
     }
 
     /** Gets or creates the PatientIdentifierType for local integers (used for patients with no MSF ID). */
     public static PatientIdentifierType getIdentifierTypeLocal() {
-        return getIdentifierType(LOCAL_IDENTIFIER_TYPE_NAME, "Local numeric patient identifier");
+        return getIdentifierType(IDENTIFIER_TYPE_LOCAL_UUID, "LOCAL", "Local numeric patient identifier");
     }
 
     public static OrderType getDrugOrderType() {
@@ -109,13 +124,16 @@ public class DbUtil {
     // which "order executed" is observed for the appropriate order.
     public static Concept getOrderExecutedConcept() {
         return DbUtil.getConcept(
-            "Order executed",
-            // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for
-            // arbitrary string IDs unrelated to RFC 4122.  Therefore, to prevent
-            // collisions, UUIDs specific to this module are prefixed "buendia_".
-            "buendia_concept_order_executed",
-            "N/A",
-            "Finding");
+            "Order executed", CONCEPT_ORDER_EXECUTED_UUID, "N/A", "Finding");
+    }
+
+    // Gets the default concept for orders in Buendia.  We don't store dosages,
+    // frequencies, etc. in the drug_* and order_* tables; our orders encode
+    // such information in the "instructions" field and use this concept.
+    public static Concept getFreeTextOrderConcept() {
+        return getConcept(
+            "Order described in free text instructions",
+            CONCEPT_FREE_TEXT_ORDER_UUID, "N/A", "Misc");
     }
 
     /** Gets or creates a Concept with a given UUID and name. */
