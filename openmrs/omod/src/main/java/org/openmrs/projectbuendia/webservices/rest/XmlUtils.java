@@ -11,7 +11,8 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
+import org.openmrs.module.webservices.rest.web.response
+    .IllegalPropertyException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -27,6 +28,8 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /** XML manipulation functions. */
 public class XmlUtils {
@@ -52,8 +55,8 @@ public class XmlUtils {
         Element element, String namespaceURI, String localName) {
         List<Element> elements = new ArrayList<>();
         for (Element candidate : getChildren(element)) {
-            if (namespaceURI.equals(candidate.getNamespaceURI())
-                && localName.equals(candidate.getLocalName())) {
+            if (eq(namespaceURI, candidate.getNamespaceURI())
+                && eq(localName, candidate.getLocalName())) {
                 elements.add(candidate);
             }
         }
@@ -83,7 +86,7 @@ public class XmlUtils {
 
     /** Requires the given element to have the given tag name. */
     public static Element requireElementTagName(Element element, String name) {
-        if (!element.getLocalName().equals(name)) {
+        if (!eq(element.getLocalName(), name)) {
             throw new IllegalPropertyException(String.format(
                 "Expected <%s> element but found <%s>", name, element.getLocalName()));
         }
@@ -154,7 +157,7 @@ public class XmlUtils {
     /* Gets a child of the given element by name, creating it if not present. */
     public static Element getOrCreateChild(Document doc, Element element, String name) {
         for (Element child : getChildren(element)) {
-            if (child.getLocalName().equals(name)) {
+            if (eq(child.getLocalName(), name)) {
                 return child;
             }
         }

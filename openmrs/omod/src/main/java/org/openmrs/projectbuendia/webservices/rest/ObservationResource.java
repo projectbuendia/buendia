@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /**
  * A resource that allows observations to be incrementally synced.
  * Note: this resource is read-only. For creates, see {@link EncounterResource}.
@@ -131,8 +133,8 @@ public class ObservationResource implements Listable, Searchable {
             break;
         }
 
-        boolean isExecutedOrder =
-                DbUtils.getOrderExecutedConcept().equals(obs.getConcept()) && obs.getOrder() != null;
+        boolean isExecutedOrder = obs.getOrder() != null &&
+            eq(DbUtils.getOrderExecutedConcept(), obs.getConcept());
         if (isExecutedOrder) {
             // As far as the client knows, a chain of orders is represented by the root order's
             // UUID, so we have to work back through the chain or orders to get the root UUID.

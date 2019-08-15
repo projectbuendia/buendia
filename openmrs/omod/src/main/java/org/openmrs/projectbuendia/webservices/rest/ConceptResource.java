@@ -39,6 +39,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.openmrs.projectbuendia.Utils.isBlank;
+
 /**
  * REST collection of all the concepts that are present in at least one of the
  * charts returned by {@link ChartResource}.
@@ -205,7 +207,7 @@ public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     private List<Locale> getLocalesForRequest(RequestContext context) {
         // TODO: Make this cheap to call multiple times for a single request.
         String localeIds = context.getRequest().getParameter("locales");
-        if (localeIds == null || localeIds.trim().equals("")) {
+        if (isBlank(localeIds)) {
             return Context.getAdministrationService().getAllowedLocales();
         }
         List<Locale> locales = new ArrayList<>();

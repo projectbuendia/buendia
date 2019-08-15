@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +32,21 @@ import javax.annotation.Nonnull;
 
 public class Utils {
     // ==== Basic types ====
+
+    /** A sane eq operator, to replace Java's broken == and broken equals(). */
+    public static boolean eq(Object a, Object b) {
+        return a == b || (a != null && a.equals(b));
+    }
+
+    /** A safe check for null or empty strings. */
+    public static boolean isEmpty(Object s) {
+        return s == null || eq(s, "");
+    }
+
+    /** A safe check for null or whitespace strings. */
+    public static boolean isBlank(Object s) {
+        return s == null || (s instanceof String && ((String) s).trim().isEmpty());
+    }
 
     /** Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long. */
     public static Long asLong(Object obj) {
@@ -152,7 +168,7 @@ public class Utils {
     /**
      * Compares two strings in a manner that sorts alphabetic parts in alphabetic
      * order and numeric parts in numeric order, while guaranteeing that:
-     * - compare(s, t) == 0 if and only if s.equals(t).
+     * - compare(s, t) == 0 if and only if eq(s, t).
      * - compare(s, s + t) < 0 for any strings s and t.
      * - compare(s + x, s + y) == Integer.compare(x, y) for all integers x, y
      * and strings s that do not end in a digit.
