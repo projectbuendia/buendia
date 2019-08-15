@@ -13,14 +13,6 @@ import warnings
 CHART_UUID = 'buendia_chart'
 LOCALE = 'en_GB_client'
 
-# This is a modified copy of the "OpenMRS FormEntry Form HL7 Translation" XSLT
-# file, with encounter_datetime changed from a "hl7Date" to an "hl7Timestamp".
-# To record the date and time (not just the date) of submitted observations,
-# we have to add this as a form resource to every form.
-XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
-XSLT_DATATYPE = 'org.openmrs.customdatatype.datatype.LongFreeTextDatatype'
-XSLT_HANDLER = 'org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler'
-
 class Database:
     def __init__(self, database, user, password):
         self.db = MySQLdb.connect(db=database, user=user, passwd=password)
@@ -407,16 +399,7 @@ def apply(tabs):
         uuid = create_uuid_from_form_name(title)
         form_id = put_form(uuid, title, adult_return)
         apply_form(rows, form_id)
-        init_form_xslt(form_id)
         db.execute('update form set published = 1 where form_id = %s', form_id)
-
-    def init_form_xslt(form_id):
-        """Adds our custom XSLT as a form resource to a specified form."""
-        name = db.get('name', 'form', form_id=form_id) + '.xFormXslt'
-        resource_id = get_or_insert('form_resource',
-            form_id=form_id, name=name, value_reference=XSLT_UUID)
-        odb.update('form_resource', resource_id, datatype=XSLT_DATATYPE,
-                   preferred_handler=XSLT_HANDLER)
 
     def apply_form(rows, form_id):
         """
