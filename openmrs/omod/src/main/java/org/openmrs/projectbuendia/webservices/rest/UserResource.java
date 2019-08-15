@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.openmrs.Patient;
 import org.openmrs.Person;
 import org.openmrs.Provider;
-import org.openmrs.User;
 import org.openmrs.api.ProviderService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
@@ -36,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.getRequiredString;
 
 /**
@@ -93,11 +91,9 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private static final String FAMILY_NAME = "family_name";
     private static final String GIVEN_NAME = "given_name";
 
-    // Defaults for guest account
-    private static final String GUEST_FULL_NAME = "Guest User";
-    private static final String GUEST_GIVEN_NAME = "Guest";
-    private static final String GUEST_FAMILY_NAME = "User";
-    private static final String GUEST_USER_NAME = "guest";
+    // Defaults for guest provider
+    private static final String PROVIDER_GUEST_UUID = "buendia_provider_guest";
+    private static final String GUEST_NAME = "Guest User";
 
     private static final Object guestAddLock = new Object();
 
@@ -126,42 +122,19 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
     /** Returns all Providers. */
     private SimpleObject getAllInner() throws ResponseException {
-        List<Provider> providers;
-        // Returning providers is not a thread-safe operation as it may add the guest user
-        // to the database, which is not idempotent.
-        synchronized (this) {
-            providers = providerService.getAllProviders();
-            addGuestIfNotPresent(providers);
-        }
-        return getSimpleObjectWithResults(providers);
+        ensureGuestProviderExists();
+        return getSimpleObjectWithResults(providerService.getAllProviders());
     }
 
     /** Creates a Provider named "Guest User" if one doesn't already exist. */
-    private void addGuestIfNotPresent(List<Provider> providers) {
-        boolean guestFound = false;
-        for (Provider provider : providers) {
-            // TODO/robustness: Use a fixed UUID instead of searching for
-            // anything with a matching name.
-            if (eq(provider.getName(), GUEST_FULL_NAME)) {
-                guestFound = true;
-                break;
-            }
-        }
-
-        if (!guestFound) {
-            SimpleObject guestDetails = new SimpleObject();
-            guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
-            guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
-            guestDetails.put(USER_NAME, GUEST_USER_NAME);
-            synchronized (guestAddLock) {
-                // Fetch again to avoid duplication in case another thread has
-                // added Guest User, but use the UserService for the check to
-                // avoid Hibernate cache issues.
-                User guestUser = userService.getUserByUsername(GUEST_USER_NAME);
-                if (guestUser == null) {
-                    providers.add(addNewProvider(guestDetails));
-                }
-            }
+    private synchronized void ensureGuestProviderExists() {
+        Provider guest = providerService.getProviderByUuid(PROVIDER_GUEST_UUID);
+        if (guest == null) {
+            guest = new Provider();
+            guest.setCreator(DbUtils.getAuthenticatedUser());
+            guest.setUuid(PROVIDER_GUEST_UUID);
+            guest.setName(GUEST_NAME);
+            providerService.saveProvider(guest);
         }
     }
 
@@ -290,20 +263,16 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
     /** Searches for Providers whose names contain the 'q' parameter. */
     private SimpleObject searchInner(RequestContext requestContext) throws ResponseException {
-        // Partial string query for searches.
-        String query = requestContext.getParameter("q");
+        ensureGuestProviderExists();
 
         // Retrieve all patients and filter the list based on the query.
+        String query = requestContext.getParameter("q");
         List<Provider> filteredProviders = new ArrayList<>();
-
-        // Perform a substring search on username.
         for (Provider provider : providerService.getAllProviders(false)) {
             if (StringUtils.containsIgnoreCase(provider.getName(), query)) {
                 filteredProviders.add(provider);
             }
         }
-
-        addGuestIfNotPresent(filteredProviders);
         return getSimpleObjectWithResults(filteredProviders);
     }
 }
