@@ -104,9 +104,9 @@ public class ObservationResource implements Listable, Searchable {
             int omitted = items.size() - MAX_ITEMS;
             abbrevItems.add(String.format(
                 "...only logging last %d of %d items (%d omitted)...",
-                items.size(), MAX_ITEMS, omitted
+                MAX_ITEMS, items.size(), omitted
             ));
-            abbrevItems.addAll(items.subList(omitted, items.size()));
+            abbrevItems.addAll(items.subList(omitted, MAX_ITEMS));
             resultsValue = abbrevItems;
         }
 
