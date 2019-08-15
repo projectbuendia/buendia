@@ -13,12 +13,9 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
-import org.openmrs.EncounterProvider;
-import org.openmrs.EncounterRole;
 import org.openmrs.Obs;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.Patient;
-import org.openmrs.Person;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -134,7 +131,7 @@ public class EncounterResource implements Creatable {
         for (Obs obs : encounter.getObs()) {
             Concept concept = obs.getConcept();
             if (concept != null &&
-                concept.getUuid().equals(DbUtil.getOrderExecutedConcept().getUuid())) {
+                concept.getUuid().equals(DbUtils.getOrderExecutedConcept().getUuid())) {
                 orderUuids.add(obs.getOrder().getUuid());
                 continue;
             }

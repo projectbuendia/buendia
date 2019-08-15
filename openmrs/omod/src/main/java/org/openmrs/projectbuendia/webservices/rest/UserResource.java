@@ -188,7 +188,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         }
 
         Provider provider = new Provider();
-        provider.setCreator(Utils.getAuthenticatedUser());
+        provider.setCreator(DbUtils.getAuthenticatedUser());
         provider.setName(name);
         providerService.saveProvider(provider);
         return provider;

@@ -85,7 +85,7 @@ public class PatientResourceTest extends BaseApiRequestTest {
         assertFalse(response.containsKey("assigned_location"));
 
         Patient patient = patientService.getPatientByUuid(uuid);
-        PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtil.IDENTIFIER_TYPE_MSF_UUID);
+        PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtils.IDENTIFIER_TYPE_MSF_UUID);
         assertEquals("XYZ", patient.getPatientIdentifier(identType).getIdentifier());
     }
 

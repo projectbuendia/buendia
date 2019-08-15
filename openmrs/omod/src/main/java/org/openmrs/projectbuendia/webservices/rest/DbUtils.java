@@ -14,14 +14,18 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
 import org.openmrs.ConceptName;
+import org.openmrs.EncounterRole;
 import org.openmrs.Location;
+import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifierType;
 import org.openmrs.Person;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
+import org.openmrs.User;
 import org.openmrs.api.ConceptService;
+import org.openmrs.api.EncounterService;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
@@ -31,15 +35,24 @@ import org.openmrs.projectbuendia.Utils;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
-public class DbUtil {
+public class DbUtils {
     // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
     // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
     // facilitate readability, all UUIDs specific to Buendia are prefixed "buendia_".
+
+    // Clients must use this concept UUID for observations that signify that an
+    // order was executed.  This is the only hardcoded UUID that clients need to know.
+    public static final String CONCEPT_ORDER_EXECUTED_UUID = "buendia_concept_order_executed";
+
+    // The concept UUID for all orders.  This is used internally by the server and
+    // does not need to be known by clients.
+    public static final String CONCEPT_FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
 
     // The UUIDs of these two PatientIdentifierTypes are hardcoded.  If rows don't
     // exist in the database with these names, they will be created.  Clients don't
@@ -48,15 +61,10 @@ public class DbUtil {
     public static final String IDENTIFIER_TYPE_MSF_UUID = "buendia_identifier_type_msf";
     public static final String IDENTIFIER_TYPE_LOCAL_UUID = "buendia_identifier_type_local";
 
-    // The concept UUID for observations that signify that an order was executed.
-    public static final String CONCEPT_ORDER_EXECUTED_UUID = "buendia_concept_order_executed";
+    // This UUID is hardcoded, but clients don't need to know it because the server
+    // internally converts the "assigned_location" to a person attribute.
+    public static final String ATTRIBUTE_TYPE_ASSIGNED_LOCATION_UUID = "buendia_attribute_type_location";
 
-    // The concept UUID for all orders.
-    public static final String CONCEPT_FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
-
-    // This UUID is hardcoded; clients must use the same UUID for this field.
-    public static final String ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID =
-        "0dd66a70-5d0a-4665-90be-67e2fe01b3fc";
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
     public static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
@@ -123,7 +131,7 @@ public class DbUtil {
     // an order is executed, this is recorded in the system as an encounter in
     // which "order executed" is observed for the appropriate order.
     public static Concept getOrderExecutedConcept() {
-        return DbUtil.getConcept(
+        return DbUtils.getConcept(
             "Order executed", CONCEPT_ORDER_EXECUTED_UUID, "N/A", "Finding");
     }
 
@@ -154,7 +162,48 @@ public class DbUtil {
     /** Gets the attribute type for the patient's assigned location. */
     public static PersonAttributeType getAssignedLocationAttributeType() {
         return getPersonAttributeType(
-            ASSIGNED_LOCATION_PERSON_ATTRIBUTE_TYPE_UUID, "assigned_location");
+            ATTRIBUTE_TYPE_ASSIGNED_LOCATION_UUID, "assigned_location");
+    }
+
+    /** Returns the currently authenticated user. */
+    public static User getAuthenticatedUser() {
+        return Context.getUserContext().getAuthenticatedUser();
+    }
+
+    /** Gets the designated EncounterRole object for an unknown role. */
+    public static EncounterRole getUnknownEncounterRole() {
+        EncounterService encounterService = Context.getEncounterService();
+        EncounterRole role = encounterService.getEncounterRoleByUuid(
+            EncounterRole.UNKNOWN_ENCOUNTER_ROLE_UUID);
+        if (role == null) {
+            role = new EncounterRole();
+            role.setUuid(EncounterRole.UNKNOWN_ENCOUNTER_ROLE_UUID);
+            role.setName("Unknown");
+            encounterService.saveEncounterRole(role);
+        }
+        return role;
+    }
+
+    /**
+     * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
+     * The OpenMRS core is not designed for a client-server setup -- it will
+     * summarily reject a submitted encounter if the encounter_datetime is in
+     * the future, even if the client's clock is off by only one millisecond.
+     */
+    public static Date fixEncounterDatetime(Date datetime) {
+        Date now = new Date();
+        if (datetime.after(now)) {
+            datetime = now;
+        }
+        return datetime;
+    }
+
+    /** Searches back through revision orders until it finds the root order. */
+    public static Order getRootOrder(Order order) {
+        while (order.getPreviousOrder() != null) {
+            order = order.getPreviousOrder();
+        }
+        return order;
     }
 
     /** Gets or creates a PersonAttributeType with a given UUID and name. */

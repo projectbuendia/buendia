@@ -40,7 +40,6 @@ import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -188,8 +187,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         // TODO: refactor so we have a single assigned location with a uuid,
         // and we walk up the tree to get extra information for the patient.
-        String assignedLocation = DbUtil.getPersonAttributeValue(
-            patient, DbUtil.getAssignedLocationAttributeType());
+        String assignedLocation = DbUtils.getPersonAttributeValue(
+            patient, DbUtils.getAssignedLocationAttributeType());
         if (assignedLocation != null) {
             LocationService locationService = Context.getLocationService();
             Location location = locationService.getLocation(
@@ -252,7 +251,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             // point the PatientIdentifier has a freshly-generated ID column, which
             // we use to construct the string identifier.
             PatientIdentifier ident = patient.getPatientIdentifier();
-            if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
+            if (ident.getIdentifierType().equals(DbUtils.getIdentifierTypeLocal())) {
                 ident.setIdentifier("" + ident.getId());
                 patientService.savePatientIdentifier(ident);
             }
@@ -286,7 +285,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     protected static Patient jsonToPatient(SimpleObject json) {
-        User user = Utils.getAuthenticatedUser();
+        User user = DbUtils.getAuthenticatedUser();
         Patient patient = new Patient();
         patient.setCreator(user);
         patient.setDateCreated(new Date());
@@ -314,17 +313,17 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.addIdentifier(identifier);
         identifier.setCreator(user);
         identifier.setDateCreated(patient.getDateCreated());
-        identifier.setLocation(DbUtil.getDefaultLocation());
+        identifier.setLocation(DbUtils.getDefaultLocation());
         identifier.setPreferred(true);
 
         // OpenMRS requires that every patient have a preferred identifier.  If the
         // incoming "id" field is non-blank, it becomes the MSF identifier; otherwise,
         // we use our database to generate a numeric locally unique identifier.
         if (json.containsKey(ID) && !((String) json.get(ID)).isEmpty()) {
-            identifier.setIdentifierType(DbUtil.getIdentifierTypeMsf());
+            identifier.setIdentifierType(DbUtils.getIdentifierTypeMsf());
             identifier.setIdentifier((String) json.get(ID));
         } else {
-            identifier.setIdentifierType(DbUtil.getIdentifierTypeLocal());
+            identifier.setIdentifierType(DbUtils.getIdentifierTypeLocal());
             // To generate an integer ID, we need to save the patient identifier and
             // let the table fill in the ID AUTO_INCREMENT column.  But OpenMRS will
             // not let us save the patient identifier with a blank identifier string,
@@ -360,8 +359,8 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         Location location = Context.getLocationService().getLocationByUuid(locationUuid);
         if (location != null) {
-            DbUtil.setPersonAttributeValue(patient,
-                DbUtil.getAssignedLocationAttributeType(),
+            DbUtils.setPersonAttributeValue(patient,
+                DbUtils.getAssignedLocationAttributeType(),
                 Integer.toString(location.getId()));
         }
     }
@@ -474,7 +473,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     /** Applies edits to a Patient.  Returns true if any changes were made. */
     protected void applyEdits(Patient patient, SimpleObject edits) {
-        User user = Utils.getAuthenticatedUser();
+        User user = DbUtils.getAuthenticatedUser();
         boolean changedPatient = false;
         String newGivenName = null;
         String newFamilyName = null;
@@ -558,10 +557,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static PatientIdentifier fromClientIdent(String clientIdent) {
         if (clientIdent.startsWith("*")) {
             return new PatientIdentifier(clientIdent.substring(1),
-                DbUtil.getIdentifierTypeLocal(), DbUtil.getDefaultLocation());
+                DbUtils.getIdentifierTypeLocal(), DbUtils.getDefaultLocation());
         } else {
             return new PatientIdentifier(clientIdent,
-                DbUtil.getIdentifierTypeMsf(), DbUtil.getDefaultLocation());
+                DbUtils.getIdentifierTypeMsf(), DbUtils.getDefaultLocation());
         }
     }
 
@@ -570,7 +569,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         // "*" followed by an integer, where the integer is a local
         // (type "LOCAL") server-generated identifier; or otherwise
         // it is an MSF (type "MSF") client-provided identifier.
-        if (ident.getIdentifierType().equals(DbUtil.getIdentifierTypeLocal())) {
+        if (ident.getIdentifierType().equals(DbUtils.getIdentifierTypeLocal())) {
             return "*" + ident.getIdentifier();
         } else {
             return ident.getIdentifier();
@@ -588,7 +587,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             ));
         }
         List<PatientIdentifierType> identifierTypes =
-            Collections.singletonList(DbUtil.getIdentifierTypeMsf());
+            Collections.singletonList(DbUtils.getIdentifierTypeMsf());
         List<Patient> existing = patientService.getPatients(
             null, ident, identifierTypes, true /* exact identifier match */);
         if (!existing.isEmpty()) {
