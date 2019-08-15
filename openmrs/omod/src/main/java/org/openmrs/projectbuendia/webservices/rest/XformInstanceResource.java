@@ -29,7 +29,6 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
@@ -48,10 +47,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.requireDescendant;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getChildren;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.requirePath;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.getChildren;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
 
 /**
  * Resource for submitted "form instances" (filled-in forms).  Write-only.
@@ -144,8 +142,8 @@ public class XformInstanceResource implements Creatable {
         Patient patient = patientService.getPatientByUuid(patientUuid);
         if (patient == null) throw new ObjectNotFoundException();
 
-        Document doc = XmlUtil.parse(xml);
-        Element formElement = XmlUtil.requireElementTagName(doc.getDocumentElement(), "form");
+        Document doc = XmlUtils.parse(xml);
+        Element formElement = XmlUtils.requireElementTagName(doc.getDocumentElement(), "form");
         ensureFormHasXsltResource(formElement.getAttribute("uuid"));
 
         adjustXformDocument(doc, patient.getId());
@@ -157,7 +155,7 @@ public class XformInstanceResource implements Creatable {
         Element root = doc.getDocumentElement();
 
         // Make sure that all observations are under the obs element, with appropriate attributes.
-        Element obs = XmlUtil.getOrCreateChild(doc, root, "obs");
+        Element obs = XmlUtils.getOrCreateChild(doc, root, "obs");
         obs.setAttribute("openmrs_concept", "1238^MEDICAL RECORD OBSERVATIONS^99DCT");
         obs.setAttribute("openmrs_datatype", "ZZ");
         List<String> topLevelElements = Arrays.asList("header", "patient", "encounter", "obs");
@@ -171,7 +169,7 @@ public class XformInstanceResource implements Creatable {
         }
 
         // Fill in a reference to the patient.
-        XmlUtil.getOrCreatePath(doc, root, "patient", "patient.patient_id").setTextContent("" + patientId);
+        XmlUtils.getOrCreatePath(doc, root, "patient", "patient.patient_id").setTextContent("" + patientId);
 
         // OpenMRS can't handle the encounter_datetime in the format we receive.
         setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
@@ -211,7 +209,7 @@ public class XformInstanceResource implements Creatable {
     }
 
     private static void setEncounterDatetime(Document doc, String content) {
-        XmlUtil.getOrCreatePath(doc, doc.getDocumentElement(),
+        XmlUtils.getOrCreatePath(doc, doc.getDocumentElement(),
             "encounter", "encounter.encounter_datetime").setTextContent(content);
     }
 
@@ -224,7 +222,7 @@ public class XformInstanceResource implements Creatable {
         }
 
         // Work around OpenMRS's inherently client-antagonistic design.
-        datetime = Utils.fixEncounterDatetime(datetime);
+        datetime = DbUtils.fixEncounterDatetime(datetime);
 
         // Saxon cannot parse timestamps with timezones that don't include a
         // a colon and minutes (e.g. "+0100"), so OpenMRS cannot handle them

@@ -28,8 +28,8 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import static org.junit.Assert.assertEquals;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.elementsIn;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getChildNodes;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.getChildNodes;
 
 public class XmlTestUtil {
     static String getStringResource(Class<?> cls, String path) throws IOException {
@@ -37,7 +37,7 @@ public class XmlTestUtil {
     }
 
     static Document getXmlResource(Class<?> cls, String path) throws IOException, SAXException {
-        return XmlUtil.parse(getStringResource(cls, path));
+        return XmlUtils.parse(getStringResource(cls, path));
     }
 
     static void assertXmlEqual(Document expectedDoc, Document actualDoc) throws TransformerException {
@@ -49,7 +49,7 @@ public class XmlTestUtil {
     /** Checks that two documents are equal after normalization. */
     static void assertXmlEqual(String expectedXml, String actualXml)
         throws TransformerException, SAXException, IOException {
-        assertXmlEqual(XmlUtil.parse(expectedXml), XmlUtil.parse(actualXml));
+        assertXmlEqual(XmlUtils.parse(expectedXml), XmlUtils.parse(actualXml));
     }
 
     /**  Formats an XML document by indenting and trimming whitespace from elements. */

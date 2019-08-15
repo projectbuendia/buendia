@@ -160,7 +160,7 @@ public class OrderResource implements
     private static SimpleObject orderToJson(Order order) {
         // The UUID we send to the client is actually the UUID of the order at the head of the
         // revision chain...
-        Order rootOrder = Utils.getRootOrder(order);
+        Order rootOrder = DbUtils.getRootOrder(order);
         // but the data we supply comes from the latest revision in the chain.
         order = getLatestVersion(rootOrder);
 
@@ -262,7 +262,7 @@ public class OrderResource implements
         // There is no "changed_by" property; an update is achieved by creating
         // a new order that revises the previous one, so the authenticated user
         // goes in the "creator" property for both create and update operations.
-        order.setCreator(Utils.getAuthenticatedUser());
+        order.setCreator(DbUtils.getAuthenticatedUser());
         Provider orderer = order.getOrderer();
         // Populate with a default orderer if none is supplied.
         if (orderer == null) {
@@ -277,9 +277,9 @@ public class OrderResource implements
      * for revisions, because it may overwrite data set by another source.
      */
     private void populateDefaultsForNewOrder(Order order) {
-        order.setOrderType(DbUtil.getMiscOrderType());
+        order.setOrderType(DbUtils.getMiscOrderType());
         order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
-        order.setConcept(DbUtil.getFreeTextOrderConcept());
+        order.setConcept(DbUtils.getFreeTextOrderConcept());
         order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
     }
 
@@ -383,7 +383,7 @@ public class OrderResource implements
 
     private Encounter createEncounter(Patient patient, Date encounterDatetime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(Utils.getAuthenticatedUser());
+        encounter.setCreator(DbUtils.getAuthenticatedUser());
         encounter.setEncounterDatetime(encounterDatetime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());
