@@ -462,12 +462,6 @@ DELETE FROM xforms_person_repeat_attribute WHERE
 
 DELETE FROM person WHERE person_id NOT IN (SELECT person_id FROM keep_users);
 
--- Clear the huge concept word and concept reference tables; we don't need them.
-DELETE FROM concept_word;
-DELETE FROM concept_reference_term_map;
-DELETE FROM concept_reference_map;
-DELETE FROM concept_reference_term;
-
 -- Delete all the custom Buendia concepts.
 SET @max_id := 999999;
 DELETE FROM concept_answer WHERE concept_id > @max_id;
