@@ -130,6 +130,7 @@ public class XformInstanceResource implements Creatable {
         try {
             // We have to fix a few things before OpenMRS will accept the form.
             String xml = completeXform(convertUuidsToIds(post));
+            System.err.println("==== prepared XML ====\n\n" + xml + "\n\n==== end ====\n");
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
         } catch (IOException e) {
