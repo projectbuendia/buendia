@@ -39,7 +39,7 @@ if [ -z "$MYSQL_USER" ]; then
     exit 1
 fi
 
-MYSQL="mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -N openmrs"
+MYSQL="mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -s -N openmrs"
 
 function randhex() {
     xxd -l $(($1 / 2)) -p /dev/urandom | tr -d '\n'
