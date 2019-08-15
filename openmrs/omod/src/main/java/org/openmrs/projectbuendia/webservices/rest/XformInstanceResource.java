@@ -11,8 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.fileupload.MultipartStream;
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Form;
@@ -29,8 +27,7 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
-import org.openmrs.module.webservices.rest.web.response
-    .IllegalPropertyException;
+import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
@@ -227,12 +224,12 @@ public class XformInstanceResource implements Creatable {
         // Work around OpenMRS's inherently client-antagonistic design.
         datetime = Utils.fixEncounterDatetime(datetime);
 
-        // The time zone indicator must be formatted with a colon and minutes;
-        // (e.g. "+01:00" instead of "+0100"); otherwise OpenMRS fails to parse
-        // it, as Saxon datetime parsing can't handle timezones without minutes.
-        // For more details on this workaround, see:
+        // Saxon cannot parse timestamps with timezones that don't include a
+        // a colon and minutes (e.g. "+0100"), so OpenMRS cannot handle them
+        // either.  Details on the history of this workaround are here:
         // https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
-        return DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.format(datetime);
+        // To avoid this problem entirely, we always format the timestamp in UTC.
+        return Utils.formatUtc8601(datetime);
     }
 
     /** Parses a timestamp in a variety of formats, returning null on failure. */
@@ -247,6 +244,7 @@ public class XformInstanceResource implements Creatable {
             "yyyy-MM-dd HH:mm:ss",
             "yyyy-MM-dd",
             "yyyyMMdd'T'HHmmss.SSSX",
+            "yyyyMMdd'T'HHmmssX",
             "yyyyMMdd"
         );
         for (String pattern : acceptablePatterns) {

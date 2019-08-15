@@ -21,7 +21,7 @@ specific language governing permissions and limitations under the License.
   </header>
   <encounter>
     <encounter.encounter_datetime
-        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13
+        openmrs_attribute="encounter_datetime" openmrs_table="encounter">20141113T123456Z
     </encounter.encounter_datetime>
     <encounter.location_id openmrs_attribute="location_id"
                            openmrs_table="encounter">1
