@@ -29,7 +29,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 /** XML manipulation functions. */
-public class XmlUtil {
+public class XmlUtils {
     /** Converts a NodeList to an Iterable of Elements. */
     public static Iterable<Element> elementsIn(NodeList nodeList) {
         List<Element> elements = new ArrayList<>(nodeList.getLength());

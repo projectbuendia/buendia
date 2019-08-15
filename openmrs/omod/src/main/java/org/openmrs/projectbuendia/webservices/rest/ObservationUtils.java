@@ -15,7 +15,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
-import org.openmrs.EncounterProvider;
 import org.openmrs.EncounterType;
 import org.openmrs.Location;
 import org.openmrs.Obs;
@@ -76,7 +75,7 @@ public class ObservationUtils {
                                          String entererUuid, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
-        encounterTime = Utils.fixEncounterDatetime(encounterTime);
+        encounterTime = DbUtils.fixEncounterDatetime(encounterTime);
 
         EncounterService encounterService = Context.getEncounterService();
         Location location = null;
@@ -122,7 +121,7 @@ public class ObservationUtils {
         if (entererUuid != null) {
             Provider enterer = Context.getProviderService().getProviderByUuid(entererUuid);
             if (enterer != null) {
-                encounter.addProvider(Utils.getUnknownEncounterRole(), enterer);
+                encounter.addProvider(DbUtils.getUnknownEncounterRole(), enterer);
             }
         }
         return encounter;
@@ -177,7 +176,7 @@ public class ObservationUtils {
             log.warn("Order not found: " + orderUuid);
             return null;
         }
-        Obs obs = new Obs(patient, DbUtil.getOrderExecutedConcept(), encounterTime, location);
+        Obs obs = new Obs(patient, DbUtils.getOrderExecutedConcept(), encounterTime, location);
         obs.setOrder(order);
         obs.setValueNumeric(1d);
         return obs;

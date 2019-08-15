@@ -203,49 +203,7 @@ public class Utils {
     };
 
 
-    // ==== OpenMRS ====
-
-    /** Returns the currently authenticated user. */
-    public static User getAuthenticatedUser() {
-        return Context.getUserContext().getAuthenticatedUser();
-    }
-
-    public static EncounterRole getUnknownEncounterRole() {
-        EncounterService encounterService = Context.getEncounterService();
-        for (EncounterRole role : encounterService.getAllEncounterRoles(true)) {
-            if (!role.isRetired() && role.getName().equalsIgnoreCase("unknown")) {
-                return role;
-            }
-        }
-        EncounterRole unknownRole = new EncounterRole();
-        unknownRole.setName("Unknown");
-        encounterService.saveEncounterRole(unknownRole);
-        return unknownRole;
-    }
-
-    /**
-     * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
-     * The OpenMRS core is not designed for a client-server setup -- it will
-     * summarily reject a submitted encounter if the encounter_datetime is in
-     * the future, even if the client's clock is off by only one millisecond.
-     * @param datetime The date and time of an encounter.
-     * @return
-     */
-    public static Date fixEncounterDatetime(Date datetime) {
-        Date now = new Date();
-        if (datetime.after(now)) {
-            datetime = now;
-        }
-        return datetime;
-    }
-
-    /** Iterates backwards through revision orders until it finds the root order. */
-    public static Order getRootOrder(Order order) {
-        while (order.getPreviousOrder() != null) {
-            order = order.getPreviousOrder();
-        }
-        return order;
-    }
+    // === JSON SimpleObjects ===
 
     public static void requirePropertyAbsent(SimpleObject obj, String key) {
         if (obj.containsKey(key)) {

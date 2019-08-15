@@ -42,9 +42,9 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.requireDescendant;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.elementsIn;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescendant;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
 
 /**
  * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
@@ -145,15 +145,15 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
         // this within a document; removing the root element from the document
         // seems
         // to do odd things... so instead, we import it into a new document.
-        Document oldDoc = XmlUtil.parse(xml);
-        Document doc = XmlUtil.createDocumentBuilder().newDocument();
+        Document oldDoc = XmlUtils.parse(xml);
+        Document doc = XmlUtils.createDocumentBuilder().newDocument();
         Element root = (Element) doc.importNode(oldDoc.getDocumentElement(), true);
         root = (Element) doc.renameNode(root, HTML_NAMESPACE, "h:form");
         doc.appendChild(root);
 
         // Prepare the new wrapper elements
         Element head = doc.createElementNS(HTML_NAMESPACE, "h:head");
-        Element titleElement = XmlUtil.appendChild(head, HTML_NAMESPACE, "h:title");
+        Element titleElement = XmlUtils.appendChild(head, HTML_NAMESPACE, "h:title");
         titleElement.setTextContent(title);
         Element body = doc.createElementNS(HTML_NAMESPACE, "h:body");
 
@@ -187,7 +187,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
      * XFRM-189 is fixed, this method can go away.
      */
     static String removeRelationshipNodes(String xml) throws IOException, SAXException {
-        Document doc = XmlUtil.parse(xml);
+        Document doc = XmlUtils.parse(xml);
         removeBinding(doc, "patient_relative");
         removeBinding(doc, "patient_relative.person");
         removeBinding(doc, "patient_relative.relationship");
