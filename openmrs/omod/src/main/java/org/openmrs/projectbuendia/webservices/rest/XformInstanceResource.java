@@ -168,7 +168,7 @@ public class XformInstanceResource implements Creatable {
         // Fill in the date that the form was entered; this becomes the encounter's date_created.
         System.out.println("date_entered: " + dateEntered);
         XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
-            .setTextContent(Utils.formatUtc8601(dateEntered).replace("Z", "+00:00"));
+            .setTextContent(Utils.formatUtc8601(dateEntered));
 
         // OpenMRS can't handle the encounter_datetime in the format we receive.
         setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
@@ -241,7 +241,8 @@ public class XformInstanceResource implements Creatable {
         // a colon and minutes (e.g. "+0100"), so OpenMRS cannot handle them
         // either.  Details on the history of this workaround are here:
         // https://docs.google.com/document/d/1IT92y_YP7AnhpDfdelbS7huxNKswa4VSXYPzqbnkWik/edit
-        return Utils.formatUtc8601(datetime).replace("Z", "+00:00");
+        // To avoid this problem entirely, we always format the timestamp in UTC.
+        return Utils.formatUtc8601(datetime);
     }
 
     /** Parses a timestamp in a variety of formats, returning null on failure. */
