@@ -146,12 +146,13 @@ public class XformInstanceResource implements Creatable {
         Element formElement = XmlUtils.requireElementTagName(doc.getDocumentElement(), "form");
         ensureFormHasXsltResource(formElement.getAttribute("uuid"));
 
-        adjustXformDocument(doc, patient.getId(), new Date());
+        User user = DbUtils.getAuthenticatedUser();
+        adjustXformDocument(doc, patient.getId(), user.getId(), new Date());
         return doc;
     }
 
     /** Fixes up a received XForm instance document so that OpenMRS will accept it. */
-    static void adjustXformDocument(Document doc, int patientId, Date dateEntered) throws SAXException, IOException {
+    static void adjustXformDocument(Document doc, int patientId, int userId, Date dateEntered) throws SAXException, IOException {
         Element root = doc.getDocumentElement();
 
         // Fill in a reference to the patient; this becomes the encounter's patient_id.
@@ -160,10 +161,9 @@ public class XformInstanceResource implements Creatable {
             .setTextContent("" + patientId);
 
         // Fill in the user account that entered the form; this becomes the encounter's creator.
-        User user = DbUtils.getAuthenticatedUser();
-        System.out.println("enterer: " + user.getId());
+        System.out.println("enterer: " + userId);
         XmlUtils.getOrCreatePath(doc, root, "header", "enterer")
-            .setTextContent("" + user.getId());
+            .setTextContent("" + userId);
 
         // Fill in the date that the form was entered; this becomes the encounter's date_created.
         System.out.println("date_entered: " + dateEntered);

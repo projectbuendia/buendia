@@ -14,7 +14,7 @@ specific language governing permissions and limitations under the License.
     name="Weight observation" id="4" uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc"
     version="1">
   <header>
-    <enterer/>
+    <enterer>1</enterer>
     <date_entered>2014-11-15T12:34:56.789+00:00</date_entered>
     <session/>
     <uid/>
