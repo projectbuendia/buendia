@@ -14,10 +14,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Location;
-import org.openmrs.Patient;
-import org.openmrs.PersonAttribute;
 import org.openmrs.api.LocationService;
-import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -39,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * REST API for locations (places where patients can be located).
@@ -104,7 +100,7 @@ public class LocationResource implements
     }
 
     private Object createInner(SimpleObject request) throws ResponseException {
-        Utils.requireKeyAbsent(request, "uuid");
+        Utils.requirePropertyAbsent(request, "uuid");
         String parentUuid = Utils.getRequiredString(request, "parent_uuid");
         Location parent = locationService.getLocationByUuid(parentUuid);
         if (parent == null) {
@@ -239,7 +235,7 @@ public class LocationResource implements
     @Override public void delete(String uuid, String reason, RequestContext context)
         throws ResponseException {
         try {
-            logger.request(context, this, "delete", reason);
+            logger.request(context, this, "delete");
             deleteInner(uuid);
             logger.reply(context, this, "delete", null);
         } catch (Exception e) {

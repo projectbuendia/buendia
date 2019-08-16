@@ -97,10 +97,13 @@ public class XmlUtil {
     public static Element getElementOrThrowNS(
         Element element, String namespaceURI, String localName) {
         NodeList elements = element.getElementsByTagNameNS(namespaceURI, localName);
+        if (elements.getLength() == 0) {
+            throw new IllegalPropertyException("Element " + element.getNodeName()
+                + " does not contain the expected " + localName + " element");
+        }
         if (elements.getLength() != 1) {
-            throw new IllegalPropertyException("Element "
-                + element.getNodeName() + " must have exactly one " + localName
-                + " element");
+            throw new IllegalPropertyException("Element " + element.getNodeName()
+                + " contains more than one " + localName + " element");
         }
         return (Element) elements.item(0);
     }
