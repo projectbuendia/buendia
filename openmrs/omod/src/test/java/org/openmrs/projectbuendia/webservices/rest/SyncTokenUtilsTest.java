@@ -77,7 +77,7 @@ public class SyncTokenUtilsTest {
         try {
             jsonToSyncToken("{\"t\":\"2015-11-25T11!25tuesday28.000Z\"}");
             fail("Expected an exception");
-        } catch (ParseException e) {
+        } catch (InvalidObjectDataException e) {
             //expected
         }
     }

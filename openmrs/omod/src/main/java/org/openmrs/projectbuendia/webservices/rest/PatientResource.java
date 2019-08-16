@@ -99,12 +99,6 @@ import java.util.Objects;
 )
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
 
-    private static final SimpleDateFormat PATIENT_BIRTHDATE_FORMAT =
-            new SimpleDateFormat("yyyy-MM-dd");
-    static {
-        PATIENT_BIRTHDATE_FORMAT.setTimeZone(Utils.UTC);
-    }
-
     private static final int MAX_PATIENTS_PER_PAGE = 500;
 
     // Fake values
@@ -185,7 +179,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         jsonForm.add(ID, toClientIdent(ident));
         jsonForm.add(SEX, patient.getGender());
         if (patient.getBirthdate() != null) {
-            jsonForm.add(BIRTHDATE, PATIENT_BIRTHDATE_FORMAT.format(patient.getBirthdate()));
+            jsonForm.add(BIRTHDATE, Utils.formatUtcDate(patient.getBirthdate()));
         }
         String givenName = patient.getGivenName();
         if (!givenName.equals(MISSING_NAME)) {
@@ -312,7 +306,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.setGender(normalizeSex(sex));
 
         if (json.containsKey(BIRTHDATE)) {
-            patient.setBirthdate(Utils.parseLocalDate((String) json.get(BIRTHDATE), BIRTHDATE));
+            patient.setBirthdate(Utils.parseLocalDate((String) json.get(BIRTHDATE)));
         }
 
         PersonName pn = new PersonName();
@@ -510,7 +504,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                     }
                     break;
                 case BIRTHDATE:
-                    patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue(), BIRTHDATE));
+                    patient.setBirthdate(Utils.parseLocalDate((String) entry.getValue()));
                     changedPatient = true;
                     break;
                 case ID:

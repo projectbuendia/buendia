@@ -52,7 +52,7 @@ public class SyncTokenUtils {
             throw new JsonMappingException("Didn't find a valid timestamp field in the sync token");
         }
         return new SyncToken(
-                Utils.fromIso8601(object.get(JSON_FIELD_TIMESTAMP).toString()),
+                Utils.parse8601(object.get(JSON_FIELD_TIMESTAMP).toString()),
                 // This could be null, cast instead of calling toString().
                 (String) object.get(JSON_FIELD_UUID));
     }
@@ -60,7 +60,7 @@ public class SyncTokenUtils {
     /** Converts a {@link SyncToken} into a corresponding JSON representation. */
     public static String syncTokenToJson(SyncToken token) {
         Object object = new SimpleObject()
-                .add(JSON_FIELD_TIMESTAMP, Utils.toIso8601(token.greaterThanOrEqualToTimestamp))
+                .add(JSON_FIELD_TIMESTAMP, Utils.formatUtc8601(token.greaterThanOrEqualToTimestamp))
                 .add(JSON_FIELD_UUID, token.greaterThanUuid);
         try {
             return OBJECT_MAPPER.writeValueAsString(object);
