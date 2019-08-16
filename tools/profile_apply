@@ -133,6 +133,7 @@ def read_csv(filename, tab=None):
 def apply(tabs):
     db = get_db('openmrs')
     odb = OpenmrsDatabase(db, 'buendia_admin')
+    form_uuids = []
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
     section_field_type = db.get('field_type_id', name='Section')
@@ -371,25 +372,25 @@ def apply(tabs):
         for form_rows in split_by_title(rows):
             put_form_with_rows(form_rows)
 
-    def normalize_name(name):
-        return re.sub('[\W_]+', '_', (name or '').lower()).strip('_')
-
     def create_uuid_from_name(prefix, name):
-        """
-        Construct a UUID from a form name, and issue a warning if we can't
-        guarantee that the UUID will be unique.
-        """
-        max_name_len = MAX_UUID_LEN - len(prefix)
-        if len(name) > max_name_len:
-            warnings.warn(
-                "The form name '%s' has been clipped to create the UUID for "
-                "this form.  Note that if there is another form that starts "
-                "with the same %d characters as this form, the form UUIDs "
-                "will collide and only one of the forms will be available. "
-                "To fix this, ensure that the first %d characters of each "
-                "form name are unique." % (name, max_name_len, max_name_len)
-            )
-        return prefix + normalize_name(name[:max_name_len])
+        """Constructs a UUID from a form name."""
+        base = prefix + normalize_name(name)
+        uuid = base[:MAX_UUID_LEN]
+        index = 1
+        while uuid in form_uuids:
+            index += 1
+            suffix = '_%d' % index  # tack on an number to avoid collisions
+            uuid = base[:MAX_UUID_LEN - len(suffix)] + suffix
+        print('Stored "%s" with UUID: %s%s' % (name, uuid,
+            uuid != base and ' (adjusted for uniqueness)' or ''))
+        form_uuids.append(uuid)
+        return uuid
+
+    def normalize_name(name):
+        words = re.split(r'[\W_]+', name.strip().lower())
+        return '_'.join(word for word in words if word not in
+                        ['a', 'an', 'and', 'or', 'of', 'the']
+                        ) or '_'.join(words)
 
     def put_form(uuid, title, encounter_type):
         form_id = db.get('form_id', uuid=uuid)
