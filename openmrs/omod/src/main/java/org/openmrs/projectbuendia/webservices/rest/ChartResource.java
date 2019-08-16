@@ -53,7 +53,7 @@ import static org.openmrs.projectbuendia.Utils.isEmpty;
     supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
-    private static final String CHART_ENCOUNTER_TYPE_NAME = "CHART";
+    private static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
     private final FormService formService;
     private final ConceptService conceptService;
 
@@ -90,11 +90,14 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
 
         List<Map> sections = new ArrayList<>();
         SortedMap<Integer, TreeSet<FormField>> structure = FormUtil.getFormStructure(form);
+        // Chart definitions are assumed to have a three-level structure: a single
+        // root FormField, whose children are sections, whose children are chart rows.
         for (FormField sectionFormField : structure.get(0)) {
             Field sectionField = sectionFormField.getField();
             Map<String, Object> section = parseFieldDescription(sectionField);
             section.put("label", sectionField.getName());
             List<Map> items = new ArrayList<>();
+            // The FormFields in the TreeSet are in display order; return them in that order.
             for (FormField itemFormField : structure.get(sectionFormField.getId())) {
                 Field itemField = itemFormField.getField();
                 Map<String, Object> item = parseFieldDescription(itemField);
@@ -181,7 +184,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
 
         for (Form form : formService.getAllForms()) {
             if (form.isRetired()) continue;
-            if (eq(form.getEncounterType().getName(), CHART_ENCOUNTER_TYPE_NAME)) {
+            if (eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID)) {
                 charts.add(form);
             }
         }

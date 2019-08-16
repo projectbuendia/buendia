@@ -9,8 +9,13 @@ import sys
 import uuid
 import warnings
 
-# The UUID of the single OpenMRS form that defines all our charts.
-CHART_UUID = 'buendia_chart'
+# Right now, all charts are stored in a single form, which gets this UUID.
+# TODO(ping): Store each chart in its own form and generate its UUID with
+# create_uuid_from_name.
+CHART_UUID = 'buendia_form_chart'
+MAX_UUID_LEN = 36
+
+ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
 LOCALE = 'en_GB_client'
 
 class Database:
@@ -131,15 +136,15 @@ def apply(tabs):
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
     section_field_type = db.get('field_type_id', name='Section')
-    adult_return = db.get('encounter_type_id', name='ADULTRETURN')
+    adult_return_enctype = db.get('encounter_type_id', name='ADULTRETURN')
 
     coded_datatype = db.get('concept_datatype_id', name='Coded')
     numeric_datatype = db.get('concept_datatype_id', name='Numeric')
     text_datatype = db.get('concept_datatype_id', name='Text')
     answer_datatype = db.get('concept_datatype_id', name='N/A')
     datatypes_by_type = {
-        'yes_no': coded_datatype,  # no (1066) or yes (1065)
-        'yes_no_unknown': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
+        'yes_no': coded_datatype,  # yes (1065) or no (1066)
+        'yes_no_unknown': coded_datatype,  # yes, no, or unknown (1067)
         'select_one': coded_datatype,
         'select_multiple': coded_datatype,  # set of 'yes_no' fields
         'number': numeric_datatype,
@@ -154,9 +159,10 @@ def apply(tabs):
         if 'form' in tabs:
             apply_forms(tabs['form'])
         if 'chart' in tabs:
-            chart_enctype = get_or_insert('encounter_type', name='CHART')
-            odb.update('encounter_type', chart_enctype, retired=1,
-                description='Reserved for patient chart definitions')
+            chart_enctype = get_or_insert(
+                'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
+            odb.update('encounter_type', chart_enctype, name='CHART', retired=1,
+                description='Reserved for Buendia patient chart definitions')
             form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
             apply_chart(tabs['chart'], form_id)
         db.commit()
@@ -286,6 +292,8 @@ def apply(tabs):
             if (row['title'] or '').strip():
                 if section and section_rows:
                     sections.append((section, section_rows))
+                # TODO(ping): Get rid of the [chart_divider] hack, and
+                # instead store each chart in its own separate form.
                 sections.append(('[chart_divider]',
                                  [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
                 section, section_rows = (row['section'] or '').strip(), []
@@ -358,6 +366,7 @@ def apply(tabs):
             yield rows[start:stop]
 
     def apply_forms(rows):
+        # Hide all the existing forms, then add all the new forms.
         db.execute('update form set published = 0')
         for form_rows in split_by_title(rows):
             put_form_with_rows(form_rows)
@@ -365,14 +374,12 @@ def apply(tabs):
     def normalize_name(name):
         return re.sub('[\W_]+', '_', (name or '').lower()).strip('_')
 
-    def create_uuid_from_form_name(name):
+    def create_uuid_from_name(prefix, name):
         """
         Construct a UUID from a form name, and issue a warning if we can't
         guarantee that the UUID will be unique.
         """
-        prefix = 'buendia_form_'
-        max_uuid_len = 38
-        max_name_len = max_uuid_len - len(prefix)
+        max_name_len = MAX_UUID_LEN - len(prefix)
         if len(name) > max_name_len:
             warnings.warn(
                 "The form name '%s' has been clipped to create the UUID for "
@@ -396,8 +403,8 @@ def apply(tabs):
 
     def put_form_with_rows(rows):
         title = rows[0]['title']
-        uuid = create_uuid_from_form_name(title)
-        form_id = put_form(uuid, title, adult_return)
+        uuid = create_uuid_from_name('buendia_form_', title)
+        form_id = put_form(uuid, title, adult_return_enctype)
         apply_form(rows, form_id)
         db.execute('update form set published = 1 where form_id = %s', form_id)
 
