@@ -13,35 +13,17 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.openmrs.api.LocationService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
-import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceControllerTest;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.SkipBaseSetup;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-/** Tests for LocationResource. */
-@SkipBaseSetup
-public class LocationResourceTest extends MainResourceControllerTest {
-
-    private static final String BASE_TEST_DATA =
-        "org/openmrs/projectbuendia/webservices/rest/base-test-data.xml";
+/** REST API tests for LocationResource. */
+@SkipBaseSetup public class LocationResourceTest extends BaseApiRequestTest {
 
     // These constants should match the values in the BASE_TEST_DATA file.
     String RETIRED_UUID = "8d6c993e-c2cc-11de-8d13-0010c6dffd0f";
@@ -52,76 +34,39 @@ public class LocationResourceTest extends MainResourceControllerTest {
     // This value should not exist as a location UUID in the BASE_TEST_DATA file.
     String INVALID_LOCATION_UUID = "13572468-1357-2468-1357-12345678abcd";
 
-    private LocationService locationService;
-
-    /**
-     * {@link BaseModuleContextSensitiveTest} does this initialization, but also pre-loads the
-     * database with a bunch of records. We don't want to load those records,
-     * because we'd then have to augment them with `buendia_[type]_sync_map` records, which would
-     * couple our test integrity to the records in OpenMRS' test data. For this reason, we disable
-     * {@link BaseModuleContextSensitiveTest}'s setup by putting the {@link SkipBaseSetup}
-     * annotation on the class, but then we've got to explicitly init the database and authenticate
-     * ourselves.
-     */
-    @Before
-    public void setUp() throws Exception {
-        locationService = Context.getLocationService();
-        if (useInMemoryDatabase()) {
-            initializeInMemoryDatabase();
-            authenticate();
-        }
-        executeDataSet(BASE_TEST_DATA);
+    public String[] getInitialDataFiles() {
+        return new String[] {
+            "org/openmrs/projectbuendia/webservices/rest/base-test-data.xml"
+        };
     }
 
-    @Override
-    public String getURI() {
-        return "projectbuendia/locations";
+    @Override public String getURI() {
+        return "/projectbuendia/locations";
     }
 
-    @Override
-    public String getUuid() {  // for the common tests defined in MainResourceControllerTest
+    @Override public String getUuid() {
         return XANADU_UUID;
     }
 
-    @Override
-    public long getAllCount() {
+    @Override public long getAllCount() {
         // There are three locations in the BASE_TEST_DATA file, with ids "1", "2", and "3".
         // The location with id "1" is retired, so only two locations should be returned.
         return 2;
     }
 
-    @Test
-    public void testGetLocation() throws Exception {
-        MockHttpServletRequest request = this.request(RequestMethod.GET, this.getURI() + "/" + NEVER_NEVER_UUID);
-        SimpleObject response = this.deserialize(this.handle(request));
-        Assert.assertNotNull(response);
-
+    @Test public void testGetLocation() throws Exception {
+        SimpleObject response = deserialize(handle(newGetRequest(getURI() + "/" + NEVER_NEVER_UUID)));
+        assertNotNull(response);
         assertEquals(NEVER_NEVER_UUID, response.get("uuid"));
         assertEquals(XANADU_UUID, response.get("parent_uuid"));
         assertEquals(NEVER_NEVER_NAME, ((Map<String, Object>) response.get("names")).get("en"));
     }
 
-    @Test
-    public void testGetMissingLocation() throws Exception {
-        MockHttpServletRequest request = this.request(RequestMethod.GET, this.getURI() + "/" + INVALID_LOCATION_UUID);
-        try {
-            MockHttpServletResponse response = this.handle(request);
-        } catch (ObjectNotFoundException e) {
-            // success
-            return;
-        }
-        fail("ObjectNotFoundException was expected but not thrown");
+    @Test public void testGetMissingLocation() throws Exception {
+        assertExceptionOnRequest(newGetRequest(getURI() + "/" + INVALID_LOCATION_UUID), "nonexistent location UUID");
     }
 
-    @Test
-    public void testGetRetiredLocation() throws Exception {
-        MockHttpServletRequest request = this.request(RequestMethod.GET, this.getURI() + "/" + RETIRED_UUID);
-        try {
-            MockHttpServletResponse response = this.handle(request);
-        } catch (ObjectNotFoundException e) {
-            // success
-            return;
-        }
-        fail("ObjectNotFoundException was expected but not thrown");
+    @Test public void testGetRetiredLocation() throws Exception {
+        assertExceptionOnRequest(newGetRequest(getURI() + "/" + RETIRED_UUID), "retired location UUID");
     }
 }
