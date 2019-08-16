@@ -15,6 +15,7 @@ set -e; . /usr/share/buendia/utils.sh
 buendia-divert $1 /etc/default/tomcat7
 buendia-divert $1 /etc/tomcat7/server.xml
 buendia-divert $1 /etc/tomcat7/tomcat-users.xml
+buendia-divert $1 /etc/tomcat7/context.xml
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
