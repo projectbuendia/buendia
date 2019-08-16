@@ -12,36 +12,32 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.junit.Test;
 import org.openmrs.projectbuendia.Utils;
-
-import java.util.Date;
+import org.w3c.dom.Document;
 
 import static org.junit.Assert.assertEquals;
 import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.readResourceAsString;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.getXmlResource;
 
 public class XformInstanceResourceTest {
     @Test public void addForm() throws Exception {
-        String input = readResourceAsString(getClass(), "original-instance-add.xml");
-        String expected = readResourceAsString(getClass(), "expected-instance-add.xml");
-        Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
-        String actual = XformInstanceResource.completeXform(input, null, 1, dateEntered);
-        assertXmlEqual(expected, actual);
+        Document expected = getXmlResource(getClass(), "expected-instance-add.xml");
+        Document doc = getXmlResource(getClass(), "original-instance-add.xml");
+        XformInstanceResource.adjustXformDocument(doc, 8, 1, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        assertXmlEqual(expected, doc);
     }
 
     @Test public void editForm() throws Exception {
-        String input = readResourceAsString(getClass(), "original-instance-edit.xml");
-        String expected = readResourceAsString(getClass(), "expected-instance-edit.xml");
-        Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
-        String actual = XformInstanceResource.completeXform(input, 10, 1, dateEntered);
-        assertXmlEqual(expected, actual);
+        Document expected = getXmlResource(getClass(), "expected-instance-edit.xml");
+        Document doc = getXmlResource(getClass(), "original-instance-edit.xml");
+        XformInstanceResource.adjustXformDocument(doc, 9, 2, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        assertXmlEqual(expected, doc);
     }
 
     @Test public void moveGroupsIntoObs() throws Exception {
-        String input = readResourceAsString(getClass(), "original-grouped.xml");
-        String expected = readResourceAsString(getClass(), "expected-grouped.xml");
-        Date dateEntered = Utils.parse8601("2014-11-15T12:34:56.789Z");
-        String actual = XformInstanceResource.completeXform(input, null, 1, dateEntered);
-        assertXmlEqual(expected, actual);
+        Document expected = getXmlResource(getClass(), "expected-grouped.xml");
+        Document doc = getXmlResource(getClass(), "original-grouped.xml");
+        XformInstanceResource.adjustXformDocument(doc, 10, 3, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        assertXmlEqual(expected, doc);
     }
 
     @Test public void parseNonstandardTimestamp() {

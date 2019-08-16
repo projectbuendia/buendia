@@ -14,14 +14,14 @@ specific language governing permissions and limitations under the License.
     name="Weight observation" id="4" uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc"
     version="1">
   <header>
-    <enterer>1^</enterer>
-    <date_entered>2014-11-15T12:34:56.789Z</date_entered>
+    <enterer>2</enterer>
+    <date_entered>2019-08-14T12:34:56.789Z</date_entered>
     <session/>
     <uid/>
   </header>
   <encounter>
     <encounter.encounter_datetime
-        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T00:00:00+00:00
+        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T12:34:56.000Z
     </encounter.encounter_datetime>
     <encounter.location_id openmrs_attribute="location_id"
                            openmrs_table="encounter">1
@@ -44,6 +44,6 @@ specific language governing permissions and limitations under the License.
     </weight_kg>
   </obs>
   <patient>
-    <patient.patient_id>10</patient.patient_id>
+    <patient.patient_id>9</patient.patient_id>
   </patient>
 </form>

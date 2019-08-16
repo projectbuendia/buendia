@@ -13,12 +13,9 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
-import org.openmrs.EncounterProvider;
-import org.openmrs.EncounterRole;
 import org.openmrs.Obs;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.Patient;
-import org.openmrs.Person;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -33,6 +30,8 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /**
  * A collection where each item corresponds to one patient and contains
@@ -133,8 +132,7 @@ public class EncounterResource implements Creatable {
         List<String> orderUuids = new ArrayList<>();
         for (Obs obs : encounter.getObs()) {
             Concept concept = obs.getConcept();
-            if (concept != null &&
-                concept.getUuid().equals(DbUtil.getOrderExecutedConcept().getUuid())) {
+            if (concept != null && eq(concept.getUuid(), DbUtils.CONCEPT_ORDER_EXECUTED_UUID)) {
                 orderUuids.add(obs.getOrder().getUuid());
                 continue;
             }

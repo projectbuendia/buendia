@@ -13,11 +13,10 @@
 
 package org.projectbuendia.openmrs.api;
 
-import net.sf.ehcache.concurrent.Sync;
-
-import javax.annotation.Nullable;
 import java.util.Date;
 import java.util.Objects;
+
+import javax.annotation.Nullable;
 
 /**
  * A {@code SyncToken} represents a bookmark into a dataset.
@@ -55,12 +54,12 @@ public class SyncToken {
             return false;
         }
         SyncToken other = (SyncToken) obj;
-        return
-                Objects.equals(
-                    this.greaterThanOrEqualToTimestamp,
-                    other.greaterThanOrEqualToTimestamp)
-                && Objects.equals(
-                    this.greaterThanUuid,
-                    other.greaterThanUuid);
+        return Objects.equals(
+            this.greaterThanOrEqualToTimestamp,
+            other.greaterThanOrEqualToTimestamp
+        ) && Objects.equals(
+            this.greaterThanUuid,
+            other.greaterThanUuid
+        );
     }
 }

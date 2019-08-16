@@ -17,7 +17,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.EncounterProvider;
 import org.openmrs.Obs;
-import org.openmrs.Provider;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -35,6 +34,8 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /**
  * A resource that allows observations to be incrementally synced.
@@ -132,15 +133,15 @@ public class ObservationResource implements Listable, Searchable {
             break;
         }
 
-        boolean isExecutedOrder =
-                DbUtil.getOrderExecutedConcept().equals(obs.getConcept()) && obs.getOrder() != null;
+        boolean isExecutedOrder = obs.getOrder() != null &&
+            eq(DbUtils.getOrderExecutedConcept(), obs.getConcept());
         if (isExecutedOrder) {
             // As far as the client knows, a chain of orders is represented by the root order's
             // UUID, so we have to work back through the chain or orders to get the root UUID.
             // Normally, the client will only ever supply observations for the root order ID, but
             // in the event that an order is marked as executed on the server (for example) we don't
             // want that to mean that an order execution gets missed.
-            object.add("value", Utils.getRootOrder(obs.getOrder()).getUuid());
+            object.add("value", DbUtils.getRootOrder(obs.getOrder()).getUuid());
         } else {
             object.add("value", ObservationUtils.obsValueToString(obs));
         }

@@ -11,18 +11,8 @@
 
 package org.openmrs.projectbuendia;
 
-import org.openmrs.EncounterRole;
-import org.openmrs.Order;
-import org.openmrs.Person;
-import org.openmrs.Provider;
-import org.openmrs.User;
-import org.openmrs.api.EncounterService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import java.math.BigInteger;
 import java.text.DateFormat;
@@ -32,14 +22,31 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 public class Utils {
     // ==== Basic types ====
+
+    /** A sane eq operator, to replace Java's broken == and broken equals(). */
+    public static boolean eq(Object a, Object b) {
+        return a == b || (a != null && a.equals(b));
+    }
+
+    /** A safe check for null or empty strings. */
+    public static boolean isEmpty(Object s) {
+        return s == null || eq(s, "");
+    }
+
+    /** A safe check for null or whitespace strings. */
+    public static boolean isBlank(Object s) {
+        return s == null || (s instanceof String && ((String) s).trim().isEmpty());
+    }
 
     /** Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long. */
     public static Long asLong(Object obj) {
@@ -161,7 +168,7 @@ public class Utils {
     /**
      * Compares two strings in a manner that sorts alphabetic parts in alphabetic
      * order and numeric parts in numeric order, while guaranteeing that:
-     * - compare(s, t) == 0 if and only if s.equals(t).
+     * - compare(s, t) == 0 if and only if eq(s, t).
      * - compare(s, s + t) < 0 for any strings s and t.
      * - compare(s + x, s + y) == Integer.compare(x, y) for all integers x, y
      * and strings s that do not end in a digit.
@@ -212,49 +219,7 @@ public class Utils {
     };
 
 
-    // ==== OpenMRS ====
-
-    /** Returns the currently authenticated user. */
-    public static User getAuthenticatedUser() {
-        return Context.getUserContext().getAuthenticatedUser();
-    }
-
-    public static EncounterRole getUnknownEncounterRole() {
-        EncounterService encounterService = Context.getEncounterService();
-        for (EncounterRole role : encounterService.getAllEncounterRoles(true)) {
-            if (!role.isRetired() && role.getName().equalsIgnoreCase("unknown")) {
-                return role;
-            }
-        }
-        EncounterRole unknownRole = new EncounterRole();
-        unknownRole.setName("Unknown");
-        encounterService.saveEncounterRole(unknownRole);
-        return unknownRole;
-    }
-
-    /**
-     * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
-     * The OpenMRS core is not designed for a client-server setup -- it will
-     * summarily reject a submitted encounter if the encounter_datetime is in
-     * the future, even if the client's clock is off by only one millisecond.
-     * @param datetime The date and time of an encounter.
-     * @return
-     */
-    public static Date fixEncounterDatetime(Date datetime) {
-        Date now = new Date();
-        if (datetime.after(now)) {
-            datetime = now;
-        }
-        return datetime;
-    }
-
-    /** Iterates backwards through revision orders until it finds the root order. */
-    public static Order getRootOrder(Order order) {
-        while (order.getPreviousOrder() != null) {
-            order = order.getPreviousOrder();
-        }
-        return order;
-    }
+    // === JSON SimpleObjects ===
 
     public static void requirePropertyAbsent(SimpleObject obj, String key) {
         if (obj.containsKey(key)) {

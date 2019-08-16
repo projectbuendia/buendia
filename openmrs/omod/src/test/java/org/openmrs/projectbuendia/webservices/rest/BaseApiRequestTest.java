@@ -85,7 +85,8 @@ public abstract class BaseApiRequestTest extends MainResourceControllerTest {
             handle(request);
             fail("Exception due to " + reason + " was not thrown as expected");
         } catch (Exception expected) {
-            System.err.println(expected.getClass().getName() + " due to " + reason + " was thrown as expected");
+            if (VERBOSE) System.err.println(expected.getClass().getName()
+                + " due to " + reason + " was thrown as expected");
         }
     }
 }

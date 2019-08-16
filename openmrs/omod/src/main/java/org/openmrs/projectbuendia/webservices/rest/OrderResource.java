@@ -34,10 +34,10 @@ import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
+import org.openmrs.module.webservices.rest.web.response
+    .IllegalPropertyException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
@@ -49,9 +49,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
+import static org.openmrs.projectbuendia.Utils.asLong;
+import static org.openmrs.projectbuendia.Utils.eq;
 
 /**
  * Rest API for orders.
@@ -160,7 +161,7 @@ public class OrderResource implements
     private static SimpleObject orderToJson(Order order) {
         // The UUID we send to the client is actually the UUID of the order at the head of the
         // revision chain...
-        Order rootOrder = Utils.getRootOrder(order);
+        Order rootOrder = DbUtils.getRootOrder(order);
         // but the data we supply comes from the latest revision in the chain.
         order = getLatestVersion(rootOrder);
 
@@ -262,7 +263,7 @@ public class OrderResource implements
         // There is no "changed_by" property; an update is achieved by creating
         // a new order that revises the previous one, so the authenticated user
         // goes in the "creator" property for both create and update operations.
-        order.setCreator(Utils.getAuthenticatedUser());
+        order.setCreator(DbUtils.getAuthenticatedUser());
         Provider orderer = order.getOrderer();
         // Populate with a default orderer if none is supplied.
         if (orderer == null) {
@@ -277,9 +278,9 @@ public class OrderResource implements
      * for revisions, because it may overwrite data set by another source.
      */
     private void populateDefaultsForNewOrder(Order order) {
-        order.setOrderType(DbUtil.getMiscOrderType());
+        order.setOrderType(DbUtils.getMiscOrderType());
         order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
-        order.setConcept(DbUtil.getFreeTextOrderConcept());
+        order.setConcept(DbUtils.getFreeTextOrderConcept());
         order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
     }
 
@@ -305,7 +306,7 @@ public class OrderResource implements
                     }
                     String patientUuid = (String) value;
                     if (order.getPatient() != null) {
-                        if (Objects.equals(order.getPatient().getUuid(), patientUuid)) {
+                        if (eq(order.getPatient().getUuid(), patientUuid)) {
                             // Patient hasn't changed, keep going
                             continue;
                         }
@@ -325,7 +326,7 @@ public class OrderResource implements
                         throw new IllegalPropertyException(
                                 "Illegal format for " + INSTRUCTIONS + ", expected string");
                     }
-                    if (Objects.equals(order.getInstructions(), value)) {
+                    if (eq(order.getInstructions(), value)) {
                         // No change
                         continue;
                     }
@@ -335,7 +336,7 @@ public class OrderResource implements
 
                 case START_MILLIS: {
                     Date dateVal = objectToDate(value, START_MILLIS);
-                    if (Objects.equals(order.getScheduledDate(), dateVal)) {
+                    if (eq(order.getScheduledDate(), dateVal)) {
                         // No change
                         continue;
                     }
@@ -345,7 +346,7 @@ public class OrderResource implements
 
                 case STOP_MILLIS: {
                     Date dateVal = objectToDate(value, STOP_MILLIS);
-                    if (Objects.equals(order.getAutoExpireDate(), dateVal)) {
+                    if (eq(order.getAutoExpireDate(), dateVal)) {
                         // No change
                         continue;
                     }
@@ -373,7 +374,7 @@ public class OrderResource implements
     private static Date objectToDate(Object value, String fieldName) {
         Long millis;
         try {
-            millis = Utils.asLong(value);
+            millis = asLong(value);
         } catch (ClassCastException ex) {
             throw new IllegalPropertyException(
                     "Illegal format for " + fieldName + ", expected number");
@@ -383,7 +384,7 @@ public class OrderResource implements
 
     private Encounter createEncounter(Patient patient, Date encounterDatetime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(Utils.getAuthenticatedUser());
+        encounter.setCreator(DbUtils.getAuthenticatedUser());
         encounter.setEncounterDatetime(encounterDatetime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());

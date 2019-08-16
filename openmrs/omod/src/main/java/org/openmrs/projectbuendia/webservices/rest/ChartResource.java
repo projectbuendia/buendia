@@ -26,6 +26,7 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
 import org.openmrs.util.FormUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -39,6 +40,9 @@ import java.util.SortedMap;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.isEmpty;
 
 /**
  * REST resource for charts. These are stored as OpenMRS forms, but that's
@@ -150,7 +154,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
                 Map<String, Object> config =
                     new ObjectMapper().readValue(field.getDescription(), Map.class);
                 for (String key : config.keySet()) {
-                    if (config.get(key) == null || "".equals(config.get(key))) {
+                    if (isEmpty(config.get(key))) {
                         config.remove(key);
                     }
                 }
@@ -177,7 +181,7 @@ public class ChartResource extends AbstractReadOnlyResource<Form> {
 
         for (Form form : formService.getAllForms()) {
             if (form.isRetired()) continue;
-            if (form.getEncounterType().getName().equals(CHART_ENCOUNTER_TYPE_NAME)) {
+            if (eq(form.getEncounterType().getName(), CHART_ENCOUNTER_TYPE_NAME)) {
                 charts.add(form);
             }
         }

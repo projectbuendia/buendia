@@ -46,6 +46,8 @@ import java.util.Properties;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /** The controller for the profile management page. */
 @Controller
 public class ProfileManager {
@@ -128,12 +130,12 @@ public class ProfileManager {
                 File file = new File(profileDir, filename);
                 if (file.isFile()) {
                     model.addAttribute("filename", filename);
-                    if ("Apply".equals(op)) {
+                    if (eq(op, "Apply")) {
                         applyProfile(file, model);
-                    } else if ("Download".equals(op)) {
+                    } else if (eq(op, "Download")) {
                         downloadProfile(file, response);
                         return null;  // download the file, don't redirect
-                    } else if ("Delete".equals(op)) {
+                    } else if (eq(op, "Delete")) {
                         deleteProfile(file, model);
                     }
                 }
@@ -160,7 +162,7 @@ public class ProfileManager {
         for (File file : profileDir.listFiles()) {
             int version = 0;
             String n = file.getName();
-            if (n.equals(name + ext)) {
+            if (eq(n, name + ext)) {
                 version = 1;
             } else if (n.startsWith(prefix) && n.endsWith(ext)) {
                 try {
@@ -243,7 +245,7 @@ public class ProfileManager {
 
     /** Deletes a profile. */
     private void deleteProfile(File file, ModelMap model) {
-        if (file.getName().equals(getCurrentProfile())) {
+        if (eq(file.getName(), getCurrentProfile())) {
             model.addAttribute("success", false);
             model.addAttribute("message", "Cannot delete the currently active profile.");
         } else if (file.delete()) {

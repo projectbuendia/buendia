@@ -30,12 +30,14 @@ import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.getRequiredString;
 
 /**
  * Resource for users (note that users are stored as Providers, Persons, and Users, but only
@@ -140,7 +142,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         for (Provider provider : providers) {
             // TODO/robustness: Use a fixed UUID instead of searching for
             // anything with a matching name.
-            if (provider.getName().equals(GUEST_FULL_NAME)) {
+            if (eq(provider.getName(), GUEST_FULL_NAME)) {
                 guestFound = true;
                 break;
             }
@@ -180,15 +182,15 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
 
     /** Constructs and saves a new Provider based on the given JSON object. */
     private Provider addNewProvider(SimpleObject obj) {
-        String givenName = Utils.getRequiredString(obj, GIVEN_NAME);
-        String familyName = Utils.getRequiredString(obj, FAMILY_NAME);
+        String givenName = getRequiredString(obj, GIVEN_NAME);
+        String familyName = getRequiredString(obj, FAMILY_NAME);
         String name = (givenName + " " + familyName).trim();
         if (name.isEmpty()) {
             throw new InvalidObjectDataException("Both name fields are empty");
         }
 
         Provider provider = new Provider();
-        provider.setCreator(Utils.getAuthenticatedUser());
+        provider.setCreator(DbUtils.getAuthenticatedUser());
         provider.setName(name);
         providerService.saveProvider(provider);
         return provider;

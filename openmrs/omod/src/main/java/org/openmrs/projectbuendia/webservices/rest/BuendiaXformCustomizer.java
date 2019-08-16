@@ -26,6 +26,8 @@ import org.openmrs.util.FormConstants;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /** XForm rendering customizations for Buendia. */
 public class BuendiaXformCustomizer extends XformCustomizer {
     final ClientConceptNamer namer = new ClientConceptNamer(Context.getLocale());
@@ -35,22 +37,23 @@ public class BuendiaXformCustomizer extends XformCustomizer {
     }
 
     @Override public String getLabel(Location location) {
-        return location.getName();
+        // We make sure to hide the location question on the client side; the
+        // location labels are never shown to the user.  This lets us use the
+        // UUID as the label, so the client can identify the location options.
+        return location.getUuid();
     }
 
     @Override public String getLabel(Provider provider) {
-        String name = provider.getName();
-        if (name == null) {
-            Person person = provider.getPerson();
-            name = person.getPersonName().toString();
-        }
-        return name;
+        // We make sure to hide the provider question on the client side; the
+        // provider labels are never shown to the user.  This lets us use the
+        // UUID as the label, so the client can identify the provider options.
+        return provider.getUuid();
     }
 
     @Override public String getAppearanceAttribute(FormField formField) {
         Field field = formField.getField();
         FieldType fieldType = field.getFieldType();
-        if (fieldType.getFieldTypeId().equals(FormConstants.FIELD_TYPE_SECTION)) {
+        if (eq(fieldType.getFieldTypeId(), FormConstants.FIELD_TYPE_SECTION)) {
             String extras = "";
             // use binary anywhere in the section to add binary select 1
             String name = formField.getName();
