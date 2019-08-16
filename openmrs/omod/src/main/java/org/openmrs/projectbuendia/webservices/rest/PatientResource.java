@@ -98,12 +98,8 @@ import java.util.Objects;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class PatientResource implements Listable, Searchable, Retrievable, Creatable, Updatable {
-
     private static final int MAX_PATIENTS_PER_PAGE = 500;
-
-    // Fake values
-    private static final User CREATOR = new User(1);
-    static final RequestLogger logger = RequestLogger.LOGGER;
+    private static final RequestLogger logger = RequestLogger.LOGGER;
 
     // JSON property names
     private static final String ID = "id";
@@ -113,7 +109,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static final String GIVEN_NAME = "given_name";
     private static final String FAMILY_NAME = "family_name";
     private static final String ASSIGNED_LOCATION = "assigned_location";
-    private static final String PARENT_UUID = "parent_uuid";
+    private static final String ENTERER_UUID = "enterer_uuid";
     private static final String VOIDED = "voided";
 
     private static Log log = LogFactory.getLog(PatientResource.class);
@@ -201,9 +197,6 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             if (location != null) {
                 SimpleObject locationJson = new SimpleObject();
                 locationJson.add(UUID, location.getUuid());
-                if (location.getParentLocation() != null) {
-                    locationJson.add(PARENT_UUID, location.getParentLocation().getUuid());
-                }
                 jsonForm.add(ASSIGNED_LOCATION, locationJson);
             }
         }
@@ -266,9 +259,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
         }
         // Store any initial observations that are included with the new patient.
+        String entererUuid = (String) json.get(ENTERER_UUID);
         ObservationUtils.addEncounter(
             (List) json.get("observations"), null,
-            patient, patient.getDateCreated(), "New patient", "ADULTINITIAL", null);
+            patient, patient.getDateCreated(), "ADULTINITIAL", entererUuid, null);
         return patientToJson(patient);
     }
 
@@ -292,9 +286,9 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     }
 
     protected static Patient jsonToPatient(SimpleObject json) {
+        User user = Utils.getAuthenticatedUser();
         Patient patient = new Patient();
-        // TODO: do this properly from authentication
-        patient.setCreator(CREATOR);
+        patient.setCreator(user);
         patient.setDateCreated(new Date());
 
         if (json.containsKey(UUID)) {
@@ -312,13 +306,13 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         PersonName pn = new PersonName();
         pn.setGivenName(normalizeName((String) json.get(GIVEN_NAME)));
         pn.setFamilyName(normalizeName((String) json.get(FAMILY_NAME)));
-        pn.setCreator(patient.getCreator());
+        pn.setCreator(user);
         pn.setDateCreated(patient.getDateCreated());
         patient.addName(pn);
 
         PatientIdentifier identifier = new PatientIdentifier();
         patient.addIdentifier(identifier);
-        identifier.setCreator(patient.getCreator());
+        identifier.setCreator(user);
         identifier.setDateCreated(patient.getDateCreated());
         identifier.setLocation(DbUtil.getDefaultLocation());
         identifier.setPreferred(true);
@@ -480,6 +474,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
 
     /** Applies edits to a Patient.  Returns true if any changes were made. */
     protected void applyEdits(Patient patient, SimpleObject edits) {
+        User user = Utils.getAuthenticatedUser();
         boolean changedPatient = false;
         String newGivenName = null;
         String newFamilyName = null;
@@ -527,7 +522,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
                 if (ident != null) {
                     patient.removeIdentifier(ident);
                 }
-                newIdent.setCreator(patient.getCreator());
+                newIdent.setCreator(user);
                 newIdent.setDateCreated(patient.getDateCreated());
                 newIdent.setPreferred(true);
                 patient.addIdentifier(newIdent);
@@ -550,6 +545,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
             }
         }
         if (changedPatient) {
+            patient.setChangedBy(user);
             patientService.savePatient(patient);
         }
     }

@@ -259,14 +259,17 @@ public class OrderResource implements
      * both new orders and revisions.
      */
     private void populateDefaultsForAllOrders(Order order) {
+        // There is no "changed_by" property; an update is achieved by creating
+        // a new order that revises the previous one, so the authenticated user
+        // goes in the "creator" property for both create and update operations.
+        order.setCreator(Utils.getAuthenticatedUser());
         Provider orderer = order.getOrderer();
         // Populate with a default orderer if none is supplied.
         if (orderer == null) {
             order.setOrderer(getProvider());
         }
         // Will be null if `orderer` is null.
-        User creator = Utils.getUserFromProvider(orderer);
-        order.setEncounter(createEncounter(order.getPatient(), creator, new Date()));
+        order.setEncounter(createEncounter(order.getPatient(), new Date()));
     }
 
     /**
@@ -355,9 +358,7 @@ public class OrderResource implements
                         throw new IllegalPropertyException(
                                 "Illegal format for " + ORDERER_UUID + ", expected string");
                     }
-                    order.setCreator(Utils.getUserFromProviderUuid((String) value));
-                    order.setOrderer(
-                            providerService.getProviderByUuid((String) value));
+                    order.setOrderer(providerService.getProviderByUuid((String) value));
                 } break;
 
                 default: {
@@ -380,9 +381,9 @@ public class OrderResource implements
         return millis == null ? null : new Date(millis);
     }
 
-    private Encounter createEncounter(Patient patient, User creator, Date encounterDatetime) {
+    private Encounter createEncounter(Patient patient, Date encounterDatetime) {
         Encounter encounter = new Encounter();
-        encounter.setCreator(creator);
+        encounter.setCreator(Utils.getAuthenticatedUser());
         encounter.setEncounterDatetime(encounterDatetime);
         encounter.setPatient(patient);
         encounter.setLocation(Context.getLocationService().getDefaultLocation());

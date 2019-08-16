@@ -15,11 +15,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
+import org.openmrs.EncounterProvider;
 import org.openmrs.EncounterType;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
@@ -65,13 +67,13 @@ public class ObservationUtils {
      * @param orderUuids        a list of order UUIDs
      * @param patient           the patient for whom to add the encounter
      * @param encounterTime     the time of the encounter
-     * @param changeMessage     a message to be recorded with the observation
      * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
+     * @param entererUuid      the provider who entered the observations
      * @param locationUuid      the UUID of the location where the encounter happened
      */
     public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
-                                         Date encounterTime, String changeMessage,
-                                         String encounterTypeName, String locationUuid) {
+                                         Date encounterTime, String encounterTypeName,
+                                         String entererUuid, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = Utils.fixEncounterDatetime(encounterTime);
@@ -114,7 +116,13 @@ public class ObservationUtils {
         for (Obs obs : obsList) {
             if (obs != null) {
                 encounter.addObs(obs);
-                obsService.saveObs(obs, changeMessage);
+                obsService.saveObs(obs, null);
+            }
+        }
+        if (entererUuid != null) {
+            Provider enterer = Context.getProviderService().getProviderByUuid(entererUuid);
+            if (enterer != null) {
+                encounter.addProvider(Utils.getUnknownEncounterRole(), enterer);
             }
         }
         return encounter;

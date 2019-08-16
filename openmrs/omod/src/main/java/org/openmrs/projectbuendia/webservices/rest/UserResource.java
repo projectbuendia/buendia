@@ -12,14 +12,10 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openmrs.Patient;
 import org.openmrs.Person;
-import org.openmrs.PersonName;
 import org.openmrs.Provider;
 import org.openmrs.User;
-import org.openmrs.api.PersonService;
 import org.openmrs.api.ProviderService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
@@ -34,6 +30,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
@@ -84,8 +81,8 @@ import java.util.List;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/users", supportedClass = Provider
-    .class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/users",
+    supportedClass = Provider.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class UserResource implements Listable, Searchable, Retrievable, Creatable {
     // JSON property names
     private static final String USER_ID = "user_id";
@@ -93,30 +90,21 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     private static final String FULL_NAME = "full_name";  // Ignored on create.
     private static final String FAMILY_NAME = "family_name";
     private static final String GIVEN_NAME = "given_name";
-    private static final String PASSWORD = "password";
-
-    // Sentinel for unknown values
-    private static final String UNKNOWN = "(UNKNOWN)";
 
     // Defaults for guest account
     private static final String GUEST_FULL_NAME = "Guest User";
     private static final String GUEST_GIVEN_NAME = "Guest";
     private static final String GUEST_FAMILY_NAME = "User";
     private static final String GUEST_USER_NAME = "guest";
-    private static final String GUEST_PASSWORD = "Password123";
 
-    private static final String[] REQUIRED_FIELDS = {USER_NAME, GIVEN_NAME, PASSWORD};
     private static final Object guestAddLock = new Object();
 
-    private static Log log = LogFactory.getLog(UserResource.class);
     static final RequestLogger logger = RequestLogger.LOGGER;
 
-    private final PersonService personService;
     private final ProviderService providerService;
     private final UserService userService;
 
     public UserResource() {
-        personService = Context.getPersonService();
         providerService = Context.getProviderService();
         userService = Context.getUserService();
     }
@@ -163,14 +151,13 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
             guestDetails.put(GIVEN_NAME, GUEST_GIVEN_NAME);
             guestDetails.put(FAMILY_NAME, GUEST_FAMILY_NAME);
             guestDetails.put(USER_NAME, GUEST_USER_NAME);
-            guestDetails.put(PASSWORD, GUEST_PASSWORD);
             synchronized (guestAddLock) {
                 // Fetch again to avoid duplication in case another thread has
                 // added Guest User, but use the UserService for the check to
                 // avoid Hibernate cache issues.
                 User guestUser = userService.getUserByUsername(GUEST_USER_NAME);
                 if (guestUser == null) {
-                    providers.add(createFromSimpleObject(guestDetails));
+                    providers.add(addNewProvider(guestDetails));
                 }
             }
         }
@@ -191,34 +178,19 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         return list;
     }
 
-    /** Adds a new Provider (with associated User and Person). */
-    private Provider createFromSimpleObject(SimpleObject simpleObject) {
-        checkRequiredFields(simpleObject, REQUIRED_FIELDS);
-
-        // TODO: Localize full name construction
-        String fullName = simpleObject.get(GIVEN_NAME) + " " + simpleObject.get(FAMILY_NAME);
-
-        Person person = new Person();
-        PersonName personName = new PersonName();
-        personName.setGivenName((String) simpleObject.get(GIVEN_NAME));
-        personName.setFamilyName((String) simpleObject.get(FAMILY_NAME));
-        person.addName(personName);
-        person.setGender(UNKNOWN);  // This is required, even though it serves no purpose here.
-        personService.savePerson(person);
-
-        User user = new User();
-        user.setPerson(person);
-        user.setName(fullName);
-        user.setUsername((String) simpleObject.get(USER_NAME));
-        userService.saveUser(user, (String) simpleObject.get(PASSWORD));
+    /** Constructs and saves a new Provider based on the given JSON object. */
+    private Provider addNewProvider(SimpleObject obj) {
+        String givenName = Utils.getRequiredString(obj, GIVEN_NAME);
+        String familyName = Utils.getRequiredString(obj, FAMILY_NAME);
+        String name = (givenName + " " + familyName).trim();
+        if (name.isEmpty()) {
+            throw new InvalidObjectDataException("Both name fields are empty");
+        }
 
         Provider provider = new Provider();
-        provider.setPerson(person);
-        provider.setName(fullName);
+        provider.setCreator(Utils.getAuthenticatedUser());
+        provider.setName(name);
         providerService.saveProvider(provider);
-
-        log.info("Created user " + fullName);
-
         return provider;
     }
 
@@ -228,7 +200,6 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
         if (provider != null) {
             jsonForm.add(USER_ID, provider.getUuid());
             jsonForm.add(FULL_NAME, provider.getName());
-
             Person person = provider.getPerson();
             if (person != null) {
                 jsonForm.add(GIVEN_NAME, person.getGivenName());
@@ -268,7 +239,7 @@ public class UserResource implements Listable, Searchable, Retrievable, Creatabl
     }
 
     private Object createInner(SimpleObject simpleObject) throws ResponseException {
-        return providerToJson(createFromSimpleObject(simpleObject));
+        return providerToJson(addNewProvider(simpleObject));
     }
 
     @Override public String getUri(Object instance) {
