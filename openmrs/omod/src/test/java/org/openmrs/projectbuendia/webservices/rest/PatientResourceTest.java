@@ -20,6 +20,7 @@ import org.openmrs.Patient;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
+import org.openmrs.PatientIdentifierType;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceControllerTest;
@@ -124,7 +125,8 @@ public class PatientResourceTest extends MainResourceControllerTest {
         assertFalse(response.containsKey("assigned_location"));
 
         Patient patient = patientService.getPatientByUuid(uuid);
-        assertEquals("XYZ", patient.getPatientIdentifier(2).getIdentifier());
+        PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtil.IDENTIFIER_TYPE_MSF_UUID);
+        assertEquals("XYZ", patient.getPatientIdentifier(identType).getIdentifier());
     }
 
     @Test

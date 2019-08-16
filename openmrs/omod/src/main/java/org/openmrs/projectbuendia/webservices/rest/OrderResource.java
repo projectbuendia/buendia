@@ -14,12 +14,10 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
-import org.openmrs.User;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
@@ -110,8 +108,6 @@ public class OrderResource implements
     public static final String UUID = "uuid";
     public static final String VOIDED = "voided";
     public static final String ORDERER_UUID = "orderer_uuid";
-
-    private static final String FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
 
     private static final int MAX_ORDERS_PER_PAGE = 500;
 
@@ -280,7 +276,7 @@ public class OrderResource implements
     private void populateDefaultsForNewOrder(Order order) {
         order.setOrderType(DbUtil.getMiscOrderType());
         order.setCareSetting(orderService.getCareSettingByName("Outpatient"));
-        order.setConcept(getFreeTextOrderConcept());
+        order.setConcept(DbUtil.getFreeTextOrderConcept());
         order.setUrgency(Order.Urgency.ON_SCHEDULED_DATE);
     }
 
@@ -397,12 +393,6 @@ public class OrderResource implements
 
     private Provider getProvider() {
         return providerService.getAllProviders(false).get(0); // omit retired
-    }
-
-    private static Concept getFreeTextOrderConcept() {
-        return DbUtil.getConcept(
-            "Order described in free text instructions",
-            FREE_TEXT_ORDER_UUID, "N/A", "Misc");
     }
 
     @Override
