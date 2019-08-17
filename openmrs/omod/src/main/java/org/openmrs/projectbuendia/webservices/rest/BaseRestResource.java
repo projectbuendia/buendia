@@ -110,7 +110,9 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
             for (T item : items) {
                 results.add(toJson(item, context));
             }
-            return logger.reply(context, this, op, reply.add("results", results));
+            reply.add("results", results);
+            logger.reply(context, this, op, abbreviateReply(reply));
+            return reply;
         } catch (Exception e) {
             logger.error(context, this, op, e);
             throw e;
@@ -224,6 +226,28 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
 
     /** Populates the given JSON object with data from the given item. */
     protected abstract void populateJson(SimpleObject json, T item, RequestContext context);
+
+    private SimpleObject abbreviateReply(SimpleObject reply) {
+        final int MAX_ITEMS = 10;
+        List<SimpleObject> items = (List<SimpleObject>) reply.get("results");
+        List<Object> abbrevItems = new ArrayList<>();
+        Object resultsValue = items;
+
+        if (items.size() > MAX_ITEMS) {
+            int omitted = items.size() - MAX_ITEMS;
+            abbrevItems.add(String.format(
+                "...only logging last %d of %d items (%d omitted)...",
+                MAX_ITEMS, items.size(), omitted
+            ));
+            abbrevItems.addAll(items.subList(omitted, MAX_ITEMS));
+            resultsValue = abbrevItems;
+        }
+
+        return new SimpleObject()
+            .add("results", resultsValue)
+            .add("syncToken", reply.get("syncToken"))
+            .add("more", reply.get("more"));
+    }
 
     private String getSyncToken(RequestContext context) {
         return context.getParameter("since");

@@ -42,7 +42,7 @@ import static org.openmrs.projectbuendia.Utils.eq;
  * Note: this resource is read-only. For creates, see {@link EncounterResource}.
  */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/observations",
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xobservations",
     supportedClass = Obs.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ObservationResource implements Listable, Searchable {

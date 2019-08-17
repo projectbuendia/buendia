@@ -38,7 +38,7 @@ import static org.openmrs.projectbuendia.Utils.parseLocalDate;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class PatientRestResource extends BaseRestResource<Patient> {
-    private static final int MAX_PATIENTS_PER_PAGE = 500;
+    private static final int MAX_PATIENTS_PER_PAGE = 100;
     private final PatientIdentifierType IDENTIFIER_TYPE_MSF;
     private final PatientIdentifierType IDENTIFIER_TYPE_LOCAL;
     private final Location LOCATION_DEFAULT;

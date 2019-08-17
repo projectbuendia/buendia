@@ -40,7 +40,7 @@ public class ChartRestResource extends BaseRestResource<Form> {
     private static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
 
     public ChartRestResource() {
-        super("locations", Representation.DEFAULT);
+        super("charts", Representation.DEFAULT, Representation.FULL);
     }
 
     @Override protected Collection<Form> listItems(RequestContext context) {
