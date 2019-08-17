@@ -1,0 +1,15 @@
+#!/bin/bash
+
+test_10_run_monitoring_cron () {
+    execute_cron_right_now monitoring
+    # FIXME: fix missing ifconfig log
+    true
+}
+
+test_20_cron_wrote_some_logs () {
+    for file in df du free ps; do
+        check=/var/log/buendia/${file}.log 
+        echo "Checking for log file: $check"
+        [ -e $check ] || exit 1
+    done
+}
