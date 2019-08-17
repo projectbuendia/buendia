@@ -46,7 +46,7 @@ import static org.openmrs.projectbuendia.Utils.isBlank;
  * charts returned by {@link ChartResource}.
  * @see AbstractReadOnlyResource
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/concepts",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xconcepts",
     supportedClass = Concept.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ConceptResource extends AbstractReadOnlyResource<Concept> {
     /** A map from HL7 type abbreviations to short names used in JSON output. */
