@@ -62,7 +62,7 @@ public class ConceptRestResource extends BaseRestResource<Concept> {
         // Retrieves all the concepts that the client needs to know about
         // (the concepts within all the charts served by ChartResource).
         Set<Concept> concepts = new HashSet<>();
-        for (Form chart : ChartResource.getCharts(formService)) {
+        for (Form chart : ChartRestResource.getChartForms(formService)) {
             for (FormField formField : chart.getFormFields()) {
                 Field field = formField.getField();
                 Concept concept = field.getConcept();

@@ -6,6 +6,7 @@ import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.Form;
 import org.openmrs.FormField;
+import org.openmrs.api.FormService;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -37,20 +38,28 @@ import static org.openmrs.projectbuendia.Utils.isEmpty;
 )
 public class ChartRestResource extends BaseRestResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
-    private static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+    public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
 
     public ChartRestResource() {
         super("charts", Representation.DEFAULT, Representation.FULL);
     }
 
     @Override protected Collection<Form> listItems(RequestContext context) {
+        return getChartForms(formService);
+    }
+
+    public static List<Form> getChartForms(FormService formService) {
         List<Form> charts = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
-            if (!form.isRetired() && eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID)) {
+            if (isChartForm(form)) {
                 charts.add(form);
             }
         }
         return charts;
+    }
+
+    private static boolean isChartForm(Form form) {
+        return !form.isRetired() && eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID);
     }
 
     @Override protected Form retrieveItem(String uuid) {

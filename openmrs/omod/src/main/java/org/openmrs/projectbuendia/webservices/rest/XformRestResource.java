@@ -62,8 +62,8 @@ public class XformRestResource extends BaseRestResource<Form> {
 
     private boolean isPublishedXform(Form form) {
         return !form.isRetired() && form.getPublished() &&
-            !eq(form.getEncounterType().getUuid(), ChartResource.ENCOUNTER_TYPE_CHART_UUID);
-        }
+            !eq(form.getEncounterType().getUuid(), ChartRestResource.ENCOUNTER_TYPE_CHART_UUID);
+    }
 
     /**
      * Adds the following fields to the {@link SimpleObject}:
