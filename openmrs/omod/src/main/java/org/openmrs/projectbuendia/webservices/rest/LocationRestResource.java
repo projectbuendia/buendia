@@ -41,18 +41,14 @@ public class LocationRestResource extends BaseRestResource<Location> {
     }
 
     @Override protected Location retrieveItem(String uuid) {
-        Location location = locationService.getLocationByUuid(uuid);
-        if (location == null || location.isRetired()) {
-            throw new ObjectNotFoundException();
-        }
-        return location;
+        return locationService.getLocationByUuid(uuid);
     }
 
-    @Override protected void updateItem(Location location, SimpleObject data, RequestContext context) {
+    @Override protected Location updateItem(Location location, SimpleObject data, RequestContext context) {
         if (data.get("name") != null) {
             location.setName(Utils.getRequiredString(data, "name"));
         }
-        locationService.saveLocation(location);
+        return locationService.saveLocation(location);
     }
 
     @Override protected void deleteItem(Location location, String reason, RequestContext context) {

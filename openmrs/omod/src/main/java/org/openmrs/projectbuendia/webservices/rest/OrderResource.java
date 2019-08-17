@@ -92,7 +92,7 @@ import static org.openmrs.projectbuendia.Utils.eq;
  * </pre>
  */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/orders",
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xorders",
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

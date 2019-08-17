@@ -11,11 +11,16 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
 import org.openmrs.ConceptName;
+import org.openmrs.Encounter;
 import org.openmrs.EncounterRole;
+import org.openmrs.Form;
 import org.openmrs.Location;
+import org.openmrs.Obs;
+import org.openmrs.OpenmrsObject;
 import org.openmrs.Order;
 import org.openmrs.OrderType;
 import org.openmrs.Patient;
@@ -23,6 +28,7 @@ import org.openmrs.PatientIdentifierType;
 import org.openmrs.Person;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
+import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
@@ -31,12 +37,16 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.webservices.rest.web.response
+    .IllegalPropertyException;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+
+import javax.annotation.Nullable;
 
 import static org.openmrs.projectbuendia.Utils.ALPHANUMERIC_COMPARATOR;
 import static org.openmrs.projectbuendia.Utils.eq;
@@ -95,6 +105,10 @@ public class DbUtils {
         return getIdentifierType(IDENTIFIER_TYPE_LOCAL_UUID, "LOCAL", "Local numeric patient identifier");
     }
 
+    public static CareSetting getInpatientCareSetting() {
+        return Context.getOrderService().getCareSettingByName("INPATIENT");
+    }
+
     public static OrderType getDrugOrderType() {
         OrderService orderService = Context.getOrderService();
         OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass("Drug"));
@@ -109,11 +123,6 @@ public class DbUtils {
         return orderType;
     }
 
-    public static ConceptClass getConceptClass(String name) {
-        ConceptService conceptService = Context.getConceptService();
-        return conceptService.getConceptClassByName(name);
-    }
-
     public static OrderType getMiscOrderType() {
         OrderService orderService = Context.getOrderService();
         OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass("Misc"));
@@ -126,6 +135,11 @@ public class DbUtils {
             orderService.saveOrderType(orderType);
         }
         return orderType;
+    }
+
+    public static ConceptClass getConceptClass(String name) {
+        ConceptService conceptService = Context.getConceptService();
+        return conceptService.getConceptClassByName(name);
     }
 
     // Gets the concept representing that an order has been executed.  Each time
@@ -252,10 +266,10 @@ public class DbUtils {
     };
 
     /**
-     * Gets the default location (where identifiers will be placed).  For consistency
+     * Gets the default root location, where identifiers will be placed.  For consistency
      * with the client, this is the root with the alphanumerically first (lowest) name.
      */
-    public static Location getDefaultLocation() {
+    public static Location getDefaultRoot() {
         LocationService locationService = Context.getLocationService();
         List<Location> locations = locationService.getAllLocations(false);
         Collections.sort(locations, ALPHANUMERIC_NAME_COMPARATOR);
@@ -281,5 +295,57 @@ public class DbUtils {
             locationService.saveLocation(location);
         }
         return location;
+    }
+
+    protected static abstract class Getter<T> {
+        String name;
+
+        Getter(Class<T> cls) { name = cls.getSimpleName(); }
+
+        protected abstract @Nullable T lookup(String uuid);
+
+        public @Nullable T get(@Nullable String uuid) {
+            if (uuid == null) return null;
+            T entity = lookup(uuid);
+            if (entity == null) {
+                throw new IllegalPropertyException(String.format(
+                    "No %s found with UUID %s", name, uuid));
+            }
+            return entity;
+        }
+    }
+
+    public static final Getter<Concept> conceptsByUuid = new Getter<Concept>(Concept.class) {
+        public Concept lookup(String uuid) { return Context.getConceptService().getConceptByUuid(uuid); }
+    };
+    public static final Getter<Form> formsByUuid = new Getter<Form>(Form.class) {
+        public Form lookup(String uuid) { return Context.getFormService().getFormByUuid(uuid); }
+    };
+    public static final Getter<Location> locationsByUuid = new Getter<Location>(Location.class) {
+        public Location lookup(String uuid) { return Context.getLocationService().getLocationByUuid(uuid); }
+    };
+    public static final Getter<Order> ordersByUuid = new Getter<Order>(Order.class) {
+        public Order lookup(String uuid) { return Context.getOrderService().getOrderByUuid(uuid); }
+    };
+    public static final Getter<Patient> patientsByUuid = new Getter<Patient>(Patient.class) {
+        public Patient lookup(String uuid) { return Context.getPatientService().getPatientByUuid(uuid); }
+    };
+    public static final Getter<Provider> providersByUuid = new Getter<Provider>(Provider.class) {
+        public Provider lookup(String uuid) { return Context.getProviderService().getProviderByUuid(uuid); }
+    };
+
+    public static boolean isVoidedOrRetired(OpenmrsObject entity) {
+        if (entity instanceof Encounter && ((Encounter) entity).isVoided()) return true;
+        if (entity instanceof Obs && ((Obs) entity).isVoided()) return true;
+        if (entity instanceof Order && ((Order) entity).isVoided()) return true;
+        if (entity instanceof Person && ((Person) entity).isPersonVoided()) return true;
+
+        if (entity instanceof Concept && ((Concept) entity).isRetired()) return true;
+        if (entity instanceof Form && ((Form) entity).isRetired()) return true;
+        if (entity instanceof Location && ((Location) entity).isRetired()) return true;
+        if (entity instanceof Provider && ((Provider) entity).isRetired()) return true;
+        if (entity instanceof User && ((User) entity).isRetired()) return true;
+
+        return false;
     }
 }

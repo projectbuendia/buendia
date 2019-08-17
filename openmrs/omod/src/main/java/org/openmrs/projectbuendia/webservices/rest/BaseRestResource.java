@@ -138,7 +138,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
         try {
             logger.request(context, this, "retrieve");
             T item = retrieveItem(uuid);
-            if (item == null) throw new ObjectNotFoundException();
+            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
             return logger.reply(context, this, "retrieve", toJson(item, context));
         } catch (Exception e) {
             logger.error(context, this, "retrieve", e);
@@ -151,9 +151,9 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
         try {
             logger.request(context, this, "update", data);
             T item = retrieveItem(uuid);
-            if (item == null) throw new ObjectNotFoundException();
-            updateItem(item, data, context);
-            return logger.reply(context, this, "update", toJson(item, context));
+            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T newItem = updateItem(item, data, context);
+            return logger.reply(context, this, "update", toJson(newItem, context));
         } catch (Exception e) {
             logger.error(context, this, "update", e);
             throw e;
@@ -165,7 +165,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
         try {
             logger.request(context, this, "delete", reason);
             T item = retrieveItem(uuid);
-            if (item == null) throw new ObjectNotFoundException();
+            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
             deleteItem(item, reason, context);
             logger.reply(context, this, "delete", null);
         } catch (Exception e) {
@@ -205,7 +205,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
     }
 
     /** Updates the given item using the given data. */
-    protected void updateItem(T item, SimpleObject data, RequestContext context) {
+    protected T updateItem(T item, SimpleObject data, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
             "Updating %s is not implemented", collectionName));
     }
@@ -220,6 +220,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
     protected SimpleObject toJson(T item, RequestContext context) {
         SimpleObject json = new SimpleObject();
         json.put("uuid", item.getUuid());
+        if (DbUtils.isVoidedOrRetired(item)) return json.add("voided", true);
         populateJson(json, item, context);
         return json;
     }

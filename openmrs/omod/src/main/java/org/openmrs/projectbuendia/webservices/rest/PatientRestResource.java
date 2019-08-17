@@ -13,7 +13,7 @@ import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
+
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
@@ -41,13 +41,11 @@ public class PatientRestResource extends BaseRestResource<Patient> {
     private static final int MAX_PATIENTS_PER_PAGE = 100;
     private final PatientIdentifierType IDENTIFIER_TYPE_MSF;
     private final PatientIdentifierType IDENTIFIER_TYPE_LOCAL;
-    private final Location LOCATION_DEFAULT;
 
     public PatientRestResource() {
         super("patients", Representation.DEFAULT);
         IDENTIFIER_TYPE_MSF = DbUtils.getIdentifierTypeMsf();
         IDENTIFIER_TYPE_LOCAL = DbUtils.getIdentifierTypeLocal();
-        LOCATION_DEFAULT = DbUtils.getDefaultLocation();
     }
 
     @Override protected Collection<Patient> listItems(RequestContext context) {
@@ -110,7 +108,7 @@ public class PatientRestResource extends BaseRestResource<Patient> {
         // PatientIdentifier
         PatientIdentifier ident = new PatientIdentifier();
         ident.setCreator(user);
-        ident.setLocation(DbUtils.getDefaultLocation());
+        ident.setLocation(DbUtils.getDefaultRoot());
         ident.setPreferred(true);
         // OpenMRS requires that every patient have a preferred identifier.  If the
         // incoming "id" field is non-blank, it becomes the MSF identifier; otherwise,
@@ -161,14 +159,10 @@ public class PatientRestResource extends BaseRestResource<Patient> {
     }
 
     @Override protected Patient retrieveItem(String uuid) {
-        Patient patient = patientService.getPatientByUuid(uuid);
-        if (patient == null || patient.isPersonVoided()) {
-            throw new ObjectNotFoundException();
-        }
-        return patient;
+        return patientService.getPatientByUuid(uuid);
     }
 
-    @Override protected synchronized void updateItem(Patient patient, SimpleObject data, RequestContext context) {
+    @Override protected synchronized Patient updateItem(Patient patient, SimpleObject data, RequestContext context) {
         User user = DbUtils.getAuthenticatedUser();
         PersonName name = patient.getPersonName();
 
@@ -193,7 +187,7 @@ public class PatientRestResource extends BaseRestResource<Patient> {
             } else {
                 ident.setPreferred(false);
                 PatientIdentifier newIdent = new PatientIdentifier(
-                    id, IDENTIFIER_TYPE_MSF, LOCATION_DEFAULT);
+                    id, IDENTIFIER_TYPE_MSF, DbUtils.getDefaultRoot());
                 newIdent.setCreator(user);
                 newIdent.setPreferred(true);
                 patient.addIdentifier(newIdent);
@@ -201,7 +195,7 @@ public class PatientRestResource extends BaseRestResource<Patient> {
             patientService.savePatientIdentifier(ident);
         }
         patient.setChangedBy(user);
-        patientService.savePatient(patient);
+        return patientService.savePatient(patient);
     }
 
     @Override protected void deleteItem(Patient patient, String reason, RequestContext context) {
@@ -212,10 +206,6 @@ public class PatientRestResource extends BaseRestResource<Patient> {
     }
 
     @Override protected void populateJson(SimpleObject json, Patient patient, RequestContext context) {
-        if (patient.isPersonVoided()) {
-            json.add("voided", true);
-            return;
-        }
         json.add("id", toClientIdent(patient.getPatientIdentifier()));
         json.add("sex", patient.getGender());
         json.add("birthdate", formatUtcDate(patient.getBirthdate()));
@@ -270,9 +260,9 @@ public class PatientRestResource extends BaseRestResource<Patient> {
 
     private PatientIdentifier fromClientIdent(String clientIdent) {
         if (clientIdent.startsWith("*")) {
-            return new PatientIdentifier(clientIdent.substring(1), IDENTIFIER_TYPE_LOCAL, LOCATION_DEFAULT);
+            return new PatientIdentifier(clientIdent.substring(1), IDENTIFIER_TYPE_LOCAL, DbUtils.getDefaultRoot());
         } else {
-            return new PatientIdentifier(clientIdent, IDENTIFIER_TYPE_MSF, LOCATION_DEFAULT);
+            return new PatientIdentifier(clientIdent, IDENTIFIER_TYPE_MSF, DbUtils.getDefaultRoot());
         }
     }
 

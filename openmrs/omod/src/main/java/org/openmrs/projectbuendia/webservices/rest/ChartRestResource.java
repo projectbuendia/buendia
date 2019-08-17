@@ -46,8 +46,7 @@ public class ChartRestResource extends BaseRestResource<Form> {
     @Override protected Collection<Form> listItems(RequestContext context) {
         List<Form> charts = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
-            if (form.isRetired()) continue;
-            if (eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID)) {
+            if (!form.isRetired() && eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID)) {
                 charts.add(form);
             }
         }
@@ -55,11 +54,7 @@ public class ChartRestResource extends BaseRestResource<Form> {
     }
 
     @Override protected Form retrieveItem(String uuid) {
-        Form form = formService.getFormByUuid(uuid);
-        if (form == null || form.isRetired()) {
-            throw new ObjectNotFoundException();
-        }
-        return form;
+        return formService.getFormByUuid(uuid);
     }
 
     @Override protected void populateJson(SimpleObject json, Form form, RequestContext context) {

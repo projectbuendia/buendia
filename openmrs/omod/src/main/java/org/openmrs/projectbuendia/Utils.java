@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class Utils {
     // ==== Basic types ====
@@ -227,21 +228,40 @@ public class Utils {
         }
     }
 
-    public static String getRequiredString(SimpleObject obj, String key) {
-        if (obj.get(key) == null) {
+    public static @Nonnull String getRequiredString(SimpleObject obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
             throw new InvalidObjectDataException(String.format(
                 "Required property \"%s\" is missing", key));
         }
-        return getOptionalString(obj, key);
-    }
-
-    public static String getOptionalString(SimpleObject obj, String key) {
-        Object value = obj.get(key);
-        try {
-            return (String) value;
-        } catch (ClassCastException e) {
+        if (!(value instanceof String)) {
             throw new InvalidObjectDataException(String.format(
                 "Property \"%s\" should be a String, not %s", key, value.getClass()));
         }
+        return (String) value;
+    }
+
+    public static @Nullable String getOptionalString(SimpleObject obj, String key) {
+        return obj.get(key) != null ? getRequiredString(obj, key) : null;
+    }
+
+    public static @Nonnull Date getRequiredDateMillis(SimpleObject obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing", key));
+        }
+        long millis;
+        try {
+            millis = asLong(value);
+        } catch (ClassCastException e) {
+            throw new InvalidObjectDataException(String.format(
+                "Property \"%s\" should be a number, not %s", key, value.getClass()));
+        }
+        return new Date(millis);
+    }
+
+    public static @Nullable Date getOptionalDateMillis(SimpleObject obj, String key) {
+        return obj.get(key) != null ? getRequiredDateMillis(obj, key) : null;
     }
 }

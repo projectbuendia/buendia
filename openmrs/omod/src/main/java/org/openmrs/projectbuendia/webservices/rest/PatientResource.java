@@ -315,7 +315,7 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
         patient.addIdentifier(identifier);
         identifier.setCreator(user);
         identifier.setDateCreated(patient.getDateCreated());
-        identifier.setLocation(DbUtils.getDefaultLocation());
+        identifier.setLocation(DbUtils.getDefaultRoot());
         identifier.setPreferred(true);
 
         // OpenMRS requires that every patient have a preferred identifier.  If the
@@ -559,10 +559,10 @@ public class PatientResource implements Listable, Searchable, Retrievable, Creat
     private static PatientIdentifier fromClientIdent(String clientIdent) {
         if (clientIdent.startsWith("*")) {
             return new PatientIdentifier(clientIdent.substring(1),
-                DbUtils.getIdentifierTypeLocal(), DbUtils.getDefaultLocation());
+                DbUtils.getIdentifierTypeLocal(), DbUtils.getDefaultRoot());
         } else {
             return new PatientIdentifier(clientIdent,
-                DbUtils.getIdentifierTypeMsf(), DbUtils.getDefaultLocation());
+                DbUtils.getIdentifierTypeMsf(), DbUtils.getDefaultRoot());
         }
     }
 

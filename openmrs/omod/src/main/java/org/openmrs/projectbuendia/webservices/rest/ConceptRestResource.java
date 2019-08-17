@@ -84,11 +84,7 @@ public class ConceptRestResource extends BaseRestResource<Concept> {
     }
 
     @Override protected Concept retrieveItem(String uuid) {
-        Concept concept = conceptService.getConceptByUuid(uuid);
-        if (concept == null || concept.isRetired()) {
-            throw new ObjectNotFoundException();
-        }
-        return concept;
+        return conceptService.getConceptByUuid(uuid);
     }
 
     @Override protected void populateJson(SimpleObject json, Concept concept, RequestContext context) {

@@ -53,11 +53,6 @@ public class ObservationRestResource extends BaseRestResource<Obs> {
     }
 
     @Override protected void populateJson(SimpleObject json, Obs obs, RequestContext context) {
-        if (obs.isVoided()) {
-            json.add("voided", true);
-            return;
-        }
-
         json.add("patient_uuid", obs.getPerson().getUuid());
         json.add("encounter_uuid", obs.getEncounter().getUuid());
         json.add("concept_uuid", obs.getConcept().getUuid());
