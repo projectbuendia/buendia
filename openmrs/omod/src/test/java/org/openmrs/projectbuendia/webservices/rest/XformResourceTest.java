@@ -20,14 +20,14 @@ public class XformResourceTest {
     @Test public void convertToOdkCollect() throws Exception {
         String input = getStringResource(getClass(), "sample-original-form1.xml");
         String expected = getStringResource(getClass(), "expected-result-form1.xml");
-        String actual = XformResource.convertToOdkCollect(input, "Form title");
+        String actual = XformRestResource.convertToOdkCollect(input, "Form title");
         assertXmlEqual(expected, actual);
     }
 
     @Test public void removeRelationshipNodes() throws Exception {
         String input = getStringResource(getClass(), "relationships-original-form1.xml");
         String expected = getStringResource(getClass(), "relationships-result-form1.xml");
-        String actual = XformResource.removeRelationshipNodes(input);
+        String actual = XformRestResource.removeRelationshipNodes(input);
         assertXmlEqual(expected, actual);
     }
 }
