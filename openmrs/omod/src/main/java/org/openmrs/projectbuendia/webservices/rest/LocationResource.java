@@ -72,7 +72,7 @@ import java.util.Map;
  * }
  * </pre>
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/locations",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xlocations",
     supportedClass = Location.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class LocationResource implements
     Listable, Searchable, Retrievable, Creatable, Updatable, Deletable {

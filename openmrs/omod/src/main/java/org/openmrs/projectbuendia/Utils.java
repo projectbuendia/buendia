@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -229,16 +228,20 @@ public class Utils {
     }
 
     public static String getRequiredString(SimpleObject obj, String key) {
-        Object value = obj.get(key);
-        if (obj == null) {
+        if (obj.get(key) == null) {
             throw new InvalidObjectDataException(String.format(
                 "Required property \"%s\" is missing", key));
         }
+        return getOptionalString(obj, key);
+    }
+
+    public static String getOptionalString(SimpleObject obj, String key) {
+        Object value = obj.get(key);
         try {
             return (String) value;
         } catch (ClassCastException e) {
             throw new InvalidObjectDataException(String.format(
-                "Required property \"%s\" should be a String, not %s", key, value.getClass()));
+                "Property \"%s\" should be a String, not %s", key, value.getClass()));
         }
     }
 }

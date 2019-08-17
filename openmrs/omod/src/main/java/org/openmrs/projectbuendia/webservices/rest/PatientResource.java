@@ -94,7 +94,7 @@ import static org.openmrs.projectbuendia.Utils.parseLocalDate;
  * </pre>
  */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patients",
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xpatients",
     supportedClass = Patient.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

@@ -11,8 +11,6 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.fileupload.MultipartStream;
-import org.apache.commons.lang.time.DateFormatUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Form;
@@ -81,7 +79,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
  */
 // TODO: Still not really sure what supportedClass to use here... can we omit it?
 @Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstances",
-    supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
+    supportedClass = Void.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class XformInstanceResource implements Creatable {
     static final RequestLogger logger = RequestLogger.LOGGER;
     private static final Log LOG = LogFactory.getLog(XformInstanceResource.class);

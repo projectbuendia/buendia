@@ -21,7 +21,7 @@ import static org.junit.Assert.fail;
 
 /** Base class for resource tests that issue simulated REST API requests. */
 public abstract class BaseApiRequestTest extends MainResourceControllerTest {
-    private static boolean VERBOSE = false;
+    private static boolean VERBOSE = true;
 
     protected EncounterService encounterService;
     protected LocationService locationService;
@@ -46,10 +46,10 @@ public abstract class BaseApiRequestTest extends MainResourceControllerTest {
             if (VERBOSE) System.err.println("=== Starting " + description.getMethodName() + "()");
         }
         protected void succeeded(Description description) {
-            if (VERBOSE) System.out.println("\u001b[32;1m=== PASSED: " + description.getMethodName() + "()\u001b[0m");
+            if (VERBOSE) System.err.println("\u001b[32;1m=== PASSED: " + description.getMethodName() + "()\u001b[0m");
         }
         protected void failed(Description description) {
-            if (VERBOSE) System.out.println("\u001b[31;1m=== FAILED: " + description.getMethodName() + "()\u001b[0m");
+            if (VERBOSE) System.err.println("\u001b[31;1m=== FAILED: " + description.getMethodName() + "()\u001b[0m");
         }
     };
 
