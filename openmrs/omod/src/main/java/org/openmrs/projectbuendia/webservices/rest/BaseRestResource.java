@@ -7,6 +7,7 @@ import org.openmrs.api.FormService;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
+import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -47,6 +48,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
     protected final LocationService locationService;
     protected final OrderService orderService;
     protected final PatientService patientService;
+    protected final ProviderService providerService;
 
     protected BaseRestResource(String collectionName, Representation... representations) {
         this.collectionName = collectionName;
@@ -58,6 +60,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
         locationService = Context.getLocationService();
         orderService = Context.getOrderService();
         patientService = Context.getPatientService();
+        providerService = Context.getProviderService();
     }
 
     /** Returns the representations acceptable as values for the ?v= parameter. */

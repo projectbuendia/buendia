@@ -1,31 +1,18 @@
-// Copyright 2015 The Project Buendia Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not
-// use this file except in compliance with the License.  You may obtain a copy
-// of the License at: http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software distrib-
-// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
-// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
-// specific language governing permissions and limitations under the License.
-
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Form;
 import org.openmrs.FormResource;
+import org.openmrs.OpenmrsObject;
 import org.openmrs.Patient;
 import org.openmrs.User;
 import org.openmrs.api.FormService;
-import org.openmrs.api.PatientService;
-import org.openmrs.api.ProviderService;
-import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
-import org.openmrs.module.webservices.rest.web.resource.api.Creatable;
+import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
@@ -50,75 +37,22 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.getChildren;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
 
-/**
- * Resource for submitted "form instances" (filled-in forms).  Write-only.
- * <p/>
- * <p>Accepts POST requests to [API root]/xforminstance with JSON data of the form:
- * <pre>
- * {
- *   patient_id: "123", // patient ID assigned by medical center
- *   patient_uuid: "24ae3-5", // patient UUID in OpenMRS
- *   enterer_id: "1234-5", // person ID of the provider entering the data
- *   date_entered: "2015-03-14T09:26:53.589Z", // date that the encounter was
- *           // *entered* (not necessarily when observations were taken)
- *   xml: "..." // XML contents of the form instance, as provided by ODK
- * }
- * </pre>
- * <p/>
- * <p>When creation is successful, the created XformInstance JSON is returned.
- * If an error occurs, the response will be in the form:
- * <pre>
- * {
- *   "error": {
- *     "message": "[error message]",
- *     "code": "[breakpoint]",
- *     "detail": "[stack trace]"
- *   }
- * }
- * </pre>
- */
-// TODO: Still not really sure what supportedClass to use here... can we omit it?
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xxforminstances",
-    supportedClass = Void.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class XformInstanceResource implements Creatable {
-    static final RequestLogger logger = RequestLogger.LOGGER;
-    private static final Log LOG = LogFactory.getLog(XformInstanceResource.class);
-
+@Resource(
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstances",
+    supportedClass = Void.class,
+    supportedOpenmrsVersions = "1.10.*,1.11.*"
+)
+public class XformInstanceRestResource extends BaseRestResource<OpenmrsObject> {
+    private static final Log LOG = LogFactory.getLog(XformInstanceRestResource.class);
+    private static final String CLOB_XSLT_UUID = "buendia_clob_xform_instance_xslt";
     private static final XformsQueueProcessor processor = new XformsQueueProcessor();
 
-    private final PatientService patientService;
-    private final ProviderService providerService;
-    private final UserService userService;
-
-    public XformInstanceResource() {
-        patientService = Context.getPatientService();
-        providerService = Context.getProviderService();
-        userService = Context.getUserService();
+    public XformInstanceRestResource() {
+        super("XForm instances", Representation.DEFAULT);
     }
-
-    @Override public String getUri(Object instance) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /** Accepts a submitted form instance. */
-    @Override
-    public Object create(SimpleObject obj, RequestContext context) throws ResponseException {
+    @Override protected OpenmrsObject createItem(SimpleObject data, RequestContext context) {
         try {
-            logger.request(context, this, "create", obj);
-            Object result = createInner(obj, context);
-            logger.reply(context, this, "create", result);
-            return result;
-        } catch (Exception e) {
-            logger.error(context, this, "create", e);
-            throw e;
-        }
-    }
-
-    /** Accepts a submitted form instance. */
-    private Object createInner(SimpleObject post, RequestContext context) throws ResponseException {
-        try {
-            Document doc = getPreparedXformDocument(post);
+            Document doc = getPreparedXformDocument(data);
             String xml = XformsUtil.doc2String(doc);
             File file = File.createTempFile("projectbuendia", null);
             processor.processXForm(xml, file.getAbsolutePath(), true, context.getRequest());
@@ -166,7 +100,7 @@ public class XformInstanceResource implements Creatable {
         // Fill in the date that the form was entered; this becomes the encounter's date_created.
         // If this field is missing, saxon will crash with "Invalid dateTime value. too short".
         XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
-            .setTextContent("2019-08-14T12:34:56.789Z"); // Utils.formatUtc8601(dateEntered));
+            .setTextContent(Utils.formatUtc8601(dateEntered));
 
         // OpenMRS can't handle the encounter_datetime in the format we receive.
         setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
@@ -209,7 +143,7 @@ public class XformInstanceResource implements Creatable {
             resource.setDatatypeClassname("org.openmrs.customdatatype.datatype.LongFreeTextDatatype");
             resource.setPreferredHandlerClassname("org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler");
             resource.setName(resourceName);
-            resource.setValueReferenceInternal("buendia_clob_xform_instance_xslt");
+            resource.setValueReferenceInternal(CLOB_XSLT_UUID);
             formService.saveFormResource(resource);
         }
     }
@@ -265,4 +199,6 @@ public class XformInstanceResource implements Creatable {
         }
         return null;
     }
+
+    @Override protected void populateJson(SimpleObject json, OpenmrsObject unused, RequestContext context) { }
 }

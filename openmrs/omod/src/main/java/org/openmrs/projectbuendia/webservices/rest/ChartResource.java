@@ -53,7 +53,7 @@ import static org.openmrs.projectbuendia.Utils.isEmpty;
     supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
-    private static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+    public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
     private final FormService formService;
     private final ConceptService conceptService;
 
