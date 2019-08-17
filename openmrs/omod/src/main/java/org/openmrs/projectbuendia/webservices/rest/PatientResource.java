@@ -37,12 +37,12 @@ import static org.openmrs.projectbuendia.Utils.parseLocalDate;
     supportedClass = Patient.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class PatientRestResource extends BaseRestResource<Patient> {
+public class PatientResource extends BaseResource<Patient> {
     private static final int MAX_PATIENTS_PER_PAGE = 100;
     private final PatientIdentifierType IDENTIFIER_TYPE_MSF;
     private final PatientIdentifierType IDENTIFIER_TYPE_LOCAL;
 
-    public PatientRestResource() {
+    public PatientResource() {
         super("patients", Representation.DEFAULT);
         IDENTIFIER_TYPE_MSF = DbUtils.getIdentifierTypeMsf();
         IDENTIFIER_TYPE_LOCAL = DbUtils.getIdentifierTypeLocal();

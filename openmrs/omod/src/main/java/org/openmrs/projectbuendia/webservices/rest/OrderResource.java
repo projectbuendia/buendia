@@ -21,7 +21,6 @@ import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,13 +34,13 @@ import static org.openmrs.projectbuendia.Utils.eq;
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class OrderRestResource extends BaseRestResource<Order> {
+public class OrderResource extends BaseResource<Order> {
     private static final int MAX_ORDERS_PER_PAGE = 100;
     // Allow all order actions except discontinues, because the client doesn't represent those.
     private static final Order.Action[] ALLOWABLE_ACTIONS =
         ArrayUtils.removeElement(Order.Action.values(), Order.Action.DISCONTINUE);
 
-    public OrderRestResource() {
+    public OrderResource() {
         super("orders", Representation.DEFAULT);
     }
 

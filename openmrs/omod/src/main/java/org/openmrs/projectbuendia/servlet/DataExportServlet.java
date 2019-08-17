@@ -29,7 +29,7 @@ import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.VisitObsValue;
-import org.openmrs.projectbuendia.webservices.rest.ChartRestResource;
+import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.util.FormUtil;
 
 import java.io.IOException;
@@ -120,7 +120,7 @@ public class DataExportServlet extends HttpServlet {
         // Order in Xform/chart is not good as stuff changes every time we change xform
         // So instead we will use UUID order, but use the Chart form to use the concepts to display.
         Set<Concept> questionConcepts = new HashSet<>();
-        for (Form form : ChartRestResource.getChartForms(Context.getFormService())) {
+        for (Form form : ChartResource.getChartForms(Context.getFormService())) {
             TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
             for (FormField groupField : formStructure.get(0)) {
                 for (FormField fieldInGroup : formStructure.get(groupField.getId())) {

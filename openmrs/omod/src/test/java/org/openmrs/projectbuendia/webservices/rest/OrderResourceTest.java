@@ -16,7 +16,6 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.junit.Test;
 import org.openmrs.Order;
 import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceControllerTest;
 import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -158,7 +157,7 @@ import static org.junit.Assert.assertTrue;
         assertEquals(SAMPLE_END_DATE, response.get("stop_millis"));
 
         // Check that the underlying order is a different one and has the correct values.
-        Order stored = OrderRestResource.getLastRevision(orderService.getOrderByUuid(uuid));
+        Order stored = OrderResource.getLastRevision(orderService.getOrderByUuid(uuid));
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(newInstructions, stored.getInstructions());
         assertEquals(SAMPLE_START_DATE, stored.getScheduledDate().getTime());
@@ -188,7 +187,7 @@ import static org.junit.Assert.assertTrue;
         assertEquals(newEndTime, response.get("stop_millis"));
 
         // Check that these fields match the object stored.
-        Order stored = OrderRestResource.getLastRevision(baseOrder);
+        Order stored = OrderResource.getLastRevision(baseOrder);
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
         assertEquals(startTime, stored.getScheduledDate().getTime());
@@ -204,7 +203,7 @@ import static org.junit.Assert.assertTrue;
         assertEquals(baseOrder.getUuid(), uuid);
         assertEquals(newEndTime, response.get("stop_millis"));
 
-        stored = OrderRestResource.getLastRevision(baseOrder);
+        stored = OrderResource.getLastRevision(baseOrder);
         assertEquals(newEndTime, stored.getAutoExpireDate().getTime());
 
         // Verify that retrieving the order gets the last revision.
@@ -241,7 +240,7 @@ import static org.junit.Assert.assertTrue;
         // Reload the base order from storage
         baseOrder = orderService.getOrderByUuid(baseUuid);
         assertTrue("Base order is voided", baseOrder.isVoided());
-        Order revisionOrder = OrderRestResource.getLastRevision(baseOrder);
+        Order revisionOrder = OrderResource.getLastRevision(baseOrder);
         assertNotNull("Expected a non-null revision order", revisionOrder);
         assertTrue("Revision order is voided", revisionOrder.isVoided());
     }

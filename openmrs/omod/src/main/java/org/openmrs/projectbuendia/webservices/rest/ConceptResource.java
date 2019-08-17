@@ -5,17 +5,13 @@ import org.openmrs.ConceptAnswer;
 import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
-import org.openmrs.api.ConceptService;
-import org.openmrs.api.FormService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.projectbuendia.ClientConceptNamer;
-import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.io.IOException;
@@ -38,7 +34,7 @@ import static org.openmrs.projectbuendia.Utils.isBlank;
     supportedClass = Concept.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class ConceptRestResource extends BaseRestResource<Concept> {
+public class ConceptResource extends BaseResource<Concept> {
     /** A map from HL7 type abbreviations to short names used in JSON output. */
     private static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
     static {
@@ -53,7 +49,7 @@ public class ConceptRestResource extends BaseRestResource<Concept> {
     }
     private final ClientConceptNamer namer;
 
-    public ConceptRestResource() {
+    public ConceptResource() {
         super("concepts", Representation.DEFAULT);
         namer = new ClientConceptNamer(Context.getLocale());
     }
@@ -62,7 +58,7 @@ public class ConceptRestResource extends BaseRestResource<Concept> {
         // Retrieves all the concepts that the client needs to know about
         // (the concepts within all the charts served by ChartResource).
         Set<Concept> concepts = new HashSet<>();
-        for (Form chart : ChartRestResource.getChartForms(formService)) {
+        for (Form chart : ChartResource.getChartForms(formService)) {
             for (FormField formField : chart.getFormFields()) {
                 Field field = formField.getField();
                 Concept concept = field.getConcept();

@@ -42,12 +42,12 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
     supportedClass = Void.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class XformInstanceRestResource extends BaseRestResource<OpenmrsObject> {
-    private static final Log LOG = LogFactory.getLog(XformInstanceRestResource.class);
+public class XformInstanceResource extends BaseResource<OpenmrsObject> {
+    private static final Log LOG = LogFactory.getLog(XformInstanceResource.class);
     private static final String CLOB_XSLT_UUID = "buendia_clob_xform_instance_xslt";
     private static final XformsQueueProcessor processor = new XformsQueueProcessor();
 
-    public XformInstanceRestResource() {
+    public XformInstanceResource() {
         super("XForm instances", Representation.DEFAULT);
     }
     @Override protected OpenmrsObject createItem(SimpleObject data, RequestContext context) {

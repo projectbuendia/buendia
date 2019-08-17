@@ -6,7 +6,6 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.Collection;
@@ -18,11 +17,11 @@ import static org.openmrs.projectbuendia.Utils.getRequiredString;
     supportedClass = Provider.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class UserRestResource extends BaseRestResource<Provider> {
+public class UserResource extends BaseResource<Provider> {
     private static final String PROVIDER_GUEST_UUID = "buendia_provider_guest";
     private static final String GUEST_NAME = "Guest User";
 
-    public UserRestResource() {
+    public UserResource() {
         super("users", Representation.DEFAULT);
     }
 

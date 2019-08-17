@@ -9,13 +9,11 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -26,8 +24,8 @@ import static org.openmrs.projectbuendia.Utils.eq;
     supportedClass = Location.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class EncounterRestResource extends BaseRestResource<Encounter> {
-    public EncounterRestResource() {
+public class EncounterResource extends BaseResource<Encounter> {
+    public EncounterResource() {
         super("encounters", Representation.DEFAULT);
     }
 

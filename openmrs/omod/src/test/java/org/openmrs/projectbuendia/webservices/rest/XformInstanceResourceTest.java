@@ -15,42 +15,42 @@ import org.openmrs.projectbuendia.Utils;
 import org.w3c.dom.Document;
 
 import static org.junit.Assert.assertEquals;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.getXmlResource;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.assertXmlEqual;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.getXmlResource;
 
 public class XformInstanceResourceTest {
     @Test public void addForm() throws Exception {
         Document expected = getXmlResource(getClass(), "expected-instance-add.xml");
         Document doc = getXmlResource(getClass(), "original-instance-add.xml");
-        XformInstanceRestResource.adjustXformDocument(doc, 8, 1, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        XformInstanceResource.adjustXformDocument(doc, 8, 1, Utils.parse8601("2014-11-15T12:34:56.789Z"));
         assertXmlEqual(expected, doc);
     }
 
     @Test public void editForm() throws Exception {
         Document expected = getXmlResource(getClass(), "expected-instance-edit.xml");
         Document doc = getXmlResource(getClass(), "original-instance-edit.xml");
-        XformInstanceRestResource.adjustXformDocument(doc, 9, 2, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        XformInstanceResource.adjustXformDocument(doc, 9, 2, Utils.parse8601("2014-11-15T12:34:56.789Z"));
         assertXmlEqual(expected, doc);
     }
 
     @Test public void moveGroupsIntoObs() throws Exception {
         Document expected = getXmlResource(getClass(), "expected-grouped.xml");
         Document doc = getXmlResource(getClass(), "original-grouped.xml");
-        XformInstanceRestResource.adjustXformDocument(doc, 10, 3, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        XformInstanceResource.adjustXformDocument(doc, 10, 3, Utils.parse8601("2014-11-15T12:34:56.789Z"));
         assertXmlEqual(expected, doc);
     }
 
     @Test public void parseNonstandardTimestamp() {
         String input = "20141120T092547.373Z";
         String expected = "2014-11-20T09:25:47.373Z";
-        String actual = Utils.formatUtc8601(XformInstanceRestResource.parseTimestamp(input));
+        String actual = Utils.formatUtc8601(XformInstanceResource.parseTimestamp(input));
         assertEquals(expected, actual);
     }
 
     @Test public void parseStandardTimestamp() {
         String input = "2014-11-20T09:25:47.373Z";
         String expected = "2014-11-20T09:25:47.373Z";
-        String actual = Utils.formatUtc8601(XformInstanceRestResource.parseTimestamp(input));
+        String actual = Utils.formatUtc8601(XformInstanceResource.parseTimestamp(input));
         assertEquals(expected, actual);
     }
 }

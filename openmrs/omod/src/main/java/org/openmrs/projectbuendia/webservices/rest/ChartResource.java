@@ -32,11 +32,11 @@ import static org.openmrs.projectbuendia.Utils.isEmpty;
     supportedClass = Form.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class ChartRestResource extends BaseRestResource<Form> {
+public class ChartResource extends BaseResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
 
 
-    public ChartRestResource() {
+    public ChartResource() {
         super("charts", Representation.DEFAULT, Representation.FULL);
     }
 

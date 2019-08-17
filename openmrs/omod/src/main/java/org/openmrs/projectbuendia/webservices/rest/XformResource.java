@@ -37,11 +37,11 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescen
     supportedClass = Form.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class XformRestResource extends BaseRestResource<Form> {
+public class XformResource extends BaseResource<Form> {
     private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
     private static final String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
 
-    public XformRestResource() {
+    public XformResource() {
         super("XForms", Representation.DEFAULT);
     }
 

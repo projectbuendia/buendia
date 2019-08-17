@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.getChildNodes;
 
-public class XmlTestUtil {
+public class XmlTestUtils {
     static String getStringResource(Class<?> cls, String path) throws IOException {
         return IOUtils.toString(cls.getResourceAsStream(path), "utf-8");
     }

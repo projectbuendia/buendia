@@ -26,10 +26,10 @@ import static org.openmrs.projectbuendia.Utils.eq;
     supportedClass = Obs.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class ObservationRestResource extends BaseRestResource<Obs> {
+public class ObservationResource extends BaseResource<Obs> {
     private static final int MAX_OBSERVATIONS_PER_PAGE = 100;
 
-    public ObservationRestResource() {
+    public ObservationResource() {
         super("observations", Representation.DEFAULT);
     }
 

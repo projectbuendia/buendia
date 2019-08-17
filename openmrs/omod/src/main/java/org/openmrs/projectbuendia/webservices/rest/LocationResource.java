@@ -5,7 +5,6 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -16,8 +15,8 @@ import java.util.Collection;
     supportedClass = Location.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class LocationRestResource extends BaseRestResource<Location> {
-    public LocationRestResource() {
+public class LocationResource extends BaseResource<Location> {
+    public LocationResource() {
         super("locations", Representation.DEFAULT);
     }
 

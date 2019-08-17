@@ -35,7 +35,7 @@ import java.util.List;
 // to the desired interface type) so we claim to support all operations and
 // generate our own, better error messages.
 
-public abstract class BaseRestResource<T extends OpenmrsObject>
+public abstract class BaseResource<T extends OpenmrsObject>
     implements Listable, Searchable, Creatable, Retrievable, Updatable, Deletable {
     private static final RequestLogger logger = RequestLogger.LOGGER;
     private final List<Representation> availableRepresentations;
@@ -50,7 +50,7 @@ public abstract class BaseRestResource<T extends OpenmrsObject>
     protected final PatientService patientService;
     protected final ProviderService providerService;
 
-    protected BaseRestResource(String collectionName, Representation... representations) {
+    protected BaseResource(String collectionName, Representation... representations) {
         this.collectionName = collectionName;
         availableRepresentations = Arrays.asList(representations);
         buendiaService = Context.getService(ProjectBuendiaService.class);

@@ -13,21 +13,21 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.junit.Test;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.getStringResource;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.assertXmlEqual;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.getStringResource;
 
 public class XformResourceTest {
     @Test public void convertToOdkCollect() throws Exception {
         String input = getStringResource(getClass(), "sample-original-form1.xml");
         String expected = getStringResource(getClass(), "expected-result-form1.xml");
-        String actual = XformRestResource.convertToOdkCollect(input, "Form title");
+        String actual = XformResource.convertToOdkCollect(input, "Form title");
         assertXmlEqual(expected, actual);
     }
 
     @Test public void removeRelationshipNodes() throws Exception {
         String input = getStringResource(getClass(), "relationships-original-form1.xml");
         String expected = getStringResource(getClass(), "relationships-result-form1.xml");
-        String actual = XformRestResource.removeRelationshipNodes(input);
+        String actual = XformResource.removeRelationshipNodes(input);
         assertXmlEqual(expected, actual);
     }
 }
