@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# When a user visits the OpenMRS page for the first time,
+# Then the user is prompted to log in with their username & password.
+
+test_10_openmrs_returns_content () {
+    curl http://localhost:9000/openmrs/index.htm > index.htm
+}
+
+test_20_openmrs_requests_username () {
+    grep Username index.htm
+}
+
+test_30_openmrs_requests_password () {
+    grep Password index.htm
+}
