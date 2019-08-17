@@ -4,15 +4,12 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.openmrs.Concept;
 import org.openmrs.Field;
 import org.openmrs.Form;
-import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.api.FormService;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
-import org.openmrs.projectbuendia.Utils;
 import org.openmrs.util.FormUtil;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -28,7 +25,6 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.isEmpty;
 
 @Resource(
@@ -38,7 +34,7 @@ import static org.openmrs.projectbuendia.Utils.isEmpty;
 )
 public class ChartRestResource extends BaseRestResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
-    public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+
 
     public ChartRestResource() {
         super("charts", Representation.DEFAULT, Representation.FULL);
@@ -51,15 +47,11 @@ public class ChartRestResource extends BaseRestResource<Form> {
     public static List<Form> getChartForms(FormService formService) {
         List<Form> charts = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
-            if (isChartForm(form)) {
+            if (DbUtils.isChartForm(form)) {
                 charts.add(form);
             }
         }
         return charts;
-    }
-
-    private static boolean isChartForm(Form form) {
-        return !form.isRetired() && eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID);
     }
 
     @Override protected Form retrieveItem(String uuid) {

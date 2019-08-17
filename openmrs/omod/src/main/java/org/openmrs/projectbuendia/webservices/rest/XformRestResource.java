@@ -12,13 +12,11 @@ import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.xforms.buendia.BuendiaXformBuilderEx;
 import org.openmrs.module.xforms.buendia.FormData;
 import org.openmrs.module.xforms.util.XformsUtil;
-import org.openmrs.projectbuendia.Utils;
 import org.openmrs.util.FormConstants;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.stylesheets.LinkStyle;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
@@ -50,19 +48,14 @@ public class XformRestResource extends BaseRestResource<Form> {
     @Override protected Collection<Form> listItems(RequestContext context) {
         List<Form> results = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
-            if (isPublishedXform(form)) results.add(form);
+            if (DbUtils.isPublishedXform(form)) results.add(form);
         }
         return results;
     }
 
     @Override protected Form retrieveItem(String uuid) {
         Form form = formService.getFormByUuid(uuid);
-        return isPublishedXform(form) ? form : null;
-    }
-
-    private boolean isPublishedXform(Form form) {
-        return !form.isRetired() && form.getPublished() &&
-            !eq(form.getEncounterType().getUuid(), ChartRestResource.ENCOUNTER_TYPE_CHART_UUID);
+        return DbUtils.isPublishedXform(form) ? form : null;
     }
 
     /**

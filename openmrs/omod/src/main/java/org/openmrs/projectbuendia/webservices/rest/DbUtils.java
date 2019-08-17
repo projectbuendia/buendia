@@ -76,6 +76,9 @@ public class DbUtils {
     // internally converts the "assigned_location" to a person attribute.
     public static final String ATTRIBUTE_TYPE_ASSIGNED_LOCATION_UUID = "buendia_attribute_type_location";
 
+    // This UUID is hardcoded but only used internally by the server to distinguish
+    // chart forms (exposed at /charts) from XForm forms (exposed at /xforms).
+    public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
     public static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
@@ -295,6 +298,16 @@ public class DbUtils {
             locationService.saveLocation(location);
         }
         return location;
+    }
+
+    public static boolean isPublishedXform(Form form) {
+        return !form.isRetired() && form.getPublished() &&
+            !eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID);
+    }
+
+    public static boolean isChartForm(Form form) {
+        return !form.isRetired() && eq(form.getEncounterType().getUuid(),
+            ENCOUNTER_TYPE_CHART_UUID);
     }
 
     protected static abstract class Getter<T> {
