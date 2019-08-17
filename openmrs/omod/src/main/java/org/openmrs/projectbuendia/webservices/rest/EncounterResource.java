@@ -39,7 +39,7 @@ import static org.openmrs.projectbuendia.Utils.eq;
  * point in time (referred to as the "snapshot time").
  * @see AbstractReadOnlyResource
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/encounters",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xencounters",
     supportedClass = Encounter.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class EncounterResource implements Creatable {
     private final PatientService patientService;

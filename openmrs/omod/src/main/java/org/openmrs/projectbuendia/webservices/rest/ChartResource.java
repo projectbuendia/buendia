@@ -49,7 +49,7 @@ import static org.openmrs.projectbuendia.Utils.isEmpty;
  * primarily to allow for ease of maintenance (OpenMRS provides an editing UI).
  * @see AbstractReadOnlyResource
  */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/charts",
+@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xcharts",
     supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
 public class ChartResource extends AbstractReadOnlyResource<Form> {
     private static final Pattern COMPRESSIBLE_UUID = Pattern.compile("^([0-9]+)A+$");
