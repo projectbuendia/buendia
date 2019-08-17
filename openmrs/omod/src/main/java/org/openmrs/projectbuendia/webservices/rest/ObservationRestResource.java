@@ -15,6 +15,7 @@ import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.text.ParseException;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -30,6 +31,11 @@ public class ObservationRestResource extends BaseRestResource<Obs> {
 
     public ObservationRestResource() {
         super("observations", Representation.DEFAULT);
+    }
+
+    @Override protected Collection<Obs> listItems(RequestContext context) {
+        return buendiaService.getObservationsModifiedAtOrAfter(
+            null, false /* include voided */, MAX_OBSERVATIONS_PER_PAGE).results;
     }
 
     @Override protected SimpleObject syncItems(String tokenJson, List<Obs> items) {
