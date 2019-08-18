@@ -245,7 +245,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
                 "...only logging last %d of %d items (%d omitted)...",
                 MAX_ITEMS, items.size(), omitted
             ));
-            abbrevItems.addAll(items.subList(omitted, MAX_ITEMS));
+            abbrevItems.addAll(items.subList(omitted, items.size()));
             resultsValue = abbrevItems;
         }
 
