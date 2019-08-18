@@ -208,7 +208,9 @@ public class PatientResource extends BaseResource<Patient> {
     @Override protected void populateJson(SimpleObject json, Patient patient, RequestContext context) {
         json.add("id", toClientIdent(patient.getPatientIdentifier()));
         json.add("sex", patient.getGender());
-        json.add("birthdate", formatUtcDate(patient.getBirthdate()));
+        if (patient.getBirthdate() != null) {
+            json.add("birthdate", formatUtcDate(patient.getBirthdate()));
+        }
         json.add("given_name", denormalizeName(patient.getGivenName()));
         json.add("family_name", denormalizeName(patient.getFamilyName()));
         String locationId = DbUtils.getPersonAttributeValue(

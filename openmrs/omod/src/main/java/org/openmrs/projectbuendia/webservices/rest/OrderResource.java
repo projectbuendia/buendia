@@ -143,8 +143,12 @@ public class OrderResource extends BaseResource<Order> {
         order = getLastRevision(rootOrder);
 
         json.add("uuid", rootOrder.getUuid());
-        json.add("patient_uuid", order.getPatient().getUuid());
-        json.add("provider_uuid", order.getOrderer().getUuid());
+        if (order.getPatient() != null) {
+            json.add("patient_uuid", order.getPatient().getUuid());
+        }
+        if (order.getOrderer() != null) {
+            json.add("provider_uuid", order.getOrderer().getUuid());
+        }
         json.add("instructions", order.getInstructions());
         if (order.getScheduledDate() != null) {
             json.add("start_millis", order.getScheduledDate().getTime());

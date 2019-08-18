@@ -72,8 +72,12 @@ public class EncounterResource extends BaseResource<Encounter> {
     }
 
     @Override protected void populateJson(SimpleObject json, Encounter item, RequestContext context) {
-        json.put("patient_uuid", item.getPatient().getUuid());
-        json.put("timestamp", Utils.formatUtc8601(item.getEncounterDatetime()));
+        if (item.getPatient() != null) {
+            json.put("patient_uuid", item.getPatient().getUuid());
+        }
+        if (item.getEncounterDatetime() != null) {
+            json.put("timestamp", Utils.formatUtc8601(item.getEncounterDatetime()));
+        }
         json.put("uuid", item.getUuid());
 
         SimpleObject observations = new SimpleObject();

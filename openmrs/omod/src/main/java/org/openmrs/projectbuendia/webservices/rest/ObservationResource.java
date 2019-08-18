@@ -59,14 +59,24 @@ public class ObservationResource extends BaseResource<Obs> {
     }
 
     @Override protected void populateJson(SimpleObject json, Obs obs, RequestContext context) {
-        json.add("patient_uuid", obs.getPerson().getUuid());
-        json.add("encounter_uuid", obs.getEncounter().getUuid());
-        json.add("concept_uuid", obs.getConcept().getUuid());
-        json.add("timestamp", Utils.formatUtc8601(obs.getObsDatetime()));
+        if (obs.getPerson() != null) {
+            json.add("patient_uuid", obs.getPerson().getUuid());
+        }
+        if (obs.getEncounter() != null) {
+            json.add("encounter_uuid", obs.getEncounter().getUuid());
+        }
+        if (obs.getConcept() != null) {
+            json.add("concept_uuid", obs.getConcept().getUuid());
+        }
+        if (obs.getObsDatetime() != null) {
+            json.add("timestamp", Utils.formatUtc8601(obs.getObsDatetime()));
+        }
 
         for (EncounterProvider ep : obs.getEncounter().getEncounterProviders()) {
-            json.add("enterer_uuid", ep.getProvider().getUuid());
-            break;
+            if (ep.getProvider() != null) {
+                json.add("enterer_uuid", ep.getProvider().getUuid());
+                break;
+            }
         }
 
         boolean isExecutedOrder = obs.getOrder() != null &&

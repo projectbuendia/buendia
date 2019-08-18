@@ -115,7 +115,8 @@ public class Utils {
     }
 
     /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
-    public static Date parseLocalDate(String text) {
+    public static @Nullable Date parseLocalDate(String text) {
+        if (text == null) return null;
         try {
             return YYYYMMDD_UTC_FORMAT.parse(text);
         } catch (ParseException e) {
