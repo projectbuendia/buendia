@@ -15,8 +15,8 @@ import org.openmrs.projectbuendia.Utils;
 import org.w3c.dom.Document;
 
 import static org.junit.Assert.assertEquals;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.getXmlResource;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.assertXmlEqual;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.getXmlResource;
 
 public class XformInstanceResourceTest {
     @Test public void addForm() throws Exception {

@@ -1,26 +1,10 @@
-// Copyright 2015 The Project Buendia Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may not
-// use this file except in compliance with the License.  You may obtain a copy
-// of the License at: http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software distrib-
-// uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
-// OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
-// specific language governing permissions and limitations under the License.
-
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openmrs.BaseOpenmrsMetadata;
 import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Provider;
-import org.openmrs.api.FormService;
-import org.openmrs.api.ProviderService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -37,6 +21,7 @@ import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
@@ -45,51 +30,46 @@ import javax.annotation.Nullable;
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtils
-    .requireDescendant;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescendant;
 
-/**
- * Resource for "form models" (not-yet-filled-in forms).   Note: this is under
- * org.openmrs as otherwise the resource annotation isn't picked up.
- * @see AbstractReadOnlyResource
- */
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforms",
-    supportedClass = Form.class, supportedOpenmrsVersions = "1.10.*,1.11.*")
-public class XformResource extends AbstractReadOnlyResource<Form> {
+@Resource(
+    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforms",
+    supportedClass = Form.class,
+    supportedOpenmrsVersions = "1.10.*,1.11.*"
+)
+public class XformResource extends BaseResource<Form> {
     private static final String HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
     private static final String XFORMS_NAMESPACE = "http://www.w3.org/2002/xforms";
 
-    @SuppressWarnings("unused")
-    private final Log log = LogFactory.getLog(getClass());
-
-    private final FormService formService;
-    private final ProviderService providerService;
-
     public XformResource() {
-        super("xform", Representation.DEFAULT, Representation.FULL, Representation.REF);
-        this.formService = Context.getFormService();
-        this.providerService = Context.getProviderService();
+        super("XForms", Representation.DEFAULT);
+    }
+
+    @Override protected Collection<Form> listItems(RequestContext context) {
+        List<Form> results = new ArrayList<>();
+        for (Form form : formService.getAllForms()) {
+            if (DbUtils.isPublishedXform(form)) results.add(form);
+        }
+        return results;
+    }
+
+    @Override protected Form retrieveItem(String uuid) {
+        Form form = formService.getFormByUuid(uuid);
+        return DbUtils.isPublishedXform(form) ? form : null;
     }
 
     /**
      * Adds the following fields to the {@link SimpleObject}:
-     * <ul>
-     * <li>name: display name of the form
-     * <li>date_created: the date the form was created, as ms since epoch
-     * <li>version: the version number of the form (e.g. 0.2.1)
-     * <li>date_changed: the date the form was last modified, as ms since epoch;
-     * for forms that contain a provider field, this date will also be
-     * updated whenever the set of providers on the server changes
-     * </ul>
-     * <p/>
+     *   - name: display name of the form
+     *   - date_created: the date the form was created, as ms since epoch
+     *   - version: the version number of the form (e.g. 0.2.1)
+     *   - date_changed: the date the form was last modified, as ms since epoch;
+     *     for forms that contain a provider field, this date will also be
+     *     updated whenever the set of providers on the server changes
      * If the query parameter "?v=full" is present, also adds the "xml" field
      * containing the XML of the form model definition.
-     * @param context      the request context; specify "v=full" in the URL params
-     *                     to include the XML for the form model in the response
-     * @param snapshotTime ignored
      */
-    @Override protected void populateJsonProperties(
-        Form form, RequestContext context, SimpleObject json, long snapshotTime) {
+    @Override protected void populateJson(SimpleObject json, Form form, RequestContext context) {
         json.add("name", form.getName());
         json.add("id", form.getFormId());
         json.add("version", form.getVersion());
@@ -117,7 +97,7 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
             for (FormField formField : form.getFormFields()) {
                 Field field = formField.getField();
                 if (eq(field.getFieldType().getFieldTypeId(),
-                        FormConstants.FIELD_TYPE_DATABASE)
+                    FormConstants.FIELD_TYPE_DATABASE)
                     && eq(field.getTableName(), "encounter")) {
                     includesProviders = true;
                 }
@@ -133,13 +113,10 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
     }
 
     /**
-     * Converts a vanilla Xform into one that ODK Collect is happy to work with.
-     * This requires:
-     * <ul>
-     * <li>Changing the namespace of the the root element to http://www.w3.org/1999/xhtml
-     * <li>Wrapping the model element in an HTML head element, with a title child element
-     * <li>Wrapping remaining elements in an HTML body element
-     * </ul>
+     * Converts a vanilla Xform into one that ODK Collect is happy to work with, by:
+     *   - Changing the namespace of the the root element to http://www.w3.org/1999/xhtml
+     *   - Wrapping the model element in an HTML head element with a title element
+     *   - Wrapping the remaining elements in an HTML body element
      */
     static String convertToOdkCollect(String xml, String title) throws IOException, SAXException {
         // Change the namespace of the root element. I haven't figured out a way
@@ -244,43 +221,5 @@ public class XformResource extends AbstractReadOnlyResource<Form> {
                 return;
             }
         }
-    }
-
-    // VisibleForTesting
-
-    /**
-     * Retrieves a single xform with the given UUID.  See
-     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
-     * for details on the context and snapshotTime arguments.
-     * @param context      unused here
-     * @param snapshotTime unused here
-     * @see AbstractReadOnlyResource#retrieve(String, RequestContext)
-     */
-    @Override protected Form retrieveImpl(String uuid, RequestContext context, long snapshotTime) {
-        Form form = formService.getFormByUuid(uuid);
-        if (form == null || form.isRetired()) return null;
-        return form.getPublished() ? form : null;
-    }
-
-    /**
-     * Returns all xforms (there is no support for query parameters).  See
-     * {@link #populateJsonProperties(Form, RequestContext, SimpleObject, long)}
-     * for details on the context and snapshotTime arguments.
-     * @param context      unused here
-     * @param snapshotTime unused here
-     *                     Note: because of a bug in parsing form definitions, "v=full" is currently
-     *                     broken for this function
-     * @see AbstractReadOnlyResource#search(RequestContext)
-     */
-    @Override protected Iterable<Form> searchImpl(RequestContext context, long snapshotTime) {
-        // TODO/bug: Fix verbose mode. Currently produces the error:
-        // "No bind node for bindName _3._bleeding_sites".
-        // No query parameters supported - just give all the forms
-        List<Form> forms = new ArrayList<>();
-        for (Form form : formService.getAllForms()) {
-            if (form == null || form.isRetired()) continue;
-            if (form.getPublished()) forms.add(form);
-        }
-        return forms;
     }
 }

@@ -27,7 +27,7 @@ specific language governing permissions and limitations under the License.
                            openmrs_table="encounter">1
     </encounter.location_id>
     <encounter.provider_id openmrs_attribute="provider_id"
-                           openmrs_table="encounter" provider_id_type="PROVIDER.ID">1
+                           openmrs_table="encounter" provider_id_type="PROVIDER.ID">22
     </encounter.provider_id>
   </encounter>
   <obs openmrs_concept="1238^MEDICAL RECORD OBSERVATIONS^99DCT"

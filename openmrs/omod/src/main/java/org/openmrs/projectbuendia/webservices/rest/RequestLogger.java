@@ -47,7 +47,7 @@ public class RequestLogger {
     }
 
     /** Emits a "start" line for an incoming request. */
-    protected void request(RequestContext context, String key, String message) {
+    private void request(RequestContext context, String key, String message) {
         try {
             HttpServletRequest request = context.getRequest();
             String filename = request.getRemoteAddr();
@@ -75,8 +75,9 @@ public class RequestLogger {
     }
 
     /** Emits an "end" line for a successful reply. */
-    public void reply(RequestContext context, Object instance, String method, Object result) {
+    public <T> T reply(RequestContext context, Object instance, String method, T result) {
         reply(context, formatKey(instance, method), result != null ? "" + result : "");
+        return result;
     }
 
     /** Emits an "end" line for a successful reply. */

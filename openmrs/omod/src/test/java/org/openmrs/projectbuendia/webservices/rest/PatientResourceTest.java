@@ -30,7 +30,7 @@ import static org.junit.Assert.assertFalse;
 /** REST API tests for PatientResource. */
 @SkipBaseSetup
 public class PatientResourceTest extends BaseApiRequestTest {
-    // These constants should match the values in the BASE_TEST_DATA file.
+    // These constants should match the values in the data files.
     String PETER_PAN_UUID = "f6f74ed9-5681-482a-9aa5-c3192579fa59";
     String XANADU_UUID = "9356400c-a5a2-4532-8f2b-2361b3446eb8";
 
@@ -46,7 +46,7 @@ public class PatientResourceTest extends BaseApiRequestTest {
     }
 
     public long getAllCount() {
-        return 0; // even though there are two patients, there are no sync timestamps
+        return 2;  // number of patients in the test data file
     }
 
     public String getUuid() {
@@ -92,7 +92,7 @@ public class PatientResourceTest extends BaseApiRequestTest {
     @Test public void testMovePatient() throws Exception {
         // Post an edit that sets the location of a patient.
         SimpleObject input = new SimpleObject();
-        input.add("assigned_location", XANADU_UUID);
+        input.add("assigned_location", new SimpleObject().add("uuid", XANADU_UUID));
 
         MockHttpServletRequest request = newPostRequest(getURI() + "/" + PETER_PAN_UUID, input);
         SimpleObject response = deserialize(handle(request));

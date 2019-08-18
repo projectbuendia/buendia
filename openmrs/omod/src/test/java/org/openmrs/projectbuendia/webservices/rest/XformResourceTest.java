@@ -13,8 +13,8 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.junit.Test;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.getStringResource;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.assertXmlEqual;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.getStringResource;
 
 public class XformResourceTest {
     @Test public void convertToOdkCollect() throws Exception {

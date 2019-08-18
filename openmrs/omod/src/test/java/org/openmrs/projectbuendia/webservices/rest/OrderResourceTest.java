@@ -16,7 +16,6 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.junit.Test;
 import org.openmrs.Order;
 import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceControllerTest;
 import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
 
@@ -34,6 +33,7 @@ import static org.junit.Assert.assertTrue;
     private static final long ONE_DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
     private static final long ONE_WEEK_IN_MILLIS = ONE_DAY_IN_MILLIS * 7;
 
+    private static final String SAMPLE_PROVIDER_UUID = "c2299800-cca9-11e0-9572-0800200c9a66";
     private static final String SAMPLE_PATIENT_UUID = "5946f880-b197-400b-9caa-a3c661d23041";
     private static final String SAMPLE_INSTRUCTIONS = "Paracetamol 1000mg 4x daily";
     private static final long SAMPLE_START_DATE = 1420602264000L;
@@ -61,17 +61,18 @@ import static org.junit.Assert.assertTrue;
 
     @Test public void testOrderCreationWithAllDataPopulated() throws Exception {
         SimpleObject input = newOrderJson(
-            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
+            SAMPLE_PATIENT_UUID, SAMPLE_PROVIDER_UUID, SAMPLE_INSTRUCTIONS,
+            SAMPLE_START_DATE, SAMPLE_END_DATE);
         SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
 
         // Check that fields are correctly set in response
-        assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
-        assertEquals(SAMPLE_INSTRUCTIONS, response.get(OrderResource.INSTRUCTIONS));
-        assertEquals(SAMPLE_START_DATE, response.get(OrderResource.START_MILLIS));
-        assertEquals(SAMPLE_END_DATE, response.get(OrderResource.STOP_MILLIS));
+        assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
+        assertEquals(SAMPLE_INSTRUCTIONS, response.get("instructions"));
+        assertEquals(SAMPLE_START_DATE, response.get("start_millis"));
+        assertEquals(SAMPLE_END_DATE, response.get("stop_millis"));
 
         // Check that these fields match the object stored.
-        String uuid = (String) response.get(OrderResource.UUID);
+        String uuid = (String) response.get("uuid");
         Order stored = orderService.getOrderByUuid(uuid);
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
@@ -81,31 +82,40 @@ import static org.junit.Assert.assertTrue;
 
     @Test public void testOrderCreationWithoutPatientThrowsException() throws Exception {
         SimpleObject input = newOrderJson(
-            null, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
+            null, SAMPLE_PROVIDER_UUID, SAMPLE_INSTRUCTIONS,
+            SAMPLE_START_DATE, SAMPLE_END_DATE);
         assertExceptionOnRequest(newPostRequest(getURI(), input), "missing patient");
     }
 
-    @Test public void testOrderCreationWithoutStartDateReturnsThrowsException() throws Exception {
+    @Test public void testOrderCreationWithoutProviderThrowsException() throws Exception {
         SimpleObject input = newOrderJson(
-            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, null, SAMPLE_END_DATE);
+            SAMPLE_PATIENT_UUID, null, SAMPLE_INSTRUCTIONS,
+            SAMPLE_START_DATE, SAMPLE_END_DATE);
+        assertExceptionOnRequest(newPostRequest(getURI(), input), "missing provider");
+    }
+
+
+    @Test public void testOrderCreationWithoutStartDateThrowsException() throws Exception {
+        SimpleObject input = newOrderJson(
+            SAMPLE_PATIENT_UUID, SAMPLE_PROVIDER_UUID, SAMPLE_INSTRUCTIONS,
+            null, SAMPLE_END_DATE);
         assertExceptionOnRequest(newPostRequest(getURI(), input), "missing start date");
     }
 
     @Test
     public void testOrderCreationWithoutEndDateIsAccepted() throws Exception {
         SimpleObject input = newOrderJson(
-            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, null);
+            SAMPLE_PATIENT_UUID, SAMPLE_PROVIDER_UUID, SAMPLE_INSTRUCTIONS,
+            SAMPLE_START_DATE, null);
         SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
 
-        String uuid = (String) response.get(OrderResource.UUID);
+        String uuid = (String) response.get("uuid");
 
         // Check that fields are correctly set in response
-        assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
-        assertEquals(SAMPLE_INSTRUCTIONS, response.get(OrderResource.INSTRUCTIONS));
-        assertEquals(SAMPLE_START_DATE, response.get(OrderResource.START_MILLIS));
-        assertTrue("Response contains stop_millis, even if it's not set",
-                response.containsKey(OrderResource.STOP_MILLIS));
-        assertNull(response.get(OrderResource.STOP_MILLIS));
+        assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
+        assertEquals(SAMPLE_INSTRUCTIONS, response.get("instructions"));
+        assertEquals(SAMPLE_START_DATE, response.get("start_millis"));
+        assertNull(response.get("stop_millis"));
 
         // Check that these fields match the object stored.
         Order stored = orderService.getOrderByUuid(uuid);
@@ -115,27 +125,39 @@ import static org.junit.Assert.assertTrue;
         assertNull(stored.getAutoExpireDate());
     }
 
+    @Test public void testOrderUpdateWithoutProviderThrowsException() throws Exception {
+        Order baseOrder = createOrderStartingNow();
+
+        long startTime = baseOrder.getScheduledDate().getTime();
+        long newEndTime = System.currentTimeMillis() + 2 * ONE_WEEK_IN_MILLIS;
+
+        SimpleObject newDetails = newOrderJson(
+            null, null, null, null, newEndTime);
+        assertExceptionOnRequest(newPostRequest(getURI() + "/" + baseOrder.getUuid(), newDetails), "missing provider");
+    }
+
     @Test public void testUpdateForOrderOlderThan24HrsIsARevision() throws Exception {
         String newInstructions = "Some instructions?";
         Order baseOrder = createExpiredOrderOlderThan24Hrs();
-        SimpleObject newDetails = newOrderJson(null, newInstructions, null, null);
+        SimpleObject newDetails = newOrderJson(
+            null, SAMPLE_PROVIDER_UUID, newInstructions, null, null);
         MockHttpServletRequest request =
             newPostRequest(getURI() + "/" + baseOrder.getUuid(), newDetails);
         SimpleObject response = deserialize(handle(request));
 
-        String uuid = (String) response.get(OrderResource.UUID);
+        String uuid = (String) response.get("uuid");
 
         // Check that it's returning the same UUID
         assertEquals(baseOrder.getUuid(), uuid);
 
         // Check that fields are correctly set in response
-        assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
-        assertEquals(newInstructions, response.get(OrderResource.INSTRUCTIONS));
-        assertEquals(SAMPLE_START_DATE, response.get(OrderResource.START_MILLIS));
-        assertEquals(SAMPLE_END_DATE, response.get(OrderResource.STOP_MILLIS));
+        assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
+        assertEquals(newInstructions, response.get("instructions"));
+        assertEquals(SAMPLE_START_DATE, response.get("start_millis"));
+        assertEquals(SAMPLE_END_DATE, response.get("stop_millis"));
 
         // Check that the underlying order is a different one and has the correct values.
-        Order stored = OrderResource.getLatestVersion(orderService.getOrderByUuid(uuid));
+        Order stored = OrderResource.getLastRevision(orderService.getOrderByUuid(uuid));
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(newInstructions, stored.getInstructions());
         assertEquals(SAMPLE_START_DATE, stored.getScheduledDate().getTime());
@@ -148,28 +170,46 @@ import static org.junit.Assert.assertTrue;
         long startTime = baseOrder.getScheduledDate().getTime();
         long newEndTime = System.currentTimeMillis() + 2 * ONE_WEEK_IN_MILLIS;
 
-        SimpleObject newDetails = newOrderJson(null, null, null, newEndTime);
+        SimpleObject newDetails = newOrderJson(
+            null, SAMPLE_PROVIDER_UUID, null, null, newEndTime);
         MockHttpServletRequest request =
             newPostRequest(getURI() + "/" + baseOrder.getUuid(), newDetails);
-
         SimpleObject response = deserialize(handle(request));
 
         // The client should get the same UUID, but in storage, it should be a different order.
-        String uuid = (String) response.get(OrderResource.UUID);
+        String uuid = (String) response.get("uuid");
         assertEquals(baseOrder.getUuid(), uuid);
 
         // Check that fields are correctly set in response
-        assertEquals(SAMPLE_PATIENT_UUID, response.get(OrderResource.PATIENT_UUID));
-        assertEquals(SAMPLE_INSTRUCTIONS, response.get(OrderResource.INSTRUCTIONS));
-        assertEquals(startTime, response.get(OrderResource.START_MILLIS));
-        assertEquals(newEndTime, response.get(OrderResource.STOP_MILLIS));
+        assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
+        assertEquals(SAMPLE_INSTRUCTIONS, response.get("instructions"));
+        assertEquals(startTime, response.get("start_millis"));
+        assertEquals(newEndTime, response.get("stop_millis"));
 
         // Check that these fields match the object stored.
-        Order stored = orderService.getRevisionOrder(orderService.getOrderByUuid(uuid));
+        Order stored = OrderResource.getLastRevision(baseOrder);
         assertEquals(SAMPLE_PATIENT_UUID, stored.getPatient().getUuid());
         assertEquals(SAMPLE_INSTRUCTIONS, stored.getInstructions());
         assertEquals(startTime, stored.getScheduledDate().getTime());
         assertEquals(newEndTime, stored.getAutoExpireDate().getTime());
+
+        // Verify that updating the updated order also works correctly.
+        newEndTime += ONE_WEEK_IN_MILLIS;
+        newDetails = newOrderJson(
+            null, SAMPLE_PROVIDER_UUID, null, null, newEndTime);
+        request = newPostRequest(getURI() + "/" + baseOrder.getUuid(), newDetails);
+        response = deserialize(handle(request));
+        uuid = (String) response.get("uuid");
+        assertEquals(baseOrder.getUuid(), uuid);
+        assertEquals(newEndTime, response.get("stop_millis"));
+
+        stored = OrderResource.getLastRevision(baseOrder);
+        assertEquals(newEndTime, stored.getAutoExpireDate().getTime());
+
+        // Verify that retrieving the order gets the last revision.
+        SimpleObject retrieved = deserialize(handle(newGetRequest(getURI() + "/" + uuid)));
+        assertEquals(uuid, retrieved.get("uuid"));
+        assertEquals(newEndTime, retrieved.get("stop_millis"));
     }
 
     @Test public void testDeleteForNewNonExecutedOrderVoids() throws Exception {
@@ -192,14 +232,15 @@ import static org.junit.Assert.assertTrue;
         String baseUuid = baseOrder.getUuid();
 
         // Make the update.
-        SimpleObject newDetails = newOrderJson(null, "New instructions!", null, null);
+        SimpleObject newDetails = newOrderJson(
+            null, SAMPLE_PROVIDER_UUID, "New instructions!", null, null);
         handle(newPostRequest(getURI() + "/" + baseUuid, newDetails));
         handle(newDeleteRequest(getURI() + "/" + baseUuid));
 
         // Reload the base order from storage
         baseOrder = orderService.getOrderByUuid(baseUuid);
         assertTrue("Base order is voided", baseOrder.isVoided());
-        Order revisionOrder = OrderResource.getLatestVersion(baseOrder);
+        Order revisionOrder = OrderResource.getLastRevision(baseOrder);
         assertNotNull("Expected a non-null revision order", revisionOrder);
         assertTrue("Revision order is voided", revisionOrder.isVoided());
     }
@@ -207,18 +248,20 @@ import static org.junit.Assert.assertTrue;
 
     private Order createExpiredOrderOlderThan24Hrs() throws Exception {
         SimpleObject input = newOrderJson(
-            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, SAMPLE_START_DATE, SAMPLE_END_DATE);
+            SAMPLE_PATIENT_UUID, SAMPLE_PROVIDER_UUID, SAMPLE_INSTRUCTIONS,
+            SAMPLE_START_DATE, SAMPLE_END_DATE);
         SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
-        String uuid = (String) response.get(OrderResource.UUID);
+        String uuid = (String) response.get("uuid");
         return orderService.getOrderByUuid(uuid);
     }
 
     private Order createOrderStartingNow() throws Exception {
         long now = System.currentTimeMillis();
         SimpleObject input = newOrderJson(
-            SAMPLE_PATIENT_UUID, SAMPLE_INSTRUCTIONS, now, now + ONE_WEEK_IN_MILLIS);
+            SAMPLE_PATIENT_UUID,SAMPLE_PROVIDER_UUID, SAMPLE_INSTRUCTIONS,
+            now, now + ONE_WEEK_IN_MILLIS);
         SimpleObject response = deserialize(handle(newPostRequest(getURI(), input)));
-        String uuid = (String) response.get(OrderResource.UUID);
+        String uuid = (String) response.get("uuid");
         return orderService.getOrderByUuid(uuid);
     }
 
@@ -240,20 +283,23 @@ import static org.junit.Assert.assertTrue;
     // - Delete, order has expired
 
     private static SimpleObject newOrderJson(
-        @Nullable String patientUuid, @Nullable String instructions,
-        @Nullable Long startMillis, @Nullable Long stopMillis) {
+        @Nullable String patientUuid, @Nullable String providerUuid,
+        @Nullable String instructions, @Nullable Long startMillis, @Nullable Long stopMillis) {
         SimpleObject order = new SimpleObject();
         if (patientUuid != null) {
-            order.add(OrderResource.PATIENT_UUID, patientUuid);
+            order.add("patient_uuid", patientUuid);
+        }
+        if (providerUuid != null) {
+            order.add("orderer_uuid", providerUuid);
         }
         if (instructions != null) {
-            order.add(OrderResource.INSTRUCTIONS, instructions);
+            order.add("instructions", instructions);
         }
         if (startMillis != null) {
-            order.add(OrderResource.START_MILLIS, startMillis);
+            order.add("start_millis", startMillis);
         }
         if (stopMillis != null) {
-            order.add(OrderResource.STOP_MILLIS, stopMillis);
+            order.add("stop_millis", stopMillis);
         }
         return order;
     }
