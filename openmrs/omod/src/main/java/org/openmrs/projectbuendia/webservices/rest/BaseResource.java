@@ -219,12 +219,14 @@ public abstract class BaseResource<T extends OpenmrsObject>
             "Deleting %s is not implemented", collectionName));
     }
 
-    /** Converts a single item to JSON. */
+    /** Converts a single item to JSON (or returns an empty JSON object for null). */
     protected SimpleObject toJson(T item, RequestContext context) {
         SimpleObject json = new SimpleObject();
-        json.put("uuid", item.getUuid());
-        if (DbUtils.isVoidedOrRetired(item)) return json.add("voided", true);
-        populateJson(json, item, context);
+        if (item != null) {
+            json.put("uuid", item.getUuid());
+            if (DbUtils.isVoidedOrRetired(item)) return json.add("voided", true);
+            populateJson(json, item, context);
+        }
         return json;
     }
 

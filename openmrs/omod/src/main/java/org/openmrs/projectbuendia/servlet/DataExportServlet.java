@@ -53,6 +53,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.openmrs.projectbuendia.webservices.rest.ChartResource.compressUuid;
+
 /** A servlet that generates a CSV dump of all the patient data. */
 public class DataExportServlet extends HttpServlet {
     protected static Log log = LogFactory.getLog(DataExportServlet.class);
@@ -77,7 +79,7 @@ public class DataExportServlet extends HttpServlet {
             return c1.getUuid().compareTo(c2.getUuid());
         }
     };
-    private static final String[] FIXED_HEADERS = new String[] {
+    private static final String[] ENCOUNTER_COLUMNS = new String[] {
         "Patient UUID",
         "MSF patient ID",
         "Approximate date of birth",
@@ -86,7 +88,7 @@ public class DataExportServlet extends HttpServlet {
         "Time in ISO8601 UTC",
         "Time in yyyy-MM-dd HH:mm:ss UTC",
     };
-    private static final int COLUMNS_PER_OBS = 3;
+    private static final int COLUMNS_PER_OBS = 2;
     private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
     @Override
@@ -138,9 +140,13 @@ public class DataExportServlet extends HttpServlet {
             ArrayList<Encounter> encounters = new ArrayList<>(encounterService
                 .getEncountersByPatient(patient));
             Collections.sort(encounters, ENCOUNTER_COMPARATOR);
+            int numEncCols = ENCOUNTER_COLUMNS.length;
+            int numObsCols = indexer.size() * COLUMNS_PER_OBS;
+            int numCols = numEncCols + numObsCols;
             for (Encounter encounter : encounters) {
                 try {
-                    final Object[] values = new Object[FIXED_HEADERS.length + indexer.size()*COLUMNS_PER_OBS];
+                    final Object[] values = new Object[numCols];
+                    Arrays.fill(values, "");
                     values[0] = patient.getUuid();
                     values[1] = patient.getPatientIdentifier("MSF");
                     if (patient.getBirthdate() != null) {
@@ -150,90 +156,46 @@ public class DataExportServlet extends HttpServlet {
                     values[4] = encounter.getEncounterDatetime().getTime();
                     values[5] = Utils.formatUtc8601(encounter.getEncounterDatetime());
                     values[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
-                    Arrays.fill(values, FIXED_HEADERS.length, FIXED_HEADERS.length + indexer.size()
-                        *COLUMNS_PER_OBS, "");
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
                         if (index == null) continue;
-                        // For each observation there are three columns: if the value of the
-                        // observation is a concept, then the three columns contain the English
-                        // name, the OpenMRS ID, and the UUID of the concept; otherwise all
-                        // three columns contain the formatted value.
-                        final int valueColumn = FIXED_HEADERS.length + index*COLUMNS_PER_OBS;
+                        // For each observation there are two columns.  If the value is a concept,
+                        // they contain the English name and the compressed concept ID; otherwise,
+                        // both columns contain the formatted value.
+                        final int col = numEncCols + index * COLUMNS_PER_OBS;
                         VisitObsValue.visit(obs, new VisitObsValue.ObsValueVisitor<Void>() {
                             @Override public Void visitCoded(Concept value) {
-                                if (value == null || value.getUuid() == null || value.getUuid()
-                                    .isEmpty()) {
-                                    values[valueColumn] = "";
-                                    values[valueColumn + 1] = "";
-                                    values[valueColumn + 2] = "";
+                                if (value == null || value.getUuid() == null || value.getUuid().isEmpty()) {
+                                    values[col] = values[col + 1] = "";
                                 } else {
-                                    values[valueColumn] = NAMER.getClientName(value);
-                                    values[valueColumn + 1] = value.getId();
-                                    values[valueColumn + 2] = value.getUuid();
+                                    values[col] = NAMER.getClientName(value);
+                                    values[col + 1] = compressUuid(value.getUuid());
                                 }
                                 return null;
                             }
 
                             @Override public Void visitNumeric(Double value) {
-                                String s;
-                                if (value == null) {
-                                    s = "";
-                                } else {
-                                    s = Double.toString(value);
-                                }
-                                values[valueColumn] = s;
-                                values[valueColumn + 1] = s;
-                                values[valueColumn + 2] = s;
+                                values[col] = values[col + 1] = value != null ? Double.toString(value) : "";
                                 return null;
                             }
 
                             @Override public Void visitBoolean(Boolean value) {
-                                String s;
-                                if (value == null) {
-                                    s = "";
-                                } else {
-                                    s = Boolean.toString(value);
-                                }
-                                values[valueColumn] = s;
-                                values[valueColumn + 1] = s;
-                                values[valueColumn + 2] = s;
+                                values[col] = values[col + 1] = value != null ? Boolean.toString(value) : "";
                                 return null;
                             }
 
                             @Override public Void visitText(String value) {
-                                if (value == null) {
-                                    value = "";
-                                }
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
+                                values[col] = values[col + 1] = value != null ? value : "";
                                 return null;
                             }
 
                             @Override public Void visitDate(Date d) {
-                                String value;
-                                if (d == null) {
-                                    value = "";
-                                } else {
-                                    value = Utils.YYYYMMDD_UTC_FORMAT.format(d);
-                                }
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
+                                values[col] = values[col + 1] = d != null ? Utils.YYYYMMDD_UTC_FORMAT.format(d) : "";
                                 return null;
                             }
 
                             @Override public Void visitDatetime(Date d) {
-                                String value;
-                                if (d == null) {
-                                    value = "";
-                                } else {
-                                    value = Utils.SPREADSHEET_FORMAT.format(d);
-                                }
-                                values[valueColumn] = value;
-                                values[valueColumn + 1] = value;
-                                values[valueColumn + 2] = value;
+                                values[col] = values[col + 1] = d != null ? Utils.SPREADSHEET_FORMAT.format(d) : "";
                                 return null;
                             }
                         });
@@ -248,17 +210,16 @@ public class DataExportServlet extends HttpServlet {
 
     private void writeHeaders(CSVPrinter printer, FixedSortedConceptIndexer indexer) throws
         IOException {
-        for (String fixedHeader : FIXED_HEADERS) {
+        for (String fixedHeader : ENCOUNTER_COLUMNS) {
             printer.print(fixedHeader);
         }
         for (int i = 0; i < indexer.size(); i++) {
             // For each observation there are three columns: one for the English
             // name, one for the OpenMRS ID, and one for the UUID of the concept.
-            assert COLUMNS_PER_OBS == 3;
+            assert COLUMNS_PER_OBS == 2;
             Concept concept = indexer.getConcept(i);
             printer.print(NAMER.getClientName(concept));
-            printer.print(concept.getId());
-            printer.print(concept.getUuid());
+            printer.print(compressUuid(concept.getUuid()));
         }
         printer.println();
     }

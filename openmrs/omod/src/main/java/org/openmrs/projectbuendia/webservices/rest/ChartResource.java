@@ -135,7 +135,7 @@ public class ChartResource extends BaseResource<Form> {
      * Saves a bit of JSON space by using integers to represent UUIDs that are exactly 36
      * consist of an integer followed by a string of "A"s.  All other UUIDs are left as strings.
      */
-    private static Object compressUuid(String uuid) {
+    public static Object compressUuid(String uuid) {
         Matcher matcher = COMPRESSIBLE_UUID.matcher(uuid);
         if (uuid.length() == 36 && matcher.matches()) {
             return Integer.valueOf(matcher.group(1));
