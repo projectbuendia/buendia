@@ -179,9 +179,9 @@ public class PatientResource extends BaseResource<Patient> {
             setLocation(patient, (String) location.get("uuid"));
         }
         String id = Utils.getOptionalString(data, "id");
-        if (id != null) {
+        PatientIdentifier ident = patient.getPatientIdentifier();
+        if (id != null && !eq(id, toClientIdent(ident))) {
             requireValidUniqueMsfIdentifier(id);
-            PatientIdentifier ident = patient.getPatientIdentifier();
             if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeMsf())) {
                 ident.setIdentifier(id);
             } else {
