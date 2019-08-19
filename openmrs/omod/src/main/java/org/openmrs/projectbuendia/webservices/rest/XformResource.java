@@ -5,6 +5,7 @@ import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Provider;
+import org.openmrs.api.FormService;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -46,6 +47,10 @@ public class XformResource extends BaseResource<Form> {
     }
 
     @Override protected Collection<Form> listItems(RequestContext context) {
+        return getXformForms(formService);
+    }
+
+    public static Collection<Form> getXformForms(FormService formService) {
         List<Form> results = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
             if (DbUtils.isPublishedXform(form)) results.add(form);

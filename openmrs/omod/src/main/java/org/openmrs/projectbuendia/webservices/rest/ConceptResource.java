@@ -56,10 +56,14 @@ public class ConceptResource extends BaseResource<Concept> {
 
     @Override protected Collection<Concept> listItems(RequestContext context) {
         // Retrieves all the concepts that the client needs to know about
-        // (the concepts within all the charts served by ChartResource).
+        // (the concepts within all the forms served by XFormResource and
+        // all the charts served by ChartResource).
         Set<Concept> concepts = new HashSet<>();
-        for (Form chart : ChartResource.getChartForms(formService)) {
-            for (FormField formField : chart.getFormFields()) {
+        List<Form> forms = new ArrayList<>();
+        forms.addAll(ChartResource.getChartForms(formService));
+        forms.addAll(XformResource.getXformForms(formService));
+        for (Form form : forms) {
+            for (FormField formField : form.getFormFields()) {
                 Field field = formField.getField();
                 Concept concept = field.getConcept();
                 if (concept != null && !concept.isRetired()) {

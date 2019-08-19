@@ -44,7 +44,7 @@ public class ChartResource extends BaseResource<Form> {
         return getChartForms(formService);
     }
 
-    public static List<Form> getChartForms(FormService formService) {
+    public static Collection<Form> getChartForms(FormService formService) {
         List<Form> charts = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
             if (DbUtils.isChartForm(form)) {
