@@ -11,8 +11,9 @@
     cd buendia/tools/vagrant
     vagrant up
 
-This will set up and provision your virtual machine, which will download and
-set up 1-2 GB of software. Be patient; it takes a few minutes the first time.
+This will set up and provision your `build` virtual machine, which will
+download and set up 1-2 GB of software. Be patient; it takes a few minutes the
+first time.
 
 ## Log into your VM
 
@@ -49,7 +50,13 @@ Finally you can get rid of it permanently with:
 
     vagrant destroy
 
-## [ADVANCED] Set up an Alpine Linux dev environment
+# Using Vagrant for testing
 
-    vagrant up alpine
-    vagrant ssh alpine
+The Makefile in this directory is intended to automate provisioning and
+updating a `testing` VM, and maintaining an `initial` snapshot that represents
+a fresh Buendia system running the latest packages from the unstable channel
+(i.e. built from the `dev` branch in CircleCI).
+
+Simply run `make` to build the VM and snapshot. Once built, you can run `make`
+again at any time to update the packages in the snapshot.
+

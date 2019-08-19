@@ -16,3 +16,7 @@ apt-get update
 # Install OpenJDK 7 *before* installing Maven; else Maven will pull in OpenJDK 8
 apt-get install -y openjdk-7-jdk
 apt-get install -y maven mysql-server python-mysqldb zip unzip git curl
+
+# Set hostname
+sed -i -e "s/$(hostname)/buendia-build/g" /etc/hosts /etc/hostname
+hostname -F /etc/hostname
