@@ -14,71 +14,86 @@
 
 
 -- HL7 forms are used for xform submission
-DELETE FROM hl7_in_archive WHERE 1;
-DELETE FROM hl7_in_error WHERE 1;
-DELETE FROM hl7_in_queue WHERE 1;
+DELETE FROM hl7_in_archive;
+DELETE FROM hl7_in_error;
+DELETE FROM hl7_in_queue;
 
 -- Remove all encounters/observations
-DELETE FROM active_list WHERE 1; -- references obs
-DELETE FROM concept_proposal_tag_map WHERE 1; -- references concept_proposal
-DELETE FROM concept_proposal WHERE 1; -- references obs, encounter
-DELETE FROM note WHERE 1; -- references obs, encounter
-DELETE FROM obs WHERE 1; -- references order, encounter
+DELETE FROM active_list_allergy; -- refers to concept
+DELETE FROM active_list_problem;
+DELETE FROM active_list; -- refers to person, obs, and users
+DELETE FROM concept_proposal_tag_map; -- refers to concept_proposal
+DELETE FROM concept_proposal; -- refers to obs and encounter
+DELETE FROM note; -- refers to obs, encounter, and patient
+DELETE FROM obs; -- refers to order and encounter
 
 -- Remove all orders
-DELETE FROM drug_order WHERE 1; -- references orders
-DELETE FROM order_type WHERE parent IS NOT NULL; -- references orders
-DELETE FROM test_order WHERE 1; -- references orders
-DELETE FROM orders WHERE 1; -- references encounter
+DELETE FROM drug_order; -- refers to orders and concepts
+DELETE FROM order_type WHERE parent IS NOT NULL; -- refers to orders
+DELETE FROM test_order; -- refers to orders
+DELETE FROM orders; -- refers to encounter and patient
 
 -- Remove all encounters
-DELETE FROM encounter_provider WHERE 1; -- references encounter
-DELETE FROM encounter WHERE 1;
-
--- At the moment we aren't using location tags; clear them out.
-DELETE FROM location_tag_map WHERE 1;
-DELETE FROM location_tag WHERE 1;
+DELETE FROM encounter_provider; -- refers to encounter
+DELETE FROM encounter; -- refers to patient
+DELETE FROM visit; -- refers to patient, location, concept
 
 -- Start with no providers at all
-DELETE FROM provider_attribute WHERE 1; -- references provider
-DELETE FROM provider WHERE 1;
+DELETE FROM provider_attribute; -- refers to provider
+DELETE FROM provider; -- refers to person
 
--- No patients in any cohorts
-DELETE FROM cohort_member WHERE 1;
+-- Delete cohorts
+DELETE FROM cohort_member; -- refers to patient
 
--- No visits
-DELETE FROM visit_attribute WHERE 1; -- references visit
-DELETE FROM visit WHERE 1;
+-- Delete visits
+DELETE FROM visit_attribute; -- refers to visit
+DELETE FROM visit; -- refers to location
 
--- Create a temporary table to keep a list of forms which are not being deleted.
-CREATE TEMPORARY TABLE keep_forms SELECT * FROM form WHERE uuid IN (
-    "c47d4d3d-f9a3-4f97-9623-d7acee81d401", -- new patient
-    "736b90ee-fda6-4438-a6ed-71acd36381f3", -- new observation
-    "ea43f213-66fb-4af6-8a49-70fd6b9ce5d4", -- chart observations
-    "975afbce-d4e3-4060-a25f-afcd0e5564ef", -- chart constants
-    "34d727a6-e515-4f27-ae91-703ba2c164ae"  -- test results
-);
-
--- Remove all other forms, first clearing out foreign keys that refer to them
-UPDATE form_field SET parent_form_field = NULL WHERE
-    form_id NOT IN (SELECT form_id FROM keep_forms);
-DELETE FROM xforms_xform WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
-DELETE FROM form_resource WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
-DELETE FROM form_field WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
-DELETE FROM form WHERE form_id NOT IN (SELECT form_id FROM keep_forms);
+-- Delete forms, first clearing out foreign keys that refer to them.
+DELETE FROM xforms_xform;
+DELETE FROM form_resource;
+UPDATE form_field SET parent_form_field = NULL;
+DELETE FROM form_field; -- refers to field, form, and form_field
+DELETE FROM form;
+DELETE FROM field_answer; -- refers to field and concept
+DELETE FROM field;
 
 -- Delete patients.
-DELETE FROM patient_identifier WHERE 1; -- refers to patient
-DELETE FROM patient_state WHERE 1; -- refers to patient_program
-DELETE FROM patient_program WHERE 1; -- refers to patient
-DELETE FROM patient WHERE 1;
+DELETE FROM patient_identifier; -- refers to patient
+DELETE FROM patient_state; -- refers to patient_program
+DELETE FROM patient_program; -- refers to patient
+DELETE FROM patient;
 
--- Keep the MSF type and the OpenMRS identifier type; delete all others.
-DELETE FROM patient_identifier_type WHERE
-    name != 'OpenMRS Identification Number' AND name != 'MSF';
+-- Delete programs
+DELETE FROM program_workflow_state; -- referes to program_workflow
+DELETE FROM program_workflow; -- referes to program
+DELETE FROM program;
+
+-- Remove the locations, first clearing out foreign keys that refer to them.
+UPDATE location SET parent_location = NULL;
+DELETE FROM location_attribute; -- refers to location, location_attribute_type
+DELETE FROM location_attribute_type;
+DELETE FROM location_tag_map; -- refers to location and location_tag
+DELETE FROM location_tag;
+DELETE FROM location;
+
+-- Delete metadata sharing information.
+DELETE FROM metadatasharing_exported_package;
+DELETE FROM metadatasharing_imported_package;
+DELETE FROM metadatasharing_imported_item;
+
+-- Delete notification alerts.
+DELETE FROM notification_alert_recipient; -- refers to notification_alert
+DELETE FROM notification_alert;
+
+-- Delete serialized objects.
+DELETE FROM serialized_object;
+
+-- Keep the OpenMRS identifier type; delete all others.
+DELETE FROM patient_identifier_type WHERE name NOT LIKE 'OpenMRS%';
 
 -- Create a temporary table to hold the users that are not to be deleted.
--- For information about the daemon user see https://wiki.openmrs.org/display/docs/Daemon+User
+-- For information about the daemon user, see https://wiki.openmrs.org/display/docs/Daemon+User
 CREATE TEMPORARY TABLE keep_users SELECT * FROM users WHERE system_id IN
     ("admin", "daemon");
 
@@ -108,8 +123,8 @@ UPDATE users SET user_id = @buendia_admin_id,
                  retired_by = NULL,
                  date_retired = NULL,
                  retire_reason = NULL,
-                 uuid = "09f979d7-b091-11e4-bc78-040ccecfdba4" WHERE
-    user_id = @buendia_admin_id;
+                 uuid = "buendia_user_buendia_admin"
+WHERE user_id = @buendia_admin_id;
 
 -- Add "buendia_admin" to the list of users to keep.
 INSERT INTO keep_users (SELECT * FROM users WHERE user_id = @buendia_admin_id);
@@ -123,11 +138,6 @@ DELETE FROM user_role WHERE
     user_id IS NOT NULL AND user_id != @admin_id;
 
 -- Replace all foreign keys that refer to users that will be deleted.
-UPDATE active_list SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE active_list SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
 UPDATE active_list_type SET creator = @buendia_admin_id WHERE
     creator IS NOT NULL AND creator != @admin_id;
 UPDATE active_list_type SET retired_by = @buendia_admin_id WHERE
@@ -228,20 +238,6 @@ UPDATE drug_reference_map SET changed_by = @buendia_admin_id WHERE
 UPDATE drug_reference_map SET retired_by = @buendia_admin_id WHERE
     retired_by IS NOT NULL AND retired_by != @admin_id;
 
-UPDATE encounter SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE encounter SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE encounter SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
-UPDATE encounter_provider SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE encounter_provider SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE encounter_provider SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
 UPDATE encounter_role SET changed_by = @buendia_admin_id WHERE
     changed_by IS NOT NULL AND changed_by != @admin_id;
 UPDATE encounter_role SET creator = @buendia_admin_id WHERE
@@ -254,76 +250,11 @@ UPDATE encounter_type SET creator = @buendia_admin_id WHERE
 UPDATE encounter_type SET retired_by = @buendia_admin_id WHERE
     retired_by IS NOT NULL AND retired_by != @admin_id;
 
-UPDATE field SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE field SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE field SET retired_by = @buendia_admin_id WHERE
-    retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE field_answer SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-
 UPDATE field_type SET creator = @buendia_admin_id WHERE
     creator IS NOT NULL AND creator != @admin_id;
 
-UPDATE form SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE form SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE form SET retired_by = @buendia_admin_id WHERE
-    retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE form_field SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE form_field SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-
 UPDATE hl7_source SET creator = @buendia_admin_id WHERE
     creator IS NOT NULL AND creator != @admin_id;
-
-UPDATE location SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE location SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE location SET retired_by = @buendia_admin_id WHERE
-    retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE location_attribute SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE location_attribute SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE location_attribute SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
-UPDATE location_attribute_type SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE location_attribute_type SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE location_attribute_type SET retired_by = @buendia_admin_id WHERE
-    retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE location_tag SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE location_tag SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE location_tag SET retired_by = @buendia_admin_id WHERE
-    retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE note SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE note SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-
-UPDATE notification_alert SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE notification_alert SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-
-UPDATE obs SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE obs SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
 
 UPDATE order_frequency SET changed_by = @buendia_admin_id WHERE
     changed_by IS NOT NULL AND changed_by != @admin_id;
@@ -339,43 +270,10 @@ UPDATE order_type SET creator = @buendia_admin_id WHERE
 UPDATE order_type SET retired_by = @buendia_admin_id WHERE
     retired_by IS NOT NULL AND retired_by != @admin_id;
 
-UPDATE orders SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE orders SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
-UPDATE patient SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE patient SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE patient SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
-UPDATE patient_identifier SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE patient_identifier SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-UPDATE patient_identifier SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-
 UPDATE patient_identifier_type SET creator = @buendia_admin_id WHERE
     creator IS NOT NULL AND creator != @admin_id;
 UPDATE patient_identifier_type SET retired_by = @buendia_admin_id WHERE
     retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE patient_program SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE patient_program SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE patient_program SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
-
-UPDATE patient_state SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE patient_state SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE patient_state SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
 
 UPDATE person SET changed_by = @buendia_admin_id WHERE
     changed_by IS NOT NULL AND changed_by != @admin_id;
@@ -431,20 +329,6 @@ UPDATE program_workflow_state SET changed_by = @buendia_admin_id WHERE
     changed_by IS NOT NULL AND changed_by != @admin_id;
 UPDATE program_workflow_state SET creator = @buendia_admin_id WHERE
     creator IS NOT NULL AND creator != @admin_id;
-
-UPDATE provider SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE provider SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE provider SET retired_by = @buendia_admin_id WHERE
-    retired_by IS NOT NULL AND retired_by != @admin_id;
-
-UPDATE provider_attribute SET changed_by = @buendia_admin_id WHERE
-    changed_by IS NOT NULL AND changed_by != @admin_id;
-UPDATE provider_attribute SET creator = @buendia_admin_id WHERE
-    creator IS NOT NULL AND creator != @admin_id;
-UPDATE provider_attribute SET voided_by = @buendia_admin_id WHERE
-    voided_by IS NOT NULL AND voided_by != @admin_id;
 
 UPDATE provider_attribute_type SET changed_by = @buendia_admin_id WHERE
     changed_by IS NOT NULL AND changed_by != @admin_id;
@@ -578,29 +462,25 @@ DELETE FROM xforms_person_repeat_attribute WHERE
 
 DELETE FROM person WHERE person_id NOT IN (SELECT person_id FROM keep_users);
 
--- Create a temporary table for the locations to keep.
-CREATE TEMPORARY TABLE keep_locations SELECT * FROM location WHERE uuid IN (
-    "3449f5fe-8e6b-4250-bcaa-fca5df28ddbf", -- EMC
-    "3f75ca61-ec1a-4739-af09-25a84e3dd237", -- Triage Zone
-    "2f1e2418-ede6-481a-ad80-b9939a7fde8e", -- Suspected Zone
-    "3b11e7c8-a68a-4a5f-afb3-a4a053592d0e", -- Probable Zone
-    "b9038895-9c9d-4908-9e0d-51fd535ddd3c", -- Confirmed Zone
-    "4ef642b9-9843-4d0d-9b2b-84fe1984801f", -- Morgue
-    "d7ca63c3-6ea0-4357-82fd-0910cc17a2cb" -- Discharged
-);
-
--- Remove other locations, first clearing out foreign keys that refer to them.
-UPDATE location SET parent_location = NULL WHERE
-    location_id NOT IN (SELECT location_id FROM keep_locations);
-DELETE FROM location_attribute WHERE
-    location_id NOT IN (SELECT location_id FROM keep_locations);
-DELETE FROM location WHERE
-    location_id NOT IN (SELECT location_id FROM keep_locations);
-
--- Clear the huge concept word and concept reference tables; we don't need them.
-DELETE FROM concept_word;
-DELETE FROM concept_reference_term_map;
-DELETE FROM concept_reference_term;
-DELETE FROM drug_reference_map;
-DELETE FROM concept_reference_term;
-DELETE FROM concept_reference_map;
+-- Delete all the custom Buendia concepts.
+SET @max_id := 999999;
+DELETE FROM concept_answer WHERE concept_id > @max_id;
+DELETE FROM concept_answer WHERE answer_concept > @max_id;
+DELETE FROM concept_complex WHERE concept_id > @max_id;
+DELETE FROM concept_description WHERE concept_id > @max_id;
+DELETE FROM concept_name WHERE concept_id > @max_id;
+DELETE FROM concept_numeric WHERE concept_id > @max_id;
+DELETE FROM concept_proposal WHERE concept_id > @max_id;
+DELETE FROM concept_proposal WHERE obs_concept_id > @max_id;
+DELETE FROM concept_set WHERE concept_id > @max_id;
+DELETE FROM concept_set WHERE concept_set > @max_id;
+DELETE FROM concept_state_conversion WHERE concept_id > @max_id;
+DELETE FROM concept_word WHERE concept_id > @max_id;
+DELETE FROM drug WHERE concept_id > @max_id;
+DELETE FROM drug WHERE dosage_form > @max_id;
+DELETE FROM drug WHERE route > @max_id;
+DELETE FROM drug_ingredient WHERE concept_id > @max_id;
+DELETE FROM drug_ingredient WHERE ingredient_id > @max_id;
+DELETE FROM order_frequency WHERE concept_id > @max_id;
+DELETE FROM orders WHERE concept_id > @max_id;
+DELETE FROM concept WHERE concept_id > @max_id;

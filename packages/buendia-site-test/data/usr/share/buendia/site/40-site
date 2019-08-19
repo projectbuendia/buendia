@@ -16,10 +16,15 @@ MONITORING_LIMITS='
 100000 /usr/share/buendia/packages
 '
 
-# Creates the buendia-test wifi network and provides DHCP/DNS.
-NETWORKING_AP=1
-NETWORKING_SSID=buendia-test
+# Join the existing "buendia" network as provided by the Nanostation
+NETWORKING_AP=0
+NETWORKING_SSID=buendia
+NETWORKING_PASSWORD=password
+
+# Get a static address on the network and provide DNS but not DHCP.
+NETWORKING_IP_ADDRESS=10.18.0.50
 NETWORKING_DHCP_DNS_SERVER=1
+NETWORKING_DHCP_RANGE=
 
 # Keep the Edison up to date.
 UPDATE_AUTOUPDATE=1

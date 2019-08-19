@@ -10,10 +10,10 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-# This package installation takes place in the yocto environment. It enables
-# and configures hostap and udhcp daemons. It sets the dns server to be located
-# at the provided ip addres of this machine after the access point is up.
-# Finally it signals apt that it requires a boot.
+# This package installation enables and configures hostap and udhcp daemons.
+# It sets the dns server to be located at the provided ip addres of this
+# machine after the access point is up.
+# Finally it signals apt that it requires a reboot.
 
 set -e; . /usr/share/buendia/utils.sh
 
@@ -21,35 +21,22 @@ buendia-divert $1 /etc/dnsmasq.conf
 
 case $1 in
     configure)
-        cat <<'EOF' | buendia-enter-yocto
-hostapd_conf=/etc/hostapd/hostapd.conf
-udhcpd_conf=/etc/hostapd/udhcpd-for-hostapd.conf
-udhcpd_service=/lib/systemd/system/udhcpd-for-hostapd.service
-wpa_cli_actions=/etc/wpa_supplicant/wpa_cli-actions.sh
+        interface_conf=/etc/network/interfaces
+        hostapd_conf=/etc/hostapd/hostapd.conf
+        dhcpd_conf=/etc/dhcpcd.conf
 
-# Save a copy of the original configuration files.
-divert() {
-    [ -f "$1".pre-buendia ] || cp "$1" "$1".pre-buendia;
-}
-divert $hostapd_conf
-divert $udhcpd_conf
-divert $udhcpd_service
-divert $wpa_cli_actions
+        # Save a copy of the original configuration files.
+        divert() {
+            if [ -f "$1" ]; then
+              [ -f "$1".pre-buendia ] || cp "$1" "$1".pre-buendia;
+            fi
+        }
+        divert $interface_conf
+        divert $hostapd_conf
+        divert $dhcpd_conf
 
-# Don't use udhcpd with hostapd; we are using dnsmasq instead.
-cat $udhcpd_service.pre-buendia | grep -v ExecStartPre | sed -e 's+ExecStart=.*+ExecStart=/bin/echo+' > $udhcpd_service
-systemctl daemon-reload
+        systemctl daemon-reload
 
-# Make wpa_cli-actions.sh run only when wpa_supplicant_event is enabled.
-cat <<WPA_CLI_ACTIONS_EOF > $wpa_cli_actions
-#!/bin/sh
-if systemctl -q is-enabled wpa_supplicant_event; then
-    $wpa_cli_actions.pre-buendia "\$@"
-else
-    echo "event \$@ ignored because wpa_supplicant_event is disabled"
-fi
-WPA_CLI_ACTIONS_EOF
-EOF
         # Do network configuration on startup.
         update-rc.d buendia-networking defaults
 
@@ -65,4 +52,3 @@ EOF
 
     *) exit 1
 esac
-

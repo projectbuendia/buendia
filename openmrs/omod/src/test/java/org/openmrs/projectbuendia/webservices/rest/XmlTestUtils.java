@@ -20,7 +20,6 @@ import org.xml.sax.SAXException;
 import java.io.IOException;
 import java.io.StringWriter;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -29,36 +28,34 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import static org.junit.Assert.assertEquals;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toElementIterable;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.toIterable;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.elementsIn;
+import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.getChildNodes;
 
-public class XmlTestUtil {
-    static String readResourceAsString(Class<?> clazz, String file) throws IOException {
-        return IOUtils.toString(clazz.getResourceAsStream(file), "utf-8");
+public class XmlTestUtils {
+    static String getStringResource(Class<?> cls, String path) throws IOException {
+        return IOUtils.toString(cls.getResourceAsStream(path), "utf-8");
     }
 
-    /**
-     * Normalizes XML by parsing and reformatting, then asserts that the two documents
-     * are equal.
-     */
-    static void assertXmlEqual(String expected, String actual) throws TransformerException,
-        SAXException, IOException, ParserConfigurationException {
-        Document expectedDoc = XmlUtil.parse(expected);
-        Document actualDoc = XmlUtil.parse(actual);
-        expected = toIndentedString(expectedDoc);
-        actual = toIndentedString(actualDoc);
-
-        assertEquals(expected, actual);
+    static Document getXmlResource(Class<?> cls, String path) throws IOException, SAXException {
+        return XmlUtils.parse(getStringResource(cls, path));
     }
 
-    /**
-     * Converts an XML document into a string, applying indentation. First all elements have
-     * their text
-     * content trimmed, just for simplicity.
-     */
+    static void assertXmlEqual(Document expectedDoc, Document actualDoc) throws TransformerException {
+        String expectedXml = toIndentedString(expectedDoc);
+        String actualXml = toIndentedString(actualDoc);
+        assertEquals(expectedXml, actualXml);
+    }
+
+    /** Checks that two documents are equal after normalization. */
+    static void assertXmlEqual(String expectedXml, String actualXml)
+        throws TransformerException, SAXException, IOException {
+        assertXmlEqual(XmlUtils.parse(expectedXml), XmlUtils.parse(actualXml));
+    }
+
+    /**  Formats an XML document by indenting and trimming whitespace from elements. */
     static String toIndentedString(Document doc) throws TransformerException {
-        for (Element element : toElementIterable(doc.getElementsByTagName("*"))) {
-            for (Node node : toIterable(element.getChildNodes())) {
+        for (Element element : elementsIn(doc.getElementsByTagName("*"))) {
+            for (Node node : getChildNodes(element)) {
                 if (node.getNodeType() == Node.TEXT_NODE) {
                     node.setNodeValue(node.getNodeValue().trim());
                 }

@@ -51,7 +51,7 @@ fi
 # The "wpa_cli" command tells us the status of the wifi client subsystem.
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
-echo 'wpa_cli status; true' | buendia-enter-yocto >$tmpfile 2>&1
+wpa_cli status; true >$tmpfile 2>&1
 
 cat $tmpfile  # cause the output of wpa_cli status to appear in the log
 

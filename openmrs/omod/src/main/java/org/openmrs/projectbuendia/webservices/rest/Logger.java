@@ -21,9 +21,11 @@ import java.util.Map;
 
 /** Writes out timestamped HTTP request logs. */
 public class Logger {
+    private static final int MAX_STDERR_LINE_LENGTH = 480;
     private Map<String, Date> startTimes = new HashMap<String, Date>();
     private String filename;
     private SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    public static boolean SILENT = false;
 
     public Logger(String filename) {
         this.filename = filename;
@@ -36,11 +38,22 @@ public class Logger {
 
     /** Emits a message to the log, timestamped with the specified time. */
     public void log(Date time, String message) {
+        if (SILENT) return;
+
         try {
             PrintWriter w = new PrintWriter(new FileWriter(filename, true /* append */));
             w.println("\n\u001b[32m" + format.format(time) + "\u001b[0m " + message);
             w.close();
         } catch (IOException e) {
+        }
+
+        // Also print a truncated version of the message to stderr for regular logging.
+        try {
+            if (message.length() > MAX_STDERR_LINE_LENGTH) {
+                message = message.substring(0, MAX_STDERR_LINE_LENGTH) + "...";
+            }
+            System.err.println("\u001b[32m" + format.format(time) + "\u001b[0m [HTTP] " + message);
+        } catch (Throwable t) {
         }
     }
 

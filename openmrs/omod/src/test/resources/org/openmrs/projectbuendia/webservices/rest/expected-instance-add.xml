@@ -14,8 +14,8 @@ specific language governing permissions and limitations under the License.
     name="Weight observation" id="4" uuid="9e17ff6f-e3c8-4661-86d3-09a96169bedc"
     version="1">
   <header>
-    <enterer>1^</enterer>
-    <date_entered>2014-11-15</date_entered>
+    <enterer>1</enterer>
+    <date_entered>2014-11-15T12:34:56.789Z</date_entered>
     <session/>
     <uid/>
   </header>
@@ -36,18 +36,18 @@ specific language governing permissions and limitations under the License.
     <patient.middle_name openmrs_attribute="middle_name"
                          openmrs_table="patient_name"/>
     <patient.sex openmrs_attribute="gender" openmrs_table="patient">M</patient.sex>
-    <patient.patient_id/>
+    <patient.patient_id>8</patient.patient_id>
   </patient>
 
   <encounter>
     <encounter.encounter_datetime
-        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T00:00:00+00:00
+        openmrs_attribute="encounter_datetime" openmrs_table="encounter">2014-11-13T12:34:56.000Z
     </encounter.encounter_datetime>
     <encounter.location_id openmrs_attribute="location_id"
                            openmrs_table="encounter">1
     </encounter.location_id>
     <encounter.provider_id openmrs_attribute="provider_id"
-                           openmrs_table="encounter" provider_id_type="PROVIDER.ID">1
+                           openmrs_table="encounter" provider_id_type="PROVIDER.ID">22
     </encounter.provider_id>
   </encounter>
   <obs openmrs_concept="1238^MEDICAL RECORD OBSERVATIONS^99DCT"

@@ -1,0 +1,190 @@
+#!/bin/bash
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+if [ -z $NETWORKING_WIFI_INTERFACE ]; then
+  MAIN_INTERFACE=$NETWORKING_ETHERNET_INTERFACE
+else
+  MAIN_INTERFACE=$NETWORKING_WIFI_INTERFACE
+fi
+
+if ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
+    echo "Main interface $MAIN_INTERFACE not found. Skipping network configuration."
+    exit 0
+fi
+
+set -e; . /usr/share/buendia/utils.sh
+
+# Update the /etc/hosts file with mappings for this machine's IP addresses.
+buendia-update-hosts
+
+if [ -z "$NETWORKING_SSID" ]; then
+    echo "No NETWORKING_SSID configured."
+    exit 1
+fi
+
+# Create a file that records the requested settings in a canonical format.
+# We'll put this in a temporary location for now, and move it over to /run
+# to indicate that the settings have been applied successfully.
+tmp_settings=/tmp/buendia-networking.settings.$$
+buendia-settings | grep '^NETWORKING_' > $tmp_settings
+trap "rm -f $tmp_settings" EXIT  # clean up temporary files
+
+# This file persists as a record of successful configuration.  It should
+# exist if and only if the settings it contains were completely and
+# successfully applied.
+run_settings=/run/buendia-networking.settings
+
+# Compare the desired settings against those that were last successfully
+# applied, allowing us to avoid bringing the network down if nothing has
+# changed.  (Specifying the -f switch forces reconfiguration even when
+# nothing appears to have changed.)
+if [ "$1" != "-f" ]; then
+    if [ -e $run_settings ] && diff -q $tmp_settings $run_settings; then
+        echo "Networking configuration unchanged."
+        exit 0
+    fi
+fi
+
+# In case anything goes wrong, don't leave behind an indicator of success.
+rm -f $run_settings
+
+# Bring down the interface during reconfiguration, but don't fail if we can't.
+ifdown $MAIN_INTERFACE || true
+
+cp $tmp_settings /etc/buendia-networking.settings
+. /etc/buendia-networking.settings
+
+# Apply the settings to the Debian network interface configuration.
+unindent <<< "
+    auto lo $NETWORKING_WIFI_INTERFACE
+
+    iface lo inet loopback
+
+    iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
+" > /etc/network/interfaces
+
+if [ -n "$NETWORKING_IP_ADDRESS" ]; then
+    unindent <<< "
+        iface $NETWORKING_WIFI_INTERFACE inet static
+            address $NETWORKING_IP_ADDRESS/24
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    " >> /etc/network/interfaces
+else
+    unindent <<< "
+        iface $NETWORKING_WIFI_INTERFACE inet dhcp
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+    " >> /etc/network/interfaces
+fi
+
+# Apply wpa_supplicant configuration.
+wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
+
+# Apply dhcpcd configuration
+unindent <<< "
+    # Static ethernet profile
+    profile static_ethernet
+    static ip_address=$NETWORKING_IP_ADDRESS/24
+
+    # Static wireless profile
+    profile static_wifi
+    static ip_address=$NETWORKING_IP_ADDRESS/24
+
+    # fallback to static profile on $NETWORKING_ETHERNET_INTERFACE
+    interface $NETWORKING_ETHERNET_INTERFACE
+    fallback static_ethernet
+
+    # fallback to static profile on $NETWORKING_WIFI_INTERFACE
+    interface $NETWORKING_WIFI_INTERFACE
+    fallback static_wifi
+" > /etc/dhcpcd.conf
+
+# Apply hostadp configuration
+hostapd_conf=/etc/hostapd/hostapd.conf
+unindent <<< "
+    interface=$NETWORKING_WIFI_INTERFACE
+    ssid=$NETWORKING_SSID
+    wpa=2
+    wpa_key_mgmt=WPA-PSK
+    wpa_passphrase=$NETWORKING_PASSWORD
+    hw_mode=g
+    channel=24
+    ieee80211n=1
+    wmm_enabled=1
+    macaddr_acl=0
+    auth_algs=1
+    ignore_broadcast_ssid=0
+    rsn_pairwise=CCMP
+" > $hostapd_conf
+
+# Enable the wpa_supplicant hook
+mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
+if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
+  ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
+fi
+
+# Activate or deactivate the DHCP server and client according to the settings.
+if $(bool $NETWORKING_DHCP_DNS_SERVER); then
+    echo 'Turning on DHCP and DNS server; disabling DHCP client.'
+
+    # Turn off the local DHCP client.
+    systemctl stop dhcpcd
+    systemctl disable dhcpcd
+
+    if [ -n "$NETWORKING_DHCP_RANGE" ]; then
+        unindent <<< "
+            dhcp-authoritative
+            dhcp-range=$NETWORKING_DHCP_RANGE
+            dhcp-option=option:ntp-server,$NETWORKING_IP_ADDRESS
+        " > /etc/dnsmasq.d/buendia-dhcp.conf
+    else
+        rm -f /etc/dnsmasq.d/buendia-dhcp.conf
+    fi
+
+    ln -sf /usr/bin/buendia-update-hosts /etc/network/if-up.d/
+            
+    service dnsmasq restart
+    update-rc.d dnsmasq enable
+else
+    echo "Turning off DHCP/DNS server; enabling DHCP client."
+
+    # Turn on the local DHCP client.
+    systemctl enable dhcpcd
+    systemctl start dhcpcd
+
+    rm -f /etc/network/if-up.d/buendia-update-hosts
+
+    # Disable dnsmasq now, and also for future boots.
+    service dnsmasq stop
+    update-rc.d dnsmasq disable
+fi
+
+# Activate or deactivate access point mode according to the settings.
+if $(bool $NETWORKING_AP); then
+    echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
+
+    # Turn this machine into an access point now, and also on future boots.
+    systemctl enable hostapd
+    systemctl start hostapd
+
+else
+    echo "Joining existing wifi network '$NETWORKING_SSID'."
+
+    # Stop being an access point now, and do not become one on future boots.
+    systemctl stop hostapd
+    systemctl disable hostapd
+fi
+
+# Bring back up the interface
+ifup $MAIN_INTERFACE
+
+# Record the fact that the settings that were successfully configured.
+mv $tmp_settings $run_settings || true

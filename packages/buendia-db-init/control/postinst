@@ -14,40 +14,10 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure|abort-remove|abort-deconfigure)
-        if [ -e /etc/buendia-db-init-installed ]; then
-            echo "buendia-db-init has been previously installed!"
-            echo "Not configuring, as there is a risk of destroying user data!"
-            echo
-            echo "If you are sure you want to wipe the database, then run:"
-            echo
-            echo "rm /etc/buendia-db-init-installed && dpkg-reconfigure buendia-db-init"
-            echo
-            exit 0
-        fi
-
-        # Create a fresh new database populated with the initial data.
-        export MYSQL_USER=root
-        export MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD
-        service mysql start
-        echo "Loading initial OpenMRS database..."
-        buendia-mysql-load -f openmrs /usr/share/buendia/db/init.zip
-
-        # Add site-specific initial data.
-        site_sql=/usr/share/buendia/db/site-${SITE_ID}.sql
-        if [ -f $site_sql ]; then
-            echo "Applying data initialization for site ${SITE_ID}..."
-            mysql -uroot -p$MYSQL_ROOT_PASSWORD openmrs < $site_sql
-        else
-            echo "No site-specific data for ${SITE_ID}."
-        fi
-
-        # Reapply the OpenMRS user account setup used by the Buendia server.
-        buendia-reconfigure server
-
-        # Note the package version used to fully initialized the database, so
-        # we can avoid doing it again by mistake.
-        PKG_VERSION=$(dpkg -s $DPKG_MAINTSCRIPT_PACKAGE | sed -n 's/^Version: //p')
-        echo $PKG_VERSION > /etc/buendia-db-init-installed
+        /usr/bin/buendia-reconfigure db-init
+        # Reapply the OpenMRS user account setup used by the Buendia server,
+        # but don't fail if the server hasn't been installed yet.
+        /usr/bin/buendia-reconfigure server || true
         ;;
 
     *) exit 1

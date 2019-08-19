@@ -75,7 +75,8 @@ function adjust_filename() {
 # packages dropped there can be moved into the repo instantaneously.
 name=$(basename $0)
 exdir=/tmp/$name.ex.$$
-pkgdir=/usr/share/buendia/packages.import.$$
+package_repo=/usr/share/buendia/packages
+pkgdir=${package_repo}.import.$$
 rm -rf $exdir $pkgdir
 mkdir -p $exdir $pkgdir
 
@@ -146,17 +147,21 @@ if [ -n "$unpacked" ]; then
             # Installing update: red and yellow
             buendia-led red on || true
             buendia-led yellow on || true
+
+            # Ensure that the suite subdirectory exists for the package repo
+            mkdir -p ${package_repo}/${suite}
+
             s=s; [ "$count" == 1 ] && s= || true
-            if mv $pkgdir/* /usr/share/buendia/packages; then
+            if mv $pkgdir/* ${package_repo}/${suite}; then
                 echo "Imported $count package$s."
             else
                 echo "Error trying to import $count package$s; continuing."
             fi
 
             # Regenerate indexes.
-            buendia-pkgserver-index-debs $pkgdir $suite || true
+            buendia-pkgserver-index-debs $package_repo $suite || true
             buendia-pkgserver-index-apks || true
-            chmod -R a+rX /usr/share/buendia/packages || true
+            chmod -R a+rX $package_repo || true
         fi
 
         # Copy over site settings files.

@@ -18,7 +18,7 @@ case $1 in
         ln -sf ../sites-available/buendia-dashboard /etc/nginx/sites-enabled
 
         # Bring services back up (need to restart here, not merely start)
-        service nginx restart
+        service_if_exists nginx restart
         ;;
 
     *) exit 1

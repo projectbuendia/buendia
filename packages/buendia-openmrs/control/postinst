@@ -25,7 +25,7 @@ case $1 in
         # unpacked, incomplete application in /var/lib/tomcat7/webapps and
         # Tomcat in a permanently broken state.  To ensure that openmrs.war is
         # unpacked properly, we unpack it now while tomcat7 is stopped.
-        service tomcat7 stop
+        service_if_exists tomcat7 stop
 
         tmp=/tmp/openmrs.$$
         trap 'rm -rf $tmp' EXIT
@@ -51,7 +51,7 @@ case $1 in
         ln -sf /usr/share/buendia/openmrs /usr/share/tomcat7/.OpenMRS
 
         # Bring tomcat7 back up.
-        service tomcat7 start
+        service_if_exists tomcat7 start
         ;;
 
     *) exit 1

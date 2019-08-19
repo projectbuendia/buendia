@@ -21,6 +21,7 @@ for dir in $(find data -name '*.d'); do
         data/etc/apt/sources.list.d:*) name=buendia.list ;;
         data/etc/udev/rules.d:*) continue ;;
         data/usr/share/buendia/*:buendia-site-*) name=site ;;
+        data/usr/share/buendia/config.d:*) name="??-${PACKAGE_NAME#buendia-}" ;;
         data/usr/share/buendia/*:*) name=${PACKAGE_NAME#buendia-} ;;
         *) name=$PACKAGE_NAME
     esac
@@ -28,10 +29,12 @@ for dir in $(find data -name '*.d'); do
     for file in $dir/*; do
         base=$(basename $file)
         if [ -e "$file" -a "$base" != README ]; then
-            if [ "$base" != $name ]; then
-                echo "$file should be named $name."
-                exit 1
-            fi
+            # Check if $base matches the glob in $name
+            case "$base" in
+                ($name) continue ;;
+                (*) echo "$file should match '$name'."
+                    exit 1 ;;
+            esac
         fi
     done
 done

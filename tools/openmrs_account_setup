@@ -29,26 +29,39 @@ if [ -z "$openmrs_password" ]; then
     exit 1
 fi
 
+eval $(buendia-settings 2>/dev/null)
+
+MYSQL_USER=${MYSQL_USER-$OPENMRS_MYSQL_USER}
+MYSQL_PASSWORD=${MYSQL_PASSWORD-$OPENMRS_MYSQL_PASSWORD}
+
 if [ -z "$MYSQL_USER" ]; then
     echo '$MYSQL_USER is not set; please set $MYSQL_USER and $MYSQL_PASSWORD.'
     exit 1
 fi
 
-# This is the UUID for the user account used for all Buendia API requests.
-# If there is no row with this uuid in the users table, one will be added.
-USER_UUID=129a5d04-3bd7-4e9d-8b82-dac5109cd1db
+MYSQL="mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -s -N openmrs"
 
-# If a person or person_name need to be added, they are added with these UUIDs.
-PERSON_UUID=a0e512fd-a6e0-11e4-b418-040ccecfdba4
-PERSON_NAME_UUID=a1332cdc-a6e0-11e4-8711-040ccecfdba4
+function randhex() {
+    xxd -l $(($1 / 2)) -p /dev/urandom | tr -d '\n'
+}
 
-# Ensure MySQL is running.
-MYSQL="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD openmrs"
+function uuidgen() {
+    randhex 32 | sed -e 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/'
+}
 
-# If there is no user account with the expected UUID, add one.
-if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1; then
-    echo "Creating user $openmrs_user..."
-    salt=$(xxd -l 64 -p /dev/urandom | tr -d '\n')
+# Look for a user with the given username.
+USER_UUID=$($MYSQL <<< "
+    select uuid from users where username = '$openmrs_user';
+" 2>/dev/null)
+USER_UUID=$(echo $USER_UUID | tr A-Z a-z)
+
+# If there is no user account with the given username, add one.
+if [ -z "$USER_UUID" ]; then
+    USER_UUID=$(uuidgen)
+    PERSON_UUID=$(uuidgen)
+    PERSON_NAME_UUID=$(uuidgen)
+
+    salt=$(randhex 128)
     $MYSQL <<< "
         set @admin_id = (select user_id from users where system_id = 'admin');
 
@@ -78,26 +91,28 @@ if ! $MYSQL <<< "select count(*) from users where uuid='$USER_UUID'" | grep -q 1
                (@user_id, 'Data Manager'),
                (@user_id, 'Provider'),
                (@user_id, 'System Developer');
-    "
-fi
-
-# Check if the username and password are already correctly set.
-if $MYSQL <<< "
-    select count(*) from users
-        where uuid='$USER_UUID' and username='$openmrs_user' and
-        password = sha2(concat('$openmrs_password', salt), 512);
-" | grep -q 1; then
-    echo "Server username and password unchanged."
+    " 2>/dev/null
+    echo "Added new user $openmrs_user [$USER_UUID]."
 else
-    # Set the username and password for the Android client, using fresh salt.
-    echo "Setting server username and password..."
-    salt=$(xxd -p -l 64 /dev/urandom | tr -d '\n')
-    $MYSQL <<< "
-        update users set
-            salt='$salt', username='$openmrs_user',
-            password=sha2(concat('$openmrs_password', salt), 512)
-            where uuid='$USER_UUID';
-    "
+    echo "Found existing user $openmrs_user [$USER_UUID]."
+    # Check if the username and password are already correctly set.
+    if $MYSQL <<< "
+        select count(*) from users
+            where uuid='$USER_UUID' and username='$openmrs_user' and
+            password = sha2(concat('$openmrs_password', salt), 512);
+    " 2>/dev/null | grep -q 1; then
+        echo "Password unchanged."
+    else
+        # Set the username and password for the Android client, using fresh salt.
+        salt=$(randhex 128)
+        $MYSQL <<< "
+            update users set
+                salt='$salt', username='$openmrs_user',
+                password=sha2(concat('$openmrs_password', salt), 512)
+                where uuid='$USER_UUID';
+        " 2>/dev/null
+        echo "Changed password."
+    fi
 fi
 
 echo "OpenMRS account '$openmrs_user' is ready for Buendia API requests."

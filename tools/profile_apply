@@ -9,16 +9,26 @@ import sys
 import uuid
 import warnings
 
-CHART_UUID =  'ea43f213-66fb-4af6-8a49-70fd6b9ce5d4'
+# Dump SQL commands, for debugging.
+VERBOSE = False
+
+# Right now, all charts are stored in a single form, which gets this UUID.
+# TODO(ping): Store each chart in its own form and generate its UUID with
+# create_uuid_from_name.
+CHART_UUID = 'buendia_form_chart'
+MAX_UUID_LEN = 36
+
+ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
 LOCALE = 'en_GB_client'
 
-# This is a modified copy of the "OpenMRS FormEntry Form HL7 Translation" XSLT
-# file, with encounter_datetime changed from a "hl7Date" to an "hl7Timestamp".
-# To record the date and time (not just the date) of submitted observations,
-# we have to add this as a form resource to every form.
-XSLT_UUID = 'c39fc8bc-f188-4479-8b1a-c1d28f1b7dcf'
-XSLT_DATATYPE = 'org.openmrs.customdatatype.datatype.LongFreeTextDatatype'
-XSLT_HANDLER = 'org.openmrs.web.attribute.handler.LongFreeTextTextareaHandler'
+try:
+    INT_TYPES = (int, long)
+except:
+    INT_TYPES = (int,)
+
+def sqlrepr(x):
+    return x if isinstance(x, INT_TYPES) else repr(str(x))
+
 
 class Database:
     def __init__(self, database, user, password):
@@ -32,14 +42,18 @@ class Database:
         cursor.close()
         self.commit = self.db.commit
 
-    def iter(self, query, *params):
+    def iter(self, query, *args):
+        if VERBOSE:
+            sys.stderr.write('sql> %s\n' % (query % tuple(map(sqlrepr, args))))
         cursor = self.db.cursor()
-        cursor.execute(query, params)
+        cursor.execute(query, args)
         return iter(cursor)
 
-    def execute(self, query, *params):
+    def execute(self, query, *args):
+        if VERBOSE:
+            sys.stderr.write('sql> %s\n' % (query % tuple(map(sqlrepr, args))))
         cursor = self.db.cursor()
-        cursor.execute(query, params)
+        cursor.execute(query, args)
         cursor.close()
 
     def get(self, field, table=None, **constraints):
@@ -55,6 +69,8 @@ class Database:
         for row in self.iter(
             'select %s from %s where %s' % (field, table, condition),
             *(constraints[key] for key in keys)):
+            if VERBOSE:
+                sys.stderr.write('-> %s\n' % sqlrepr(row[0]))
             return row[0]
 
 class OpenmrsDatabase:
@@ -75,9 +91,7 @@ class OpenmrsDatabase:
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
         if 'uuid' in self.get_columns(table):
-            generated_uuid = (table == 'concept' and
-                (str(kwargs['concept_id']) + 'A'*36)[:36] or uuid.uuid4())
-            kwargs.setdefault('uuid', generated_uuid)
+            kwargs.setdefault('uuid', uuid.uuid4())
 
         columns = kwargs.keys()
         values = kwargs.values()
@@ -89,8 +103,20 @@ class OpenmrsDatabase:
         self.db.execute(
             'insert into %s (%s) values (%s)' %
             (table, ', '.join(columns), ', '.join(placeholders)), *values)
-        if table + '_id' in self.get_columns(table):
-            return self.db.get(table + '_id', uuid=kwargs['uuid'])
+
+        # Retrieve the generated primary key.
+        id = None
+        id_column = table + '_id'
+        if id_column in self.get_columns(table):
+            id = self.db.get(id_column, uuid=kwargs['uuid'])
+
+        # In concept and concept_name, the uuid column is based on the id.
+        if table in ['concept', 'concept_name']:
+            filler = (table == 'concept') and 'A' or 'B'
+            pseudo_uuid = str(id).ljust(36, filler)
+            self.db.execute('update %s set uuid = %s where %s = %s' %
+                (table, '%s', id_column, '%s'), pseudo_uuid, id)
+        return id
 
     def update(self, table, id, **kwargs):
         """Updates a row, filling in metadata if needed."""
@@ -135,17 +161,19 @@ def read_csv(filename, tab=None):
 def apply(tabs):
     db = get_db('openmrs')
     odb = OpenmrsDatabase(db, 'buendia_admin')
+    form_uuids = []
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
     section_field_type = db.get('field_type_id', name='Section')
+    adult_return_enctype = db.get('encounter_type_id', name='ADULTRETURN')
 
     coded_datatype = db.get('concept_datatype_id', name='Coded')
     numeric_datatype = db.get('concept_datatype_id', name='Numeric')
     text_datatype = db.get('concept_datatype_id', name='Text')
     answer_datatype = db.get('concept_datatype_id', name='N/A')
     datatypes_by_type = {
-        'yes_no': coded_datatype,  # no (1066) or yes (1065)
-        'yes_no_unknown': coded_datatype,  # unknown (1067), no (1066), or yes (1065)
+        'yes_no': coded_datatype,  # yes (1065) or no (1066)
+        'yes_no_unknown': coded_datatype,  # yes, no, or unknown (1067)
         'select_one': coded_datatype,
         'select_multiple': coded_datatype,  # set of 'yes_no' fields
         'number': numeric_datatype,
@@ -160,7 +188,12 @@ def apply(tabs):
         if 'form' in tabs:
             apply_forms(tabs['form'])
         if 'chart' in tabs:
-            apply_chart(tabs['chart'], db.get('form_id', uuid=CHART_UUID))
+            chart_enctype = get_or_insert(
+                'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
+            odb.update('encounter_type', chart_enctype, name='CHART', retired=1,
+                description='Reserved for Buendia patient chart definitions')
+            form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
+            apply_chart(tabs['chart'], form_id)
         db.commit()
 
     def get_or_insert(table, **values):
@@ -202,6 +235,9 @@ def apply(tabs):
         if name:
             concept_name_id = get_or_insert(
                 'concept_name', concept_id=concept_id, locale=locale, voided=0)
+            db.execute('update concept_name set locale_preferred = 0'
+                       ' where concept_id = %s and locale = %s',
+                       concept_id, locale)
             odb.update('concept_name', concept_name_id,
                        name=name, locale_preferred=1,
                        concept_name_type='FULLY_SPECIFIED')
@@ -226,9 +262,12 @@ def apply(tabs):
                             (absolute_low, absolute_high), units, precise=1):
         db.execute('delete from concept_numeric'
                    ' where concept_id = %s', concept_id)
+        p = 'precise'
+        if p not in odb.get_columns('concept_numeric'):
+            p = 'allow_decimal'
         db.execute('insert into concept_numeric'
                    ' (concept_id, low_normal, hi_normal, low_critical,'
-                   ' hi_critical, low_absolute, hi_absolute, units, precise)'
+                   ' hi_critical, low_absolute, hi_absolute, units, ' + p + ')'
                    ' values (%s, %s, %s, %s, %s, %s, %s, %s, %s)',
                    concept_id, normal_low, normal_high, noncritical_low,
                    noncritical_high, absolute_low, absolute_high,
@@ -264,9 +303,6 @@ def apply(tabs):
         set_concept_name(concept_id, name, locale)
 
     def apply_charts(rows):
-        chart_layout = get_or_insert(
-            'encounter_type', name='buendia-chart_layout',
-            description='Buendia: patient chart layout definition')
         for chart_rows in split_by_title(rows):
             put_chart(chart_rows)
 
@@ -291,6 +327,8 @@ def apply(tabs):
             if (row['title'] or '').strip():
                 if section and section_rows:
                     sections.append((section, section_rows))
+                # TODO(ping): Get rid of the [chart_divider] hack, and
+                # instead store each chart in its own separate form.
                 sections.append(('[chart_divider]',
                                  [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
                 section, section_rows = (row['section'] or '').strip(), []
@@ -363,53 +401,47 @@ def apply(tabs):
             yield rows[start:stop]
 
     def apply_forms(rows):
+        # Hide all the existing forms, then add all the new forms.
         db.execute('update form set published = 0')
         for form_rows in split_by_title(rows):
-            put_form(form_rows)
+            put_form_with_rows(form_rows)
+
+    def create_uuid_from_name(prefix, name):
+        """Constructs a UUID from a form name."""
+        base = prefix + normalize_name(name)
+        uuid = base[:MAX_UUID_LEN]
+        index = 1
+        while uuid in form_uuids:
+            index += 1
+            suffix = '_%d' % index  # tack on an number to avoid collisions
+            uuid = base[:MAX_UUID_LEN - len(suffix)] + suffix
+        print('Stored "%s" with UUID: %s%s' % (name, uuid,
+            uuid != base and ' (adjusted for uniqueness)' or ''))
+        form_uuids.append(uuid)
+        return uuid
 
     def normalize_name(name):
-        return re.sub('[\W_]+', '_', (name or '').lower()).strip('_')
+        words = re.split(r'[\W_]+', name.strip().lower())
+        return '_'.join(word for word in words if word not in
+                        ['a', 'an', 'and', 'or', 'of', 'the']
+                        ) or '_'.join(words)
 
-    def create_uuid_from_form_name(name):
-        """
-        Construct a UUID from a form name, and issue a warning if we can't
-        guarantee that the UUID will be unique.
-        """
-        prefix = 'buendia-form-'
-        max_uuid_len = 38
-        max_name_len = max_uuid_len - len(prefix)
-        if len(name) > max_name_len:
-            warnings.warn(
-            "The form name '%s' has been clipped to create a unique form ID. "
-            "Note that if you have another form that starts with the same %d "
-            "characters as this form, the form IDs will collide and only one "
-            "form will be displayed. To fix this, ensure that the first %d "
-            "characters of each form name are unique."
-            % (name, max_name_len, max_name_len) )
-        return prefix + normalize_name(name[:max_name_len])
-
-    def put_form(rows):
-        adult_return = db.get('encounter_type_id', name='ADULTRETURN')
-
-        title = rows[0]['title']
-        uuid = create_uuid_from_form_name(title)
+    def put_form(uuid, title, encounter_type):
         form_id = db.get('form_id', uuid=uuid)
-        if not form_id:
-            form_id = odb.insert('form', name=title, version='1',
-                                 encounter_type=adult_return, uuid=uuid)
-        else:
+        if form_id:
             odb.update('form', form_id, name=title)
-        apply_form(rows, form_id)
-        init_form_xslt(form_id)
-        db.execute('update form set published = 1 where form_id = %s', form_id)
+        else:
+            form_id = odb.insert(
+                'form', name=title, version='1',
+                encounter_type=encounter_type, uuid=uuid)
+        return form_id
 
-    def init_form_xslt(form_id):
-        """Adds our custom XSLT as a form resource to a specified form."""
-        name = db.get('name', 'form', form_id=form_id) + '.xFormXslt'
-        resource_id = get_or_insert('form_resource',
-            form_id=form_id, name=name, value_reference=XSLT_UUID)
-        odb.update('form_resource', resource_id, datatype=XSLT_DATATYPE,
-                   preferred_handler=XSLT_HANDLER)
+    def put_form_with_rows(rows):
+        title = rows[0]['title']
+        uuid = create_uuid_from_name('buendia_form_', title)
+        form_id = put_form(uuid, title, adult_return_enctype)
+        apply_form(rows, form_id)
+        db.execute('update form set published = 1 where form_id = %s', form_id)
 
     def apply_form(rows, form_id):
         """
@@ -551,4 +583,10 @@ def apply(tabs):
 
 
 if __name__ == '__main__':
-    apply(read_csv(sys.argv[1]))
+    args = sys.argv[1:]
+    if args and args[0] == '-v':
+        VERBOSE = True
+        args.pop(0)
+    if not args:
+        raise SystemExit('Usage: %s [-v] <filename.csv>' % sys.argv[0])
+    apply(read_csv(args[0]))

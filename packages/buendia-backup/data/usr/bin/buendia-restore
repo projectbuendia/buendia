@@ -42,15 +42,20 @@ if ! flock -n 9; then
     echo "$name already running; not starting."
     exit 1
 fi
+# Prepare some empty temporary directories.
+tmp="/tmp/$name.$$"
+trap 'rm -rf "$tmp"' EXIT
+rm -rf "$tmp"
+mkdir -p "$tmp"
 
 # Mount the given device, if necessary.
 if [ -b "$root" ]; then
     echo "$root is a block device; mounting..."
     mnt_dir="/mnt/$name.$$.$(basename $root)"
+    trap 'fuser -m "$mnt_dir"; umount "$mnt_dir"; rm -rf "$mnt_dir" "$tmp"' EXIT
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
 
-    trap 'fuser -m $mnt_dir || true; umount $mnt_dir && rm -rf $mnt_dir' EXIT
     root="$mnt_dir/restore"
 
 elif [ ! -d "$root" ]; then
@@ -70,12 +75,6 @@ fi
 # settings -> restore started, done the settings, but not the database
 # finished -> restore finished, so don't do it again
 progressfile=$root/progress.log
-
-# Prepare some empty temporary directories.
-tmp="/tmp/$name.$$"
-trap 'rm -rf "$tmp"' EXIT
-rm -rf "$tmp"
-mkdir -p "$tmp"
 
 # The state so far will be put in a variable called progress-state, as we don't
 # have goto in bash.

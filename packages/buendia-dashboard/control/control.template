@@ -2,6 +2,6 @@ Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
 Pre-Depends: buendia-utils
-Depends: buendia-setclock, fcgiwrap, nginx
+Depends: buendia-setclock, fcgiwrap, nginx-light
 Description: Serves a system status and administration page for Buendia.
 Maintainer: projectbuendia.org

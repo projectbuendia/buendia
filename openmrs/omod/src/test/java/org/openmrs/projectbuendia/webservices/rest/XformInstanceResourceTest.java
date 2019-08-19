@@ -11,64 +11,46 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.junit.Test;
-import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.projectbuendia.Utils;
+import org.w3c.dom.Document;
 
 import static org.junit.Assert.assertEquals;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.assertXmlEqual;
-import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtil.readResourceAsString;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.assertXmlEqual;
+import static org.openmrs.projectbuendia.webservices.rest.XmlTestUtils.getXmlResource;
 
 public class XformInstanceResourceTest {
-    @Test
-    public void addForm() throws Exception {
-        String input = readResourceAsString(getClass(), "original-instance-add.xml");
-        String expected = readResourceAsString(getClass(), "expected-instance-add.xml");
-        SimpleObject post = new SimpleObject();
-        post.add("date_entered", "2014-11-15");
-        post.add("enterer_id", 1);
-        post.add("xml", input);
-        String actual = XformInstanceResource.completeXform(post);
-        assertXmlEqual(expected, actual);
+    @Test public void addForm() throws Exception {
+        Document expected = getXmlResource(getClass(), "expected-instance-add.xml");
+        Document doc = getXmlResource(getClass(), "original-instance-add.xml");
+        XformInstanceResource.adjustXformDocument(doc, 8, 1, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        assertXmlEqual(expected, doc);
     }
 
-    @Test
-    public void editForm() throws Exception {
-        String input = readResourceAsString(getClass(), "original-instance-edit.xml");
-        String expected = readResourceAsString(getClass(), "expected-instance-edit.xml");
-        SimpleObject post = new SimpleObject();
-        post.add("date_entered", "2014-11-15");
-        post.add("enterer_id", 1);
-        post.add("patient_id", 10);
-        post.add("xml", input);
-        String actual = XformInstanceResource.completeXform(post);
-        assertXmlEqual(expected, actual);
+    @Test public void editForm() throws Exception {
+        Document expected = getXmlResource(getClass(), "expected-instance-edit.xml");
+        Document doc = getXmlResource(getClass(), "original-instance-edit.xml");
+        XformInstanceResource.adjustXformDocument(doc, 9, 2, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        assertXmlEqual(expected, doc);
     }
 
-    @Test
-    public void moveGroupsIntoObs() throws Exception {
-        String input = readResourceAsString(getClass(), "original-grouped.xml");
-        String expected = readResourceAsString(getClass(), "expected-grouped.xml");
-        SimpleObject post = new SimpleObject();
-        post.add("date_entered", "2014-11-15");
-        post.add("enterer_id", 1);
-        post.add("xml", input);
-        String actual = XformInstanceResource.completeXform(post);
-        assertXmlEqual(expected, actual);
+    @Test public void moveGroupsIntoObs() throws Exception {
+        Document expected = getXmlResource(getClass(), "expected-grouped.xml");
+        Document doc = getXmlResource(getClass(), "original-grouped.xml");
+        XformInstanceResource.adjustXformDocument(doc, 10, 3, Utils.parse8601("2014-11-15T12:34:56.789Z"));
+        assertXmlEqual(expected, doc);
     }
 
-    @Test
-    public void workAroundClientIssue_beforeFix() {
+    @Test public void parseNonstandardTimestamp() {
         String input = "20141120T092547.373Z";
         String expected = "2014-11-20T09:25:47.373Z";
-        String actual = XformInstanceResource.workAroundClientIssue(input);
+        String actual = Utils.formatUtc8601(XformInstanceResource.parseTimestamp(input));
         assertEquals(expected, actual);
     }
 
-    @Test
-    public void workAroundClientIssue_afterFix() {
-        // Nothing to fix
+    @Test public void parseStandardTimestamp() {
         String input = "2014-11-20T09:25:47.373Z";
         String expected = "2014-11-20T09:25:47.373Z";
-        String actual = XformInstanceResource.workAroundClientIssue(input);
+        String actual = Utils.formatUtc8601(XformInstanceResource.parseTimestamp(input));
         assertEquals(expected, actual);
     }
 }

@@ -20,6 +20,7 @@ import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
@@ -33,8 +34,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-/** Utility for adding observations parsed from JSON. */
-public class ObservationsHandler {
+/** Utility methods for dealing with observations. */
+public class ObservationUtils {
     /**
      * For consistency these should be accepted as XForm instances, but as a
      * short-term fix we allow observations to be expressed in this JSON format:
@@ -51,7 +52,7 @@ public class ObservationsHandler {
      * </pre>
      */
 
-    private static Log log = LogFactory.getLog(ObservationsHandler.class);
+    private static Log log = LogFactory.getLog(ObservationUtils.class);
     private static final String OBSERVATIONS = "observations";
     private static final String QUESTION_UUID = "question_uuid";
     private static final String ANSWER_DATE = "answer_date";
@@ -65,22 +66,24 @@ public class ObservationsHandler {
      * @param orderUuids        a list of order UUIDs
      * @param patient           the patient for whom to add the encounter
      * @param encounterTime     the time of the encounter
-     * @param changeMessage     a message to be recorded with the observation
      * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
+     * @param entererUuid      the provider who entered the observations
      * @param locationUuid      the UUID of the location where the encounter happened
      */
     public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
-                                         Date encounterTime, String changeMessage, String
-                                             encounterTypeName,
-                                         String locationUuid) {
+                                         Date encounterTime, String encounterTypeName,
+                                         String entererUuid, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
-        encounterTime = Utils.fixEncounterDateTime(encounterTime);
+        encounterTime = DbUtils.fixEncounterDatetime(encounterTime);
 
         EncounterService encounterService = Context.getEncounterService();
-        final Location location = Context.getLocationService().getLocationByUuid(locationUuid);
-        if (location == null) {
-            throw new InvalidObjectDataException("Location not found: " + locationUuid);
+        Location location = null;
+        if (locationUuid != null) {
+            location = Context.getLocationService().getLocationByUuid(locationUuid);
+            if (location == null) {
+                throw new InvalidObjectDataException("Location not found: " + locationUuid);
+            }
         }
         EncounterType encounterType = encounterService.getEncounterType(encounterTypeName);
         if (encounterType == null) {
@@ -112,7 +115,13 @@ public class ObservationsHandler {
         for (Obs obs : obsList) {
             if (obs != null) {
                 encounter.addObs(obs);
-                obsService.saveObs(obs, changeMessage);
+                obsService.saveObs(obs, null);
+            }
+        }
+        if (entererUuid != null) {
+            Provider enterer = Context.getProviderService().getProviderByUuid(entererUuid);
+            if (enterer != null) {
+                encounter.addProvider(DbUtils.getUnknownEncounterRole(), enterer);
             }
         }
         return encounter;
@@ -167,7 +176,7 @@ public class ObservationsHandler {
             log.warn("Order not found: " + orderUuid);
             return null;
         }
-        Obs obs = new Obs(patient, DbUtil.getOrderExecutedConcept(), encounterTime, location);
+        Obs obs = new Obs(patient, DbUtils.getOrderExecutedConcept(), encounterTime, location);
         obs.setOrder(order);
         obs.setValueNumeric(1d);
         return obs;
@@ -196,8 +205,8 @@ public class ObservationsHandler {
                         return Utils.YYYYMMDD_UTC_FORMAT.format(value);
                     }
 
-                    @Override public String visitDateTime(Date value) {
-                        return Utils.toIso8601(value);
+                    @Override public String visitDatetime(Date value) {
+                        return Utils.formatUtc8601(value);
                     }
                 });
     }

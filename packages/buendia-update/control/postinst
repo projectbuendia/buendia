@@ -14,8 +14,8 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
-        # Apply settings
-        buendia-reconfigure update
+        # Apply settings (except that there aren't any)
+        # buendia-reconfigure update
 
         # Make the update run once on startup
         update-rc.d buendia-update defaults

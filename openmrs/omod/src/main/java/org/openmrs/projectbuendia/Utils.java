@@ -11,14 +11,11 @@
 
 package org.openmrs.projectbuendia;
 
-import org.openmrs.Order;
-import org.openmrs.Person;
-import org.openmrs.Provider;
-import org.openmrs.User;
-import org.openmrs.api.context.Context;
+import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
-import javax.annotation.Nullable;
+import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.ParseException;
@@ -26,15 +23,70 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletResponse;
+
 public class Utils {
+    // ==== Basic types ====
+
+    /** A sane eq operator, to replace Java's broken == and broken equals(). */
+    public static boolean eq(Object a, Object b) {
+        return a == b || (a != null && a.equals(b));
+    }
+
+    /** A safe check for null or empty strings. */
+    public static boolean isEmpty(Object s) {
+        return s == null || eq(s, "");
+    }
+
+    /** A safe check for null or whitespace strings. */
+    public static boolean isBlank(Object s) {
+        return s == null || (s instanceof String && ((String) s).trim().isEmpty());
+    }
+
+    /** Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long. */
+    public static Long asLong(Object obj) {
+        if (obj == null) {
+            return null;
+        }
+        if (obj instanceof Integer) {
+            return Long.valueOf((Integer) obj);
+        }
+        if (obj instanceof Long) {
+            return (Long) obj;
+        }
+        throw new ClassCastException("Expected value of type Long or Integer");
+    }
+
+    /** Converts objects of integer types to BigIntegers. */
+    public static BigInteger toBigInteger(Object obj) {
+        if (obj instanceof Integer) {
+            return BigInteger.valueOf(((Integer) obj).longValue());
+        }
+        if (obj instanceof Long) {
+            return BigInteger.valueOf((Long) obj);
+        }
+        if (obj instanceof BigInteger) {
+            return (BigInteger) obj;
+        }
+        return null;
+    }
+
+    /** Converts nulls to empty strings. */
+    public static @Nonnull String toNonnull(String str) {
+        return str == null ? "" : str;
+    }
+
+    // ==== Dates and times ====
+
     /** ISO 8601 format for a complete date and time in UTC. */
-    public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
     /** A SimpleDateFormat that formats as "yyyy-MM-dd" in UTC. */
     public static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     /** A SimpleDateFormat that formats a date and time to be auto-parsed in a spreadsheet. */
@@ -46,52 +98,89 @@ public class Utils {
         SPREADSHEET_FORMAT.setTimeZone(UTC);
     }
 
+    /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
+    public static String formatUtc8601(Date datetime) {
+        return FORMAT.format(datetime);
+    }
+
+    /** Parses an ISO 8601-formatted date into a {@link Date}. */
+    public static Date parse8601(String iso8601) {
+        try {
+            return FORMAT.parse(iso8601);
+        } catch (ParseException e) {
+            throw new InvalidObjectDataException(e.getMessage());
+        }
+    }
+
+    public static String formatUtcDate(Date date) {
+        return YYYYMMDD_UTC_FORMAT.format(date);
+    }
+
+    /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
+    public static @Nullable Date parseLocalDate(String text) {
+        if (text == null) return null;
+        try {
+            return YYYYMMDD_UTC_FORMAT.parse(text);
+        } catch (ParseException e) {
+            throw new InvalidObjectDataException(e.getMessage());
+        }
+    }
+
+
+    // ==== Ordering ====
+
     /**
-     * Compares two objects that may each be null, Integer, or String.  null sorts
-     * before everything; all Integers sort before all Strings; Integers sort
-     * according to numeric value; Strings sort according to string value.
+     * Compares two objects that may be null, Integer, Long, BigInteger, or String.
+     * null sorts before everything; all integers sort before all strings; integers
+     * sort according to numeric value; strings sort according to string value.
      */
-    public static Comparator<Object> nullIntStrComparator = new Comparator<Object>() {
+    public static final Comparator<Object> NULL_INT_STR_COMPARATOR = new Comparator<Object>() {
         @Override public int compare(Object a, Object b) {
-            if (a instanceof Integer && b instanceof Integer) {
-                return (Integer) a - (Integer) b;
+            BigInteger intA = toBigInteger(a);
+            BigInteger intB = toBigInteger(b);
+            if (intA != null && intB != null) {
+                return intA.compareTo(intB);
             }
             if (a instanceof String && b instanceof String) {
                 return ((String) a).compareTo((String) b);
             }
-            return (a == null ? 0 : a instanceof Integer ? 1 : 2)
-                - (b == null ? 0 : b instanceof Integer ? 1 : 2);
+            return (a == null ? 0 : intA != null ? 1 : 2)
+                - (b == null ? 0 : intB != null ? 1 : 2);
         }
     };
+
     /**
-     * Compares two lists, each of whose elements is a null, Integer, or String,
-     * lexicographically by element, just like Python does.
+     * Compares two lists, each of whose elements is a null, Integer, Long,
+     * BigInteger, or String, lexicographically by element, just like Python.
      */
-    public static Comparator<List<Object>> nullIntStrListComparator = new
-        Comparator<List<Object>>() {
-            @Override public int compare(List<Object> a, List<Object> b) {
-                for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
-                    int result = nullIntStrComparator.compare(a.get(i), b.get(i));
-                    if (result != 0) return result;
+    public static final Comparator<List<Object>> NULL_INT_STR_LIST_COMPARATOR = new Comparator<List<Object>>() {
+        @Override public int compare(List<Object> a, List<Object> b) {
+            for (int i = 0; i < Math.min(a.size(), b.size()); i++) {
+                int result = NULL_INT_STR_COMPARATOR.compare(a.get(i), b.get(i));
+                if (result != 0) {
+                    return result;
                 }
-                return a.size() - b.size();
             }
-        };
+            return a.size() - b.size();
+        }
+    };
+
     // Note: Use of \L here assumes a string that is already NFC-normalized.
     private static final Pattern NUMBER_OR_WORD_PATTERN = Pattern.compile("([0-9]+)|\\p{L}+");
+
     /**
-     * Compares two strings in a way that sorts alphabetic parts in alphabetic
+     * Compares two strings in a manner that sorts alphabetic parts in alphabetic
      * order and numeric parts in numeric order, while guaranteeing that:
-     * - compare(s, t) == 0 if and only if s.equals(t).
+     * - compare(s, t) == 0 if and only if eq(s, t).
      * - compare(s, s + t) < 0 for any strings s and t.
      * - compare(s + x, s + y) == Integer.compare(x, y) for all integers x, y
      * and strings s that do not end in a digit.
-     * - compare(s + t, s + u) == compare(s, t) for all strings s and strings
+     * - compare(s + t, s + u) == compare(t, u) for all strings s and strings
      * t, u that consist entirely of Unicode letters.
      * For example, the strings ["b1", "a11a", "a11", "a2", "a2b", "a2a", "a1"]
      * have the sort order ["a1", "a2", "a2a", "a2b", "a11", "a11a", "b1"].
      */
-    public static Comparator<String> alphanumericComparator = new Comparator<String>() {
+    public static final Comparator<String> ALPHANUMERIC_COMPARATOR = new Comparator<String>() {
         @Override public int compare(String a, String b) {
             String aNormalized = Normalizer.normalize(a == null ? "" : a, Normalizer.Form.NFC);
             String bNormalized = Normalizer.normalize(b == null ? "" : b, Normalizer.Form.NFC);
@@ -109,7 +198,7 @@ public class Utils {
             // using the non-normalized string as a further tiebreaker.
             aParts.add(a);
             bParts.add(b);
-            return nullIntStrListComparator.compare(aParts, bParts);
+            return NULL_INT_STR_LIST_COMPARATOR.compare(aParts, bParts);
         }
 
         /**
@@ -120,112 +209,71 @@ public class Utils {
             Matcher matcher = NUMBER_OR_WORD_PATTERN.matcher(str);
             List<Object> parts = new ArrayList<>();
             while (matcher.find()) {
-                String part = matcher.group();
-                String intPart = matcher.group(1);
-                parts.add(intPart != null ? Integer.valueOf(intPart) : part);
+                try {
+                    String part = matcher.group();
+                    String intPart = matcher.group(1);
+                    parts.add(intPart != null ? new BigInteger(intPart) : part);
+                } catch (Exception e) {  // shouldn't happen, but just in case
+                    parts.add(null);
+                }
             }
             return parts;
         }
     };
 
-    /**
-     * Adjusts an encounter datetime to ensure that OpenMRS will accept it.
-     * The OpenMRS core is not designed for a client-server setup -- it will
-     * summarily reject a submitted encounter if the encounter_datetime is in
-     * the future, even if the client's clock is off by only one millisecond.
-     * @param datetime The date and time of an encounter.
-     * @return
-     */
-    public static Date fixEncounterDateTime(Date datetime) {
-        Date now = new Date();
-        if (datetime.after(now)) {
-            datetime = now;
-        }
-        return datetime;
-    }
 
-    /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
-    public static String toIso8601(Date dateTime) {
-        return FORMAT.format(dateTime);
-    }
+    // === JSON SimpleObjects ===
 
-    /** Parses an ISO 8601-formatted date into a {@link Date}. */
-    public static Date fromIso8601(String iso8601) throws ParseException {
-        return FORMAT.parse(iso8601);
-    }
-
-    /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
-    public static Date parseLocalDate(String text, String fieldName) {
-        try {
-            return YYYYMMDD_UTC_FORMAT.parse(text);
-        } catch (ParseException e) {
+    public static void requirePropertyAbsent(SimpleObject obj, String key) {
+        if (obj.containsKey(key)) {
             throw new InvalidObjectDataException(String.format(
-                "The %s field should be in yyyy-MM-dd format", fieldName));
+                "Property \"%s\" is not allowed", key));
         }
     }
 
-    /**
-     * Converts a JSON-parsed number (sometimes Integer, sometimes Long) to a nullable Long.
-     */
-    public static Long asLong(Object obj) {
-        if (obj == null) {
-            return null;
+    public static @Nonnull String getRequiredString(SimpleObject obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing", key));
         }
-        if (obj instanceof Integer) {
-            return Long.valueOf((Integer) obj);
+        if (!(value instanceof String)) {
+            throw new InvalidObjectDataException(String.format(
+                "Property \"%s\" should be a String, not %s", key, value.getClass()));
         }
-        if (obj instanceof Long) {
-            return (Long) obj;
-        }
-        throw new ClassCastException("Expected value of type Long or Integer");
+        return (String) value;
     }
 
-    /**
-     * Iterates backwards through revision orders until it finds the root order.
-     */
-    public static Order getRootOrder(Order order) {
-        while (order.getPreviousOrder() != null) {
-            order = order.getPreviousOrder();
-        }
-        return order;
+    public static @Nullable String getOptionalString(SimpleObject obj, String key) {
+        return obj.get(key) != null ? getRequiredString(obj, key) : null;
     }
 
-    public static @Nullable User getUserFromProvider(@Nullable Provider provider) {
-        if (provider == null) {
-            return null;
+    public static @Nonnull Date getRequiredDateMillis(SimpleObject obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing", key));
         }
-        Person person = provider.getPerson();
-        if (person == null) {
-            throw new IllegalStateException(
-                    "Should not be possible to get null person from provider.");
+        long millis;
+        try {
+            millis = asLong(value);
+        } catch (ClassCastException e) {
+            throw new InvalidObjectDataException(String.format(
+                "Property \"%s\" should be a number, not %s", key, value.getClass()));
         }
-        List<User> users = Context.getUserService().getUsersByPerson(person, false);
-        if (users.size() < 1) {
-            // This is a server error.
-            throw new IllegalStateException("There is no user for the associated provider");
-        }
-        return users.get(0);
+        return new Date(millis);
     }
 
-    public static @Nullable User getUserFromProviderUuid(@Nullable String providerUuid) {
-        if (providerUuid == null) {
-            return null;
-        }
-        Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
-        return getUserFromProvider(provider);
+    public static @Nullable Date getOptionalDateMillis(SimpleObject obj, String key) {
+        return obj.get(key) != null ? getRequiredDateMillis(obj, key) : null;
     }
 
-    public static @Nullable Provider getProviderFromUser(@Nullable User user) {
-        if (user == null) {
-            return null;
-        }
-        Person person = user.getPerson();
-        Iterator<Provider> providers =
-                Context.getProviderService().getProvidersByPerson(person).iterator();
-        if (providers.hasNext()) {
-            return providers.next();
-        } else {
-            return null;
-        }
+
+    // ==== HTTP responses ====
+
+    public static void addVersionHeaders(RequestContext context) {
+        HttpServletResponse response = context.getResponse();
+        response.addHeader("Buendia-Server-Version", "0.13");
+        response.addHeader("Buendia-Client-Minimum-Version", "0.17");
     }
 }

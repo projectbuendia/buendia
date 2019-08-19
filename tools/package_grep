@@ -10,4 +10,4 @@ if [ -z "$1" ]; then
 fi
 
 cd $tools/../packages
-grep -r "$@" */data | sed -e 's#/control/control.template:#: #'
+grep -r "$@" *

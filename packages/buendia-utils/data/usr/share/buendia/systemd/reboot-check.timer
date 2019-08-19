@@ -2,7 +2,7 @@
 Description=Periodically check for a reboot request
 
 [Timer]
-OnBootSec=30
+OnBootSec=120
 OnUnitActiveSec=5
 Unit=reboot-check.service
 

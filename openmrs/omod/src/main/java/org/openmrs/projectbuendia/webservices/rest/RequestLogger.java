@@ -35,23 +35,28 @@ public class RequestLogger {
         this.dir = dir;
     }
 
-    public void request(RequestContext context, Object obj, String method) {
-        request(context, obj, method, null);
+    public void request(RequestContext context, Object instance, String method) {
+        request(context, instance, method, null);
     }
 
     /** Emits a "start" line for an incoming request. */
-    public void request(RequestContext context, Object obj, String method, Object input) {
-        request(context, obj.getClass().getName() + "." + method,
-            input == null ? "" : "(" + input + ")");
+    public void request(RequestContext context, Object instance, String method, Object input) {
+        String message = input instanceof String ? "\"" + input + "\"" :
+            input != null ? "" + input : "";
+        request(context, formatKey(instance, method), message);
     }
 
     /** Emits a "start" line for an incoming request. */
-    protected void request(RequestContext context, String key, String message) {
+    private void request(RequestContext context, String key, String message) {
         try {
             HttpServletRequest request = context.getRequest();
             String filename = request.getRemoteAddr();
-            start(filename, key, "\u001b[33m" + request.getMethod() + " "
-                + request.getRequestURI() + "\u001b[0m " + message);
+            String url = request.getRequestURI();
+            if (request.getQueryString() != null) {
+                url += "?" + request.getQueryString();
+            }
+            start(filename, key, "\u001b[33m" + request.getMethod() + " " + url
+                + "\u001b[0m " + message);
         } catch (Exception e) {
         }
     }
@@ -70,9 +75,9 @@ public class RequestLogger {
     }
 
     /** Emits an "end" line for a successful reply. */
-    public void reply(RequestContext context, Object obj, String method, Object result) {
-        reply(context, obj.getClass().getName() + "." + method,
-            result == null ? "" : "" + result);
+    public <T> T reply(RequestContext context, Object instance, String method, T result) {
+        reply(context, formatKey(instance, method), result != null ? "" + result : "");
+        return result;
     }
 
     /** Emits an "end" line for a successful reply. */
@@ -94,8 +99,8 @@ public class RequestLogger {
     }
 
     /** Emits an "end" line when an exception occurs. */
-    public void error(RequestContext context, Object obj, String method, Exception e) {
-        error(context, obj.getClass().getName() + "." + method, e);
+    public void error(RequestContext context, Object instance, String method, Exception e) {
+        error(context, formatKey(instance, method), e);
     }
 
     /** Emits an "end" line when an exception occurs. */
@@ -103,9 +108,13 @@ public class RequestLogger {
         try {
             HttpServletRequest request = context.getRequest();
             String filename = request.getRemoteAddr();
-            end(filename, key, ExceptionUtils.getMessage(error) + ":\n"
+            end(filename, key, "\u001b[31m" + ExceptionUtils.getMessage(error) + "\u001b[0m:\n"
                 + ExceptionUtils.getStackTrace(error));
         } catch (Exception e) {
         }
+    }
+    
+    protected String formatKey(Object instance, String method) {
+        return instance.getClass().getSimpleName() + "." + method;
     }
 }

@@ -16,7 +16,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.api.context.Context;
-import org.openmrs.projectbuendia.webservices.rest.GlobalProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -46,9 +45,17 @@ import java.util.Properties;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.openmrs.projectbuendia.Utils.eq;
+
 /** The controller for the profile management page. */
 @Controller
 public class ProfileManager {
+    // Global properties can be edited in Management > Advanced Settings.
+    // The property keys here and those listed in config.xml should match.
+
+    /** The global property that stores the filename of the current profile. */
+    public static final String GLOBAL_PROPERTY_CURRENT_PROFILE = "projectbuendia.currentProfile";
+
     protected static Log log = LogFactory.getLog(ProfileManager.class);
     private final String PROFILE_DIR_PATH = "/usr/share/buendia/profiles";
     private final String VALIDATE_CMD = "buendia-profile-validate";
@@ -128,12 +135,12 @@ public class ProfileManager {
                 File file = new File(profileDir, filename);
                 if (file.isFile()) {
                     model.addAttribute("filename", filename);
-                    if ("Apply".equals(op)) {
+                    if (eq(op, "Apply")) {
                         applyProfile(file, model);
-                    } else if ("Download".equals(op)) {
+                    } else if (eq(op, "Download")) {
                         downloadProfile(file, response);
                         return null;  // download the file, don't redirect
-                    } else if ("Delete".equals(op)) {
+                    } else if (eq(op, "Delete")) {
                         deleteProfile(file, model);
                     }
                 }
@@ -160,7 +167,7 @@ public class ProfileManager {
         for (File file : profileDir.listFiles()) {
             int version = 0;
             String n = file.getName();
-            if (n.equals(name + ext)) {
+            if (eq(n, name + ext)) {
                 version = 1;
             } else if (n.startsWith(prefix) && n.endsWith(ext)) {
                 try {
@@ -243,7 +250,7 @@ public class ProfileManager {
 
     /** Deletes a profile. */
     private void deleteProfile(File file, ModelMap model) {
-        if (file.getName().equals(getCurrentProfile())) {
+        if (eq(file.getName(), getCurrentProfile())) {
             model.addAttribute("success", false);
             model.addAttribute("message", "Cannot delete the currently active profile.");
         } else if (file.delete()) {
@@ -289,13 +296,13 @@ public class ProfileManager {
     /** Gets the global property for the name of the current profile. */
     private String getCurrentProfile() {
         return Context.getAdministrationService().getGlobalProperty(
-            GlobalProperties.CURRENT_PROFILE);
+            GLOBAL_PROPERTY_CURRENT_PROFILE);
     }
 
     /** Sets the global property for the name of the current profile. */
     private void setCurrentProfile(String name) {
         Context.getAdministrationService().setGlobalProperty(
-            GlobalProperties.CURRENT_PROFILE, name);
+            GLOBAL_PROPERTY_CURRENT_PROFILE, name);
     }
 
     public class FileInfo {
