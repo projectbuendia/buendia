@@ -58,7 +58,7 @@ function add_location() {
         values
             ('$name', $parent_id, '$USER_ID', now(), '$uuid');
     " >/dev/null;
-    echo 'Added location "'$name'".'
+    echo 'Added location "'$name'".' 1>&2
     $MYSQL <<< "
         select location_id from location where uuid = '$uuid';
     "
