@@ -268,13 +268,11 @@ public class DbUtils {
         }
     };
 
-    /**
-     * Gets the default root location, where identifiers will be placed.  For consistency
-     * with the client, this is the root with the alphanumerically first (lowest) name.
-     */
+    /** Gets the default root location, where identifiers will be placed. */
     public static Location getDefaultRoot() {
         LocationService locationService = Context.getLocationService();
         List<Location> locations = locationService.getAllLocations(false);
+        // The default location is the root with the alphanumerically first (lowest) name.
         Collections.sort(locations, ALPHANUMERIC_NAME_COMPARATOR);
         for (Location location : locationService.getAllLocations(false)) {
             if (location.getParentLocation() == null) {
