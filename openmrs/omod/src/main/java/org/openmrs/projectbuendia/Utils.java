@@ -12,6 +12,7 @@
 package org.openmrs.projectbuendia;
 
 import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
 
 import java.math.BigInteger;
@@ -29,6 +30,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletResponse;
 
 public class Utils {
     // ==== Basic types ====
@@ -264,5 +266,14 @@ public class Utils {
 
     public static @Nullable Date getOptionalDateMillis(SimpleObject obj, String key) {
         return obj.get(key) != null ? getRequiredDateMillis(obj, key) : null;
+    }
+
+
+    // ==== HTTP responses ====
+
+    public static void addVersionHeaders(RequestContext context) {
+        HttpServletResponse response = context.getResponse();
+        response.addHeader("Buendia-Server-Version", "0.13");
+        response.addHeader("Buendia-Client-Minimum-Version", "0.17");
     }
 }

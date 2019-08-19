@@ -79,6 +79,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Returns all items in the collection. */
     public SimpleObject getAll(RequestContext context) throws ResponseException {
+        Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "getAll");
             List<SimpleObject> results = new ArrayList<>();
@@ -98,6 +99,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
      * otherwise searches for items matching the criteria in context.
      */
     public SimpleObject search(RequestContext context) throws ResponseException {
+        Utils.addVersionHeaders(context);
         String bookmark = getSyncToken(context);
         String op = bookmark != null ? "sync" : "search";
         logger.request(context, this, op);
@@ -125,6 +127,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Creates a new item from the posted data. */
     public Object create(SimpleObject data, RequestContext context) throws ResponseException {
+        Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "create", data);
             Utils.requirePropertyAbsent(data, "uuid");
@@ -138,6 +141,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Retrieves the item with the given UUID. */
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
+        Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "retrieve");
             T item = retrieveItem(uuid);
@@ -151,6 +155,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Updates the item with the given UUID. */
     public Object update(String uuid, SimpleObject data, RequestContext context) throws ResponseException {
+        Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "update", data);
             T item = retrieveItem(uuid);
@@ -165,6 +170,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Deletes the item with the given UUID. */
     public void delete(String uuid, String reason, RequestContext context) throws ResponseException {
+        Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "delete", reason);
             T item = retrieveItem(uuid);
