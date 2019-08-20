@@ -35,18 +35,6 @@ import static org.openmrs.projectbuendia.Utils.isBlank;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class ConceptResource extends BaseResource<Concept> {
-    /** A map from HL7 type abbreviations to short names used in JSON output. */
-    private static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
-    static {
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_BOOLEAN, "coded");
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED, "coded");
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_TEXT, "text");
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_NUMERIC, "numeric");
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_DATE, "date");
-        HL7_TYPE_NAMES.put(HL7Constants.HL7_DATETIME, "datetime");
-        HL7_TYPE_NAMES.put("ZZ", "none");
-    }
     private final ClientConceptNamer namer;
 
     public ConceptResource() {
@@ -89,7 +77,7 @@ public class ConceptResource extends BaseResource<Concept> {
 
     @Override protected void populateJson(SimpleObject json, Concept concept, RequestContext context) {
         List<Locale> locales = getLocalesForRequest(context);
-        String type = HL7_TYPE_NAMES.get(concept.getDatatype().getHl7Abbreviation());
+        String type = DbUtils.getConceptTypeName(concept);
         if (type == null) {
             throw new ConfigurationException("Concept %s has unmapped HL7 data type %s",
                 concept.getName().getName(), concept.getDatatype().getHl7Abbreviation());

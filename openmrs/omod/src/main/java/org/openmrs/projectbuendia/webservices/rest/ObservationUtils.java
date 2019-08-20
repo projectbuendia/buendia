@@ -14,6 +14,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
+import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterType;
 import org.openmrs.Location;
@@ -25,8 +26,9 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
+import org.openmrs.hl7.HL7Constants;
+import org.openmrs.projectbuendia.ObsValueVisitor;
 import org.openmrs.projectbuendia.Utils;
-import org.openmrs.projectbuendia.VisitObsValue;
 
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -37,17 +39,18 @@ import java.util.Map;
 /** Utility methods for dealing with observations. */
 public class ObservationUtils {
     /**
-     * For consistency these should be accepted as XForm instances, but as a
-     * short-term fix we allow observations to be expressed in this JSON format:
+     * Incoming observations can be posted as JSON objects in the following format:
      * <pre>
      * "observations": [
-     *   {
-     *       "question_uuid": "xxxx-...',
-     *       # then ONE of the following three answer_* fields:
-     *       "answer_date": "2013-01-30"
-     *       "answer_number": 40
-     *       "answer_uuid": "xxxx-...."
-     *   }, ...
+     *     {
+     *         "question_uuid": "xxxx-...',
+     *         # then ONE of the following answer_* fields:
+     *         "answer_date": "2013-01-30"
+     *         "answer_datetime": "2019-08-20T06:48:28Z"
+     *         "answer_number": 40
+     *         "answer_uuid": "xxxx-...."
+     *         "answer_text": "Comments..."
+     *     }, ...
      * ]
      * </pre>
      */
@@ -55,7 +58,9 @@ public class ObservationUtils {
     private static Log log = LogFactory.getLog(ObservationUtils.class);
     private static final String OBSERVATIONS = "observations";
     private static final String QUESTION_UUID = "question_uuid";
+    private static final String ANSWER_TEXT = "answer_text";
     private static final String ANSWER_DATE = "answer_date";
+    private static final String ANSWER_DATETIME = "answer_datetime";
     private static final String ANSWER_NUMBER = "answer_number";
     private static final String ANSWER_UUID = "answer_uuid";
     private static final String ORDER_UUID = "order_uuid";
@@ -129,8 +134,8 @@ public class ObservationUtils {
 
     static Obs jsonObservationToObs(Object jsonObservation, Patient patient,
                                     Date encounterTime, Location location) {
-        Map observationObject = (Map) jsonObservation;
-        String questionUuid = (String) observationObject.get(QUESTION_UUID);
+        Map jsonObs = (Map) jsonObservation;
+        String questionUuid = (String) jsonObs.get(QUESTION_UUID);
         ConceptService conceptService = Context.getConceptService();
         Concept questionConcept = conceptService.getConceptByUuid(questionUuid);
         if (questionConcept == null) {
@@ -138,32 +143,44 @@ public class ObservationUtils {
             return null;
         }
         Obs obs = new Obs(patient, questionConcept, encounterTime, location);
-        String answerUuid = (String) observationObject.get(ANSWER_UUID);
-        String answerDate = (String) observationObject.get(ANSWER_DATE);
-        String answerNumber = (String) observationObject.get(ANSWER_NUMBER);
-        if (answerUuid != null) {
+        if (jsonObs.containsKey(ANSWER_UUID)) {
+            String answerUuid = (String) jsonObs.get(ANSWER_UUID);
             Concept answerConcept = conceptService.getConceptByUuid(answerUuid);
             if (answerConcept == null) {
                 log.warn("Answer concept not found: " + answerUuid);
                 return null;
             }
             obs.setValueCoded(answerConcept);
-        } else if (answerDate != null) {
+        } else if (jsonObs.containsKey(ANSWER_DATE)) {
+            String answerDate = (String) jsonObs.get(ANSWER_DATE);
             try {
                 obs.setValueDate(Utils.YYYYMMDD_UTC_FORMAT.parse(answerDate));
             } catch (ParseException e) {
-                log.warn("Invalid date answer: " + answerDate);
+                log.warn("Invalid answer_date: " + answerDate);
                 return null;
             }
-        } else if (observationObject.containsKey(ANSWER_NUMBER)) {
+        } else if (jsonObs.containsKey(ANSWER_DATETIME)) {
+            String answerDate = (String) jsonObs.get(ANSWER_DATETIME);
+            try {
+                obs.setValueDatetime(Utils.ISO8601_FORMAT.parse(answerDate));
+            } catch (ParseException e) {
+                log.warn("Invalid answer_datetime: " + answerDate);
+                return null;
+            }
+        } else if (jsonObs.containsKey(ANSWER_NUMBER)) {
+            // Accept a number or a string containing a number.
+            String answerNumber = jsonObs.get(ANSWER_NUMBER).toString();
             try {
                 obs.setValueNumeric(Double.parseDouble(answerNumber));
             } catch (IllegalArgumentException e) {
-                log.warn("Invalid numeric answer: " + answerUuid);
+                log.warn("Invalid answer_number: " + answerNumber);
                 return null;
             }
+        } else if (jsonObs.containsKey(ANSWER_TEXT)) {
+            String answerText = (String) jsonObs.get(ANSWER_TEXT);
+            obs.setValueText(answerText);
         } else {
-            log.warn("Invalid answer type: " + observationObject);
+            log.warn("Invalid answer type: " + jsonObs);
             return null;
         }
         return obs;
@@ -183,31 +200,56 @@ public class ObservationUtils {
     }
 
     public static String obsValueToString(Obs obs) {
-        return VisitObsValue.visit(
-                obs, new VisitObsValue.ObsValueVisitor<String>() {
-                    @Override public String visitCoded(Concept value) {
-                        return value.getUuid();
-                    }
+        return visit(obs, new ObsValueVisitor<String>() {
+            @Override public String visitCoded(Concept value) {
+                return value.getUuid();
+            }
 
-                    @Override public String visitNumeric(Double value) {
-                        return "" + value;
-                    }
+            @Override public String visitNumeric(Double value) {
+                return "" + value;
+            }
 
-                    @Override public String visitBoolean(Boolean value) {
-                        return "" + value;
-                    }
+            @Override public String visitBoolean(Boolean value) {
+                return value ? Context.getConceptService().getTrueConcept().getUuid()
+                    : Context.getConceptService().getFalseConcept().getUuid();
+            }
 
-                    @Override public String visitText(String value) {
-                        return value;
-                    }
+            @Override public String visitText(String value) {
+                return value;
+            }
 
-                    @Override public String visitDate(Date value) {
-                        return Utils.YYYYMMDD_UTC_FORMAT.format(value);
-                    }
+            @Override public String visitDate(Date value) {
+                return Utils.YYYYMMDD_UTC_FORMAT.format(value);
+            }
 
-                    @Override public String visitDatetime(Date value) {
-                        return Utils.formatUtc8601(value);
-                    }
-                });
+            @Override public String visitDatetime(Date value) {
+                return Utils.formatUtc8601(value);
+            }
+        });
+    }
+
+    /** Applies a visitor to an observation (we can't retrofit to Obs). */
+    public static <T> T visit(Obs obs, ObsValueVisitor<T> visitor) {
+        Concept concept = obs.getConcept();
+        ConceptDatatype dataType = concept.getDatatype();
+        String hl7Type = dataType.getHl7Abbreviation();
+        switch (hl7Type) {
+            case HL7Constants.HL7_BOOLEAN:
+                return visitor.visitBoolean(obs.getValueAsBoolean());
+            case HL7Constants.HL7_CODED: // deliberate fall through
+            case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
+                return visitor.visitCoded(obs.getValueCoded());
+            case HL7Constants.HL7_NUMERIC:
+                return visitor.visitNumeric(obs.getValueNumeric());
+            case HL7Constants.HL7_TEXT:
+                return visitor.visitText(obs.getValueText());
+            case HL7Constants.HL7_DATE:
+                return visitor.visitDate(obs.getValueDate());
+            case HL7Constants.HL7_DATETIME:
+                return visitor.visitDatetime(obs.getValueDatetime());
+            default:
+                throw new IllegalArgumentException(
+                    "Unexpected HL7 type: " + hl7Type + " for concept " + concept);
+        }
     }
 }

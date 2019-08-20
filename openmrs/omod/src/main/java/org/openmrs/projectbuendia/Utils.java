@@ -86,27 +86,27 @@ public class Utils {
     // ==== Dates and times ====
 
     /** ISO 8601 format for a complete date and time in UTC. */
-    public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+    public static final DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
     /** A SimpleDateFormat that formats as "yyyy-MM-dd" in UTC. */
     public static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     /** A SimpleDateFormat that formats a date and time to be auto-parsed in a spreadsheet. */
     public static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     static {
-        FORMAT.setTimeZone(UTC);
+        ISO8601_FORMAT.setTimeZone(UTC);
         YYYYMMDD_UTC_FORMAT.setTimeZone(UTC);
         SPREADSHEET_FORMAT.setTimeZone(UTC);
     }
 
     /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
     public static String formatUtc8601(Date datetime) {
-        return FORMAT.format(datetime);
+        return ISO8601_FORMAT.format(datetime);
     }
 
     /** Parses an ISO 8601-formatted date into a {@link Date}. */
     public static Date parse8601(String iso8601) {
         try {
-            return FORMAT.parse(iso8601);
+            return ISO8601_FORMAT.parse(iso8601);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(e.getMessage());
         }

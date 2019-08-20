@@ -37,14 +37,17 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
+import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.web.response
     .IllegalPropertyException;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -79,6 +82,19 @@ public class DbUtils {
     // This UUID is hardcoded but only used internally by the server to distinguish
     // chart forms (exposed at /charts) from XForm forms (exposed at /xforms).
     public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+
+    /** A map from HL7 type abbreviations to short names used in JSON output. */
+    static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
+    static {
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_BOOLEAN, "coded");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED, "coded");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_TEXT, "text");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_NUMERIC, "numeric");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_DATE, "date");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_DATETIME, "datetime");
+        HL7_TYPE_NAMES.put("ZZ", "none");
+    }
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
     public static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
@@ -138,6 +154,10 @@ public class DbUtils {
             orderService.saveOrderType(orderType);
         }
         return orderType;
+    }
+
+    public static String getConceptTypeName(Concept concept) {
+        return HL7_TYPE_NAMES.get(concept.getDatatype().getHl7Abbreviation());
     }
 
     public static ConceptClass getConceptClass(String name) {
