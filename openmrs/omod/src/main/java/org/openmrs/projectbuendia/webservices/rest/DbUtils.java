@@ -64,6 +64,11 @@ public class DbUtils {
     // order was executed.  This is the only hardcoded UUID that clients need to know.
     public static final String CONCEPT_ORDER_EXECUTED_UUID = "buendia_concept_order_executed";
 
+    // Clients should use this concept UUID for observations that indicate a patient's
+    // assignment to a location or bed.  The server will not break if a different UUID
+    // is used; the only effect is that the other concept will not be created automatically.
+    public static final String CONCEPT_PLACEMENT_UUID = "buendia_concept_placement";
+
     // The concept UUID for all orders.  This is used internally by the server and
     // does not need to be known by clients.
     public static final String CONCEPT_FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
@@ -171,6 +176,11 @@ public class DbUtils {
     public static Concept getOrderExecutedConcept() {
         return DbUtils.getConcept(
             "Order executed", CONCEPT_ORDER_EXECUTED_UUID, "N/A", "Finding");
+    }
+
+    public static Concept getPlacementConcept() {
+        return DbUtils.getConcept(
+            "Placement", CONCEPT_PLACEMENT_UUID, "Text", "Misc");
     }
 
     // Gets the default concept for orders in Buendia.  We don't store dosages,

@@ -95,6 +95,9 @@ public class ObservationUtils {
             throw new InvalidObjectDataException("Encounter type not found: " + encounterTypeName);
         }
 
+        // Ensure the placement concept exists, so we can receive observations of it.
+        DbUtils.getPlacementConcept();
+
         List<Obs> obsList = new ArrayList<>();
         if (observations != null) {
             for (Object observation : observations) {
