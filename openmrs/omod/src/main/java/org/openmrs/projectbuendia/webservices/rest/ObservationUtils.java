@@ -39,20 +39,34 @@ import java.util.Map;
 /** Utility methods for dealing with observations. */
 public class ObservationUtils {
     /**
-     * Incoming observations can be posted as JSON objects in the following format:
-     * <pre>
-     * "observations": [
-     *     {
-     *         "question_uuid": "xxxx-...',
-     *         # then ONE of the following answer_* fields:
-     *         "answer_date": "2013-01-30"
-     *         "answer_datetime": "2019-08-20T06:48:28Z"
-     *         "answer_number": 40
-     *         "answer_uuid": "xxxx-...."
-     *         "answer_text": "Comments..."
-     *     }, ...
-     * ]
-     * </pre>
+     * TODO(ping): Observations are (sadly) transmitted in three different
+     * wire formats.  We should get this down to 1 XML and 1 JSON format.
+     * See also: EncounterResource.createItem, XformInstanceResource.adjustXformDocument.
+     *
+     * 1.  Observations posted to /encounters and /patients are expected
+     *     to be in an array containing one item per observation, in the form
+     *     {"question_uuid": [uuid], "answer_[type]": [value]}
+     *     where [uuid] is the UUID of the question concept and [type] is
+     *     one of "date", "datetime", "number", "uuid", or "text",
+     *     indicating the type of the [value].  Date and datetime values
+     *     should be in yyyy-mm-dd or yyyy-mm-ddThh:mm:ss.sssZ format.
+     *
+     * 2.  Observations retrieved from /encounters are returned as one map
+     *     containing one key-value pair per observation, where the concept
+     *     UUID of the observation is the key and values of all types are
+     *     converted to string values.  The type information is lost and
+     *     the client does a feeble job of guessing the type.
+     *
+     * 3.  Observations posted to /xforminstances are expected to be in
+     *     an XForm instance document, each one as an XML element inside
+     *     a top-level XML element.  (The top-level elements represent
+     *     the sections of the formm, and all observations are expected
+     *     to be at the second level of the XML tree.)
+     *
+     * We should harmonize #1 and #2 into a single JSON format, probably
+     * a map like #2 containing type information like #1, where the keys
+;     * are the same but the values are single-element maps like so:
+     * {[uuid]: {"answer_[type]": value}, ...}
      */
 
     private static Log log = LogFactory.getLog(ObservationUtils.class);
