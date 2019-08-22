@@ -102,7 +102,9 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
             .setTextContent(Utils.formatUtc8601(dateEntered));
 
-        // OpenMRS can't handle the encounter_datetime in the format we receive.
+        // The encounter_datetime field should usually be omitted by the client,
+        // which signals us to use the current server time.  When the client does
+        // supply it, we need to reformat it.  See fixEncounterDatetime() below.
         setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
 
         // Make sure that all observations are under the obs element, with appropriate attributes.
@@ -162,7 +164,10 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
     private static String fixEncounterDatetime(String text) {
         Date datetime = parseTimestamp(text);
         if (datetime == null) {
-            LOG.warn("No encounter_datetime found; using the current time");
+            // If the encounter_datetime field is missing, we use server time.
+            // The server's clock is the authoritative clock, so, unless the
+            // user is explicitly backdating a set of observations, the client
+            // should omit the encounter_datetime field.
             datetime = new Date();
         }
 
@@ -195,7 +200,9 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         for (String pattern : acceptablePatterns) {
             try {
                 return new SimpleDateFormat(pattern).parse(timestamp);
-            } catch (ParseException e) { /* ignore and continue */ }
+            } catch (ParseException e) {
+                LOG.warn("Unparseable encounter_datetime: " + timestamp);
+            }
         }
         return null;
     }
