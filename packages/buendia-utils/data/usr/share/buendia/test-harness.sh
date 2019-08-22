@@ -9,6 +9,7 @@ pass="[ \033[92mPASS\033[0m ]"
 bad="[ \033[31mBAD\033[0m  ]"
 fail_suite="[ \033[91mFAIL\033[0m ]"
 skip_suite="[ \033[33mSKIP\033[0m ]"
+warning="\033[33mWARNING\033[0m"
 
 execute_cron_right_now () {
     cron_file=/etc/cron.d/buendia-$1
@@ -77,6 +78,9 @@ run_test_suite () {
 }
 
 run_all_test_suites () {
+    if [ "$USER" != "root" ]; then
+        echo -e "${warning}: You almost certainly want to run this script using sudo."
+    fi
     suite_path=${1:-$BUENDIA_TEST_SUITE_PATH}
     test_results=$(mktemp -d -t buendia_run_all_test_suites.XXXX)
     trap "rm -rf $test_results" EXIT
