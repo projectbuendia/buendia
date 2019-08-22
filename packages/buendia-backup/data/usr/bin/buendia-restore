@@ -52,7 +52,7 @@ mkdir -p "$tmp"
 if [ -b "$root" ]; then
     echo "$root is a block device; mounting..."
     mnt_dir="/mnt/$name.$$.$(basename $root)"
-    trap 'fuser -m "$mnt_dir"; umount "$mnt_dir"; rm -rf "$mnt_dir" "$tmp"' EXIT
+    trap 'umount "$mnt_dir" || true; rm -rf "$mnt_dir" "$tmp"' EXIT
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
 
