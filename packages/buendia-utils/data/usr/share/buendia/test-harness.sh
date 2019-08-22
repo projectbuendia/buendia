@@ -90,6 +90,24 @@ umount_loopback () {
     . /usr/share/buendia/utils.sh
 }
 
+# openmrs_auth generates an authentication header for the Buendia API
+openmrs_auth () {
+    AUTH=$(echo -n "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" | base64)
+    echo "Authorization: Basic $AUTH"
+}
+
+# openmrs_post sends a POST request to a local API endpoint. The POST content
+# is taken from stdin.
+openmrs_post () {
+    curl -H $(openmrs_auth) -H "Content-Type: application/json" \
+        -s -d @- "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+}
+
+# openmrs_get sends a GET request to a local API endpoint.
+openmrs_get () {
+    curl -s -H $(openmrs_auth) "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+}
+
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
 # lexical order. Buendia integration test cases are bash functions starting
 # with the prefix "test_". Test suites are run inside a temporary directory
