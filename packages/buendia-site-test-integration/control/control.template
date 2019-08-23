@@ -1,0 +1,9 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils
+Provides: buendia-site
+Conflicts: buendia-site
+Depends: buendia-dashboard, buendia-backup, buendia-monitoring
+Description: Site config: Destructive integration testing
+Maintainer: projectbuendia.org
