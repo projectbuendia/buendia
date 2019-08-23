@@ -2,7 +2,9 @@
 
 **Build status:** [![CircleCI](https://circleci.com/gh/projectbuendia/buendia/tree/dev.svg?style=svg)](https://circleci.com/gh/projectbuendia/buendia/tree/dev)
 
-The latest stable release is **v0.12.1**.
+The latest stable release is **v0.13**.  This release requires **client version 0.17 or higher**.
+
+If you are using an older client, use server release 0.12.1.
 
 You can install Buendia on a stock Debian stretch instance as follows:
 
