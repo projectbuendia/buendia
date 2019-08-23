@@ -1,5 +1,3 @@
-#!/bin/bash
-
 test_10_run_dashboard_cron () {
     execute_cron_right_now dashboard
     # FIXME: ^^ this throws an error when run manually:

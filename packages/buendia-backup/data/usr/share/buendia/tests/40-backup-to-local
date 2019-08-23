@@ -1,5 +1,3 @@
-#!/bin/bash
-
 BUENDIA_TEST_BACKUP_TARGET=/var/backups/buendia/backup.$(date +%Y-%m-%d)
 
 # When the backup cron job runs

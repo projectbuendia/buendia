@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # When a user visits the OpenMRS page for the first time,
 # Then the user is prompted to log in with their username & password.
 
