@@ -99,13 +99,17 @@ openmrs_auth () {
 # openmrs_post sends a POST request to a local API endpoint. The POST content
 # is taken from stdin.
 openmrs_post () {
-    curl -H $(openmrs_auth) -H "Content-Type: application/json" \
+    curl -H "$(openmrs_auth)" -H "Content-Type: application/json" \
         -s -d @- "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
 }
 
 # openmrs_get sends a GET request to a local API endpoint.
 openmrs_get () {
-    curl -s -H $(openmrs_auth) "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+    curl -s -H "$(openmrs_auth)" "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+}
+
+execute_openmrs_sql () {
+    mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs
 }
 
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
