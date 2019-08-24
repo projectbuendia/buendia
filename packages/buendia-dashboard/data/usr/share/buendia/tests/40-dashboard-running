@@ -1,9 +1,5 @@
 test_10_run_dashboard_cron () {
     execute_cron_right_now dashboard
-    # FIXME: ^^ this throws an error when run manually:
-    # $ sudo /usr/sbin/logrotate /etc/logrotate.d/buendia-dashboard
-    # error: /etc/logrotate.d/buendia-dashboard:27 error verifying olddir path /var/log/requests/old: No such file or directory
-    true
 }
 
 test_20_dashboard_says_server_is_running () {
