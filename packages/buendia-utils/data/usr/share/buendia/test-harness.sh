@@ -99,6 +99,12 @@ umount_loopback () {
 # returns a non-zero value, the suite is immediately aborted.
 run_test_suite () {
     suite=$1
+    # Ensure that we are running as root or many things are unlikely to work
+    # correctly.
+    if [ "$USER" != "root" ]; then
+        echo -e "${warning}: You almost certainly want to run this script using sudo."
+        return 1
+    fi
     # Run the entire test suite in a subshell.
     (
         # Make a temporary directory, and clean it (and any loopback devices) up
@@ -145,9 +151,6 @@ run_test_suite () {
 # case fails, the current test suite, and any remaining suites, are immediately
 # aborted.
 run_all_test_suites () {
-    if [ "$USER" != "root" ]; then
-        echo -e "${warning}: You almost certainly want to run this script using sudo."
-    fi
     suite_path=${1:-$BUENDIA_TEST_SUITE_PATH}
 
     # Create a temp dir for capturing test suite results.
