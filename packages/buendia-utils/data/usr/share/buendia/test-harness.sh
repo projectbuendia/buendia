@@ -117,17 +117,20 @@ run_test_suite () {
         # Find the functions beginning with "test_" and run them in sorted
         # order.
         for test_func in $(compgen -A function | grep "^test_" | sort); do
-            # Run the test case function in the working directory, capturing
-            # stdin/out.
             cd $tmpdir
             echo -ne "$test_begin $test_func"
-            $test_func >${tmpdir}/output 2>&1
+
+            # Run the test case function in the working directory, capturing
+            # stdin/out and enabling function tracing and exit-on-error.
+            ( set -ex; $test_func ) >${tmpdir}/output 2>&1
+
+            # Capture the return value
+            result=$?
 
             # If the case passed, report success, and write the name of the
             # test case to FD 3 (if run_all_test_suites is listening).
             # Otherwise, dump the output of the failed test, and return with
             # failure.
-            result=$?
             if [ $result -eq 0 ]; then
                 echo -e "\r$test_pass $test_func"
                 [ -w /dev/fd/3 ] && echo $test_func >&3

@@ -1,7 +1,6 @@
 test_10_run_monitoring_cron () {
-    execute_cron_right_now monitoring
-    # FIXME: fix missing ifconfig log
-    true
+    # TODO: fix missing ifconfig log
+    execute_cron_right_now monitoring || true
 }
 
 test_20_cron_wrote_some_logs () {
