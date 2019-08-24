@@ -15,9 +15,19 @@ execute_cron_right_now () {
     cron_file=/etc/cron.d/buendia-$1
     script=cron.sh
     # Keep the environment settings at the top of the file.
-    grep "^[A-Za-z_]*=" $cron_file > $script
-    # Strip away the cron timings and just run the entirety of the script now.
-    cut -d' ' -f7- -s $cron_file >> $script
+    grep "^[A-Za-z0-9_]*=" $cron_file > $script
+    # Strip away any comments and all cron timings and just run the entirety of
+    # the script now.
+    grep "^[^#]" $cron_file | cut -d' ' -f7- -s >> $script
+    # From man 5 crontab:
+    #   Percent-signs (%) in the command, unless escaped with backslash (\),
+    #   will be changed into newline characters, and all data after the first %
+    #   will be sent to the command as standard input.
+    if grep "%" $script; then
+        echo -e "$warning: cron file contains a %; this script probably won't do what you want!"
+        echo "See 'man 5 crontab' for details."
+        return 1
+    fi
     . $script
 }
 
