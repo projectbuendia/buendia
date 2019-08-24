@@ -2,13 +2,12 @@ BUENDIA_TEST_SUITE_PATH=/usr/share/buendia/tests
 
 . /usr/share/buendia/utils.sh
 
-begin_suite="--------"
-begin_test="[ ???? ]"
-ok="[  \033[32mOK\033[0m  ]"
-pass="[ \033[92mPASS\033[0m ]"
-bad="[ \033[31mBAD\033[0m  ]"
-fail_suite="[ \033[91mFAIL\033[0m ]"
-skip_suite="[ \033[33mSKIP\033[0m ]"
+test_begin="[\033[7m RUNNING  \033[0m]"
+test_pass="[   \033[32mPASS\033[0m   ]"
+test_fail="[   \033[31mFAIL\033[0m   ]"
+suite_begin="----"
+suite_fail="\033[91mFAILURE:\033[0m"
+suite_skip="\033[33mSKIPPED:\033[0m"
 warning="\033[33mWARNING\033[0m"
 
 # execute_cron_right_now extracts the shell commands from a given buendia
@@ -121,7 +120,7 @@ run_test_suite () {
             # Run the test case function in the working directory, capturing
             # stdin/out.
             cd $tmpdir
-            echo -ne "$begin_test $test_func"
+            echo -ne "$test_begin $test_func"
             $test_func >${tmpdir}/output 2>&1
 
             # If the case passed, report success, and write the name of the
@@ -130,14 +129,14 @@ run_test_suite () {
             # failure.
             result=$?
             if [ $result -eq 0 ]; then
-                echo -e "\r$ok $test_func"
+                echo -e "\r$test_pass $test_func"
                 [ -w /dev/fd/3 ] && echo $test_func >&3
             else
                 echo
                 echo
                 cat ${tmpdir}/output
                 echo
-                echo -e "$bad $test_func"
+                echo -e "$test_fail $test_func"
                 return $result
             fi
         done
@@ -160,29 +159,30 @@ run_all_test_suites () {
     # Generate and count the list of test suites.
     suite_list=${suite_path}/??-*
     suite_count=$(echo $suite_list | wc -w)
-    fail=0
+    tests_failed=0
 
     for suite in $suite_list; do
         # If a given suite isn't executable, then let's skip it.
         if [ ! -x $suite ]; then
-            echo -e "$skip_suite $suite"
+            echo -e "$suite_skip $suite"
             continue
         fi
         # Record the attempt to run the suite.
         echo $suite >> ${test_results}/suites
-        echo -e "$begin_suite $suite"
+        echo -e "$suite_begin $suite"
         # Run the test suite, capturing a list of tests run to file descriptor
         # #3.
         3>>$test_results/tests run_test_suite $suite
         # If the test suite failed, record the failure and abort immediately.
         if [ $? -ne 0 ]; then
-            echo -e "$fail_suite $suite"
-            fail=1
+            echo
+            echo -e "$suite_fail $suite"
+            tests_failed=1
             break
         fi
     done
     # Count the number of test suites and cases run.
     suites_run=$(wc -l < ${test_results}/suites)
-    tests_run=$(wc -l < ${test_results}/tests)
-    echo "$suites_run of $suite_count suites run, $tests_run tests passed, $fail test(s) failed."
+    tests_passed=$(wc -l < ${test_results}/tests)
+    echo "$suites_run of $suite_count suites run, $tests_passed tests passed, $tests_failed test(s) failed."
 }
