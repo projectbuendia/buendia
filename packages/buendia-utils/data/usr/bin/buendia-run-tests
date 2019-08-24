@@ -1,0 +1,4 @@
+#!/bin/bash
+
+. /usr/share/buendia/test-harness.sh
+run_all_test_suites

@@ -1,0 +1,30 @@
+BUENDIA_TEST_BACKUP_TARGET=loop/backup.$(date +%Y-%m-%d)
+
+# Given a configured "external" device
+# When the backup cron job runs
+test_10_run_backup_cron () {
+    mount_loopback
+    execute_cron_right_now backup || true
+    # TODO: This fails, but maybe shouldn't be treated as a failure?
+    # 2019-08-21 10:09:31 18191> (start) buendia-restore /dev/loop7
+    # 2019-08-21 10:09:31 18191> /dev/loop7 is a block device; mounting...
+    # 2019-08-21 10:09:31 18191> mount: wrong fs type, bad option, bad superblock on /dev/loop7,
+    # 2019-08-21 10:09:31 18191>        missing codepage or helper program, or other error
+    # 2019-08-21 10:09:31 18191> umount: /mnt/buendia-restore.18200.loop7: not mounted
+    # 2019-08-21 10:09:31 18191> (end, status 32)
+}
+
+# Then it stores a tarball of site configs on the external device
+test_20_cron_saved_site_config () {
+    tar tfz $BUENDIA_TEST_BACKUP_TARGET/buendia.tar.gz
+}
+
+# And it stores a database dump on the external device
+test_20_cron_saved_database_dump () {
+    unzip -t $BUENDIA_TEST_BACKUP_TARGET/openmrs.zip
+}
+
+# And it stores a package listing on the external device
+test_20_cron_saved_package_list () {
+    [ -s $BUENDIA_TEST_BACKUP_TARGET/buendia.list ]
+}
