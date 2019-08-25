@@ -1,4 +1,4 @@
-BUENDIA_TEST_SUITE_PATH=/usr/share/buendia/tests
+UTIL_TEST_SUITE_PATH=/usr/share/buendia/tests
 
 . /usr/share/buendia/utils.sh
 
@@ -120,8 +120,17 @@ openmrs_get () {
     curl -s -H "$(openmrs_auth)" "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
 }
 
+# execute_openmrs_sql sends SQL commands directly to the OpenMRS database
 execute_openmrs_sql () {
     mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs
+}
+
+# begin_destructive_testing allows a suite to declare that it contains
+# destructive test cases, so that the suite can be skipped unless destructive
+# testing is enabled.
+UTIL_SKIP_SUITE_CODE=199
+begin_destructive_testing () {
+    bool "$UTIL_RUN_DESTRUCTIVE_TESTS" || exit $UTIL_SKIP_SUITE_CODE
 }
 
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
@@ -152,13 +161,11 @@ run_test_suite () {
             # stdin/out and enabling function tracing and exit-on-error.
             ( set -ex; $test_func ) >${tmpdir}/output 2>&1
 
-            # Capture the return value
-            result=$?
-
             # If the case passed, report success, and write the name of the
             # test case to FD 3 (if run_all_test_suites is listening).
             # Otherwise, dump the output of the failed test, and return with
             # failure.
+            result=$?
             if [ $result -eq 0 ]; then
                 echo -e "\r$test_pass $test_func"
                 [ -w /dev/fd/3 ] && echo $test_func >&3
@@ -181,7 +188,17 @@ run_test_suite () {
 # case fails, the current test suite, and any remaining suites, are immediately
 # aborted.
 run_all_test_suites () {
-    suite_path=${1:-$BUENDIA_TEST_SUITE_PATH}
+    if [ "$1" = "--destructive" ]; then
+        # Run *all* tests, including those that might disrupt services or
+        # modify the database.
+        UTIL_RUN_DESTRUCTIVE_TESTS=1
+        shift
+    fi
+    if ! bool "$UTIL_RUN_DESTRUCTIVE_TESTS"; then
+        echo -e "$warning: Running non-destructive tests. Use --destructive if you want ALL tests run."
+    fi
+
+    suite_path=${1:-$UTIL_TEST_SUITE_PATH}
 
     # Ensure that we are running as root or many things are unlikely to work
     # correctly.
@@ -216,13 +233,18 @@ run_all_test_suites () {
             echo -e "$suite_skip $suite"
             continue
         fi
-        # Record the attempt to run the suite.
-        echo $suite >> ${test_results}/suites
         # Run the test suite
         echo -e "$suite_begin $suite"
         run_test_suite $suite
         # If the test suite failed, record the failure and abort immediately.
-        if [ $? -ne 0 ]; then
+        result=$?
+        if [ $result -eq $UTIL_SKIP_SUITE_CODE ]; then
+            echo -e "$suite_skip $suite"
+            continue
+        fi
+        # Record the attempt to run the suite.
+        echo $suite >> ${test_results}/suites
+        if [ $result -ne 0 ]; then
             echo
             echo -e "$suite_fail $suite"
             tests_failed=1

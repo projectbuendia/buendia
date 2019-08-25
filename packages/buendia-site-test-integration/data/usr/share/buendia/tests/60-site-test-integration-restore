@@ -1,3 +1,5 @@
+begin_destructive_testing
+
 test_10_create_patient () {
     USER_ID=$(head -c8 /dev/random | base64)
     openmrs_post patients/ >create-patient.json <<END
