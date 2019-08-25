@@ -1,4 +1,4 @@
-BUENDIA_TEST_SUITE_PATH=/usr/share/buendia/tests
+UTILS_TEST_SUITE_PATH=/usr/share/buendia/tests
 
 . /usr/share/buendia/utils.sh
 
@@ -15,23 +15,35 @@ warning="\033[33mWARNING\033[0m"
 # the ability to perform with some verisimilitude what the crontab will wind up
 # doing eventually, without having to wait for it.
 execute_cron_right_now () {
-    cron_file=/etc/cron.d/buendia-$1
-    script=cron.sh
-    # Keep the environment settings at the top of the file.
-    grep "^[A-Za-z0-9_]*=" $cron_file > $script
-    # Strip away any comments and all cron timings and just run the entirety of
-    # the script now.
-    grep "^[^#]" $cron_file | cut -d' ' -f7- -s >> $script
+    original_crontab=/etc/cron.d/buendia-$1
+    cron_file=$(pwd)/buendia-$1.cron
+
     # From man 5 crontab:
     #   Percent-signs (%) in the command, unless escaped with backslash (\),
     #   will be changed into newline characters, and all data after the first %
     #   will be sent to the command as standard input.
-    if grep "%" $script; then
+    if grep "%" $original_crontab; then
         echo -e "$warning: cron file contains a %; this script probably won't do what you want!"
         echo "See 'man 5 crontab' for details."
         return 1
     fi
-    . $script
+
+    # Run the contents of the crontab in a subshell, so that we can trap any
+    # exit and clean up properly.
+    (
+        script=cron.sh
+        # Move this crontab out of the way so that cron doesn't try to run it while
+        # we're using it.
+        trap 'mv $cron_file $original_crontab; service cron reload' EXIT
+        mv $original_crontab $cron_file
+        service cron reload
+        # Keep the environment settings at the top of the file.
+        grep "^[A-Za-z0-9_]*=" $cron_file > $script
+        # Strip away any comments and all cron timings and just run the entirety of
+        # the script now.
+        grep "^[^#]" $cron_file | cut -d' ' -f7- -s >> $script
+        . $script
+    )
 }
 
 # mount_loopback creates an ext2-formatted loopback device, and mounts it
@@ -90,6 +102,29 @@ umount_loopback () {
     . /usr/share/buendia/utils.sh
 }
 
+# openmrs_auth generates an authentication header for the Buendia API
+openmrs_auth () {
+    AUTH=$(echo -n "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" | base64)
+    echo "Authorization: Basic $AUTH"
+}
+
+# openmrs_post sends a POST request to a local API endpoint. The POST content
+# is taken from stdin.
+openmrs_post () {
+    curl -H "$(openmrs_auth)" -H "Content-Type: application/json" \
+        -s -d @- "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+}
+
+# openmrs_get sends a GET request to a local API endpoint.
+openmrs_get () {
+    curl -s -H "$(openmrs_auth)" "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+}
+
+# execute_openmrs_sql sends SQL commands directly to the OpenMRS database
+execute_openmrs_sql () {
+    mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs
+}
+
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
 # lexical order. Buendia integration test cases are bash functions starting
 # with the prefix "test_". Test suites are run inside a temporary directory
@@ -98,12 +133,6 @@ umount_loopback () {
 # returns a non-zero value, the suite is immediately aborted.
 run_test_suite () {
     suite=$1
-    # Ensure that we are running as root or many things are unlikely to work
-    # correctly.
-    if [ "$USER" != "root" ]; then
-        echo -e "${warning}: You almost certainly want to run this script using sudo."
-        return 1
-    fi
     # Run the entire test suite in a subshell.
     (
         # Make a temporary directory, and clean it (and any loopback devices) up
@@ -124,13 +153,11 @@ run_test_suite () {
             # stdin/out and enabling function tracing and exit-on-error.
             ( set -ex; $test_func ) >${tmpdir}/output 2>&1
 
-            # Capture the return value
-            result=$?
-
             # If the case passed, report success, and write the name of the
             # test case to FD 3 (if run_all_test_suites is listening).
             # Otherwise, dump the output of the failed test, and return with
             # failure.
+            result=$?
             if [ $result -eq 0 ]; then
                 echo -e "\r$test_pass $test_func"
                 [ -w /dev/fd/3 ] && echo $test_func >&3
@@ -153,7 +180,33 @@ run_test_suite () {
 # case fails, the current test suite, and any remaining suites, are immediately
 # aborted.
 run_all_test_suites () {
-    suite_path=${1:-$BUENDIA_TEST_SUITE_PATH}
+    if [ "$1" = "--unsafe" ]; then
+        # Run *all* tests, including those that might disrupt services or
+        # modify the database.
+        UTILS_RUN_UNSAFE_TESTS=1
+        shift
+    fi
+
+    suite_path=${1:-$UTILS_TEST_SUITE_PATH}
+
+    # Ensure that we are running as root or many things are unlikely to work
+    # correctly.
+    if [ "$USER" != "root" ]; then
+        echo -e "$warning: This script must be run as root."
+        return 1
+    fi
+
+    # Lock a file to prevent simultaneous execution of the test suites.
+    exec 9>>/var/run/lock/buendia-run-tests
+    if ! flock -n 9; then
+        echo -e "$warning: Integration tests already running! Aborting..."
+        return 1
+    fi
+
+    # Notify the user if we're not planning to run all the tests.
+    if ! bool "$UTILS_RUN_UNSAFE_TESTS"; then
+        echo -e "$warning: Running tests marked safe. Use --unsafe if you want ALL tests run."
+    fi
 
     # Create a temp dir for capturing test suite results.
     test_results=$(mktemp -d -t buendia_run_all_test_suites.XXXX)
@@ -164,20 +217,30 @@ run_all_test_suites () {
     suite_count=$(echo $suite_list | wc -w)
     tests_failed=0
 
+    # Open file descriptor #3 so that run_test_suite can record a list of
+    # passing test cases.
+    exec 3>$test_results/tests
+
     for suite in $suite_list; do
         # If a given suite isn't executable, then let's skip it.
         if [ ! -x $suite ]; then
             echo -e "$suite_skip $suite"
             continue
         fi
+        # If we're not running unsafe tests, and the test doesn't have "safe"
+        # in the name, skip it.
+        if ( echo $suite | grep -vwq safe ) && ! bool "$UTILS_RUN_UNSAFE_TESTS"; then
+            echo -e "$suite_skip $suite"
+            continue
+        fi
+        # Run the test suite
+        echo -e "$suite_begin $suite"
+        run_test_suite $suite
+        result=$?
         # Record the attempt to run the suite.
         echo $suite >> ${test_results}/suites
-        echo -e "$suite_begin $suite"
-        # Run the test suite, capturing a list of tests run to file descriptor
-        # #3.
-        3>>$test_results/tests run_test_suite $suite
         # If the test suite failed, record the failure and abort immediately.
-        if [ $? -ne 0 ]; then
+        if [ $result -ne 0 ]; then
             echo
             echo -e "$suite_fail $suite"
             tests_failed=1
