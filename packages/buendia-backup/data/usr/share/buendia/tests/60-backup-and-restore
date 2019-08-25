@@ -1,14 +1,5 @@
 begin_destructive_testing
 
-test_10_create_patient () {
-    USER_ID=$(head -c8 /dev/random | base64)
-    openmrs_post patients/ >create-patient.json <<END
-        {"id": "$USER_ID", "given_name": "Louis", "family_name": "Pasteur", "sex": "M", "birthdate": "1924-08-20"}
-END
-    cat create-patient.json
-    grep '"uuid":"........-....-....-....-............"' create-patient.json
-}
-
 test_20_get_patient_list () {
     openmrs_get patients/ >patients-before.json
     grep '"uuid":"........-....-....-....-............"' patients-before.json
@@ -22,15 +13,20 @@ test_30_create_backup () {
     [ -d loop/backup.$(date +%Y-%m-%d) ]
 }
 
-test_40_delete_patients () {
-    echo "DELETE FROM encounter; DELETE FROM patient;" | execute_openmrs_sql
+test_40_create_patient () {
+    USER_ID=$(head -c8 /dev/random | base64)
+    openmrs_post patients/ >create-patient.json <<END
+        {"id": "$USER_ID", "given_name": "Louis", "family_name": "Pasteur", "sex": "M", "birthdate": "1924-08-20"}
+END
+    cat create-patient.json
+    grep '"uuid":"........-....-....-....-............"' create-patient.json
 }
 
-test_50_confirm_empty_patient_list () {
+test_50_confirm_changed_patient_list () {
     openmrs_get patients/ >patients-during.json
     if diff patients-before.json patients-during.json; then
         echo
-        echo "patient list is unchanged after deletion!"
+        echo "patient list is unchanged after update!"
         echo
         return 1
     fi
@@ -39,11 +35,7 @@ test_50_confirm_empty_patient_list () {
 
 test_60_restore_from_backup () {
     mv loop/backup.$(date +%Y-%m-%d) loop/restore || return 1
-    ( 
-        flock --verbose -w 30 -n 9 || exit 1
-        flock -u -n 9
-        execute_cron_right_now backup
-    ) 9>/var/run/lock/buendia-restore
+    execute_cron_right_now backup
 }
 
 test_70_confirm_restored_patient_list () {
