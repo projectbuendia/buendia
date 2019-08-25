@@ -132,12 +132,6 @@ execute_openmrs_sql () {
 # returns a non-zero value, the suite is immediately aborted.
 run_test_suite () {
     suite=$1
-    # Ensure that we are running as root or many things are unlikely to work
-    # correctly.
-    if [ "$USER" != "root" ]; then
-        echo -e "${warning}: You almost certainly want to run this script using sudo."
-        return 1
-    fi
     # Run the entire test suite in a subshell.
     (
         # Make a temporary directory, and clean it (and any loopback devices) up
@@ -188,6 +182,20 @@ run_test_suite () {
 # aborted.
 run_all_test_suites () {
     suite_path=${1:-$BUENDIA_TEST_SUITE_PATH}
+
+    # Ensure that we are running as root or many things are unlikely to work
+    # correctly.
+    if [ "$USER" != "root" ]; then
+        echo -e "$warning: This script must be run as root."
+        return 1
+    fi
+
+    # Lock a file to prevent simultaneous execution of the test suites.
+    exec 9>>/var/run/lock/buendia-run-tests
+    if ! flock -n 9; then
+        echo -e "$warning: Integration tests already running! Aborting..."
+        return 1
+    fi
 
     # Create a temp dir for capturing test suite results.
     test_results=$(mktemp -d -t buendia_run_all_test_suites.XXXX)
