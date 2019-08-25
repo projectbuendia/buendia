@@ -4,7 +4,7 @@ echo "deb [trusted=yes] https://projectbuendia.github.io/builds/packages unstabl
 apt-get update
 apt-get install -f -y
 apt-get upgrade -y
-apt-get install -y buendia-server buendia-site-test buendia-dashboard
+apt-get install -y buendia-server buendia-site-test-integration
 
 # Set hostname
 sed -i -e "s/$(hostname)/buendia-testing/g" /etc/hosts /etc/hostname
