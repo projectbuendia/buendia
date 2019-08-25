@@ -19,4 +19,4 @@ MONITORING_LIMITS='
 UPDATE_AUTOUPDATE=1
 
 # Enable destructive testing for this site by default.
-UTIL_RUN_DESTRUCTIVE_TESTS=1
+UTILS_RUN_DESTRUCTIVE_TESTS=1

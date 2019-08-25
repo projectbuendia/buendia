@@ -1,4 +1,4 @@
-UTIL_TEST_SUITE_PATH=/usr/share/buendia/tests
+UTILS_TEST_SUITE_PATH=/usr/share/buendia/tests
 
 . /usr/share/buendia/utils.sh
 
@@ -128,9 +128,9 @@ execute_openmrs_sql () {
 # begin_destructive_testing allows a suite to declare that it contains
 # destructive test cases, so that the suite can be skipped unless destructive
 # testing is enabled.
-UTIL_SKIP_SUITE_CODE=199
+UTILS_SKIP_SUITE_CODE=199
 begin_destructive_testing () {
-    bool "$UTIL_RUN_DESTRUCTIVE_TESTS" || exit $UTIL_SKIP_SUITE_CODE
+    bool "$UTILS_RUN_DESTRUCTIVE_TESTS" || exit $UTILS_SKIP_SUITE_CODE
 }
 
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
@@ -191,14 +191,14 @@ run_all_test_suites () {
     if [ "$1" = "--destructive" ]; then
         # Run *all* tests, including those that might disrupt services or
         # modify the database.
-        UTIL_RUN_DESTRUCTIVE_TESTS=1
+        UTILS_RUN_DESTRUCTIVE_TESTS=1
         shift
     fi
-    if ! bool "$UTIL_RUN_DESTRUCTIVE_TESTS"; then
+    if ! bool "$UTILS_RUN_DESTRUCTIVE_TESTS"; then
         echo -e "$warning: Running non-destructive tests. Use --destructive if you want ALL tests run."
     fi
 
-    suite_path=${1:-$UTIL_TEST_SUITE_PATH}
+    suite_path=${1:-$UTILS_TEST_SUITE_PATH}
 
     # Ensure that we are running as root or many things are unlikely to work
     # correctly.
@@ -238,7 +238,7 @@ run_all_test_suites () {
         run_test_suite $suite
         # If the test suite failed, record the failure and abort immediately.
         result=$?
-        if [ $result -eq $UTIL_SKIP_SUITE_CODE ]; then
+        if [ $result -eq $UTILS_SKIP_SUITE_CODE ]; then
             echo -e "$suite_skip $suite"
             continue
         fi
