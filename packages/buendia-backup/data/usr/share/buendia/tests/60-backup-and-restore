@@ -1,6 +1,10 @@
+extract_patient_uuids () {
+    json_pp | grep uuid | cut -d, -f1 | sort
+}
+
 test_20_get_patient_list () {
-    openmrs_get patients/ >patients-before.json
-    grep '"uuid":"........-....-....-....-............"' patients-before.json
+    openmrs_get patients/ | extract_patient_uuids >patients-before.json
+    grep '"uuid" *: *"........-....-....-....-............"' patients-before.json
 }
 
 test_30_create_backup () {
@@ -17,11 +21,11 @@ test_40_create_patient () {
         {"id": "$USER_ID", "given_name": "Louis", "family_name": "Pasteur", "sex": "M", "birthdate": "1924-08-20"}
 END
     cat create-patient.json
-    grep '"uuid":"........-....-....-....-............"' create-patient.json
+    grep '"uuid" *: *"........-....-....-....-............"' create-patient.json
 }
 
 test_50_confirm_changed_patient_list () {
-    openmrs_get patients/ >patients-during.json
+    openmrs_get patients/ | extract_patient_uuids >patients-during.json
     if diff patients-before.json patients-during.json; then
         echo
         echo "patient list is unchanged after update!"
@@ -37,6 +41,6 @@ test_60_restore_from_backup () {
 }
 
 test_70_confirm_restored_patient_list () {
-    openmrs_get patients/ >patients-after.json
+    openmrs_get patients/ | extract_patient_uuids >patients-after.json
     diff patients-before.json patients-after.json
 }
