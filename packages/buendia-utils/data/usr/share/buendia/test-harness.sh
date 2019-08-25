@@ -206,6 +206,10 @@ run_all_test_suites () {
     suite_count=$(echo $suite_list | wc -w)
     tests_failed=0
 
+    # Open file descriptor #3 so that run_test_suite can record a list of
+    # passing test cases.
+    exec 3>$test_results/tests
+
     for suite in $suite_list; do
         # If a given suite isn't executable, then let's skip it.
         if [ ! -x $suite ]; then
@@ -214,10 +218,9 @@ run_all_test_suites () {
         fi
         # Record the attempt to run the suite.
         echo $suite >> ${test_results}/suites
+        # Run the test suite
         echo -e "$suite_begin $suite"
-        # Run the test suite, capturing a list of tests run to file descriptor
-        # #3.
-        3>>$test_results/tests run_test_suite $suite
+        run_test_suite $suite
         # If the test suite failed, record the failure and abort immediately.
         if [ $? -ne 0 ]; then
             echo
