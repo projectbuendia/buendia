@@ -1,5 +1,3 @@
-begin_destructive_testing
-
 test_10_setup_openmrs_account () {
     buendia-openmrs-account-setup $SERVER_OPENMRS_USER $SERVER_OPENMRS_PASSWORD
 }

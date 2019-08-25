@@ -1,5 +1,3 @@
-begin_destructive_testing
-
 test_20_get_patient_list () {
     openmrs_get patients/ >patients-before.json
     grep '"uuid":"........-....-....-....-............"' patients-before.json

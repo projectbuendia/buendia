@@ -125,14 +125,6 @@ execute_openmrs_sql () {
     mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs
 }
 
-# begin_destructive_testing allows a suite to declare that it contains
-# destructive test cases, so that the suite can be skipped unless destructive
-# testing is enabled.
-UTILS_SKIP_SUITE_CODE=199
-begin_destructive_testing () {
-    bool "$UTILS_RUN_DESTRUCTIVE_TESTS" || exit $UTILS_SKIP_SUITE_CODE
-}
-
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
 # lexical order. Buendia integration test cases are bash functions starting
 # with the prefix "test_". Test suites are run inside a temporary directory
@@ -188,14 +180,11 @@ run_test_suite () {
 # case fails, the current test suite, and any remaining suites, are immediately
 # aborted.
 run_all_test_suites () {
-    if [ "$1" = "--destructive" ]; then
+    if [ "$1" = "--unsafe" ]; then
         # Run *all* tests, including those that might disrupt services or
         # modify the database.
-        UTILS_RUN_DESTRUCTIVE_TESTS=1
+        UTILS_RUN_UNSAFE_TESTS=1
         shift
-    fi
-    if ! bool "$UTILS_RUN_DESTRUCTIVE_TESTS"; then
-        echo -e "$warning: Running non-destructive tests. Use --destructive if you want ALL tests run."
     fi
 
     suite_path=${1:-$UTILS_TEST_SUITE_PATH}
@@ -212,6 +201,11 @@ run_all_test_suites () {
     if ! flock -n 9; then
         echo -e "$warning: Integration tests already running! Aborting..."
         return 1
+    fi
+
+    # Notify the user if we're not planning to run all the tests.
+    if ! bool "$UTILS_RUN_UNSAFE_TESTS"; then
+        echo -e "$warning: Running tests marked safe. Use --unsafe if you want ALL tests run."
     fi
 
     # Create a temp dir for capturing test suite results.
@@ -233,17 +227,19 @@ run_all_test_suites () {
             echo -e "$suite_skip $suite"
             continue
         fi
-        # Run the test suite
-        echo -e "$suite_begin $suite"
-        run_test_suite $suite
-        # If the test suite failed, record the failure and abort immediately.
-        result=$?
-        if [ $result -eq $UTILS_SKIP_SUITE_CODE ]; then
+        # If we're not running unsafe tests, and the test doesn't have "safe"
+        # in the name, skip it.
+        if ( echo $suite | grep -vwq safe ) && ! bool "$UTILS_RUN_UNSAFE_TESTS"; then
             echo -e "$suite_skip $suite"
             continue
         fi
+        # Run the test suite
+        echo -e "$suite_begin $suite"
+        run_test_suite $suite
+        result=$?
         # Record the attempt to run the suite.
         echo $suite >> ${test_results}/suites
+        # If the test suite failed, record the failure and abort immediately.
         if [ $result -ne 0 ]; then
             echo
             echo -e "$suite_fail $suite"

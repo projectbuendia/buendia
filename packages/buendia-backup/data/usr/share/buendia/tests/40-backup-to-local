@@ -1,8 +1,5 @@
 BUENDIA_TEST_BACKUP_TARGET=/var/backups/buendia/backup.$(date +%Y-%m-%d)
 
-# This suite erases local backups (but hopefully recreates them)
-begin_destructive_testing
-
 # When the backup cron job runs
 test_10_run_backup_cron () {
     rm -rf $BUENDIA_TEST_BACK_TARGET
