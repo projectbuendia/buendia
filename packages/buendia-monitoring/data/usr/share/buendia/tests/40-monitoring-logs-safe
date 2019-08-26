@@ -1,10 +1,9 @@
 test_10_run_monitoring_cron () {
-    # TODO: fix missing ifconfig log
-    execute_cron_right_now monitoring || true
+    execute_cron_right_now monitoring
 }
 
 test_20_cron_wrote_some_logs () {
-    for file in df du free ps; do
+    for file in df du free ps ip; do
         check=/var/log/buendia/${file}.log 
         echo "Checking for log file: $check"
         [ -e $check ] || exit 1
