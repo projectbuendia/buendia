@@ -42,6 +42,8 @@ execute_cron_right_now () {
         # Strip away any comments and all cron timings and just run the entirety of
         # the script now.
         grep "^[^#]" $cron_file | cut -d' ' -f7- -s >> $script
+        # Effectively disable any sleep commands in the script.
+        sed -i -e 's/sleep [0-9][0-9]*/sleep 0.1/g' $script
         . $script
     )
 }
