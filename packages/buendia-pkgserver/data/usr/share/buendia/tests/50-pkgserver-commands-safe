@@ -1,0 +1,36 @@
+test_10_install_this_bundle () {
+    echo "touch /tmp/i-was-touched" > commands.sh
+    echo "BUENDIA_IS_AWESOME=1" > 87-pkgserver-test
+    zip projectbuendia-all-50.zip commands.sh 87-pkgserver-test
+    mount_loopback
+    mv projectbuendia-all-50.zip loop
+    execute_cron_right_now pkgserver || true # TODO
+}
+
+test_20_commands_sh_was_run () {
+    [ -r /tmp/i-was-touched ] && rm /tmp/i-was-touched
+}
+
+test_30_site_file_was_installed () {
+    . /usr/share/buendia/site/87-pkgserver-test
+    bool $BUENDIA_IS_AWESOME
+}
+
+test_40_dont_install_this_other_bundle () {
+    echo "touch /tmp/i-wasnt-touched" > commands.sh
+    echo "BUENDIA_IS_AWESOME=0" > 87-pkgserver-test
+    zip projectbuendia-notthissite-50.zip commands.sh 87-pkgserver-test
+    mount_loopback
+    mv projectbuendia-notthissite-50.zip loop
+    execute_cron_right_now pkgserver || true # TODO
+}
+
+test_50_commands_sh_was_not_run () {
+    ! [ -r /tmp/i-wasnt-touched ]
+}
+
+test_60_site_file_was_not_installed () {
+    . /usr/share/buendia/site/87-pkgserver-test
+    bool $BUENDIA_IS_AWESOME
+    rm /usr/share/buendia/site/87-pkgserver-test
+}
