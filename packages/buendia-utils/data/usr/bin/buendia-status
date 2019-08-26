@@ -65,8 +65,8 @@ if [ -n "$all" ]; then
         echo -e '\n---- du /var/log'
         du /var/log
 
-        echo -e '\n---- ifconfig wlan0'
-        ifconfig wlan0
+        echo -e '\n---- ip a'
+        ip a
 
         echo -e '\n---- ls -l /usr/share/buendia/site'
         ls -l /usr/share/buendia/site
