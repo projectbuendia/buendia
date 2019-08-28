@@ -127,26 +127,26 @@ execute_openmrs_sql () {
     mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs
 }
 
-# build_mock_package creates a new Debian package on the fly, with a version
+# build_dummy_package creates a new Debian package on the fly, with a version
 # based on the UNIX epoch time, consisting of a single site configuration test
 # file.
-build_mock_package () {
+build_dummy_package () {
     # using epoch secs in the version string ensures monotonic increase
     version="0.0.$(date +%s)"
     # Make the control file
     cat >control <<EOF
-Package: buendia-mock
+Package: buendia-dummy
 Version: ${version}
 Architecture: all
 Description: Mock package for integration testing
 Maintainer: projectbuendia.org
 EOF
-    # Make a mock site file
-    echo "BUENDIA_MOCK_VERSION=${version}" | create "data/usr/share/buendia/site/85-mock"
+    # Make a dummy site file
+    echo "BUENDIA_DUMMY_VERSION=${version}" | create "data/usr/share/buendia/site/85-dummy"
     # Make sure we know it's a debian package
     echo "2.0" > debian-binary
     # Package it all up into a deb
-    deb="buendia-mock_${version}_all.deb"
+    deb="buendia-dummy_${version}_all.deb"
     tar cfz control.tar.gz control
     (cd data; tar cfz ../data.tar.gz .)
     # https://ubuntuforums.org/archive/index.php/t-1481153.html

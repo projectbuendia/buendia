@@ -1,6 +1,6 @@
 test_10_pkgserver_import_bundle () {
-    # Build a mock package and import it
-    deb=$(build_mock_package | tail -1)
+    # Build a dummy package and import it
+    deb=$(build_dummy_package | tail -1)
 
     # Make a buendia bundle with the package included
     zip projectbuendia-all-10.zip $deb
@@ -24,14 +24,14 @@ test_10_pkgserver_import_bundle () {
 }
 
 test_20_pkgserver_serves_the_deb () {
-    deb=$(ls buendia-mock_*.deb | tail -1)
+    deb=$(ls buendia-dummy_*.deb | tail -1)
     local_hash=$(cat $deb | md5sum -)
     pkgserver_hash=$(curl -s http://localhost:9001/stable/${deb} | md5sum -)
     [ "$local_hash" = "$pkgserver_hash" ]
 }
 
 test_30_pkgserver_has_packages_list () {
-    deb=$(ls buendia-mock_*.deb | tail -1)
+    deb=$(ls buendia-dummy_*.deb | tail -1)
     curl -f http://localhost:9001/dists/stable/main/binary-all/Packages > packages
     grep $deb packages
 }
@@ -42,7 +42,7 @@ test_40_pkgserver_has_release_file () {
 }
 
 test_50_cleanup_pkgserver_repo () {
-    deb=$(ls buendia-mock_*.deb | tail -1)
+    deb=$(ls buendia-dummy_*.deb | tail -1)
     rm /usr/share/buendia/packages/stable/$deb
     buendia-pkgserver-index-debs /usr/share/buendia/packages stable
     ! grep -q $deb /usr/share/buendia/packages/dists/stable/main/binary-all/Packages
