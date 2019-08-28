@@ -1,0 +1,49 @@
+test_10_pkgserver_import_bundle () {
+    # Build a dummy package and import it
+    deb=$(build_dummy_package | tail -1)
+
+    # Make a buendia bundle with the package included
+    zip projectbuendia-all-10.zip $deb
+
+    # Put the file on the "USB stick"
+    mount_loopback
+    mv projectbuendia-all-10.zip loop
+
+    # Run the bundle import
+    # TODO: The attempt to mount and import from loop0 succeeed, but then the
+    # cron "script" fails with:
+    #
+    # ++ buendia-log buendia-pkgserver-import /dev/loop1
+    # 2019-08-26 16:43:05 22512> (start) buendia-pkgserver-import /dev/loop1
+    # 2019-08-26 16:43:05 22512> /dev/loop1 is a block device; mounting...
+    # 2019-08-26 16:43:05 22512> mount: /dev/loop1: can't read superblock
+    # 2019-08-26 16:43:05 22512> (end, status 32)
+    # 
+    # which arguably isn't an error
+    execute_cron_right_now pkgserver || true
+}
+
+test_20_pkgserver_serves_the_deb () {
+    deb=$(ls buendia-dummy_*.deb | tail -1)
+    local_hash=$(cat $deb | md5sum -)
+    pkgserver_hash=$(curl -s http://localhost:9001/stable/${deb} | md5sum -)
+    [ "$local_hash" = "$pkgserver_hash" ]
+}
+
+test_30_pkgserver_has_packages_list () {
+    deb=$(ls buendia-dummy_*.deb | tail -1)
+    curl -f http://localhost:9001/dists/stable/main/binary-all/Packages > packages
+    grep $deb packages
+}
+
+test_40_pkgserver_has_release_file () {
+    curl -f http://localhost:9001/dists/stable/Release > release
+    [ -s release ]
+}
+
+test_50_cleanup_pkgserver_repo () {
+    deb=$(ls buendia-dummy_*.deb | tail -1)
+    rm /usr/share/buendia/packages/stable/$deb
+    buendia-pkgserver-index-debs /usr/share/buendia/packages stable
+    ! grep -q $deb /usr/share/buendia/packages/dists/stable/main/binary-all/Packages
+}

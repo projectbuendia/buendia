@@ -42,6 +42,8 @@ execute_cron_right_now () {
         # Strip away any comments and all cron timings and just run the entirety of
         # the script now.
         grep "^[^#]" $cron_file | cut -d' ' -f7- -s >> $script
+        # Effectively disable any sleep commands in the script.
+        sed -i -e 's/sleep [0-9][0-9]*/sleep 0.1/g' $script
         . $script
     )
 }
@@ -123,6 +125,38 @@ openmrs_get () {
 # execute_openmrs_sql sends SQL commands directly to the OpenMRS database
 execute_openmrs_sql () {
     mysql -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs
+}
+
+# build_dummy_package creates a new Debian package on the fly, with a version
+# based on the UNIX epoch time, consisting of a single site configuration test
+# file.
+build_dummy_package () {
+    # using epoch secs in the version string ensures monotonic increase
+    version="0.0.$(date +%s)"
+    # Make the control file
+    cat >control <<EOF
+Package: buendia-dummy
+Version: ${version}
+Architecture: all
+Description: Mock package for integration testing
+Maintainer: projectbuendia.org
+EOF
+    # Make a dummy site file
+    echo "BUENDIA_DUMMY_VERSION=${version}" | create "data/usr/share/buendia/site/85-dummy"
+    # Make sure we know it's a debian package
+    echo "2.0" > debian-binary
+    # Package it all up into a deb
+    deb="buendia-dummy_${version}_all.deb"
+    tar cfz control.tar.gz control
+    (cd data; tar cfz ../data.tar.gz .)
+    # https://ubuntuforums.org/archive/index.php/t-1481153.html
+    # "So it appears that "debian-binary" has to be listed before the gzipped
+    # files or else the resulting deb will not be valid." Just... wow.
+    ar rc $deb debian-binary control.tar.gz data.tar.gz
+    # Clean up
+    rm -rf data data.tar.gz control control.tar.gz debian-binary
+    # Print the filename of the package
+    echo $deb
 }
 
 # run_test_suite runs all of the test cases in a given "suite" (i.e. file), in
