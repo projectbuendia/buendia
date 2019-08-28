@@ -84,7 +84,7 @@ mkdir -p $exdir $pkgdir
 if [ -b "$source" ]; then
     echo "$source is a block device; mounting..."
     mntdir=/mnt/$name.$$
-    trap 'cd; umount $mntdir || true; rm -rf $exdir $pkgdir $mntdir' EXIT
+    trap 'cd; umount $mntdir || true; rmdir $mntdir || true; rm -rf $exdir $pkgdir' EXIT
     mkdir -p $mntdir
     mount $source $mntdir
     echo "Mounted $source at $mntdir."
