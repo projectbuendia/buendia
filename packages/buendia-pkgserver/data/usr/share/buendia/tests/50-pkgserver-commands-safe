@@ -20,7 +20,10 @@ assert_site_file_was_installed () {
 
 test_10_install_all_bundle () {
     make_bundle all
-    execute_cron_right_now pkgserver || true # TODO
+    # TODO: pkgserver cron fails because it tries to mount /dev/loop[1-7] and
+    # can't because there's nothing there. This shouldn't really be treated as
+    # an error.
+    execute_cron_right_now pkgserver || true
 }
 
 test_11_commands_sh_was_run () {
@@ -34,7 +37,8 @@ test_12_site_file_was_installed () {
 test_20_install_site_bundle () {
     . /usr/share/buendia/site/id
     make_bundle $SITE_ID
-    execute_cron_right_now pkgserver || true # TODO
+    # TODO: see test_install_all_bundle
+    execute_cron_right_now pkgserver || true
 }
 
 test_21_commands_sh_was_run () {
@@ -47,7 +51,8 @@ test_22_site_file_was_installed () {
 
 test_30_dont_install_this_other_bundle () {
     make_bundle not-this-site
-    execute_cron_right_now pkgserver || true # TODO
+    # TODO: see test_install_all_bundle
+    execute_cron_right_now pkgserver || true
 }
 
 test_31_commands_sh_was_not_run () {
