@@ -37,14 +37,17 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
+import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.web.response
     .IllegalPropertyException;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -60,6 +63,11 @@ public class DbUtils {
     // Clients must use this concept UUID for observations that signify that an
     // order was executed.  This is the only hardcoded UUID that clients need to know.
     public static final String CONCEPT_ORDER_EXECUTED_UUID = "buendia_concept_order_executed";
+
+    // Clients should use this concept UUID for observations that indicate a patient's
+    // assignment to a location or bed.  The server will not break if a different UUID
+    // is used; the only effect is that the other concept will not be created automatically.
+    public static final String CONCEPT_PLACEMENT_UUID = "buendia_concept_placement";
 
     // The concept UUID for all orders.  This is used internally by the server and
     // does not need to be known by clients.
@@ -79,6 +87,19 @@ public class DbUtils {
     // This UUID is hardcoded but only used internally by the server to distinguish
     // chart forms (exposed at /charts) from XForm forms (exposed at /xforms).
     public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+
+    /** A map from HL7 type abbreviations to short names used in JSON output. */
+    static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
+    static {
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_BOOLEAN, "coded");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED, "coded");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED_WITH_EXCEPTIONS, "coded");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_TEXT, "text");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_NUMERIC, "numeric");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_DATE, "date");
+        HL7_TYPE_NAMES.put(HL7Constants.HL7_DATETIME, "datetime");
+        HL7_TYPE_NAMES.put("ZZ", "none");
+    }
 
     /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
     public static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
@@ -140,6 +161,10 @@ public class DbUtils {
         return orderType;
     }
 
+    public static String getConceptTypeName(Concept concept) {
+        return HL7_TYPE_NAMES.get(concept.getDatatype().getHl7Abbreviation());
+    }
+
     public static ConceptClass getConceptClass(String name) {
         ConceptService conceptService = Context.getConceptService();
         return conceptService.getConceptClassByName(name);
@@ -151,6 +176,11 @@ public class DbUtils {
     public static Concept getOrderExecutedConcept() {
         return DbUtils.getConcept(
             "Order executed", CONCEPT_ORDER_EXECUTED_UUID, "N/A", "Finding");
+    }
+
+    public static Concept getPlacementConcept() {
+        return DbUtils.getConcept(
+            "Placement", CONCEPT_PLACEMENT_UUID, "Text", "Misc");
     }
 
     // Gets the default concept for orders in Buendia.  We don't store dosages,

@@ -46,7 +46,7 @@ public class EncounterResource extends BaseResource<Encounter> {
         // for get. This is terrible REST design. However, we are close to shipping, and
         // I don't want to introduce the server and client side changes needed if I changed
         // the wire format. So instead, there is this comment.
-        // TODO: refactor the wire format for getEncounters so it matches the create format.
+        // TODO: Change the wire format for observations to match the create format.
 
         String patientUuid = Utils.getRequiredString(data, "patient_uuid");
         Patient patient = patientService.getPatientByUuid(patientUuid);
@@ -89,6 +89,10 @@ public class EncounterResource extends BaseResource<Encounter> {
                 continue;
             }
 
+            // When encounters are returned, the observations are in one big map,
+            // which is a different format than when encounters are posted,
+            // with an array of observations (see ObservationUtils).
+            // TODO(ping): Include the concept type name in this observation dump.
             observations.put(obs.getConcept().getUuid(), ObservationUtils.obsValueToString(obs));
         }
         if (!observations.isEmpty()) {

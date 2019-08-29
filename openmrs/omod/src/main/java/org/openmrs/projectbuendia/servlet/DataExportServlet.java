@@ -27,9 +27,10 @@ import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.projectbuendia.ClientConceptNamer;
+import org.openmrs.projectbuendia.ObsValueVisitor;
 import org.openmrs.projectbuendia.Utils;
-import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
+import org.openmrs.projectbuendia.webservices.rest.ObservationUtils;
 import org.openmrs.util.FormUtil;
 
 import java.io.IOException;
@@ -163,7 +164,7 @@ public class DataExportServlet extends HttpServlet {
                         // they contain the English name and the compressed concept ID; otherwise,
                         // both columns contain the formatted value.
                         final int col = numEncCols + index * COLUMNS_PER_OBS;
-                        VisitObsValue.visit(obs, new VisitObsValue.ObsValueVisitor<Void>() {
+                        ObservationUtils.visit(obs, new ObsValueVisitor<Void>() {
                             @Override public Void visitCoded(Concept value) {
                                 if (value == null || value.getUuid() == null || value.getUuid().isEmpty()) {
                                     values[col] = values[col + 1] = "";
