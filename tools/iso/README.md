@@ -47,7 +47,10 @@ current directory, run the following:
 ```
 
 This produces a file called `buendia-install.iso` which is a bootable ISO
-image. This image can be uploaded to a different machine, or installed directly
+image.  (You may see a bunch of warnings from `libisofs` complaining about
+adding symlinks to a Joliet tree; these are safe to ignore.)
+
+This image can be uploaded to a different machine, or installed directly
 to USB media, for example:
 
 ```
