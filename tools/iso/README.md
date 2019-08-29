@@ -4,6 +4,13 @@ This directory contains the components needed to construct a *mostly automated*
 installer image for the Buendia server, suitable for burning to USB drive or
 CD-ROM.
 
+**Note that the installer image does not itself contain the Buendia software.**
+It installs Buendia over the Internet from our Debian package repository, which
+is a GitHub Pages site backed by [our builds repo](https://github.com/projectbuendia/builds).
+These packages are built from the `dev` branch and automatically committed to
+the builds repo by CircleCI.  So, when you use this installer to set up a server,
+your new server will get the latest available packages built from `dev`.
+
 ## Quick Start
 
 The following instructions will turn a fresh Intel NUC into a functioning
