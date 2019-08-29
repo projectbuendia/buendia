@@ -28,5 +28,8 @@ update:
 	@echo Saving updates to initial snapshot of testing VM...
 	vagrant snapshot save --force testing initial
 
+restore:
+	vagrant snapshot restore testing initial
+
 clean:
 	vagrant destroy testing

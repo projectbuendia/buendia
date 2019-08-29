@@ -1,0 +1,31 @@
+test_10_setup_openmrs_account () {
+    buendia-openmrs-account-setup $SERVER_OPENMRS_USER $SERVER_OPENMRS_PASSWORD
+}
+
+test_20_setup_openmrs_locations () {
+    buendia-openmrs-location-setup
+}
+
+test_30_capture_counts () {
+    buendia-count count
+    mv count/*.count count/original.count
+}
+
+test_40_create_account_using_rest_api () {
+    USER_ID=$(head -c8 /dev/random | base64)
+    openmrs_post patients/ >create-patient.json <<END
+{"id": "$USER_ID", "given_name": "Barney", "family_name": "Rubble", "sex": "M", "birthdate": "1994-01-20"}
+END
+    cat create-patient.json
+    grep '"uuid":"........-....-....-....-............"' create-patient.json
+}
+
+test_50_confirm_changed_counts () {
+    buendia-count count
+    mv count/????-??-??.count count/new.count
+    if diff -q count/original.count count/new.count; then
+        echo "counts are unchanged!"
+        return 1
+    fi
+    return 0
+}

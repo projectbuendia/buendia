@@ -17,6 +17,12 @@ case $1 in
         # Enable the dashboard website
         ln -sf ../sites-available/buendia-dashboard /etc/nginx/sites-enabled
 
+        # Ensure that everyone can write request logs, new and old,
+        # large and small
+        mkdir -p /var/log/large/requests /var/log/large/old \
+                 /var/log/requests /var/log/requests/old
+        chmod 1777 /var/log/requests /var/log/large/requests
+
         # Bring services back up (need to restart here, not merely start)
         service_if_exists nginx restart
         ;;

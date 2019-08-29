@@ -16,6 +16,7 @@
     compress
     olddir /var/log/requests/old
     sharedscripts
+    su root root
     postrotate
         # The limit is applied to both the original log directory and this one
         # as a safety measure, so that space usage is controlled even if

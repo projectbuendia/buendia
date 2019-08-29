@@ -84,15 +84,15 @@ mkdir -p $exdir $pkgdir
 if [ -b "$source" ]; then
     echo "$source is a block device; mounting..."
     mntdir=/mnt/$name.$$
+    trap 'cd; umount $mntdir || true; rmdir $mntdir || true; rm -rf $exdir $pkgdir' EXIT
     mkdir -p $mntdir
     mount $source $mntdir
     echo "Mounted $source at $mntdir."
-    trap 'rm -rf $exdir $pkgdir; cd /; fuser -m $mntdir || true; umount $mntdir && rm -rf $mntdir || true; buendia-led red off || true; buendia-led yellow off || true' EXIT
     source="$mntdir"
 
 elif [ -d "$source" ]; then
     echo "$source is a directory; scanning..."
-    trap 'rm -rf $exdir $pkgdir; buendia-led red off || true; buendia-led yellow off || true' EXIT
+    trap 'cd; rm -rf $exdir $pkgdir' EXIT
 
 else
     echo "$source is neither a block device nor a directory."

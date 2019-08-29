@@ -1,0 +1,10 @@
+test_10_run_dashboard_cron () {
+    execute_cron_right_now dashboard
+}
+
+test_20_dashboard_says_server_is_running () {
+    # When a user visits the dashboard page,
+    # Then they are told that the server is serving.
+    curl http://localhost:9999/ > dashboard.htm
+    grep SERVING dashboard.htm
+}
