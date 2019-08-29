@@ -6,26 +6,36 @@ CD-ROM.
 
 ## Quick Start
 
-1. Build the installer image as described below, or download it from (somewhere).
+The following instructions will turn a fresh Intel NUC into a functioning
+Buendia server.  The installer images are constructed and tested to work
+on a NUC; they should work for most other systems as well.
+
+1. Download the installer image, or build it as described below.
 2. Write the installer image to bootable media, using e.g.
    [balenaEtcher](https://www.balena.io/etcher/) if you're on MacOS.
-3. Boot an Intel NUC or other system from the USB media. Unless the machine is
-   connected to Ethernet with a DHCP server on the network, you will probably
-   be prompted for networking details. This is a network installer, after all.
-3. Follow the prompts related to disk partitioning and boot loader. You can hit
-   enter at any prompt to use the defaults. On the NUC, this is intended to
-   result in a functioning system.
-4. The installer will take ~5 minutes to run, maybe longer, depending on your
-   network speed, and download 300-400 MB of additional software.
-5. You will be prompted to remove the installer media. When the system reboots,
-   it will take about a minute to finish configuring the system. A login prompt
-   may be shown before the first configuration is complete.
-6. After a couple minutes, the OpenMRS console will be available at
-   `http://localhost:9000/openmrs/`. If you've installed to a NUC and have a
-   `buendia` Wi-Fi network, the server will be available at
+3. Boot the Intel NUC or other system from the USB media.  If the
+   NUC doesn't automatically boot from USB, you can press F10 during
+   startup to select the boot device.
+4. The Debian installer menu should appear.  Choose "Install" (not the default,
+   "Graphical install", which leads to a kernel panic).
+5. Enter the wireless network and password when prompted.  (If the machine
+   has an Ethernet connection to a network with a DHCP server, it should
+   set up networking automatically and skip this step.)
+6. For all the prompts related to disk partitioning and boot loader, you can
+   just press Enter to use the default option.
+7. The installer typically takes 5 to 10 minutes to run, depending on your
+   network speed, and download 300–400 MB of additional software.
+8. You will be prompted to remove the installer media and reboot.
+   When the system reboots, it will take about a minute to finish configuring
+   the system; a login prompt may be shown before this is complete.
+9. If you want to watch for OpenMRS to come up, you can log into the
+   console as `buendia` or `root` with the password `buendia`, and run
+   the command `tail -f /var/log/buendia/buendia-warmup.log` (this
+   shows you the log of the warmup task, which runs once a minute).
+10. After a couple minutes, the OpenMRS console will be available at
+   `http://localhost:9000/openmrs/`.  If you've installed to a NUC and
+   have a `buendia` Wi-Fi network, the server will be available at
    `http://10.18.0.50:9000/openmrs/`.
-7. You can log into the console as either `buendia` or `root`. The password is
-   the same.
 
 ## Building the Installer
 
