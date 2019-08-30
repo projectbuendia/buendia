@@ -17,8 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
-import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 
 import java.util.Arrays;
@@ -54,8 +54,8 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
                 "gggggg"
             };
 
-    private static final SyncToken SYNC_TOKEN_FOR_RECORD_eeeee =
-            createSyncToken("2015-07-18 12:00:00.0", "eeeee");
+    private static final Bookmark SYNC_TOKEN_FOR_RECORD_eeeee =
+            createBookmark("2015-07-18 12:00:00.0", "eeeee");
 
     // END Dataset 1.
 
@@ -91,8 +91,8 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
                     "gggggg"
             };
 
-    private static final SyncToken SYNC_TOKEN_DATE_ONLY =
-            createSyncToken("2015-07-21 00:00:00.0", null);
+    private static final Bookmark SYNC_TOKEN_DATE_ONLY =
+            createBookmark("2015-07-21 00:00:00.0", null);
 
     // END Dataset 3.
 
@@ -118,12 +118,12 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_UUID_ORDER_NO_VOIDED_NO_DUPLICATE_TIMESTAMPS, 0, 3),
                 extractListOfUuids(results.results));
-        SyncToken token = results.syncToken;
+        Bookmark token = results.bookmark;
         results = buendiaService.getPatientsModifiedAtOrAfter(token, false, 3);
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_UUID_ORDER_NO_VOIDED_NO_DUPLICATE_TIMESTAMPS, 3, 6),
                 extractListOfUuids(results.results));
-        token = results.syncToken;
+        token = results.bookmark;
         results = buendiaService.getPatientsModifiedAtOrAfter(token, false, 3);
         assertArrayEquals(
                 // There should only be one in the last page.
@@ -132,9 +132,9 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
     }
 
     @Test
-    public void testSyncTokenGeneratedFromLastResultInPage() throws Exception {
+    public void testBookmarkGeneratedFromLastResultInPage() throws Exception {
         executeDataSet(PATIENT_DATASET_NO_VOIDED_NO_DUPLICATE_TIMESTAMPS);
-        SyncToken token = buendiaService.getPatientsModifiedAtOrAfter(null, false, 2).syncToken;
+        Bookmark token = buendiaService.getPatientsModifiedAtOrAfter(null, false, 2).bookmark;
         assertEquals(SYNC_TOKEN_FOR_RECORD_eeeee, token);
     }
 
@@ -142,12 +142,12 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
     public void testFetchPastEndOfResultSet() throws Exception {
         executeDataSet(PATIENT_DATASET_NO_VOIDED_NO_DUPLICATE_TIMESTAMPS);
         // First, fetch all the data.
-        SyncToken token = buendiaService.getPatientsModifiedAtOrAfter(null, false, 0).syncToken;
+        Bookmark token = buendiaService.getPatientsModifiedAtOrAfter(null, false, 0).bookmark;
         // The sync token should be generated from the last result, so using it should return
         // an empty result set.
         SyncPage<Patient> result = buendiaService.getPatientsModifiedAtOrAfter(token, false, 0);
         assertTrue("Expected empty results", result.results.isEmpty());
-        assertNull(result.syncToken);
+        assertNull(result.bookmark);
     }
 
     @Test
@@ -155,7 +155,7 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
         executeDataSet(PATIENT_DATASET_NO_VOIDED_NO_DUPLICATE_TIMESTAMPS);
         SyncPage<Patient> results = buendiaService.getPatientsModifiedAtOrAfter(null, false, 0);
         assertNotEquals(0, results.results.size());
-        results = buendiaService.getPatientsModifiedAtOrAfter(CATCH_ALL_SYNCTOKEN, false, 0);
+        results = buendiaService.getPatientsModifiedAtOrAfter(CATCH_ALL, false, 0);
         assertNotEquals(0, results.results.size());
     }
 
@@ -186,12 +186,12 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_UUID_ORDER_DUPLICATE_TIMESTAMPS, 0, 3),
                 extractListOfUuids(results.results));
-        SyncToken token = results.syncToken;
+        Bookmark token = results.bookmark;
         results = buendiaService.getPatientsModifiedAtOrAfter(token, true, 3);
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_UUID_ORDER_DUPLICATE_TIMESTAMPS, 3, 6),
                 extractListOfUuids(results.results));
-        token = results.syncToken;
+        token = results.bookmark;
         results = buendiaService.getPatientsModifiedAtOrAfter(token, true, 3);
         assertArrayEquals(
                 // There should only be one in the last page.
@@ -200,7 +200,7 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
     }
 
     @Test
-    public void testNullUuidInSyncTokenReturnsAllResultsNewerThanTimestamp() throws Exception {
+    public void testNullUuidInBookmarkReturnsAllResultsNewerThanTimestamp() throws Exception {
         executeDataSet(PATIENT_DATASET_DUPLICATE_TIMESTAMPS);
         List<Patient> results =
                 buendiaService.getPatientsModifiedAtOrAfter(SYNC_TOKEN_DATE_ONLY, true, 0).results;
@@ -214,7 +214,7 @@ public class HibernateProjectBuendiaDAOPatientTest extends HibernateProjectBuend
         // Don't add any data.
         SyncPage<Patient> result = buendiaService.getPatientsModifiedAtOrAfter(null, false, 0);
         assertTrue("Expected empty results", result.results.isEmpty());
-        assertNull(result.syncToken);
+        assertNull(result.bookmark);
     }
 
     // DATASET CONSISTENCY TESTS. See note on {@link #testDataSetIsConsistent}.

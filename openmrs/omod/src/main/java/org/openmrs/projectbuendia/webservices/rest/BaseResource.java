@@ -100,7 +100,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
      */
     public SimpleObject search(RequestContext context) throws ResponseException {
         Utils.addVersionHeaders(context);
-        String bookmark = getSyncToken(context);
+        String bookmark = context.getParameter("since");
         String op = bookmark != null ? "sync" : "search";
         logger.request(context, this, op);
         try {
@@ -262,11 +262,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
         return new SimpleObject()
             .add("results", resultsValue)
-            .add("syncToken", reply.get("syncToken"))
+            .add("bookmark", reply.get("bookmark"))
             .add("more", reply.get("more"));
-    }
-
-    private String getSyncToken(RequestContext context) {
-        return context.getParameter("since");
     }
 }

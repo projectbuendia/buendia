@@ -13,22 +13,22 @@
 
 package org.projectbuendia.openmrs.api.db;
 
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
 /**
- * A result set that contains a list of results, and possibly a {@link SyncToken}
+ * A result set that contains a list of results, and possibly a {@link Bookmark}
  * that can be used to fetch the next set of results.
  */
 public class SyncPage<T> {
     public final List<T> results;
     @Nullable
-    public final SyncToken syncToken;
+    public final Bookmark bookmark;
 
-    public SyncPage(List<T> results, @Nullable SyncToken syncToken) {
+    public SyncPage(List<T> results, @Nullable Bookmark bookmark) {
         this.results = results;
-        this.syncToken = syncToken;
+        this.bookmark = bookmark;
     }
 }

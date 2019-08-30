@@ -15,7 +15,7 @@ import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 
 import javax.annotation.Nullable;
 
@@ -23,12 +23,12 @@ import javax.annotation.Nullable;
 public interface ProjectBuendiaDAO {
 
     SyncPage<Obs> getObservationsModifiedAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);
 
     SyncPage<Patient> getPatientsModifiedAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);
 
     SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
-            @Nullable Order.Action[] allowedOrderTypes);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
+        @Nullable Order.Action[] allowedOrderTypes);
 }

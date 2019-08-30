@@ -17,8 +17,8 @@ import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.api.impl.BaseOpenmrsService;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
-import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 
@@ -37,21 +37,21 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
 
     @Override
     public SyncPage<Obs> getObservationsModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
-        return dao.getObservationsModifiedAfter(syncToken, includeVoided, maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
+        return dao.getObservationsModifiedAfter(bookmark, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Patient> getPatientsModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
-        return dao.getPatientsModifiedAfter(syncToken, includeVoided, maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
+        return dao.getPatientsModifiedAfter(bookmark, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
-            @Nullable Order.Action[] allowedOrderTypes) {
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
+        @Nullable Order.Action[] allowedOrderTypes) {
         return dao.getOrdersModifiedAtOrAfter(
-                syncToken, includeVoided, maxResults, allowedOrderTypes);
+            bookmark, includeVoided, maxResults, allowedOrderTypes);
     }
 }
