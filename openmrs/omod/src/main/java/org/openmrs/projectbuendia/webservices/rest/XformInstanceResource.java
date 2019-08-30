@@ -15,7 +15,6 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
@@ -38,7 +37,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstances",
+    name = RestController.PATH + "/xforminstances",
     supportedClass = Void.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
@@ -72,8 +71,7 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         String xml = Utils.getRequiredString(post, "xml");
 
         String patientUuid = Utils.getRequiredString(post, "patient_uuid");
-        Patient patient = patientService.getPatientByUuid(patientUuid);
-        if (patient == null) throw new ObjectNotFoundException();
+        Patient patient = DbUtils.patientsByUuid.get(patientUuid);
 
         Document doc = XmlUtils.parse(xml);
         Element formElement = XmlUtils.requireElementTagName(doc.getDocumentElement(), "form");
@@ -136,7 +134,7 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         // in the database's clob_datatype_storage table with a known UUID.
 
         FormService formService = Context.getFormService();
-        Form form = formService.getFormByUuid(formUuid);
+        Form form = DbUtils.formsByUuid.get(formUuid);
         String resourceName = form.getName() + ".xFormXslt";
         FormResource resource = formService.getFormResource(form, resourceName);
         if (resource == null) {

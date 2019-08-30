@@ -33,7 +33,7 @@ import static org.openmrs.projectbuendia.Utils.formatUtcDate;
 import static org.openmrs.projectbuendia.Utils.parseLocalDate;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patients",
+    name = RestController.PATH + "/patients",
     supportedClass = Patient.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

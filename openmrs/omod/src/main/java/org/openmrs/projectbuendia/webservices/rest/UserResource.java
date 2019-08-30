@@ -13,7 +13,7 @@ import java.util.Collection;
 import static org.openmrs.projectbuendia.Utils.getRequiredString;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/users",
+    name = RestController.PATH + "/users",
     supportedClass = Provider.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

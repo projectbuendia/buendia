@@ -38,8 +38,6 @@ import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
-import org.openmrs.module.webservices.rest.web.response
-    .IllegalPropertyException;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -339,19 +337,16 @@ public class DbUtils {
     }
 
     protected static abstract class Getter<T> {
-        String name;
+        String type;
 
-        Getter(Class<T> cls) { name = cls.getSimpleName(); }
+        Getter(Class<T> cls) { type = cls.getSimpleName(); }
 
         protected abstract @Nullable T lookup(String uuid);
 
         public @Nullable T get(@Nullable String uuid) {
             if (uuid == null) return null;
             T entity = lookup(uuid);
-            if (entity == null) {
-                throw new IllegalPropertyException(String.format(
-                    "No %s found with UUID %s", name, uuid));
-            }
+            if (entity == null) throw new UuidNotFoundException(type, uuid);
             return entity;
         }
     }

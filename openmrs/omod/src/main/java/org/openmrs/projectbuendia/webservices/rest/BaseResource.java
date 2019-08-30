@@ -40,7 +40,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
     private static final RequestLogger logger = RequestLogger.LOGGER;
     private final List<Representation> availableRepresentations;
     
-    protected final String collectionName;
+    protected final String pluralCollectionName;
     protected final ProjectBuendiaService buendiaService;
     protected final ConceptService conceptService;
     protected final EncounterService encounterService;
@@ -50,8 +50,8 @@ public abstract class BaseResource<T extends OpenmrsObject>
     protected final PatientService patientService;
     protected final ProviderService providerService;
 
-    protected BaseResource(String collectionName, Representation... representations) {
-        this.collectionName = collectionName;
+    protected BaseResource(String pluralCollectionName, Representation... representations) {
+        this.pluralCollectionName = pluralCollectionName;
         availableRepresentations = Arrays.asList(representations);
         buendiaService = Context.getService(ProjectBuendiaService.class);
         conceptService = Context.getConceptService();
@@ -144,8 +144,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "retrieve");
-            T item = retrieveItem(uuid);
-            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T item = retrieveRequiredItem(uuid);
             return logger.reply(context, this, "retrieve", toJson(item, context));
         } catch (Exception e) {
             logger.error(context, this, "retrieve", e);
@@ -158,8 +157,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "update", data);
-            T item = retrieveItem(uuid);
-            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T item = retrieveRequiredItem(uuid);
             T newItem = updateItem(item, data, context);
             return logger.reply(context, this, "update", toJson(newItem, context));
         } catch (Exception e) {
@@ -173,8 +171,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "delete", reason);
-            T item = retrieveItem(uuid);
-            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T item = retrieveRequiredItem(uuid);
             deleteItem(item, reason, context);
             logger.reply(context, this, "delete", null);
         } catch (Exception e) {
@@ -183,46 +180,54 @@ public abstract class BaseResource<T extends OpenmrsObject>
         }
     }
 
+    protected T retrieveRequiredItem(String uuid) {
+        T item = retrieveItem(uuid);
+        if (item == null || DbUtils.isVoidedOrRetired(item)) {
+            throw new ItemNotFoundException(pluralCollectionName, uuid);
+        }
+        return item;
+    }
+
     /** Retrieves a list of all items. */
     protected Collection<T> listItems(RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Listing all %s is not implemented", collectionName));
+            "Listing all %s is not implemented", pluralCollectionName));
     }
 
     /** Searches for all items matching the criteria in the RequestContext. */
     protected Collection<T> searchItems(RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Searching for %s is not implemented", collectionName));
+            "Searching for %s is not implemented", pluralCollectionName));
     }
 
     /** Fetches a chunk of items newer than a bookmarked position, returning an updated bookmark. */
     protected SimpleObject syncItems(String bookmark, List<T> items) {
         throw new UnsupportedOperationException(String.format(
-            "Searching for %s is not implemented", collectionName));
+            "Searching for %s is not implemented", pluralCollectionName));
     }
 
     /** Creates an item from the given data and returns it. */
     protected T createItem(SimpleObject data, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Creating %s is not implemented", collectionName));
+            "Creating %s is not implemented", pluralCollectionName));
     }
 
     /** Retrieves a single item by UUID, returning null if it can't be found. */
     protected T retrieveItem(String uuid) {
         throw new UnsupportedOperationException(String.format(
-            "Retrieving individual %s is not implemented", collectionName));
+            "Retrieving individual %s is not implemented", pluralCollectionName));
     }
 
     /** Updates the given item using the given data. */
     protected T updateItem(T item, SimpleObject data, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Updating %s is not implemented", collectionName));
+            "Updating %s is not implemented", pluralCollectionName));
     }
 
     /** Deletes (voids or retires) the given item. */
     protected void deleteItem(T item, String reason, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Deleting %s is not implemented", collectionName));
+            "Deleting %s is not implemented", pluralCollectionName));
     }
 
     /** Converts a single item to JSON (or returns an empty JSON object for null). */

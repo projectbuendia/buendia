@@ -18,7 +18,7 @@ import java.util.Collection;
  * "parent_uuid" key with a value of null.
  */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/locations",
+    name = RestController.PATH + "/locations",
     supportedClass = Location.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
