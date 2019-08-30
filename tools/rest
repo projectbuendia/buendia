@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import shlex
+import sys
+
+AUTH_HEADER = 'Authorization: Basic YnVlbmRpYTpidWVuZGlh'
+CONTENT_TYPE_HEADER = 'Content-Type: application/json'
+
+args = sys.argv[1:]
+
+try:
+    server, path = args[:2]
+    assert '.' in server
+except:
+    sys.stderr.write('''Usage: %s <server>:<port> <path> [curl options...]
+
+Makes an HTTP request to the Buendia REST API at a given server.
+
+<server> should be the hostname of a Buendia server; the port number
+defaults to 9000 if not specified.
+
+<path> should be a URL path relative to the root of the REST API,
+such as "/patients", "/locations", etc.
+
+Any additional arguments will be passed along as options to the "curl"
+command.  The "-i" option is passed by default so that the HTTP header
+will be printed out.  If a "-d" option is detected, the HTTP method will
+automatically switch to POST and the Content-Type will be set to
+application/json.
+
+The curl command will be shown in yellow and the response headers
+will be shown in cyan.  If the response body is valid JSON, it will be
+pretty-printed with indentation; otherwise, the raw response data will
+be printed in red.
+
+Examples:
+
+    %s demo.buendia.org /locations  # GET all locations
+    %s demo.buendia.org /patients -d'{"id":"123"}'  # POST a patient
+
+''' % (sys.argv[0], sys.argv[0], sys.argv[0]))
+    sys.exit(1)
+
+if ':' not in server:
+    server += ':9000'
+path = path.lstrip('/')
+
+args[:2] = ['http://%s/openmrs/ws/rest/v1/projectbuendia/%s' % (server, path)]
+args = ['curl', '-isS', '-H', AUTH_HEADER] + args
+if any(arg.startswith('-d') for arg in args):
+    args[4:4] = ['-H', CONTENT_TYPE_HEADER, '-X', 'POST']
+
+command = ' '.join(shlex.quote(arg) for arg in args)
+sys.stderr.write('\x1b[33m%s\x1b[0m\n' % command)
+with os.popen(command) as output:
+    while True:
+        line = output.readline()
+        if line.endswith('\n'):
+            line = line[:-1]
+        if not line: break
+        sys.stderr.write('\x1b[36m%s\x1b[0m\n' % line)
+    body = output.read()
+    try:
+        data = json.loads(body)
+        print('\n' + json.dumps(data, indent=2))
+    except:
+        print('\n\x1b[31m' + body + '\x1b[0m')
