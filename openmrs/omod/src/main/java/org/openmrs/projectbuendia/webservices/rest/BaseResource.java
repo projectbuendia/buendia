@@ -23,6 +23,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 
 import java.util.ArrayList;
@@ -100,14 +101,14 @@ public abstract class BaseResource<T extends OpenmrsObject>
      */
     public SimpleObject search(RequestContext context) throws ResponseException {
         Utils.addVersionHeaders(context);
-        String bookmark = context.getParameter("since");
-        String op = bookmark != null ? "sync" : "search";
+        String since = context.getParameter("since");
+        String op = since != null ? "sync" : "search";
         logger.request(context, this, op);
         try {
             SimpleObject reply = new SimpleObject();
             List<T> items = new ArrayList<>();
-            if (bookmark != null) {
-                reply = syncItems(bookmark, items);
+            if (since != null) {
+                reply = syncItems(BookmarkUtils.parseJson(since), items);
             } else {
                 items.addAll(searchItems(context));
             }
@@ -201,7 +202,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
     }
 
     /** Fetches a chunk of items newer than a bookmarked position, returning an updated bookmark. */
-    protected SimpleObject syncItems(String bookmark, List<T> items) {
+    protected SimpleObject syncItems(Bookmark bookmark, List<T> items) {
         throw new UnsupportedOperationException(String.format(
             "Searching for %s is not implemented", pluralCollectionName));
     }

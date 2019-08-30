@@ -38,23 +38,16 @@ public class ObservationResource extends BaseResource<Obs> {
             null, false /* include voided */, MAX_OBSERVATIONS_PER_PAGE).results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Obs> items) {
-        Bookmark token;
-        try {
-            token = BookmarkUtils.parseJson(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Obs> items) {
         SyncPage<Obs> observations = buendiaService.getObservationsModifiedAtOrAfter(
-            token, true /* include voided */, MAX_OBSERVATIONS_PER_PAGE);
+            bookmark, true /* include voided */, MAX_OBSERVATIONS_PER_PAGE);
         items.addAll(observations.results);
-        Bookmark newToken = BookmarkUtils.clampBookmarkToBufferedRequestTime(
+        Bookmark newBookmark = BookmarkUtils.clampBookmarkToBufferedRequestTime(
             observations.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = observations.results.size() == MAX_OBSERVATIONS_PER_PAGE;
         return new SimpleObject()
-            .add("bookmark", BookmarkUtils.toJson(newToken))
+            .add("bookmark", BookmarkUtils.toJson(newBookmark))
             .add("more", more);
     }
 
