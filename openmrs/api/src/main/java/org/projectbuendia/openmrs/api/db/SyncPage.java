@@ -24,8 +24,7 @@ import java.util.List;
  */
 public class SyncPage<T> {
     public final List<T> results;
-    @Nullable
-    public final Bookmark bookmark;
+    @Nullable public final Bookmark bookmark;
 
     public SyncPage(List<T> results, @Nullable Bookmark bookmark) {
         this.results = results;

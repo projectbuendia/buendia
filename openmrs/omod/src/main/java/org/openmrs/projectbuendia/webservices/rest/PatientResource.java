@@ -69,12 +69,12 @@ public class PatientResource extends BaseResource<Patient> {
         SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
             bookmark, true /* include voided */, MAX_PATIENTS_PER_PAGE);
         items.addAll(patients.results);
-        Bookmark newBookmark = BookmarkUtils.clampBookmarkToBufferedRequestTime(
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
             patients.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
         return new SimpleObject()
-            .add("bookmark", BookmarkUtils.toJson(newBookmark))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 

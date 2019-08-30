@@ -42,12 +42,12 @@ public class ObservationResource extends BaseResource<Obs> {
         SyncPage<Obs> observations = buendiaService.getObservationsModifiedAtOrAfter(
             bookmark, true /* include voided */, MAX_OBSERVATIONS_PER_PAGE);
         items.addAll(observations.results);
-        Bookmark newBookmark = BookmarkUtils.clampBookmarkToBufferedRequestTime(
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
             observations.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = observations.results.size() == MAX_OBSERVATIONS_PER_PAGE;
         return new SimpleObject()
-            .add("bookmark", BookmarkUtils.toJson(newBookmark))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 

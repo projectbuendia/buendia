@@ -53,12 +53,12 @@ public class OrderResource extends BaseResource<Order> {
         SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
             bookmark, true /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS);
         items.addAll(orders.results);
-        Bookmark newBookmark = BookmarkUtils.clampBookmarkToBufferedRequestTime(
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
             orders.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
         return new SimpleObject()
-            .add("bookmark", BookmarkUtils.toJson(newBookmark))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 
