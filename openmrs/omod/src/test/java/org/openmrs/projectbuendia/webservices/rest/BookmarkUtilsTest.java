@@ -15,6 +15,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.codehaus.jackson.map.JsonMappingException;
 import org.junit.Test;
+import org.openmrs.module.webservices.rest.web.response.InvalidSearchException;
 import org.projectbuendia.openmrs.api.Bookmark;
 
 import java.util.Date;
@@ -65,7 +66,7 @@ public class BookmarkUtilsTest {
         try {
             parseJson("{\"u\":\"12345\"}");
             fail("Expected an exception");
-        } catch (JsonMappingException e) {
+        } catch (InvalidSearchException e) {
             //expected
         }
     }
@@ -76,7 +77,7 @@ public class BookmarkUtilsTest {
         try {
             parseJson("{\"t\":\"2015-11-25T11!25tuesday28.000Z\"}");
             fail("Expected an exception");
-        } catch (InvalidObjectDataException e) {
+        } catch (InvalidSearchException e) {
             //expected
         }
     }

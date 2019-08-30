@@ -17,6 +17,7 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.webservices.rest.web.response.InvalidSearchException;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.Bookmark;
 
@@ -35,33 +36,34 @@ public class BookmarkUtils {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /** Creates a {@link Bookmark} from its corresponding JSON representation. */
-    public static Bookmark parseJson(String param) throws
-            ParseException, JsonParseException, JsonMappingException {
+    public static Bookmark parseJson(String json) {
         SimpleObject object;
         try {
-            object = SimpleObject.parseJson(param);
+            object = SimpleObject.parseJson(json);
         } catch (JsonParseException | JsonMappingException e) {
-            // These are subclasses of IOException, so we need to specifically add a catch clause
-            // that rethrows.
-            throw e;
+            throw new InvalidSearchException("Invalid bookmark \"" + json + "\"");
         } catch (IOException e) {
             // Should never occur, we're reading from a string.
             throw new RuntimeException(e);
         }
         if (object.get(JSON_FIELD_TIMESTAMP) == null) {
-            throw new JsonMappingException("Didn't find a valid timestamp field in the sync token");
+            throw new InvalidSearchException("Invalid bookmark \"" + json + "\" (no timestamp field)");
         }
-        return new Bookmark(
+        try {
+            return new Bookmark(
                 Utils.parse8601(object.get(JSON_FIELD_TIMESTAMP).toString()),
                 // This could be null, cast instead of calling toString().
                 (String) object.get(JSON_FIELD_UUID));
+        } catch (InvalidObjectDataException e) {
+            throw new InvalidSearchException("Invalid bookmark \"" + json + "\" (invalid timestamp field)");
+        }
     }
 
     /** Converts a {@link Bookmark} into a corresponding JSON representation. */
-    public static String toJson(Bookmark token) {
+    public static String toJson(Bookmark bookmark) {
         Object object = new SimpleObject()
-                .add(JSON_FIELD_TIMESTAMP, Utils.formatUtc8601(token.minTime))
-                .add(JSON_FIELD_UUID, token.minUuid);
+                .add(JSON_FIELD_TIMESTAMP, Utils.formatUtc8601(bookmark.minTime))
+                .add(JSON_FIELD_UUID, bookmark.minUuid);
         try {
             return OBJECT_MAPPER.writeValueAsString(object);
         } catch (IOException e) {
@@ -81,14 +83,14 @@ public class BookmarkUtils {
      * multiple times, which is ok under our synchronisation model.
      */
     public static Bookmark clampBookmarkToBufferedRequestTime(
-        @Nullable Bookmark token, Date requestTime) {
+        @Nullable Bookmark bookmark, Date requestTime) {
         if (requestTime == null) {
             throw new IllegalArgumentException("requestTime cannot be null");
         }
         Date earliestAllowableTime = new Date(requestTime.getTime() - REQUEST_BUFFER_WINDOW);
-        if (token == null || earliestAllowableTime.before(token.minTime)) {
+        if (bookmark == null || earliestAllowableTime.before(bookmark.minTime)) {
             return new Bookmark(earliestAllowableTime, null);
         }
-        return token;
+        return bookmark;
     }
 }

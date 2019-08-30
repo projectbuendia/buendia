@@ -65,23 +65,16 @@ public class PatientResource extends BaseResource<Patient> {
         return results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Patient> items) {
-        Bookmark token;
-        try {
-            token = BookmarkUtils.parseJson(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Patient> items) {
         SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
-            token, true /* include voided */, MAX_PATIENTS_PER_PAGE);
+            bookmark, true /* include voided */, MAX_PATIENTS_PER_PAGE);
         items.addAll(patients.results);
-        Bookmark newToken = BookmarkUtils.clampBookmarkToBufferedRequestTime(
+        Bookmark newBookmark = BookmarkUtils.clampBookmarkToBufferedRequestTime(
             patients.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
         return new SimpleObject()
-            .add("bookmark", BookmarkUtils.toJson(newToken))
+            .add("bookmark", BookmarkUtils.toJson(newBookmark))
             .add("more", more);
     }
 
