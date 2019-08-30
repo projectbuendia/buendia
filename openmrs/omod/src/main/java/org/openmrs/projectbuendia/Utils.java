@@ -235,7 +235,7 @@ public class Utils {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
-                "Required property \"%s\" is missing", key));
+                "Required property \"%s\" is missing or null", key));
         }
         if (!(value instanceof String)) {
             throw new InvalidObjectDataException(String.format(
@@ -252,7 +252,7 @@ public class Utils {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
-                "Required property \"%s\" is missing", key));
+                "Required property \"%s\" is missing or null", key));
         }
         long millis;
         try {

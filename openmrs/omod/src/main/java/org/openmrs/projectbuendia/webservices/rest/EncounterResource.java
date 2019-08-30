@@ -20,7 +20,7 @@ import java.util.List;
 import static org.openmrs.projectbuendia.Utils.eq;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/encounters",
+    name = RestController.PATH + "/encounters",
     supportedClass = Location.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

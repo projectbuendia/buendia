@@ -28,7 +28,7 @@ import java.util.regex.Pattern;
 import static org.openmrs.projectbuendia.Utils.isEmpty;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/charts",
+    name = RestController.PATH + "/charts",
     supportedClass = Form.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

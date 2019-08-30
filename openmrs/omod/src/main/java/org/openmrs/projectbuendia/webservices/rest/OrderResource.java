@@ -30,7 +30,7 @@ import java.util.Map;
 import static org.openmrs.projectbuendia.Utils.eq;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/orders",
+    name = RestController.PATH + "/orders",
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

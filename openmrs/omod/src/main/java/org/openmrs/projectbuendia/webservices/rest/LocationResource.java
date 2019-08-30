@@ -10,8 +10,15 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.Collection;
 
+/**
+ * REST collection for locations.  In the JSON representation, every
+ * location has a parent that can be null, and the "parent_uuid" key
+ * is always present though its value may be null.  The parent can
+ * be set to null during an update operation by including the
+ * "parent_uuid" key with a value of null.
+ */
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/locations",
+    name = RestController.PATH + "/locations",
     supportedClass = Location.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
@@ -26,16 +33,9 @@ public class LocationResource extends BaseResource<Location> {
 
     @Override protected Location createItem(SimpleObject data, RequestContext context) {
         Location location = new Location();
-        String parentUuid = Utils.getOptionalString(data, "parent_uuid");
-        if (parentUuid != null) {
-            Location parent = locationService.getLocationByUuid(parentUuid);
-            if (parent == null) {
-                throw new InvalidObjectDataException(String.format(
-                    "No parent location found with UUID %s", parentUuid));
-            }
-            location.setParentLocation(parent);
-        }
         location.setName(Utils.getRequiredString(data, "name"));
+        String parentUuid = Utils.getOptionalString(data, "parent_uuid");
+        location.setParentLocation(DbUtils.locationsByUuid.get(parentUuid));
         return locationService.saveLocation(location);
     }
 
@@ -44,31 +44,35 @@ public class LocationResource extends BaseResource<Location> {
     }
 
     @Override protected Location updateItem(Location location, SimpleObject data, RequestContext context) {
-        if (data.get("name") != null) {
+        if (data.containsKey("name")) {
             location.setName(Utils.getRequiredString(data, "name"));
+        }
+        if (data.containsKey("parent_uuid")) {
+            String parentUuid = Utils.getOptionalString(data, "parent_uuid");  // nullable
+            location.setParentLocation(DbUtils.locationsByUuid.get(parentUuid));  // nullable
         }
         return locationService.saveLocation(location);
     }
 
     @Override protected void deleteItem(Location location, String reason, RequestContext context) {
-        deleteLocationRecursively(location, reason);
+        retireLocationRecursively(location, reason);
     }
 
-    private void deleteLocationRecursively(Location location, String reason) {
-        // This may delete locations that are assigned to existing patients.
+    private void retireLocationRecursively(Location location, String reason) {
+        // This may retire locations that are assigned to existing patients.
         // The location is stored just as a string attribute on the patient,
         // so this will not break any database constraints; it just means
         // those patients will end up with an unknown location UUID.
         for (Location child : location.getChildLocations()) {
-            deleteLocationRecursively(child, reason);
+            retireLocationRecursively(child, reason);
         }
         locationService.retireLocation(location, reason);
     }
 
     @Override protected void populateJson(SimpleObject json, Location location, RequestContext context) {
-        Location parent = location.getParentLocation();
-        if (parent != null) json.add("parent_uuid", parent.getUuid());
         json.add("name", location.getName());
         json.add("names", new SimpleObject().add("en", location.getName())); // backward compatibility
+        Location parent = location.getParentLocation();
+        json.add("parent_uuid", parent != null ? parent.getUuid() : null);
     }
 }

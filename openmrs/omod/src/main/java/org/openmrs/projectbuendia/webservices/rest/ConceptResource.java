@@ -6,7 +6,6 @@ import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.api.context.Context;
-import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -30,7 +29,7 @@ import javax.annotation.Nullable;
 import static org.openmrs.projectbuendia.Utils.isBlank;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/concepts",
+    name = RestController.PATH + "/concepts",
     supportedClass = Concept.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )

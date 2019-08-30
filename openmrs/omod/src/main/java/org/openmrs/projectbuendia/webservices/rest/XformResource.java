@@ -34,7 +34,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescendant;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforms",
+    name = RestController.PATH + "/xforms",
     supportedClass = Form.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
@@ -65,7 +65,7 @@ public class XformResource extends BaseResource<Form> {
 
     /**
      * Adds the following fields to the {@link SimpleObject}:
-     *   - name: display name of the form
+     *   - name: display type of the form
      *   - date_created: the date the form was created, as ms since epoch
      *   - version: the version number of the form (e.g. 0.2.1)
      *   - date_changed: the date the form was last modified, as ms since epoch;
