@@ -1,9 +1,9 @@
-BUENDIA_TEST_BACKUP_TARGET=loop/backup.$(date +%Y-%m-%d)
+BUENDIA_TEST_BACKUP_TARGET=mnt/backup.$(date +%Y-%m-%d)
 
 # Given a configured "external" device
 # When the backup cron job runs
 test_10_run_backup_cron () {
-    mount_loopback
+    mount_storage
     execute_cron_right_now backup || true
     # TODO: This fails, but maybe shouldn't be treated as a failure?
     # 2019-08-21 10:09:31 18191> (start) buendia-restore /dev/loop7

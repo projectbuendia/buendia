@@ -2,8 +2,8 @@ make_bundle () {
     echo "touch /tmp/i-was-touched" > commands.sh
     echo "BUENDIA_IS_AWESOME=1" > 87-pkgserver-test
     zip projectbuendia-$1-50.zip commands.sh 87-pkgserver-test
-    mount_loopback
-    mv projectbuendia-$1-50.zip loop
+    mount_storage
+    mv projectbuendia-$1-50.zip mnt
 }
 
 assert_commands_sh_was_run () {

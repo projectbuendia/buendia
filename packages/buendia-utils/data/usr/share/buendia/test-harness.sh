@@ -48,10 +48,10 @@ execute_cron_right_now () {
     )
 }
 
-# mount_loopback creates an ext2-formatted loopback device, and mounts it
+# mount_storage creates an ext2-formatted loopback device, and mounts it
 # inside the current working directory, to simulate the insertion of an
 # external USB storage device.
-mount_loopback () {
+mount_storage () {
     # 1st arg sets the size of the loopback device; default is 250M.
     size=${1:-250M}
 
@@ -60,8 +60,19 @@ mount_loopback () {
     # 
     # If this is already mounted, then return success early (and
     # assume that the existing loopback device is big enough).
-    mnt_point=$(pwd)/loop
+    mnt_point=$(pwd)/mnt
     grep $mnt_point /etc/mtab && return 0
+
+    # Do we want to test physical devices specifically?
+    if bool "$UTILS_TEST_PHYSICAL_BACKUP"; then
+        partitions=$(external_file_systems)
+        mkdir -p $mnt_point
+        for device in $partitions; do
+            mount $device $mnt_point && return 0
+        done
+        echo "UTILS_TEST_PHYSICAL_BACKUP is set, but no external file system could be found."
+        echo "The following partitions were checked: ${partitions}"
+    fi
 
     # Create an empty file of the appropriate size for the loopback device.
     loop_img=$(pwd)/loopback.img
@@ -81,12 +92,21 @@ mount_loopback () {
     . /usr/share/buendia/utils.sh
 }
 
-# umount_loopback unmounts a given loopback device, to simulate the removal of
+# umount_storage unmounts a given loopback device, to simulate the removal of
 # an external USB storage device.
-umount_loopback () {
+umount_storage () {
+    mnt_point=$(pwd)/mnt
+
     # 1st arg is the loopback device to unmount; default to the first loopback
     # device currently mounted.
-    loop_dev=${1:-$(grep loop /etc/mtab | cut -d' ' -f1 | head -1)}
+    loop_dev=${1:-$(grep "$mnt_point" /etc/mtab | cut -d' ' -f1 | head -1)}
+
+    # If we were asked to test physical backups then just umount the local
+    # mount point.
+    if bool "$UTILS_TEST_PHYSICAL_BACKUP"; then
+        grep "$mnt_point" /etc/mtab && umount "$mnt_point"
+        return 0
+    fi
 
     # If we found a loopback device, it might be (probably is) mounted
     # repeatedly in different places by various buendia cron scripts. Unmount
@@ -172,7 +192,7 @@ run_test_suite () {
         # Make a temporary directory, and clean it (and any loopback devices) up
         # afterwards.
         tmpdir=$(mktemp -d -t buendia_run_test_suite.XXXX)
-        trap 'umount_loopback; rm -rf $tmpdir' EXIT
+        trap 'umount_storage; rm -rf $tmpdir' EXIT
 
         # Load the functions in the given suite.
         . $suite

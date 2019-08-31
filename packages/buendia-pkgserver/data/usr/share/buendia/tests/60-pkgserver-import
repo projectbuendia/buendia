@@ -6,8 +6,8 @@ test_10_pkgserver_import_bundle () {
     zip projectbuendia-all-10.zip $deb
 
     # Put the file on the "USB stick"
-    mount_loopback
-    mv projectbuendia-all-10.zip loop
+    mount_storage
+    mv projectbuendia-all-10.zip mnt
 
     # Run the bundle import
     # TODO: The attempt to mount and import from loop0 succeeed, but then the
