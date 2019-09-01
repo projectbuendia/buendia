@@ -82,25 +82,9 @@ public class PatientResourceTest extends BaseApiRequestTest {
         assertEquals("Poppins", response.get("family_name"));
         assertEquals("F", response.get("sex"));
         assertEquals("1970-01-01", response.get("birthdate"));
-        assertFalse(response.containsKey("assigned_location"));
 
         Patient patient = patientService.getPatientByUuid(uuid);
         PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtils.IDENTIFIER_TYPE_MSF_UUID);
         assertEquals("XYZ", patient.getPatientIdentifier(identType).getIdentifier());
-    }
-
-    @Test public void testMovePatient() throws Exception {
-        // Post an edit that sets the location of a patient.
-        SimpleObject input = new SimpleObject();
-        input.add("assigned_location", new SimpleObject().add("uuid", XANADU_UUID));
-
-        MockHttpServletRequest request = newPostRequest(getURI() + "/" + PETER_PAN_UUID, input);
-        SimpleObject response = deserialize(handle(request));
-
-        // Fetch the patient record and expect to see the updated location.
-        request = this.request(RequestMethod.GET, this.getURI() + "/" + PETER_PAN_UUID);
-        response = this.deserialize(this.handle(request));
-
-        assertEquals(XANADU_UUID, ((Map<String, Object>) response.get("assigned_location")).get("uuid"));
     }
 }

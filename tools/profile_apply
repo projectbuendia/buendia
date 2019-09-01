@@ -186,8 +186,10 @@ def apply(tabs):
 
     def main():  # main entry point, invoked at the end of this block
         if 'form' in tabs:
+            # Apply forms first, which creates all referenced concepts.
             apply_forms(tabs['form'])
         if 'chart' in tabs:
+            # Then apply charts, which requires all concepts to already exist.
             chart_enctype = get_or_insert(
                 'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
             odb.update('encounter_type', chart_enctype, name='CHART', retired=1,
