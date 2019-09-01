@@ -18,8 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.Obs;
 import org.openmrs.api.context.Context;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
-import org.projectbuendia.openmrs.api.SyncToken;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 
 import java.util.Arrays;
@@ -101,12 +101,12 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_ORDER_NO_DUPLICATES_INCLUDE_VOIDED, 0, 3),
                 extractListOfUuids(results.results));
-        SyncToken token = results.syncToken;
+        Bookmark token = results.bookmark;
         results = buendiaService.getObservationsModifiedAtOrAfter(token, true, 3);
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_ORDER_NO_DUPLICATES_INCLUDE_VOIDED, 3, 6),
                 extractListOfUuids(results.results));
-        token = results.syncToken;
+        token = results.bookmark;
         results = buendiaService.getObservationsModifiedAtOrAfter(token, true, 3);
         assertArrayEquals(
                 // There should only be one in the last page.
@@ -118,7 +118,7 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
     public void testIncludeVoidedFalseExcludesVoided() throws Exception {
         executeDataSet(DATASET_NO_DUPLICATE_TIMESTAMPS);
         SyncPage<Obs> actual =
-                buendiaService.getObservationsModifiedAtOrAfter(CATCH_ALL_SYNCTOKEN, false, 0);
+                buendiaService.getObservationsModifiedAtOrAfter(CATCH_ALL, false, 0);
         Assert.assertArrayEquals(
                 EXPECTED_ORDER_NO_DUPLICATES_EXCLUDE_VOIDED,
                 extractListOfUuids(actual.results));
@@ -128,7 +128,7 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
     public void testIncludedVoidedTrueIncludesVoided() throws Exception {
         executeDataSet(DATASET_NO_DUPLICATE_TIMESTAMPS);
         SyncPage<Obs> actual =
-                buendiaService.getObservationsModifiedAtOrAfter(CATCH_ALL_SYNCTOKEN, true, 0);
+                buendiaService.getObservationsModifiedAtOrAfter(CATCH_ALL, true, 0);
         Assert.assertArrayEquals(
                 EXPECTED_ORDER_NO_DUPLICATES_INCLUDE_VOIDED,
                 extractListOfUuids(actual.results));
@@ -146,12 +146,12 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_ORDER_DUPLICATES, 0, 3),
                 extractListOfUuids(results.results));
-        SyncToken token = results.syncToken;
+        Bookmark token = results.bookmark;
         results = buendiaService.getObservationsModifiedAtOrAfter(token, true, 3);
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_ORDER_DUPLICATES, 3, 6),
                 extractListOfUuids(results.results));
-        token = results.syncToken;
+        token = results.bookmark;
         results = buendiaService.getObservationsModifiedAtOrAfter(token, true, 3);
         assertArrayEquals(
                 // There should only be one in the last page.
@@ -160,7 +160,7 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
     }
 
     @Test
-    public void testCorrectSyncTokenWhenSwitchingBetweenIncludeAndExcludedVoided()
+    public void testCorrectBookmarkWhenSwitchingBetweenIncludeAndExcludedVoided()
             throws Exception {
         executeDataSet(DATASET_DUPLICATE_TIMESTAMPS);
         SyncPage<Obs> results =
@@ -171,7 +171,7 @@ public class HibernateProjectBuendiaDAOObsTest extends HibernateProjectBuendiaDA
         // We've now gone past one voided observations. There's one more voided. We test that if
         // we request with includeVoided = false, the correct results are still fetched - i.e. the
         // bookmark doesn't "shift" because of a parameter change.
-        SyncToken token = results.syncToken;
+        Bookmark token = results.bookmark;
         results = buendiaService.getObservationsModifiedAtOrAfter(token, false, 3);
         assertArrayEquals(
                 EXPECTED_ORDER_DUPLICATES_EXCLUDE_VOIDED_AFTER_bbbbbb,

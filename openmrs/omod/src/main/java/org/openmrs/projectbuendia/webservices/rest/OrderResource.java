@@ -16,7 +16,7 @@ import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 
 import org.openmrs.projectbuendia.Utils;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -49,23 +49,16 @@ public class OrderResource extends BaseResource<Order> {
             null, false /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS).results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Order> items) {
-        SyncToken token;
-        try {
-            token = SyncTokenUtils.jsonToSyncToken(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Order> items) {
         SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
-            token, true /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS);
+            bookmark, true /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS);
         items.addAll(orders.results);
-        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
-            orders.syncToken, new Date());
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
+            orders.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
         return new SimpleObject()
-            .add("syncToken", SyncTokenUtils.syncTokenToJson(newToken))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 

@@ -15,7 +15,7 @@ import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 
 import org.openmrs.projectbuendia.Utils;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -65,23 +65,16 @@ public class PatientResource extends BaseResource<Patient> {
         return results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Patient> items) {
-        SyncToken token;
-        try {
-            token = SyncTokenUtils.jsonToSyncToken(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Patient> items) {
         SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
-            token, true /* include voided */, MAX_PATIENTS_PER_PAGE);
+            bookmark, true /* include voided */, MAX_PATIENTS_PER_PAGE);
         items.addAll(patients.results);
-        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
-            patients.syncToken, new Date());
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
+            patients.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
         return new SimpleObject()
-            .add("syncToken", SyncTokenUtils.syncTokenToJson(newToken))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 

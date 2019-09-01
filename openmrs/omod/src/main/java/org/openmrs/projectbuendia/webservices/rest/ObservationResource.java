@@ -10,7 +10,7 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 import org.openmrs.projectbuendia.Utils;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
@@ -38,23 +38,16 @@ public class ObservationResource extends BaseResource<Obs> {
             null, false /* include voided */, MAX_OBSERVATIONS_PER_PAGE).results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Obs> items) {
-        SyncToken token;
-        try {
-            token = SyncTokenUtils.jsonToSyncToken(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Obs> items) {
         SyncPage<Obs> observations = buendiaService.getObservationsModifiedAtOrAfter(
-            token, true /* include voided */, MAX_OBSERVATIONS_PER_PAGE);
+            bookmark, true /* include voided */, MAX_OBSERVATIONS_PER_PAGE);
         items.addAll(observations.results);
-        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
-            observations.syncToken, new Date());
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
+            observations.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = observations.results.size() == MAX_OBSERVATIONS_PER_PAGE;
         return new SimpleObject()
-            .add("syncToken", SyncTokenUtils.syncTokenToJson(newToken))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 

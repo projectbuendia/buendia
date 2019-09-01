@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.openmrs.Order;
 import org.openmrs.api.context.Context;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 
 import java.util.Arrays;
@@ -74,7 +74,7 @@ public class HibernateProjectBuendiaDAOOrderTest extends HibernateProjectBuendia
     @Test
     public void testIncludeVoidedFalseExcludesVoided() throws Exception {
         SyncPage<Order> actual = buendiaService.getOrdersModifiedAtOrAfter(
-                CATCH_ALL_SYNCTOKEN, false, 0, null);
+            CATCH_ALL, false, 0, null);
         assertArrayEquals(
                 EXPECTED_ORDER_EXCLUDES_VOIDED,
                 extractListOfUuids(actual.results));
@@ -83,7 +83,7 @@ public class HibernateProjectBuendiaDAOOrderTest extends HibernateProjectBuendia
     @Test
     public void testIncludedVoidedTrueIncludesVoided() throws Exception {
         SyncPage<Order> actual = buendiaService.getOrdersModifiedAtOrAfter(
-                CATCH_ALL_SYNCTOKEN, true, 0, null);
+            CATCH_ALL, true, 0, null);
         assertArrayEquals(
                 EXPECTED_ORDER_INCLUDES_VOIDED,
                 extractListOfUuids(actual.results));
@@ -96,12 +96,12 @@ public class HibernateProjectBuendiaDAOOrderTest extends HibernateProjectBuendia
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_ORDER_INCLUDES_VOIDED, 0, 3),
                 extractListOfUuids(results.results));
-        SyncToken token = results.syncToken;
+        Bookmark token = results.bookmark;
         results = buendiaService.getOrdersModifiedAtOrAfter(token, true, 3, null);
         assertArrayEquals(
                 Arrays.copyOfRange(EXPECTED_ORDER_INCLUDES_VOIDED, 3, 6),
                 extractListOfUuids(results.results));
-        token = results.syncToken;
+        token = results.bookmark;
         results = buendiaService.getOrdersModifiedAtOrAfter(token, true, 3, null);
         assertArrayEquals(
                 // There should only be two in the last page.

@@ -39,34 +39,34 @@ public interface ProjectBuendiaService extends OpenmrsService {
 
     /**
      * Returns all observations modified on or after the given {@code date}.
-     * @param syncToken a token representing the first record to be excluded from the result set.
-     *                  See {@link SyncToken} for more information.
+     * @param bookmark a token representing the first record to be excluded from the result set.
+     *                  See {@link Bookmark} for more information.
      * @param includeVoided if {@code true}, results will include voided observations.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
     SyncPage<Obs> getObservationsModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);
 
     /**
      * Returns all patients modified on or after the given {@code date}.
-     * @param syncToken a token representing the first record to be excluded from the result set.
-     *                  See {@link SyncToken} for more information.
+     * @param bookmark a token representing the first record to be excluded from the result set.
+     *                  See {@link Bookmark} for more information.
      * @param includeVoided if {@code true}, results will include voided patients.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
     SyncPage<Patient> getPatientsModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);
 
     /**
      * Returns all orders modified on or after the given {@code date}.
-     * @param syncToken a token representing the first record to be excluded from the result set.
-     *                  See {@link SyncToken} for more information.
+     * @param bookmark a token representing the first record to be excluded from the result set.
+     *                  See {@link Bookmark} for more information.
      * @param includeVoided if {@code true}, results will include voided orders.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      * @param allowedOrderTypes only order types specified in this whitelist will be fetched. If
      *                          null, all order types are permissible.
      */
     SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
-            @Nullable Order.Action[] allowedOrderTypes);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
+        @Nullable Order.Action[] allowedOrderTypes);
 }
