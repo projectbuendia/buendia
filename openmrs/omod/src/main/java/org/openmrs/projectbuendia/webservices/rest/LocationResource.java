@@ -71,7 +71,6 @@ public class LocationResource extends BaseResource<Location> {
 
     @Override protected void populateJson(SimpleObject json, Location location, RequestContext context) {
         json.add("name", location.getName());
-        json.add("names", new SimpleObject().add("en", location.getName())); // backward compatibility
         Location parent = location.getParentLocation();
         json.add("parent_uuid", parent != null ? parent.getUuid() : null);
     }
