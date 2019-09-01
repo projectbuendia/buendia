@@ -123,14 +123,6 @@ public class PatientResource extends BaseResource<Patient> {
             ident.setIdentifier("temp-" + new Date().getTime());
         }
         patient.addIdentifier(ident);
-
-        // TODO(ping): Replace with an observation.
-        // Set assigned location last, as doing so saves the patient, which could fail
-        // if performed in the middle of patient creation.
-        Map location = (Map) data.get("assigned_location");
-        if (location != null) {
-            setLocation(patient, (String) location.get("uuid"));
-        }
         patientService.savePatient(patient);
 
         // For LOCAL-type identifiers, we can only determine the identifier after
@@ -167,10 +159,6 @@ public class PatientResource extends BaseResource<Patient> {
         if (givenName != null) name.setGivenName(normalizeName(givenName));
         String familyName = Utils.getOptionalString(data, "family_name");
         if (familyName != null) name.setFamilyName(normalizeName(familyName));
-        Map location = (Map) data.get("assigned_location");
-        if (location != null) {
-            setLocation(patient, (String) location.get("uuid"));
-        }
         String id = Utils.getOptionalString(data, "id");
         PatientIdentifier ident = patient.getPatientIdentifier();
         if (id != null && !eq(id, toClientIdent(ident))) {
@@ -206,14 +194,6 @@ public class PatientResource extends BaseResource<Patient> {
         }
         json.add("given_name", denormalizeName(patient.getGivenName()));
         json.add("family_name", denormalizeName(patient.getFamilyName()));
-        String locationId = DbUtils.getPersonAttributeValue(
-            patient, DbUtils.getAssignedLocationAttributeType());
-        if (locationId != null) {
-            Location location = locationService.getLocation(Integer.parseInt(locationId));
-            if (location != null) {
-                json.add("assigned_location", new SimpleObject().add("uuid", location.getUuid()));
-            }
-        }
     }
 
     /** Normalizes a name to something OpenMRS will accept. */
@@ -238,18 +218,6 @@ public class PatientResource extends BaseResource<Patient> {
             return sex.trim().toUpperCase().substring(0, 1);  // F, M, O, and U are valid
         } else {
             return "U";
-        }
-    }
-
-    private void setLocation(Patient patient, String locationUuid) {
-        // Apply the given assigned location to a patient, if locationUuid is not null.
-        if (locationUuid != null) {
-            Location location = locationService.getLocationByUuid(locationUuid);
-            if (location != null) {
-                DbUtils.setPersonAttributeValue(patient,
-                    DbUtils.getAssignedLocationAttributeType(),
-                    Integer.toString(location.getId()));
-            }
         }
     }
 

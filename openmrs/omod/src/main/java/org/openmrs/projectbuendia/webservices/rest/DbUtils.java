@@ -78,10 +78,6 @@ public class DbUtils {
     public static final String IDENTIFIER_TYPE_MSF_UUID = "buendia_identifier_type_msf";
     public static final String IDENTIFIER_TYPE_LOCAL_UUID = "buendia_identifier_type_local";
 
-    // This UUID is hardcoded, but clients don't need to know it because the server
-    // internally converts the "assigned_location" to a person attribute.
-    public static final String ATTRIBUTE_TYPE_ASSIGNED_LOCATION_UUID = "buendia_attribute_type_location";
-
     // This UUID is hardcoded but only used internally by the server to distinguish
     // chart forms (exposed at /charts) from XForm forms (exposed at /xforms).
     public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
@@ -205,12 +201,6 @@ public class DbUtils {
         return concept;
     }
 
-    /** Gets the attribute type for the patient's assigned location. */
-    public static PersonAttributeType getAssignedLocationAttributeType() {
-        return getPersonAttributeType(
-            ATTRIBUTE_TYPE_ASSIGNED_LOCATION_UUID, "assigned_location");
-    }
-
     /** Returns the currently authenticated user. */
     public static User getAuthenticatedUser() {
         return Context.getUserContext().getAuthenticatedUser();
@@ -238,7 +228,7 @@ public class DbUtils {
      */
     public static Date fixEncounterDatetime(Date datetime) {
         Date now = new Date();
-        if (datetime.after(now)) {
+        if (datetime == null || datetime.after(now)) {
             datetime = now;
         }
         return datetime;

@@ -27,6 +27,7 @@ public class UserResource extends BaseResource<Provider> {
 
     @Override protected Collection<Provider> listItems(RequestContext context) {
         ensureGuestProviderExists();
+        ensurePlacementConceptExists();
         return providerService.getAllProviders(false /* include retired */);
     }
 
@@ -68,5 +69,9 @@ public class UserResource extends BaseResource<Provider> {
             guest.setName(GUEST_NAME);
             providerService.saveProvider(guest);
         }
+    }
+
+    private synchronized void ensurePlacementConceptExists() {
+        DbUtils.getPlacementConcept();
     }
 }

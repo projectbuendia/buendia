@@ -60,7 +60,7 @@ public class LocationResource extends BaseResource<Location> {
 
     private void retireLocationRecursively(Location location, String reason) {
         // This may retire locations that are assigned to existing patients.
-        // The location is stored just as a string attribute on the patient,
+        // The location is stored just as a text observation on the patient,
         // so this will not break any database constraints; it just means
         // those patients will end up with an unknown location UUID.
         for (Location child : location.getChildLocations()) {
