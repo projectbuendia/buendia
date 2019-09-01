@@ -108,12 +108,15 @@ public class OrderResource extends BaseResource<Order> {
             throw new IllegalPropertyException("Cannot change the Patient on an Order");
         }
         newOrder.setEncounter(createEncounter(newOrder.getPatient(), provider, dateUpdated));
-        String instructions = Utils.getOptionalString(data, "instructions");
-        if (instructions != null) newOrder.setInstructions(instructions);
-        Date startDate = Utils.getOptionalDateMillis(data, "start_millis");
-        if (startDate != null) newOrder.setScheduledDate(startDate);
-        Date stopDate = Utils.getOptionalDateMillis(data, "stop_millis");
-        if (stopDate != null) newOrder.setAutoExpireDate(stopDate);
+        if (data.containsKey("instructions")) {
+            newOrder.setInstructions(Utils.getOptionalString(data, "instructions"));
+        }
+        if (data.containsKey("start_millis")) {
+            newOrder.setScheduledDate(Utils.getOptionalDateMillis(data, "start_millis"));
+        }
+        if (data.containsKey("stop_millis")) {
+            newOrder.setAutoExpireDate(Utils.getOptionalDateMillis(data, "stop_millis"));
+        }
 
         // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore, for
         // such orders, we have to store revisions with the NEW action instead of the REVISE action.
