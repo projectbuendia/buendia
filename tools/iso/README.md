@@ -86,6 +86,10 @@ to the default server installation:
 * `buendia-server`
 * `buendia-networking`
 * `buendia-dashboard`
+* `buendia-pkgserver`
+* `buendia-update`
+* `buendia-backup`
+* `buendia-monitoring`
 
 Also, the preseed configuration triggers the creation of an empty file in
 `/etc/buendia-defer-reconfigure` in the new system, which suppresses most of
