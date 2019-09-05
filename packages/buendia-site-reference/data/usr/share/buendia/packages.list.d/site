@@ -1,7 +1,9 @@
 buendia-backup
 buendia-dashboard
+buendia-monitoring
 buendia-networking
 buendia-pkgserver
 buendia-server
 buendia-site-reference
 buendia-sshd
+buendia-update

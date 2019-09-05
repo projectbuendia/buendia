@@ -6,3 +6,4 @@ Provides: buendia-site
 Conflicts: buendia-site
 Description: Site config: Reference deployment
 Maintainer: projectbuendia.org
+Depends: buendia-networking, buendia-dashboard, buendia-pkgserver, buendia-update, buendia-backup, buendia-monitoring, buendia-sshd
