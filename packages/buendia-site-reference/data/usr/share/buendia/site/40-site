@@ -1,4 +1,4 @@
-# Site configuration for integration testing on an Edison.
+# Site configuration for reference deployments
 
 SERVER_OPENMRS_USER=buendia
 SERVER_OPENMRS_PASSWORD=buendia
@@ -22,7 +22,7 @@ NETWORKING_ETHERNET_INTERFACE=enp3s0
 
 # Join the existing "buendia" network as provided by the Nanostation
 NETWORKING_SSID=buendia
-NETWORKING_PASSWORD=buendia
+NETWORKING_PASSWORD=plumpynut
 
 # Get a static address on the network and provide DNS but not DHCP.
 NETWORKING_IP_ADDRESS=10.0.0.2
