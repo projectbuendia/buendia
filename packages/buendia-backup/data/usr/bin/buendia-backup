@@ -35,6 +35,12 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
+# Check if there's anything to back up. If not, notify and exit early.
+if buendia-db-is-unused >/dev/null; then
+    echo "No patients have been created; skipping backup."
+    exit 0
+fi
+
 # Keep one backup per day.  (If you need to maintain a backup that is
 # much less than a day old, run buendia-backup multiple times per day.)
 backup_id=$(date +'%Y-%m-%d')
