@@ -4,6 +4,6 @@ Architecture: all
 Pre-Depends: buendia-utils
 Provides: buendia-site
 Conflicts: buendia-site
-Depends: buendia-dashboard, buendia-backup, buendia-monitoring
+Depends: buendia-dashboard, buendia-backup, buendia-monitoring, buendia-server
 Description: Site config: Destructive integration testing
 Maintainer: projectbuendia.org
