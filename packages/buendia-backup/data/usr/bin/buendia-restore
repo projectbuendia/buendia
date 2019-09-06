@@ -16,7 +16,6 @@ export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 root=$1
 name=$(basename $0)
 
-
 if [ "$root" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <restore-root-path>"
     echo "       $0 <block-device>"
@@ -62,16 +61,16 @@ if [ -b "$root" ]; then
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
 
-    root="$mnt_dir/restore"
+    # Find the latest backup directory on the device, or else.
+    backup_dir=$(ls -d $mnt_dir/backup.????-??-?? 2>/dev/null | tail -1)
+    if [ -z "$backup_dir" ]; then
+        echo "No backups found on $root, exiting."
+        exit 1
+    fi
+    root=$backup_dir
 
 elif [ ! -d "$root" ]; then
     echo "$root is neither a block device nor a directory."
-    exit 1
-fi
-
-# If the root directory does not exist, then give up
-if [ ! -e $root ]; then
-    echo "$root does not exist, exiting."
     exit 1
 fi
 
