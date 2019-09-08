@@ -16,7 +16,6 @@ export MYSQL_PASSWORD=$OPENMRS_MYSQL_PASSWORD
 root=$1
 name=$(basename $0)
 
-
 if [ "$root" = "" -o "$1" = "-h" ]; then
     echo "Usage: $0 <restore-root-path>"
     echo "       $0 <block-device>"
@@ -33,13 +32,20 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
     exit 1
 fi
 
+# Check if it's safe to restore. If not, notify and exit early.
+if ! buendia-db-is-empty >/dev/null; then
+    echo "Database is not empty; skipping restore."
+    exit 0
+fi
+
 # Use the file descriptor to place a runtime lock, to prevent two updates
 # happening simultaneously. When the process exits the file descriptor will
 # be lost (unlike a file). This allows cron to poll every minute while still
-# having a runtime longer than one minute.
-exec 9> /var/run/lock/$name
+# having a runtime longer than one minute, and prevents backup and restore from
+# happening simultaneously.
+exec 9> /var/run/lock/buendia-backup
 if ! flock -n 9; then
-    echo "$name already running; not starting."
+    echo "Backup or restore already running; not starting."
     exit 1
 fi
 # Prepare some empty temporary directories.
@@ -56,16 +62,16 @@ if [ -b "$root" ]; then
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
 
-    root="$mnt_dir/restore"
+    # Find the latest backup directory on the device, or else.
+    backup_dir=$(ls -d $mnt_dir/backup.????-??-?? 2>/dev/null | tail -1)
+    if [ -z "$backup_dir" ]; then
+        echo "No backups found on $root, exiting."
+        exit 1
+    fi
+    root=$backup_dir
 
 elif [ ! -d "$root" ]; then
     echo "$root is neither a block device nor a directory."
-    exit 1
-fi
-
-# If the root directory does not exist, then give up
-if [ ! -e $root ]; then
-    echo "$root does not exist, exiting."
     exit 1
 fi
 

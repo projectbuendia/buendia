@@ -15,13 +15,8 @@ test_30_create_backup () {
     [ -d loop/backup.$(date +%Y-%m-%d) ]
 }
 
-test_40_create_patient () {
-    USER_ID=$(head -c8 /dev/random | base64)
-    openmrs_post patients/ >create-patient.json <<END
-        {"id": "$USER_ID", "given_name": "Louis", "family_name": "Pasteur", "sex": "M", "birthdate": "1924-08-20"}
-END
-    cat create-patient.json
-    grep '"uuid" *: *"........-....-....-....-............"' create-patient.json
+test_40_delete_all_patients () {
+    echo "delete from encounter; delete from patient" | execute_openmrs_sql
 }
 
 test_50_confirm_changed_patient_list () {
@@ -36,7 +31,6 @@ test_50_confirm_changed_patient_list () {
 }
 
 test_60_restore_from_backup () {
-    mv loop/backup.$(date +%Y-%m-%d) loop/restore || return 1
     execute_cron_right_now backup
 }
 
