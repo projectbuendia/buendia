@@ -21,7 +21,7 @@ patient_count=$(echo "select count(*) from patient" | \
     mysql -s -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs)
 
 if [ "$patient_count" -eq 0 ]; then
-    echo "unused"
+    echo "empty"
     exit 0
 fi
 

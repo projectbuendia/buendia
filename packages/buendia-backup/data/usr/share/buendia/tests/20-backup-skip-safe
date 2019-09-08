@@ -1,6 +1,6 @@
 # if there aren't any patient records yet, prove that backups don't run
 test_10_no_backups_if_no_patients () {
-    buendia-db-is-unused || return 0
+    buendia-db-is-empty || return 0
     buendia-backup no-backup
     [ ! -d no-backup ]
 }

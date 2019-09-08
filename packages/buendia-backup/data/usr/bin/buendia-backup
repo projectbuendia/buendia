@@ -36,8 +36,8 @@ if [ "$root" = "" -o "$1" = "-h" ]; then
 fi
 
 # Check if there's anything to back up. If not, notify and exit early.
-if buendia-db-is-unused >/dev/null; then
-    echo "No patients have been created; skipping backup."
+if buendia-db-is-empty >/dev/null; then
+    echo "The database is still empty; skipping backup."
     exit 0
 fi
 
