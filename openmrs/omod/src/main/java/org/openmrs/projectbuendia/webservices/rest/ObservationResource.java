@@ -4,6 +4,7 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.openmrs.EncounterProvider;
 import org.openmrs.Obs;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -49,6 +50,14 @@ public class ObservationResource extends BaseResource<Obs> {
         return new SimpleObject()
             .add("bookmark", newBookmark.serialize())
             .add("more", more);
+    }
+
+    @Override protected Obs retrieveItem(String uuid) {
+        return obsService.getObsByUuid(uuid);
+    }
+
+    @Override protected void deleteItem(Obs obs, String reason, RequestContext context) {
+        obsService.voidObs(obs, reason + " (from Buendia client)");
     }
 
     @Override protected void populateJson(SimpleObject json, Obs obs, RequestContext context) {
