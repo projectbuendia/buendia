@@ -5,6 +5,7 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.FormService;
 import org.openmrs.api.LocationService;
+import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
@@ -47,6 +48,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
     protected final EncounterService encounterService;
     protected final FormService formService;
     protected final LocationService locationService;
+    protected final ObsService obsService;
     protected final OrderService orderService;
     protected final PatientService patientService;
     protected final ProviderService providerService;
@@ -60,6 +62,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         formService = Context.getFormService();
         locationService = Context.getLocationService();
         orderService = Context.getOrderService();
+        obsService = Context.getObsService();
         patientService = Context.getPatientService();
         providerService = Context.getProviderService();
     }
