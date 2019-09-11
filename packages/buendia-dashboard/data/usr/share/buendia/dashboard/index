@@ -44,7 +44,7 @@ Refresh: 10
 
 <p><a href="client">Download client app</a>
 
-<p><a href="//server:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
+<p><a href="//buendia:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
 
 <p><a href="stats.zip">Download usage stats</a>
 
@@ -53,7 +53,7 @@ Refresh: 10
 
 <p><a href="status">System status</a>
 
-<p><a href="//packages:9001">Package repository</a>
+<p><a href="//buendia:9001">Package repository</a>
 
 <p><a href="reboot">Reboot server</a>
 
