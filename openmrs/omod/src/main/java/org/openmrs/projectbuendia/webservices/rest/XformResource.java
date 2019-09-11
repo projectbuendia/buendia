@@ -84,9 +84,8 @@ public class XformResource extends BaseResource<Form> {
         boolean includesProviders = false;
         if (context.getRepresentation() == Representation.FULL) {
             try {
-                // TODO: Use description instead of name?
                 FormData formData = BuendiaXformBuilderEx.buildXform(
-                    form, new BuendiaXformCustomizer());
+                    form, new BuendiaXformCustomizer(DbUtils.getLocaleForTag(context.getParameter("locale"))));
                 String xml = convertToOdkCollect(formData.xml, form.getName());
                 includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);

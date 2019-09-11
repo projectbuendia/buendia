@@ -16,24 +16,24 @@ import org.openmrs.Field;
 import org.openmrs.FieldType;
 import org.openmrs.FormField;
 import org.openmrs.Location;
-import org.openmrs.Person;
 import org.openmrs.Provider;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.xforms.buendia.XformCustomizer;
-import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.util.FormConstants;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Locale;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 
 /** XForm rendering customizations for Buendia. */
 public class BuendiaXformCustomizer extends XformCustomizer {
-    final ClientConceptNamer namer = new ClientConceptNamer(Context.getLocale());
+    private final Locale locale;
 
-    @Override public String getLabel(Concept c) {
-        return namer.getClientName(c);
+    public BuendiaXformCustomizer(Locale locale) {
+        this.locale = locale;
+    }
+
+    @Override public String getLabel(Concept concept) {
+        return DbUtils.getConceptName(concept, locale);
     }
 
     @Override public String getLabel(Location location) {

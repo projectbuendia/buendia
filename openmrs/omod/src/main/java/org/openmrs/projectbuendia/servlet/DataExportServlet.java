@@ -26,10 +26,10 @@ import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.xforms.util.XformsUtil;
-import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.ObsValueVisitor;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
+import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.openmrs.projectbuendia.webservices.rest.ObservationUtils;
 import org.openmrs.util.FormUtil;
 
@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -90,13 +89,12 @@ public class DataExportServlet extends HttpServlet {
         "Time in yyyy-MM-dd HH:mm:ss UTC",
     };
     private static final int COLUMNS_PER_OBS = 2;
-    private static final ClientConceptNamer NAMER = new ClientConceptNamer(Locale.ENGLISH);
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws
-        ServletException, IOException {
-        CSVPrinter printer = new CSVPrinter(response.getWriter(), CSVFormat.EXCEL.withDelimiter
-            (','));
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        CSVPrinter printer = new CSVPrinter(
+            response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
+        final Locale locale = DbUtils.getLocaleForTag(request.getParameter("locale"));
 
         //check for authenticated users
         if (!XformsUtil.isAuthenticated(request, response, null)) return;
@@ -134,7 +132,7 @@ public class DataExportServlet extends HttpServlet {
         FixedSortedConceptIndexer indexer = new FixedSortedConceptIndexer(questionConcepts);
 
         // Write English headers
-        writeHeaders(printer, indexer);
+        writeHeaders(printer, indexer, locale);
 
         // Write one encounter per line
         for (Patient patient : patients) {
@@ -169,7 +167,7 @@ public class DataExportServlet extends HttpServlet {
                                 if (value == null || value.getUuid() == null || value.getUuid().isEmpty()) {
                                     values[col] = values[col + 1] = "";
                                 } else {
-                                    values[col] = NAMER.getClientName(value);
+                                    values[col] = DbUtils.getConceptName(value, locale);
                                     values[col + 1] = compressUuid(value.getUuid());
                                 }
                                 return null;
@@ -209,7 +207,7 @@ public class DataExportServlet extends HttpServlet {
         }
     }
 
-    private void writeHeaders(CSVPrinter printer, FixedSortedConceptIndexer indexer) throws
+    private void writeHeaders(CSVPrinter printer, FixedSortedConceptIndexer indexer, Locale locale) throws
         IOException {
         for (String fixedHeader : ENCOUNTER_COLUMNS) {
             printer.print(fixedHeader);
@@ -219,7 +217,7 @@ public class DataExportServlet extends HttpServlet {
             // name, one for the OpenMRS ID, and one for the UUID of the concept.
             assert COLUMNS_PER_OBS == 2;
             Concept concept = indexer.getConcept(i);
-            printer.print(NAMER.getClientName(concept));
+            printer.print(DbUtils.getConceptName(concept, locale));
             printer.print(compressUuid(concept.getUuid()));
         }
         printer.println();

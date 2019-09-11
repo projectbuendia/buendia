@@ -17,10 +17,12 @@ import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.RestUtil;
+import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceController;
 import org.openmrs.projectbuendia.Utils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -42,12 +44,16 @@ public class RestController extends MainResourceController {
     public static final String PATH = RestConstants.VERSION_1 + "/projectbuendia";
     private final Log log = LogFactory.getLog(getClass());
 
-    public RestController() {
-        log.warn("Created ProjectBuendia RestController");
+    public RestController() { }
+
+    public SimpleObject get(@PathVariable("resource") String resource, HttpServletRequest request, HttpServletResponse response) throws ResponseException {
+        // The "locale" parameter should not be treated as a search criterion.
+        RestConstants.SPECIAL_REQUEST_PARAMETERS.add("locale");
+        return super.get(resource, request, response);
     }
 
     @Override public String getNamespace() {
-        return PATH;
+    return PATH;
     }
 
     @Override public SimpleObject handleException(Exception e, HttpServletRequest request, HttpServletResponse response) throws Exception {

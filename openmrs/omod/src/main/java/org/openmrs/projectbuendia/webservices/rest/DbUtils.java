@@ -17,6 +17,7 @@ import org.openmrs.ConceptClass;
 import org.openmrs.ConceptName;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterRole;
+import org.openmrs.EncounterType;
 import org.openmrs.Form;
 import org.openmrs.Location;
 import org.openmrs.Obs;
@@ -38,6 +39,7 @@ import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
+import org.openmrs.projectbuendia.Utils;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -54,6 +56,8 @@ import static org.openmrs.projectbuendia.Utils.eq;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
+    public static final Locale DEFAULT_LOCALE = new Locale("en");
+
     // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
     // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
     // facilitate readability, all UUIDs specific to Buendia are prefixed "buendia_".
@@ -153,6 +157,35 @@ public class DbUtils {
             orderService.saveOrderType(orderType);
         }
         return orderType;
+    }
+
+    public static Locale getLocaleForTag(String languageTag) {
+        if (Utils.isBlank(languageTag)) return DEFAULT_LOCALE;
+        return Locale.forLanguageTag(languageTag.trim());
+    }
+
+    public static String getConceptName(Concept concept, Locale locale) {
+        String name = findNameInMatchingLocale(concept, locale);
+        if (name != null) return name;
+        name = findNameInMatchingLocale(concept, DEFAULT_LOCALE);
+        if (name != null) return name;
+        return concept.getDisplayString();
+    }
+
+    private static String findNameInMatchingLocale(Concept concept, Locale locale) {
+        ConceptName name = concept.getPreferredName(locale);
+        if (name != null) return name.getName();
+
+        String lang = locale.getLanguage();
+        String region = locale.getCountry();  // this Locale method is misnamed
+        String variant = locale.getVariant();
+        name = concept.getPreferredName(new Locale(lang, region, variant));
+        if (name != null) return name.getName();
+        name = concept.getPreferredName(new Locale(lang, region));
+        if (name != null) return name.getName();
+        name = concept.getPreferredName(new Locale(lang));
+        if (name != null) return name.getName();
+        return null;
     }
 
     public static String getConceptTypeName(Concept concept) {
@@ -317,13 +350,15 @@ public class DbUtils {
     }
 
     public static boolean isPublishedXform(Form form) {
-        return !form.isRetired() && form.getPublished() &&
-            !eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID);
+        EncounterType encType = form.getEncounterType();
+        String encTypeUuid = encType != null ? encType.getUuid(): null;
+        return !form.isRetired() && form.getPublished() && !eq(encTypeUuid, ENCOUNTER_TYPE_CHART_UUID);
     }
 
     public static boolean isChartForm(Form form) {
-        return !form.isRetired() && eq(form.getEncounterType().getUuid(),
-            ENCOUNTER_TYPE_CHART_UUID);
+        EncounterType encType = form.getEncounterType();
+        String encTypeUuid = encType != null ? encType.getUuid(): null;
+        return !form.isRetired() && encType != null && eq(encTypeUuid, ENCOUNTER_TYPE_CHART_UUID);
     }
 
     protected static abstract class Getter<T> {
