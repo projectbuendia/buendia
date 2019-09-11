@@ -12,13 +12,16 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
+# If we have a Wi-Fi interface, treat it as the "main" one. Otherwise rely on
+# the ethernet interface.
 if [ -z $NETWORKING_WIFI_INTERFACE ]; then
   MAIN_INTERFACE=$NETWORKING_ETHERNET_INTERFACE
 else
   MAIN_INTERFACE=$NETWORKING_WIFI_INTERFACE
+  USE_WIFI=1
 fi
 
-if ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
+if [ -z "$MAIN_INTERFACE" ] || ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
     echo "Main interface $MAIN_INTERFACE not found. Skipping network configuration."
     exit 0
 fi
@@ -26,7 +29,7 @@ fi
 # Update the /etc/hosts file with mappings for this machine's IP addresses.
 buendia-update-hosts
 
-if [ -z "$NETWORKING_SSID" ]; then
+if [ -n "$USE_WIFI" -a -z "$NETWORKING_SSID" ]; then
     echo "No NETWORKING_SSID configured."
     exit 1
 fi
@@ -65,65 +68,40 @@ cp $tmp_settings /etc/buendia-networking.settings
 
 # Apply the settings to the Debian network interface configuration.
 unindent <<< "
-    auto lo $NETWORKING_WIFI_INTERFACE
-
+    auto lo
     iface lo inet loopback
-
-    iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
 " > /etc/network/interfaces
 
+# If the main interface was given a static IP address, then apply it.
+# Otherwise, configure it to use DHCP.
 if [ -n "$NETWORKING_IP_ADDRESS" ]; then
     unindent <<< "
-        iface $NETWORKING_WIFI_INTERFACE inet static
+        auto $MAIN_INTERFACE
+        iface $MAIN_INTERFACE inet static
             address $NETWORKING_IP_ADDRESS/24
             wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
     " >> /etc/network/interfaces
 else
     unindent <<< "
-        iface $NETWORKING_WIFI_INTERFACE inet dhcp
+        auto $MAIN_INTERFACE
+        iface $MAIN_INTERFACE inet dhcp
             wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
     " >> /etc/network/interfaces
 fi
 
-# Apply wpa_supplicant configuration.
-wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
+# Special case: If we're using Wi-Fi, but we also have an ethernet interface,
+# try to get DHCP from it because it might be an upstream network.
+if [ -n "$USE_WIFI" -a -n "$NETWORKING_ETHERNET_INTERFACE" ]; then
+    unindent <<< "
+        auto $NETWORKING_ETHERNET_INTERFACE
+        iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
+    " >> /etc/network/interfaces
+fi
 
-# Apply dhcpcd configuration
-unindent <<< "
-    # Static ethernet profile
-    profile static_ethernet
-    static ip_address=$NETWORKING_IP_ADDRESS/24
-
-    # Static wireless profile
-    profile static_wifi
-    static ip_address=$NETWORKING_IP_ADDRESS/24
-
-    # fallback to static profile on $NETWORKING_ETHERNET_INTERFACE
-    interface $NETWORKING_ETHERNET_INTERFACE
-    fallback static_ethernet
-
-    # fallback to static profile on $NETWORKING_WIFI_INTERFACE
-    interface $NETWORKING_WIFI_INTERFACE
-    fallback static_wifi
-" > /etc/dhcpcd.conf
-
-# Apply hostadp configuration
-hostapd_conf=/etc/hostapd/hostapd.conf
-unindent <<< "
-    interface=$NETWORKING_WIFI_INTERFACE
-    ssid=$NETWORKING_SSID
-    wpa=2
-    wpa_key_mgmt=WPA-PSK
-    wpa_passphrase=$NETWORKING_PASSWORD
-    hw_mode=g
-    channel=24
-    ieee80211n=1
-    wmm_enabled=1
-    macaddr_acl=0
-    auth_algs=1
-    ignore_broadcast_ssid=0
-    rsn_pairwise=CCMP
-" > $hostapd_conf
+# If we have an SSID and password, set up the wpa_supplicant configuration.
+if [ -n "$NETWORKING_SSID" -a -n "$NETWORKING_PASSWORD" ]; then
+    wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
+fi
 
 # Enable the wpa_supplicant hook
 mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
@@ -132,7 +110,7 @@ if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
 fi
 
 # Activate or deactivate the DHCP server and client according to the settings.
-if $(bool $NETWORKING_DHCP_DNS_SERVER); then
+if bool $NETWORKING_DHCP_DNS_SERVER; then
     echo 'Turning on DHCP and DNS server; disabling DHCP client.'
 
     # Turn off the local DHCP client.
@@ -168,8 +146,24 @@ else
 fi
 
 # Activate or deactivate access point mode according to the settings.
-if $(bool $NETWORKING_AP); then
+if bool $NETWORKING_AP; then
     echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
+    hostapd_conf=/etc/hostapd/hostapd.conf
+    unindent <<< "
+        interface=$NETWORKING_WIFI_INTERFACE
+        ssid=$NETWORKING_SSID
+        wpa=2
+        wpa_key_mgmt=WPA-PSK
+        wpa_passphrase=$NETWORKING_PASSWORD
+        hw_mode=g
+        channel=24
+        ieee80211n=1
+        wmm_enabled=1
+        macaddr_acl=0
+        auth_algs=1
+        ignore_broadcast_ssid=0
+        rsn_pairwise=CCMP
+    " > $hostapd_conf
 
     # Turn this machine into an access point now, and also on future boots.
     systemctl enable hostapd
