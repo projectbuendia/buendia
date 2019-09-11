@@ -14,6 +14,9 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure|abort-upgrade|abort-remove|abort-deconfigure)
+        # Configure htpasswd
+        buendia-reconfigure dashboard
+
         # Enable the dashboard website
         ln -sf ../sites-available/buendia-dashboard /etc/nginx/sites-enabled
 
