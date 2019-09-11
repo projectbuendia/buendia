@@ -1,5 +1,0 @@
-# Files in this directory list hostnames by which this machine wants to be
-# known.  Each file should contain hostnames in a list, one per line.
-# Blank lines and comments (everything after "#" on a line) are ignored.
-# When NETWORKING_DHCP_DNS_SERVER is 1, this machine will be a DNS server
-# that resolves all of these names to its own IP.

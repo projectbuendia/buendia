@@ -124,18 +124,6 @@ fi
 if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
   # ---- Restore the buendia settings
   echo "Restoring buendia-settings"
-  # Restore the nameserver settings
-  mv /usr/share/buendia/names.d /usr/share/buendia/names.$$.d
-  # TODO(nfortescue): investigate tar then move rather than straight tar
-  # to reduce time directory is empty
-  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/names.d; then
-    rm -rf /usr/share/buendia/names.$$.d
-  else # restore the old settings in the event of failure
-    rm -rf /usr/share/buendia/names.d
-    mv /usr/share/buendia/names.$$.d /usr/share/buendia/names.d
-    echo "Failed to extract new settings"
-    exit 1
-  fi
 
   # Restore backed up site settings
   mv /usr/share/buendia/site /usr/share/buendia/site.$$

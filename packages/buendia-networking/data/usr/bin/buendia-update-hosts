@@ -26,10 +26,10 @@ unset CLICOLOR
 unset CLICOLOR_FORCE
 unset LSCOLORS
 unset LS_COLORS
-names=$(echo $(hostname) $(cat /usr/share/buendia/names.d/* | sed -e 's/#.*//'))
 
 # Add a line for each of the machine's IP addresses.
 # TODO this matching pattern apparently isn't quite right
+names="buendia buendia.local"
 for ip in $(ip a | grep 'inet ' | cut -d' ' -f6 | cut -d/ -f1 | grep -v '^127\.'); do
     echo "$ip $names  # added by buendia-update-hosts" >> $tmp
 done
