@@ -265,7 +265,7 @@ public class BuendiaXformBuilderEx {
                 if ((name.contains("problem_added") || name.contains("problem_resolved")) &&
                     formField.getParent() != null &&
                     (formField.getParent().getField().getName().contains("PROBLEM LIST"))) {
-                    fieldUiNode = addProblemList(parentNode, name, concept, formField);
+                    fieldUiNode = addProblemList(parentNode, formField, concept);
                 } else if (eq(name, "problem_list")) {
                     // TODO(jonskeet): Work out what we should do here. There won't be any
                     // bindings for this.
@@ -275,19 +275,19 @@ public class BuendiaXformBuilderEx {
                     String abbr = datatype.getHl7Abbreviation();
                     switch (abbr) {
                         case HL7Constants.HL7_BOOLEAN:
-                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_BOOLEAN, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_BOOLEAN, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_DATE:
-                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_DATE, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_DATE, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_DATETIME:
-                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_DATETIME, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_DATETIME, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_TIME:
-                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_TIME, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_TIME, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_TEXT:
-                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_TEXT, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_TEXT, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_NUMERIC:
                             ConceptNumeric numeric = Context.getConceptService().getConceptNumeric(
@@ -295,14 +295,14 @@ public class BuendiaXformBuilderEx {
                             if (numeric == null) {
                                 throw new IllegalStateException("Numeric concept could not be fetched for concept " + concept);
                             }
-                            fieldUiNode = addUiNode(parentNode, name, numeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, numeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_CODED:
                         case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
-                            fieldUiNode = addCodedField(parentNode, name, formField, required);
+                            fieldUiNode = addCodedField(parentNode, formField, required);
                             break;
                         case "ED": // This isn't in HL7Constants as far as I can tell.
-                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, required);
                             break;
                         default:
                             // TODO(jonskeet): Remove this hack when we understand better...
@@ -337,9 +337,8 @@ public class BuendiaXformBuilderEx {
     }
 
     private Element addUiNode(
-        Element parentNode, String token, Concept concept, String dataType, String controlName, boolean required) {
-        String bindName = token;
-
+        Element parentNode, FormField formField, Concept concept, String dataType, String controlName, boolean required) {
+        String bindName = fieldTokens.get(formField);
         Element bindNode = bindings.get(bindName);
         if (bindNode == null) {
             throw new IllegalArgumentException("No bind node for bindName " + bindName);
@@ -357,10 +356,9 @@ public class BuendiaXformBuilderEx {
                 controlNode.setAttribute(null, ATTRIBUTE_ROWS, rows.toString());
             }
         }
-        Element labelNode = appendTextElement(
-            controlNode, NS_XFORMS, NODE_LABEL, getLabel(concept));
-
-        addHintNode(labelNode, concept);
+        addHintNode(appendTextElement(
+            controlNode, NS_XFORMS, NODE_LABEL, getLabel(concept)
+        ), concept);
 
         if (concept instanceof ConceptNumeric) {
             ConceptNumeric numeric = (ConceptNumeric) concept;
@@ -415,7 +413,8 @@ public class BuendiaXformBuilderEx {
         }
     }
 
-    private Element addProblemList(Element parentNode, String token, Concept concept, FormField formField) {
+    private Element addProblemList(Element parentNode, FormField formField, Concept concept) {
+        String token = fieldTokens.get(formField);
         Element groupNode = appendElement(parentNode, NS_XFORMS, NODE_GROUP);
         addHintNode(appendTextElement(groupNode, NS_XFORMS, NODE_LABEL,
             customizer.getLabel(formField.getField().getConcept())), concept);
@@ -440,10 +439,9 @@ public class BuendiaXformBuilderEx {
         String token = fieldTokens.get(formField);
 
         Element groupNode = appendElement(parentNode, NS_XFORMS, NODE_GROUP);
-        Element labelNode = appendTextElement(groupNode, NS_XFORMS, NODE_LABEL,
-            getDisplayName(formField));
-
-        addHintNode(labelNode, formField.getField().getConcept());
+        addHintNode(appendTextElement(
+            groupNode, NS_XFORMS, NODE_LABEL, getDisplayName(formField)
+        ), formField.getField().getConcept());
 
         if (formField.getMaxOccurs() != null && formField.getMaxOccurs() == -1) {
             Element repeatControl = appendElement(groupNode, NS_XFORMS, CONTROL_REPEAT);
@@ -467,17 +465,17 @@ public class BuendiaXformBuilderEx {
         throw new IllegalArgumentException("No field name available");
     }
 
-    private Element addCodedField(Element parentNode, String name, FormField formField, boolean required) {
+    private Element addCodedField(Element parentNode, FormField formField, boolean required) {
         Concept concept = formField.getField().getConcept();
         if (formField.getMaxOccurs() != null && formField.getMaxOccurs().intValue() == -1) {
-            return addProblemList(parentNode, name, concept, formField);
+            return addProblemList(parentNode, formField, concept);
         } else {
             boolean selectMultiple = formField.getField().getSelectMultiple();
             List<ConceptAnswer> answers = new ArrayList<>(concept.getAnswers(false));
             Collections.sort(answers);
 
             String controlName = selectMultiple ? CONTROL_SELECT : CONTROL_SELECT1;
-            Element controlNode = addUiNode(parentNode, name, concept, DATA_TYPE_TEXT, controlName, required);
+            Element controlNode = addUiNode(parentNode, formField, concept, DATA_TYPE_TEXT, controlName, required);
             addCodedUiNodes(controlNode, concept, answers, selectMultiple);
             return controlNode;
         }
