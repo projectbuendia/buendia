@@ -125,24 +125,22 @@ public class BuendiaXformBuilderEx {
         this.customizer = new BuendiaXformCustomizer(locale);
     }
 
-    private static Element appendElement(Node parent, String namespaceURI, String localName) {
-        Element child = parent.createElement(namespaceURI, localName);
+    private static Element append(Node parent, String ns, String localName) {
+        Element child = parent.createElement(ns, localName);
         parent.addChild(Element.ELEMENT, child);
         return child;
     }
 
-    /** Adds an element to the given parent, with the specified text as the element value */
-    private static Element appendTextElement(
-        Node parent, String namespaceURI, String localName, String text) {
-        Element child = appendElement(parent, namespaceURI, localName);
+    private static Element appendText(Node parent, String ns, String localName, String text) {
+        Element child = append(parent, ns, localName);
         child.addChild(Element.TEXT, text);
         return child;
     }
 
-    private static Element addSelectOption(Element parent, String label, String value) {
-        Element itemNode = appendElement(parent, NS_XFORMS, NODE_ITEM);
-        appendTextElement(itemNode, NS_XFORMS, NODE_LABEL, label);
-        appendTextElement(itemNode, NS_XFORMS, NODE_VALUE, value);
+    private static Element appendOption(Element parent, String label, String value) {
+        Element itemNode = append(parent, NS_XFORMS, NODE_ITEM);
+        appendText(itemNode, NS_XFORMS, NODE_LABEL, label);
+        appendText(itemNode, NS_XFORMS, NODE_VALUE, value);
         return itemNode;
     }
 
@@ -168,14 +166,14 @@ public class BuendiaXformBuilderEx {
         Document doc = new Document();
         doc.setEncoding(XformConstants.DEFAULT_CHARACTER_ENCODING);
 
-        Element xformsNode = appendElement(doc, NS_XFORMS, NODE_XFORMS);
+        Element xformsNode = append(doc, NS_XFORMS, NODE_XFORMS);
         xformsNode.setPrefix("xf", NS_XFORMS);
         xformsNode.setPrefix("xs", NS_SCHEMA);
         xformsNode.setPrefix("xsd", NS_SCHEMA);
         xformsNode.setPrefix("xsi", NS_INSTANCE);
         xformsNode.setPrefix("jr", "http://openrosa.org/javarosa");
 
-        Element modelNode = appendElement(xformsNode, NS_XFORMS, NODE_MODEL);
+        Element modelNode = append(xformsNode, NS_XFORMS, NODE_MODEL);
         modelNode.setAttribute(null, ATTRIBUTE_ID, MODEL_ID);
 
         // All our UI nodes are appended directly into the xforms node.
@@ -183,7 +181,7 @@ public class BuendiaXformBuilderEx {
         // everything under that.
         Element bodyNode = xformsNode;
 
-        Element instanceNode = appendElement(modelNode, NS_XFORMS, NODE_INSTANCE);
+        Element instanceNode = append(modelNode, NS_XFORMS, NODE_INSTANCE);
         instanceNode.setAttribute(null, ATTRIBUTE_ID, INSTANCE_ID);
 
         Element formNode = BuendiaXformBuilder.getDocument(new StringReader(templateXml))
@@ -297,7 +295,7 @@ public class BuendiaXformBuilderEx {
                             fieldUiNode = addCodedField(parentNode, formField, required);
                             break;
                         case "ED": // This isn't in HL7Constants as far as I can tell.
-                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, required);
                             break;
                         default:
                             // TODO(jonskeet): Remove this hack when we understand better...
@@ -311,8 +309,8 @@ public class BuendiaXformBuilderEx {
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
                 // TODO(jonskeet): Use the description for a hint?
-                fieldUiNode = appendElement(parentNode, NS_XFORMS, NODE_GROUP);
-                Element label = appendElement(fieldUiNode, NS_XFORMS, NODE_LABEL);
+                fieldUiNode = append(parentNode, NS_XFORMS, NODE_GROUP);
+                Element label = append(fieldUiNode, NS_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
                 String appearanceAttribute = customizer.getAppearanceAttribute(formField);
                 if (appearanceAttribute != null) {
@@ -352,7 +350,7 @@ public class BuendiaXformBuilderEx {
             bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
         }
 
-        Element controlNode = appendElement(parentNode, NS_XFORMS, controlName);
+        Element controlNode = append(parentNode, NS_XFORMS, controlName);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
         if (eq(DATA_TYPE_TEXT, dataType)) {
             Integer rows = customizer.getRows(concept);
@@ -360,7 +358,7 @@ public class BuendiaXformBuilderEx {
                 controlNode.setAttribute(null, ATTRIBUTE_ROWS, rows.toString());
             }
         }
-        addHintNode(appendTextElement(
+        addHintNode(appendText(
             controlNode, NS_XFORMS, NODE_LABEL, getLabel(concept)
         ), concept);
 
@@ -412,27 +410,27 @@ public class BuendiaXformBuilderEx {
                 }
             }
 
-            Element itemNode = addSelectOption(controlNode, conceptName, conceptValue);
+            Element itemNode = appendOption(controlNode, conceptName, conceptValue);
             itemNode.setAttribute(null, ATTRIBUTE_CONCEPT_ID, concept.getConceptId().toString());
         }
     }
 
     private Element addProblemList(Element parentNode, FormField formField, Concept concept) {
         String token = fieldTokens.get(formField);
-        Element groupNode = appendElement(parentNode, NS_XFORMS, NODE_GROUP);
-        addHintNode(appendTextElement(groupNode, NS_XFORMS, NODE_LABEL,
+        Element groupNode = append(parentNode, NS_XFORMS, NODE_GROUP);
+        addHintNode(appendText(groupNode, NS_XFORMS, NODE_LABEL,
             customizer.getLabel(formField.getField().getConcept())), concept);
 
-        Element repeatControl = appendElement(groupNode, NS_XFORMS, CONTROL_REPEAT);
+        Element repeatControl = append(groupNode, NS_XFORMS, CONTROL_REPEAT);
         repeatControl.setAttribute(null, ATTRIBUTE_BIND, token);
 
-        Element controlNode = appendElement(repeatControl, NS_XFORMS, CONTROL_INPUT);
+        Element controlNode = append(repeatControl, NS_XFORMS, CONTROL_INPUT);
         String nodeset = "problem_list/" + token + "/value";
         String id = nodeset.replace('/', '_');
         controlNode.setAttribute(null, ATTRIBUTE_BIND, id);
-        addHintNode(appendTextElement(controlNode, NS_XFORMS, NODE_LABEL, token + " value"), concept);
+        addHintNode(appendText(controlNode, NS_XFORMS, NODE_LABEL, token + " value"), concept);
 
-        Element bindNode = appendElement(bindings.get(token).getParent(), NS_XFORMS, NODE_BIND);
+        Element bindNode = append(bindings.get(token).getParent(), NS_XFORMS, NODE_BIND);
         bindNode.setAttribute(null, ATTRIBUTE_ID, id);
         bindNode.setAttribute(null, ATTRIBUTE_NODESET, "/form/" + nodeset);
         bindNode.setAttribute(null, ATTRIBUTE_TYPE, DATA_TYPE_TEXT);
@@ -442,13 +440,13 @@ public class BuendiaXformBuilderEx {
     private Element createGroupNode(Element parentNode, FormField formField) {
         String token = fieldTokens.get(formField);
 
-        Element groupNode = appendElement(parentNode, NS_XFORMS, NODE_GROUP);
-        addHintNode(appendTextElement(
+        Element groupNode = append(parentNode, NS_XFORMS, NODE_GROUP);
+        addHintNode(appendText(
             groupNode, NS_XFORMS, NODE_LABEL, getDisplayName(formField)
         ), formField.getField().getConcept());
 
         if (formField.getMaxOccurs() != null && formField.getMaxOccurs() == -1) {
-            Element repeatControl = appendElement(groupNode, NS_XFORMS, CONTROL_REPEAT);
+            Element repeatControl = append(groupNode, NS_XFORMS, CONTROL_REPEAT);
             repeatControl.setAttribute(null, ATTRIBUTE_BIND, token);
             return repeatControl;
         } else {
@@ -495,7 +493,7 @@ public class BuendiaXformBuilderEx {
             hint = hint != null ? hint + " [" + id + "]" : "" + id;
         }
         if (hint != null) {
-            appendTextElement(labelNode.getParent(), NS_XFORMS, NODE_HINT, hint);
+            appendText(labelNode.getParent(), NS_XFORMS, NODE_HINT, hint);
         }
     }
 
@@ -512,7 +510,7 @@ public class BuendiaXformBuilderEx {
      */
     private Element addDatabaseElementUiNode(String bindName, FormField formField, Element
         parentUiNode) {
-        Element controlNode = appendElement(parentUiNode, NS_XFORMS, CONTROL_INPUT);
+        Element controlNode = append(parentUiNode, NS_XFORMS, CONTROL_INPUT);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
 
         // TODO: Set the data type on the bind node? It may already be done.
@@ -539,21 +537,21 @@ public class BuendiaXformBuilderEx {
         }
 
         //create the label
-        appendTextElement(controlNode, NS_XFORMS, NODE_LABEL, getDisplayName(formField));
+        appendText(controlNode, NS_XFORMS, NODE_LABEL, getDisplayName(formField));
         return controlNode;
     }
 
     private void populateGenders(Element controlNode) {
         ConceptService conceptService = Context.getConceptService();
-        addSelectOption(controlNode, getLabel(conceptService.getConcept(MALE_CONCEPT_ID)), "M");
-        addSelectOption(controlNode, getLabel(conceptService.getConcept(FEMALE_CONCEPT_ID)), "F");
+        appendOption(controlNode, getLabel(conceptService.getConcept(MALE_CONCEPT_ID)), "M");
+        appendOption(controlNode, getLabel(conceptService.getConcept(FEMALE_CONCEPT_ID)), "F");
     }
 
     /** Populates a selection node with provider options. The labels are UUIDs, understood by the client. */
     private void populateProviders(Element controlNode) {
         includesProviders = true;
         for (Provider provider : Context.getProviderService().getAllProviders()) {
-            addSelectOption(controlNode, customizer.getLabel(provider), "" + provider.getId());
+            appendOption(controlNode, customizer.getLabel(provider), "" + provider.getId());
         }
     }
 
@@ -562,7 +560,7 @@ public class BuendiaXformBuilderEx {
         includesLocations = true;
         List<Location> locations = customizer.getEncounterLocations();
         for (Location location : locations) {
-            addSelectOption(controlNode, customizer.getLabel(location), "" + location.getId());
+            appendOption(controlNode, customizer.getLabel(location), "" + location.getId());
         }
     }
 }
