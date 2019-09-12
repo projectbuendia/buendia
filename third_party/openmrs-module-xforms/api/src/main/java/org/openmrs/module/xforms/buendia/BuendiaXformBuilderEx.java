@@ -201,7 +201,7 @@ public class BuendiaXformBuilderEx {
         BuendiaXformBuilder.parseTemplate(modelNode, formNode, formNode, bindings, problemList,
             problemListItems, 0);
 
-        buildUInodes(form, bodyNode);
+        buildUiNodes(bodyNode, form);
 
         //find all conceptId attributes in the document and replace their value with a mapped
         // concept
@@ -235,14 +235,13 @@ public class BuendiaXformBuilderEx {
         return new FormData(xml, includesProviders, includesLocations);
     }
 
-    private void buildUInodes(Form form, Element bodyNode) {
-        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
-        buildUInodes(formStructure, 0, bodyNode);
+    private void buildUiNodes(Element parentNode, Form form) {
+        buildUiNodes(parentNode, FormUtil.getFormStructure(form), 0);
     }
 
-    private void buildUInodes(TreeMap<Integer, TreeSet<FormField>> formStructure,
-                              Integer sectionId, Element parentUiNode) {
-        TreeSet<FormField> section = formStructure.get(sectionId);
+    private void buildUiNodes(
+        Element parentNode, TreeMap<Integer, TreeSet<FormField>> structure, Integer sectionId) {
+        TreeSet<FormField> section = structure.get(sectionId);
         if (section == null) return;
 
         // Note: FormUtil.getTagList needs a Vector<String>. Urgh.
@@ -269,73 +268,59 @@ public class BuendiaXformBuilderEx {
                 if ((name.contains("problem_added") || name.contains("problem_resolved")) &&
                     formField.getParent() != null &&
                     (formField.getParent().getField().getName().contains("PROBLEM LIST"))) {
-                    fieldUiNode = addProblemList(name, concept, formField, parentUiNode);
+                    fieldUiNode = addProblemList(name, concept, formField, parentNode);
                 } else if (eq(name, "problem_list")) {
                     // TODO(jonskeet): Work out what we should do here. There won't be any
                     // bindings for this.
                     // The child nodes will be covered by the case above, when we recurse down.
-                    fieldUiNode = parentUiNode;
+                    fieldUiNode = parentNode;
                 } else {
-                    switch (datatype.getHl7Abbreviation()) {
+                    String abbr = datatype.getHl7Abbreviation();
+                    switch (abbr) {
                         case HL7Constants.HL7_BOOLEAN:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_BOOLEAN,
-                                CONTROL_INPUT, required, parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_BOOLEAN, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_DATE:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_DATE, CONTROL_INPUT,
-                                required, parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_DATE, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_DATETIME:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_DATETIME,
-                                CONTROL_INPUT, required, parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_DATETIME, CONTROL_INPUT, required);
+
                             break;
                         case HL7Constants.HL7_TIME:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_TIME, CONTROL_INPUT,
-                                required, parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_TIME, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_TEXT:
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_TEXT, CONTROL_INPUT,
-                                required, parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_TEXT, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_NUMERIC:
-                            ConceptNumeric conceptNumeric =
-                                Context.getConceptService().getConceptNumeric(concept
-                                    .getConceptId());
-                            if (conceptNumeric == null) {
-                                log.error("Numeric concept could not be fetched for concept " +
-                                    concept);
-                                throw new IllegalStateException(
-                                    "Numeric concept could not be fetched for concept " + concept);
+                            ConceptNumeric numeric = Context.getConceptService().getConceptNumeric(
+                                concept.getConceptId());
+                            if (numeric == null) {
+                                throw new IllegalStateException("Numeric concept could not be fetched for concept " + concept);
                             }
-                            fieldUiNode = addUiNode(name, conceptNumeric, DATA_TYPE_DECIMAL,
-                                CONTROL_INPUT, required,
-                                parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, numeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_CODED:
                         case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
-                            fieldUiNode = addCodedField(name, formField, field, required,
-                                concept, parentUiNode);
+                            fieldUiNode = addCodedField(name, formField, field, required, concept, parentNode);
                             break;
                         case "ED": // This isn't in HL7Constants as far as I can tell.
-                            fieldUiNode = addUiNode(name, concept, DATA_TYPE_BASE64BINARY,
-                                CONTROL_INPUT, required, parentUiNode);
+                            fieldUiNode = addUiNode(parentNode, name, concept, DATA_TYPE_BASE64BINARY, CONTROL_INPUT, required);
                             break;
                         default:
                             // TODO(jonskeet): Remove this hack when we understand better...
                             if (eq(field.getName(), "OBS")) {
-                                fieldUiNode = createGroupNode(formField, parentUiNode);
+                                fieldUiNode = createGroupNode(formField, parentNode);
                             } else {
-                                // Don't understand this concept
-                                log.warn("Unhandled HL7 abbreviation " + datatype
-                                    .getHl7Abbreviation() + " for field "
-                                    + field.getName());
+                                log.warn("Unhandled HL7 abbreviation " + abbr + " for field " + field.getName());
                                 continue; // Skip recursion, go to next field
                             }
                     }
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
                 // TODO(jonskeet): Use the description for a hint?
-                fieldUiNode = appendElement(parentUiNode, NS_XFORMS, NODE_GROUP);
+                fieldUiNode = appendElement(parentNode, NS_XFORMS, NODE_GROUP);
                 Element label = appendElement(fieldUiNode, NS_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
                 String appearanceAttribute = customizer.getAppearanceAttribute(formField);
@@ -343,25 +328,32 @@ public class BuendiaXformBuilderEx {
                     fieldUiNode.setAttribute(null, ATTRIBUTE_APPEARANCE, appearanceAttribute);
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_DATABASE) {
-                fieldUiNode = addDatabaseElementUiNode(name, formField, parentUiNode);
+                fieldUiNode = addDatabaseElementUiNode(name, formField, parentNode);
             } else {
                 // Don't understand this field type
-                log.warn("Unhandled field type " + field.getFieldType().getName() + " for field "
-                    + field.getName());
+                log.warn("Unhandled field type " + field.getFieldType().getName() + " for field " + field.getName());
                 continue; // Skip recursion, go to next field
             }
 
             // Recurse down to subnodes.
-            buildUInodes(formStructure, formField.getFormFieldId(), fieldUiNode);
+            buildUiNodes(fieldUiNode, structure, formField.getFormFieldId());
         }
     }
 
-    private Element addUiNode(String token, Concept concept, String dataType, String controlName,
-                              boolean required,
-                              Element bodyNode) {
+    private Element addUiNode(
+        Element parentNode, String token, Concept concept, String dataType, String controlName, boolean required) {
         String bindName = token;
 
-        Element controlNode = appendElement(bodyNode, NS_XFORMS, controlName);
+        Element bindNode = bindings.get(bindName);
+        if (bindNode == null) {
+            throw new IllegalArgumentException("No bind node for bindName " + bindName);
+        }
+        bindNode.setAttribute(null, ATTRIBUTE_TYPE, dataType);
+        if (required) {
+            bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
+        }
+
+        Element controlNode = appendElement(parentNode, NS_XFORMS, controlName);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
         if (eq(DATA_TYPE_TEXT, dataType)) {
             Integer rows = customizer.getRows(concept);
@@ -369,54 +361,29 @@ public class BuendiaXformBuilderEx {
                 controlNode.setAttribute(null, ATTRIBUTE_ROWS, rows.toString());
             }
         }
-
-        Element bindNode = bindings.get(bindName);
-        if (bindNode == null) {
-            throw new IllegalArgumentException("No bind node for bindName " + bindName);
-        }
-
-        bindNode.setAttribute(null, ATTRIBUTE_TYPE, dataType);
-        if (required) {
-            bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
-        }
-
         Element labelNode = appendTextElement(
             controlNode, NS_XFORMS, NODE_LABEL, getLabel(concept));
 
         addHintNode(labelNode, concept);
 
         if (concept instanceof ConceptNumeric) {
-            ConceptNumeric numericConcept = (ConceptNumeric) concept;
-            Double minInclusive = numericConcept.getLowAbsolute();
-            Double maxInclusive = numericConcept.getHiAbsolute();
+            ConceptNumeric numeric = (ConceptNumeric) concept;
+            Double minValue = numeric.getLowAbsolute();
+            Double maxValue = numeric.getHiAbsolute();
+            boolean precise = numeric.isPrecise();
+            String min = minValue != null ? FormSchemaFragment.numericToString(minValue, precise) : null;
+            String max = maxValue != null ? FormSchemaFragment.numericToString(maxValue, precise) : null;
+            String msgAttr = XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE;
 
-            if (minInclusive != null) {
-                String lower = (minInclusive == null ? "" :
-                    FormSchemaFragment.numericToString(minInclusive, numericConcept.isPrecise()));
-                if (maxInclusive != null) {
-                    String upper = (maxInclusive == null ? "" :
-                        FormSchemaFragment.numericToString(maxInclusive, numericConcept.isPrecise
-                            ()));
-                    bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower + " and . "
-                        + "<= " + upper);
-                    bindNode.setAttribute(null,
-                        (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" :
-                            ATTRIBUTE_MESSAGE),
-                        "value should be between " + lower + " and " + upper + " inclusive");
-                } else {
-                    bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower);
-                    bindNode.setAttribute(null,
-                        (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" :
-                            ATTRIBUTE_MESSAGE),
-                        "value should be greater than or equal to " + lower);
-                }
-            } else if (maxInclusive != null) {
-                String upper = (maxInclusive == null ? "" :
-                    FormSchemaFragment.numericToString(maxInclusive, numericConcept.isPrecise()));
-                bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, " . <= " + upper);
-                bindNode.setAttribute(null,
-                    (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE),
-                    "value should be less than or equal to " + upper);
+            if (min != null && max != null) {
+                bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + min + " and . <= " + max);
+                bindNode.setAttribute(null, msgAttr, "Value should be between " + min + " and " + max);
+            } else if (min != null) {
+                bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + min);
+                bindNode.setAttribute(null, msgAttr, "Value should be at least " + min);
+            } else if (max != null) {
+                bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". <= " + max);
+                bindNode.setAttribute(null, msgAttr, "Value should be at most " + max);
             }
         }
 
@@ -526,8 +493,8 @@ public class BuendiaXformBuilderEx {
             Collections.sort(answers);
 
             String controlName = field.getSelectMultiple() ? CONTROL_SELECT : CONTROL_SELECT1;
-            Element controlNode = addUiNode(name, concept, DATA_TYPE_TEXT, controlName, required,
-                parentUiNode);
+            Element controlNode = addUiNode(parentUiNode, name, concept, DATA_TYPE_TEXT, controlName, required
+            );
             addCodedUiNodes(field.getSelectMultiple(), controlNode, answers, concept);
             return controlNode;
         }
