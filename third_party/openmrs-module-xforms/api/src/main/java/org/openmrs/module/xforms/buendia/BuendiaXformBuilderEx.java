@@ -275,27 +275,22 @@ public class BuendiaXformBuilderEx {
                     String abbr = datatype.getHl7Abbreviation();
                     switch (abbr) {
                         case HL7Constants.HL7_BOOLEAN:
-                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_BOOLEAN, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_BOOLEAN, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_DATE:
-                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_DATE, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_DATE, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_DATETIME:
-                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_DATETIME, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_DATETIME, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_TIME:
-                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_TIME, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_TIME, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_TEXT:
-                            fieldUiNode = addUiNode(parentNode, formField, concept, DATA_TYPE_TEXT, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_TEXT, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_NUMERIC:
-                            ConceptNumeric numeric = Context.getConceptService().getConceptNumeric(
-                                concept.getConceptId());
-                            if (numeric == null) {
-                                throw new IllegalStateException("Numeric concept could not be fetched for concept " + concept);
-                            }
-                            fieldUiNode = addUiNode(parentNode, formField, numeric, DATA_TYPE_DECIMAL, CONTROL_INPUT, required);
+                            fieldUiNode = addUiNode(parentNode, formField, DATA_TYPE_DECIMAL, CONTROL_INPUT, required);
                             break;
                         case HL7Constants.HL7_CODED:
                         case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
@@ -337,7 +332,16 @@ public class BuendiaXformBuilderEx {
     }
 
     private Element addUiNode(
-        Element parentNode, FormField formField, Concept concept, String dataType, String controlName, boolean required) {
+        Element parentNode, FormField formField, String dataType, String controlName, boolean required) {
+        Concept concept = formField.getField().getConcept();
+        if (concept.getDatatype().getHl7Abbreviation().equals(HL7Constants.HL7_NUMERIC)) {
+            concept = Context.getConceptService().getConceptNumeric(concept.getConceptId());
+            if (concept == null) {
+                throw new IllegalStateException("Numeric concept could not be fetched for " + formField.getField().getConcept());
+
+            }
+        }
+
         String bindName = fieldTokens.get(formField);
         Element bindNode = bindings.get(bindName);
         if (bindNode == null) {
@@ -475,7 +479,7 @@ public class BuendiaXformBuilderEx {
             Collections.sort(answers);
 
             String controlName = selectMultiple ? CONTROL_SELECT : CONTROL_SELECT1;
-            Element controlNode = addUiNode(parentNode, formField, concept, DATA_TYPE_TEXT, controlName, required);
+            Element controlNode = addUiNode(parentNode, formField, DATA_TYPE_TEXT, controlName, required);
             addCodedUiNodes(controlNode, concept, answers, selectMultiple);
             return controlNode;
         }
