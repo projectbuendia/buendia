@@ -21,15 +21,14 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceController;
 import org.openmrs.projectbuendia.Utils;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -63,15 +62,25 @@ public class RestController extends MainResourceController {
 
         ResponseStatus ann = (ResponseStatus) e.getClass().getAnnotation(ResponseStatus.class);
         int status = ann != null ? ann.value().value() : 500;
-        String description = ann != null ? ann.reason() : null;
-        String message = e.getMessage();
         response.setStatus(status);
 
-        StackTraceElement top = e.getStackTrace()[0];
+        List<Map<String, Object>> errors = new ArrayList<>();
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            errors.add(describeError(t));
+        }
+        return new SimpleObject().add("errors", errors);
+    }
+
+    private Map<String, Object> describeError(Throwable t) {
+        ResponseStatus ann = (ResponseStatus) t.getClass().getAnnotation(ResponseStatus.class);
+        String description = ann != null ? ann.reason() : null;
+        String message = t.getMessage();
+
+        StackTraceElement top = t.getStackTrace()[0];
         List<String> frames = new ArrayList<>();
         int maxLevels = 20;
         int level = 0;
-        for (StackTraceElement frame : e.getStackTrace()) {
+        for (StackTraceElement frame : t.getStackTrace()) {
             frames.add(frame.toString());
             level++;
             if (level >= maxLevels) break;
@@ -80,10 +89,10 @@ public class RestController extends MainResourceController {
             }
         }
 
-        LinkedHashMap map = new LinkedHashMap();
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
         if (!Utils.isEmpty(description)) map.put("description", description);
         map.put("message", message);
         map.put("frames", frames);
-        return new SimpleObject().add("error", map);
+        return map;
     }
 }
