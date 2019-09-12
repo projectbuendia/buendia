@@ -32,6 +32,7 @@ import org.openmrs.module.xforms.XformConstants;
 import org.openmrs.module.xforms.formentry.FormEntryWrapper;
 import org.openmrs.module.xforms.formentry.FormSchemaFragment;
 import org.openmrs.module.xforms.util.XformsUtil;
+import org.openmrs.projectbuendia.webservices.rest.BuendiaXformCustomizer;
 import org.openmrs.util.FormConstants;
 import org.openmrs.util.FormUtil;
 
@@ -115,20 +116,15 @@ public class BuendiaXformBuilderEx {
      * public member in the class; it constructs an instance (to avoid
      * nasty statics) and then invokes private methods appropriately.
      */
-    public static FormData buildXform(Form form, XformCustomizer customizer) throws Exception {
-        if (customizer == null) {
-            customizer = new XformCustomizer();
-        }
-        return new BuendiaXformBuilderEx(customizer).buildXformImpl(form);
+    public static FormData buildXform(Form form, Locale locale) throws Exception {
+        return new BuendiaXformBuilderEx(locale).buildXformImpl(form);
     }
 
-    private BuendiaXformBuilderEx(XformCustomizer customizer) {
-        useConceptIdAsHint = "true".equalsIgnoreCase(Context.getAdministrationService()
-            .getGlobalProperty("xforms.useConceptIdAsHint"));
-        // TODO(jonskeet): Have a parameter somewhere (URL parameter, Accept-Language header etc)
-        // which overrides this.
-        locale = Context.getLocale();
-        this.customizer = customizer;
+    private BuendiaXformBuilderEx(Locale locale) {
+        useConceptIdAsHint = "true".equalsIgnoreCase(
+            Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
+        this.locale = locale;
+        this.customizer = new BuendiaXformCustomizer(locale);
     }
 
     private static Element appendElement(Node parent, String namespaceURI, String localName) {
@@ -138,8 +134,8 @@ public class BuendiaXformBuilderEx {
     }
 
     /** Adds an element to the given parent, with the specified text as the element value */
-    private static Element appendTextElement(Node parent, String namespaceURI, String localName,
-                                             String text) {
+    private static Element appendTextElement(
+        Node parent, String namespaceURI, String localName, String text) {
         Element child = appendElement(parent, namespaceURI, localName);
         child.addChild(Element.TEXT, text);
         return child;
@@ -386,8 +382,8 @@ public class BuendiaXformBuilderEx {
             bindNode.setAttribute(null, ATTRIBUTE_REQUIRED, XPATH_VALUE_TRUE);
         }
 
-        Element labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, getLabel
-            (concept));
+        Element labelNode = appendTextElement(
+            controlNode, NAMESPACE_XFORMS, NODE_LABEL, getLabel(concept));
 
         addHintNode(labelNode, concept);
 

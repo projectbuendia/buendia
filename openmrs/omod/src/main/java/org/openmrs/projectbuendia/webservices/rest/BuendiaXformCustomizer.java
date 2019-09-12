@@ -26,10 +26,8 @@ import static org.openmrs.projectbuendia.Utils.eq;
 
 /** XForm rendering customizations for Buendia. */
 public class BuendiaXformCustomizer extends XformCustomizer {
-    private final Locale locale;
-
     public BuendiaXformCustomizer(Locale locale) {
-        this.locale = locale;
+        super(locale);
     }
 
     @Override public String getLabel(Concept concept) {

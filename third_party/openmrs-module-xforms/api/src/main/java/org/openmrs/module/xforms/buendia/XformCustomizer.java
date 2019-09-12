@@ -21,7 +21,11 @@ import java.util.Locale;
 
 /** A class that provides customizable values used for rendering an XForm. */
 public class XformCustomizer {
-    private final Locale locale = Context.getLocale();
+    protected final Locale locale;
+
+    public XformCustomizer(Locale locale) {
+        this.locale = locale;
+    }
 
     public String getLabel(Concept c) {
         return c.getName(locale).getName();

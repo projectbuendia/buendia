@@ -19,7 +19,7 @@ CHART_UUID = 'buendia_form_chart'
 MAX_UUID_LEN = 36
 
 ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
-LOCALE = 'en_GB_client'
+LOCALE = 'buendia'  # a special locale that can bundle text in multiple locales
 
 try:
     INT_TYPES = (int, long)
