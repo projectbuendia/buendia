@@ -28,6 +28,7 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.xforms.RelativeBuilder;
+import org.openmrs.module.xforms.XformBuilder;
 import org.openmrs.module.xforms.XformConstants;
 import org.openmrs.module.xforms.formentry.FormEntryWrapper;
 import org.openmrs.module.xforms.formentry.FormSchemaFragment;
@@ -73,9 +74,6 @@ import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_TEXT;
 import static org.openmrs.module.xforms.XformBuilder.DATA_TYPE_TIME;
 import static org.openmrs.module.xforms.XformBuilder.INSTANCE_ID;
 import static org.openmrs.module.xforms.XformBuilder.MODEL_ID;
-import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XFORMS;
-import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XML_INSTANCE;
-import static org.openmrs.module.xforms.XformBuilder.NAMESPACE_XML_SCHEMA;
 import static org.openmrs.module.xforms.XformBuilder.NODE_BIND;
 import static org.openmrs.module.xforms.XformBuilder.NODE_GROUP;
 import static org.openmrs.module.xforms.XformBuilder.NODE_HINT;
@@ -85,10 +83,6 @@ import static org.openmrs.module.xforms.XformBuilder.NODE_LABEL;
 import static org.openmrs.module.xforms.XformBuilder.NODE_MODEL;
 import static org.openmrs.module.xforms.XformBuilder.NODE_VALUE;
 import static org.openmrs.module.xforms.XformBuilder.NODE_XFORMS;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XFORMS;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_INSTANCES;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA;
-import static org.openmrs.module.xforms.XformBuilder.PREFIX_XML_SCHEMA2;
 import static org.openmrs.module.xforms.XformBuilder.XPATH_VALUE_TRUE;
 import static org.openmrs.projectbuendia.Utils.eq;
 
@@ -100,6 +94,10 @@ public class BuendiaXformBuilderEx {
     private static final int MALE_CONCEPT_ID = 1534;
     private static final int FEMALE_CONCEPT_ID = 1535;
     private static final String ATTRIBUTE_ROWS = "rows";
+
+    private static final String NS_XFORMS = XformBuilder.NAMESPACE_XFORMS;
+    private static final String NS_SCHEMA = XformBuilder.NAMESPACE_XML_SCHEMA;
+    private static final String NS_INSTANCE = XformBuilder.NAMESPACE_XML_INSTANCE;
 
     private static final Log log = LogFactory.getLog(BuendiaXformBuilderEx.class);
 
@@ -142,9 +140,9 @@ public class BuendiaXformBuilderEx {
     }
 
     private static Element addSelectOption(Element parent, String label, String value) {
-        Element itemNode = appendElement(parent, NAMESPACE_XFORMS, NODE_ITEM);
-        appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_LABEL, label);
-        appendTextElement(itemNode, NAMESPACE_XFORMS, NODE_VALUE, value);
+        Element itemNode = appendElement(parent, NS_XFORMS, NODE_ITEM);
+        appendTextElement(itemNode, NS_XFORMS, NODE_LABEL, label);
+        appendTextElement(itemNode, NS_XFORMS, NODE_VALUE, value);
         return itemNode;
     }
 
@@ -170,14 +168,14 @@ public class BuendiaXformBuilderEx {
         Document doc = new Document();
         doc.setEncoding(XformConstants.DEFAULT_CHARACTER_ENCODING);
 
-        Element xformsNode = appendElement(doc, NAMESPACE_XFORMS, NODE_XFORMS);
-        xformsNode.setPrefix(PREFIX_XFORMS, NAMESPACE_XFORMS);
-        xformsNode.setPrefix(PREFIX_XML_SCHEMA, NAMESPACE_XML_SCHEMA);
-        xformsNode.setPrefix(PREFIX_XML_SCHEMA2, NAMESPACE_XML_SCHEMA);
-        xformsNode.setPrefix(PREFIX_XML_INSTANCES, NAMESPACE_XML_INSTANCE);
+        Element xformsNode = appendElement(doc, NS_XFORMS, NODE_XFORMS);
+        xformsNode.setPrefix("xf", NS_XFORMS);
+        xformsNode.setPrefix("xs", NS_SCHEMA);
+        xformsNode.setPrefix("xsd", NS_SCHEMA);
+        xformsNode.setPrefix("xsi", NS_INSTANCE);
         xformsNode.setPrefix("jr", "http://openrosa.org/javarosa");
 
-        Element modelNode = appendElement(xformsNode, NAMESPACE_XFORMS, NODE_MODEL);
+        Element modelNode = appendElement(xformsNode, NS_XFORMS, NODE_MODEL);
         modelNode.setAttribute(null, ATTRIBUTE_ID, MODEL_ID);
 
         // All our UI nodes are appended directly into the xforms node.
@@ -185,7 +183,7 @@ public class BuendiaXformBuilderEx {
         // everything under that.
         Element bodyNode = xformsNode;
 
-        Element instanceNode = appendElement(modelNode, NAMESPACE_XFORMS, NODE_INSTANCE);
+        Element instanceNode = appendElement(modelNode, NS_XFORMS, NODE_INSTANCE);
         instanceNode.setAttribute(null, ATTRIBUTE_ID, INSTANCE_ID);
 
         Element formNode = BuendiaXformBuilder.getDocument(new StringReader(templateXml))
@@ -337,8 +335,8 @@ public class BuendiaXformBuilderEx {
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
                 // TODO(jonskeet): Use the description for a hint?
-                fieldUiNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
-                Element label = appendElement(fieldUiNode, NAMESPACE_XFORMS, NODE_LABEL);
+                fieldUiNode = appendElement(parentUiNode, NS_XFORMS, NODE_GROUP);
+                Element label = appendElement(fieldUiNode, NS_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
                 String appearanceAttribute = customizer.getAppearanceAttribute(formField);
                 if (appearanceAttribute != null) {
@@ -363,7 +361,7 @@ public class BuendiaXformBuilderEx {
                               Element bodyNode) {
         String bindName = token;
 
-        Element controlNode = appendElement(bodyNode, NAMESPACE_XFORMS, controlName);
+        Element controlNode = appendElement(bodyNode, NS_XFORMS, controlName);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
         if (eq(DATA_TYPE_TEXT, dataType)) {
             Integer rows = customizer.getRows(concept);
@@ -383,7 +381,7 @@ public class BuendiaXformBuilderEx {
         }
 
         Element labelNode = appendTextElement(
-            controlNode, NAMESPACE_XFORMS, NODE_LABEL, getLabel(concept));
+            controlNode, NS_XFORMS, NODE_LABEL, getLabel(concept));
 
         addHintNode(labelNode, concept);
 
@@ -458,29 +456,29 @@ public class BuendiaXformBuilderEx {
 
     private Element addProblemList(String token, Concept concept, FormField formField, Node
         parentUiNode) {
-        Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
+        Element groupNode = appendElement(parentUiNode, NS_XFORMS, NODE_GROUP);
 
-        Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL,
+        Element labelNode = appendTextElement(groupNode, NS_XFORMS, NODE_LABEL,
             customizer.getLabel(formField.getField().getConcept()));
 
         addHintNode(labelNode, concept);
 
-        Element repeatControl = appendElement(groupNode, NAMESPACE_XFORMS, CONTROL_REPEAT);
+        Element repeatControl = appendElement(groupNode, NS_XFORMS, CONTROL_REPEAT);
         repeatControl.setAttribute(null, ATTRIBUTE_BIND, token);
 
         //add the input node.
-        Element controlNode = appendElement(repeatControl, NAMESPACE_XFORMS, CONTROL_INPUT);
+        Element controlNode = appendElement(repeatControl, NS_XFORMS, CONTROL_INPUT);
         String nodeset = "problem_list/" + token + "/value";
         String id = nodeset.replace('/', '_');
         controlNode.setAttribute(null, ATTRIBUTE_BIND, id);
 
         //add the label.
-        labelNode = appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, token + " value");
+        labelNode = appendTextElement(controlNode, NS_XFORMS, NODE_LABEL, token + " value");
 
         addHintNode(labelNode, concept);
 
         //create bind node
-        Element bindNode = appendElement(bindings.get(token).getParent(), NAMESPACE_XFORMS,
+        Element bindNode = appendElement(bindings.get(token).getParent(), NS_XFORMS,
             NODE_BIND);
         bindNode.setAttribute(null, ATTRIBUTE_ID, id);
         bindNode.setAttribute(null, ATTRIBUTE_NODESET, "/form/" + nodeset);
@@ -491,14 +489,14 @@ public class BuendiaXformBuilderEx {
     private Element createGroupNode(FormField formField, Element parentUiNode) {
         String token = fieldTokens.get(formField);
 
-        Element groupNode = appendElement(parentUiNode, NAMESPACE_XFORMS, NODE_GROUP);
-        Element labelNode = appendTextElement(groupNode, NAMESPACE_XFORMS, NODE_LABEL,
+        Element groupNode = appendElement(parentUiNode, NS_XFORMS, NODE_GROUP);
+        Element labelNode = appendTextElement(groupNode, NS_XFORMS, NODE_LABEL,
             getDisplayName(formField));
 
         addHintNode(labelNode, formField.getField().getConcept());
 
         if (formField.getMaxOccurs() != null && formField.getMaxOccurs() == -1) {
-            Element repeatControl = appendElement(groupNode, NAMESPACE_XFORMS, CONTROL_REPEAT);
+            Element repeatControl = appendElement(groupNode, NS_XFORMS, CONTROL_REPEAT);
             repeatControl.setAttribute(null, ATTRIBUTE_BIND, token);
             return repeatControl;
         } else {
@@ -547,7 +545,7 @@ public class BuendiaXformBuilderEx {
         }
 
         if (hint != null) {
-            appendTextElement(labelNode.getParent(), NAMESPACE_XFORMS, NODE_HINT, hint);
+            appendTextElement(labelNode.getParent(), NS_XFORMS, NODE_HINT, hint);
         }
     }
 
@@ -564,7 +562,7 @@ public class BuendiaXformBuilderEx {
      */
     private Element addDatabaseElementUiNode(String bindName, FormField formField, Element
         parentUiNode) {
-        Element controlNode = appendElement(parentUiNode, NAMESPACE_XFORMS, CONTROL_INPUT);
+        Element controlNode = appendElement(parentUiNode, NS_XFORMS, CONTROL_INPUT);
         controlNode.setAttribute(null, ATTRIBUTE_BIND, bindName);
 
         // TODO: Set the data type on the bind node? It may already be done.
@@ -591,7 +589,7 @@ public class BuendiaXformBuilderEx {
         }
 
         //create the label
-        appendTextElement(controlNode, NAMESPACE_XFORMS, NODE_LABEL, getDisplayName(formField));
+        appendTextElement(controlNode, NS_XFORMS, NODE_LABEL, getDisplayName(formField));
         return controlNode;
     }
 
