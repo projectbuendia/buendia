@@ -237,26 +237,13 @@ def apply(tabs):
         if name:
             concept_name_id = get_or_insert(
                 'concept_name', concept_id=concept_id, locale=locale, voided=0)
+            # Ensure the new name is the only preferred name in this locale.
             db.execute('update concept_name set locale_preferred = 0'
                        ' where concept_id = %s and locale = %s',
                        concept_id, locale)
             odb.update('concept_name', concept_name_id,
                        name=name, locale_preferred=1,
                        concept_name_type='FULLY_SPECIFIED')
-            # Adjust any other names to ensure there are no duplicates.
-            dup = 1
-            for (id, dup_concept_id, dup_name, dup_voided) in db.iter(
-                'select concept_name_id, concept_id, name, voided '
-                'from concept_name where name like %s', name + '%'):
-                if id != concept_name_id:
-                    # Ensure the name is not duplicated, even by other concepts.
-                    if dup_name.split(' (#')[0] == name:
-                        dup += 1
-                        alternate_name = name + ' (#%d)' % dup
-                        odb.update('concept_name', id, name=alternate_name)
-                    # Ensure this concept has exactly one unvoided concept_name.
-                    if dup_concept_id == concept_id and not dup_voided:
-                        odb.void('concept_name', id)
             return concept_name_id
 
     def set_concept_numeric(concept_id, (normal_low, normal_high),
