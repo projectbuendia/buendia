@@ -17,8 +17,6 @@ VERBOSE = False
 # create_uuid_from_name.
 CHART_UUID = 'buendia_form_chart'
 MAX_UUID_LEN = 36
-
-ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
 LOCALE = 'buendia'  # a special locale that can bundle text in multiple locales
 
 try:
@@ -164,6 +162,7 @@ def read_csv(filename, tab=None):
 def apply(tabs):
     db = get_db('openmrs')
     odb = OpenmrsDatabase(db, 'buendia_admin')
+
     form_uuids = []
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
@@ -188,6 +187,18 @@ def apply(tabs):
     obs_class = db.get('concept_class_id', name='Finding')
     misc_class = db.get('concept_class_id', name='Misc')
 
+    def ensure_concept(uuid, name, datatype_id, class_id):
+        if not db.get('concept_id', uuid=uuid):
+            odb.insert('concept', uuid=uuid, short_name=name,
+                datatype_id=datatype_id, class_id=class_id)
+
+    ensure_concept('buendia_concept_free_text_order',
+        'Free text order', answer_datatype, misc_class)
+    ensure_concept('buendia_concept_order_executed',
+        'Order executed', answer_datatype, misc_class)
+    ensure_concept('buendia_concept_placement',
+        'Placement', text_datatype, misc_class)
+
     def main():  # main entry point, invoked at the end of this block
         if 'form' in tabs:
             # Apply forms first, which creates all referenced concepts.
@@ -195,7 +206,7 @@ def apply(tabs):
         if 'chart' in tabs:
             # Then apply charts, which requires all concepts to already exist.
             chart_enctype = get_or_insert(
-                'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
+                'encounter_type', uuid='buendia_encounter_type_chart')
             odb.update('encounter_type', chart_enctype, name='CHART', retired=1,
                 description='Reserved for Buendia patient chart definitions')
             form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
