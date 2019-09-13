@@ -76,8 +76,8 @@ public class OrderResource extends BaseResource<Order> {
         order.setPatient(patient);
         order.setEncounter(createEncounter(patient, provider, dateCreated));
         order.setInstructions(Utils.getOptionalString(data, "instructions"));
-        order.setScheduledDate(Utils.getOptionalDateMillis(data, "start_millis"));
-        order.setAutoExpireDate(Utils.getOptionalDateMillis(data, "stop_millis"));
+        order.setScheduledDate(Utils.getOptionalDate8601(data, "start_time"));
+        order.setAutoExpireDate(Utils.getOptionalDate8601(data, "stop_time"));
 
         // Fixed fields
         order.setOrderType(DbUtils.getMiscOrderType());
@@ -111,11 +111,11 @@ public class OrderResource extends BaseResource<Order> {
         if (data.containsKey("instructions")) {
             newOrder.setInstructions(Utils.getOptionalString(data, "instructions"));
         }
-        if (data.containsKey("start_millis")) {
-            newOrder.setScheduledDate(Utils.getOptionalDateMillis(data, "start_millis"));
+        if (data.containsKey("start_time")) {
+            newOrder.setScheduledDate(Utils.getOptionalDate8601(data, "start_time"));
         }
-        if (data.containsKey("stop_millis")) {
-            newOrder.setAutoExpireDate(Utils.getOptionalDateMillis(data, "stop_millis"));
+        if (data.containsKey("stop_time")) {
+            newOrder.setAutoExpireDate(Utils.getOptionalDate8601(data, "stop_time"));
         }
 
         // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore, for
@@ -147,12 +147,12 @@ public class OrderResource extends BaseResource<Order> {
         }
         json.add("instructions", order.getInstructions());
         if (order.getScheduledDate() != null) {
-            json.add("start_millis", order.getScheduledDate().getTime());
+            json.add("start_time", Utils.formatUtc8601(order.getScheduledDate()));
         }
         Date stop = order.getDateStopped();
         if (stop == null) stop = order.getAutoExpireDate();
         if (stop != null) {
-            json.add("stop_millis", stop.getTime());
+            json.add("stop_time", Utils.formatUtc8601(stop));
         }
     }
 

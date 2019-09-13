@@ -249,24 +249,17 @@ public class Utils {
         return obj.get(key) != null ? getRequiredString(obj, key) : null;
     }
 
-    public static @Nonnull Date getRequiredDateMillis(SimpleObject obj, String key) {
+    public static @Nonnull Date getRequiredDate8601(SimpleObject obj, String key) {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
                 "Required property \"%s\" is missing or null", key));
         }
-        long millis;
-        try {
-            millis = asLong(value);
-        } catch (ClassCastException e) {
-            throw new InvalidObjectDataException(String.format(
-                "Property \"%s\" should be a number, not %s", key, value.getClass()));
-        }
-        return new Date(millis);
+        return parse8601(value.toString());
     }
 
-    public static @Nullable Date getOptionalDateMillis(SimpleObject obj, String key) {
-        return obj.get(key) != null ? getRequiredDateMillis(obj, key) : null;
+    public static @Nullable Date getOptionalDate8601(SimpleObject obj, String key) {
+        return obj.get(key) != null ? getRequiredDate8601(obj, key) : null;
     }
 
 

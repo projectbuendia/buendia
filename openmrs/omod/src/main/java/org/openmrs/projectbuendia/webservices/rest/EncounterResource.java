@@ -55,10 +55,10 @@ public class EncounterResource extends BaseResource<Encounter> {
             throw new InvalidObjectDataException("Patient not found: " + data.get("uuid"));
         }
         Date encounterTime;
-        Object timestamp = data.get("timestamp");
+        Object time = data.get("time");
         try {
-            if (timestamp != null) {
-                encounterTime = new Date(Long.parseLong(timestamp.toString())*1000L);
+            if (time != null) {
+                encounterTime = Utils.parse8601(time.toString());
             } else {
                 // Allow clients to omit the timestamp to use the current server time.
                 encounterTime = new Date();
@@ -77,7 +77,7 @@ public class EncounterResource extends BaseResource<Encounter> {
             json.put("patient_uuid", item.getPatient().getUuid());
         }
         if (item.getEncounterDatetime() != null) {
-            json.put("timestamp", Utils.formatUtc8601(item.getEncounterDatetime()));
+            json.put("time", Utils.formatUtc8601(item.getEncounterDatetime()));
         }
         for (EncounterProvider ep : item.getEncounterProviders()) {
             if (ep.getProvider() != null) {

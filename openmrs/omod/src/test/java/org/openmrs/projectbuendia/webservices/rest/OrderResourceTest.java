@@ -16,8 +16,11 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.junit.Test;
 import org.openmrs.Order;
 import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.projectbuendia.Utils;
 import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
+
+import java.util.Date;
 
 import javax.annotation.Nullable;
 
@@ -68,8 +71,8 @@ import static org.junit.Assert.assertTrue;
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
         assertEquals(SAMPLE_INSTRUCTIONS, response.get("instructions"));
-        assertEquals(SAMPLE_START_DATE, response.get("start_millis"));
-        assertEquals(SAMPLE_END_DATE, response.get("stop_millis"));
+        assertEquals(SAMPLE_START_DATE, Utils.parse8601(response.get("start_time").toString()).getTime());
+        assertEquals(SAMPLE_END_DATE, Utils.parse8601(response.get("stop_time").toString()).getTime());
 
         // Check that these fields match the object stored.
         String uuid = (String) response.get("uuid");
@@ -114,8 +117,8 @@ import static org.junit.Assert.assertTrue;
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
         assertEquals(SAMPLE_INSTRUCTIONS, response.get("instructions"));
-        assertEquals(SAMPLE_START_DATE, response.get("start_millis"));
-        assertNull(response.get("stop_millis"));
+        assertEquals(SAMPLE_START_DATE, Utils.parse8601(response.get("start_time").toString()).getTime());
+        assertNull(response.get("stop_time"));
 
         // Check that these fields match the object stored.
         Order stored = orderService.getOrderByUuid(uuid);
@@ -153,8 +156,8 @@ import static org.junit.Assert.assertTrue;
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
         assertEquals(newInstructions, response.get("instructions"));
-        assertEquals(SAMPLE_START_DATE, response.get("start_millis"));
-        assertEquals(SAMPLE_END_DATE, response.get("stop_millis"));
+        assertEquals(SAMPLE_START_DATE, Utils.parse8601(response.get("start_time").toString()).getTime());
+        assertEquals(SAMPLE_END_DATE, Utils.parse8601(response.get("stop_time").toString()).getTime());
 
         // Check that the underlying order is a different one and has the correct values.
         Order stored = OrderResource.getLastRevision(orderService.getOrderByUuid(uuid));
@@ -183,8 +186,8 @@ import static org.junit.Assert.assertTrue;
         // Check that fields are correctly set in response
         assertEquals(SAMPLE_PATIENT_UUID, response.get("patient_uuid"));
         assertEquals(SAMPLE_INSTRUCTIONS, response.get("instructions"));
-        assertEquals(startTime, response.get("start_millis"));
-        assertEquals(newEndTime, response.get("stop_millis"));
+        assertEquals(startTime, Utils.parse8601(response.get("start_time").toString()).getTime());
+        assertEquals(newEndTime, Utils.parse8601(response.get("stop_time").toString()).getTime());
 
         // Check that these fields match the object stored.
         Order stored = OrderResource.getLastRevision(baseOrder);
@@ -201,7 +204,7 @@ import static org.junit.Assert.assertTrue;
         response = deserialize(handle(request));
         uuid = (String) response.get("uuid");
         assertEquals(baseOrder.getUuid(), uuid);
-        assertEquals(newEndTime, response.get("stop_millis"));
+        assertEquals(newEndTime, Utils.parse8601(response.get("stop_time").toString()).getTime());
 
         stored = OrderResource.getLastRevision(baseOrder);
         assertEquals(newEndTime, stored.getAutoExpireDate().getTime());
@@ -209,7 +212,7 @@ import static org.junit.Assert.assertTrue;
         // Verify that retrieving the order gets the last revision.
         SimpleObject retrieved = deserialize(handle(newGetRequest(getURI() + "/" + uuid)));
         assertEquals(uuid, retrieved.get("uuid"));
-        assertEquals(newEndTime, retrieved.get("stop_millis"));
+        assertEquals(newEndTime, Utils.parse8601(retrieved.get("stop_time").toString()).getTime());
     }
 
     @Test public void testDeleteForNewNonExecutedOrderVoids() throws Exception {
@@ -296,10 +299,10 @@ import static org.junit.Assert.assertTrue;
             order.add("instructions", instructions);
         }
         if (startMillis != null) {
-            order.add("start_millis", startMillis);
+            order.add("start_time", Utils.formatUtc8601(new Date(startMillis)));
         }
         if (stopMillis != null) {
-            order.add("stop_millis", stopMillis);
+            order.add("stop_time", Utils.formatUtc8601(new Date(stopMillis)));
         }
         return order;
     }

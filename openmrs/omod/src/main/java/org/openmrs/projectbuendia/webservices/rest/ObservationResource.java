@@ -72,7 +72,7 @@ public class ObservationResource extends BaseResource<Obs> {
             json.add("concept_type", DbUtils.getConceptTypeName(obs.getConcept()));
         }
         if (obs.getObsDatetime() != null) {
-            json.add("timestamp", Utils.formatUtc8601(obs.getObsDatetime()));
+            json.add("time", Utils.formatUtc8601(obs.getObsDatetime()));
         }
 
         for (EncounterProvider ep : obs.getEncounter().getEncounterProviders()) {
