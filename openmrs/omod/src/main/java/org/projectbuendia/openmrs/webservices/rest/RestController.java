@@ -20,6 +20,7 @@ import org.openmrs.module.webservices.rest.web.RestUtil;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.MainResourceController;
 import org.openmrs.projectbuendia.Utils;
+import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

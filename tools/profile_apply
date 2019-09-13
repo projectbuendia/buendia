@@ -18,7 +18,6 @@ VERBOSE = False
 CHART_UUID = 'buendia_form_chart'
 MAX_UUID_LEN = 36
 
-PLACEMENT_CONCEPT_UUID = 'buendia_concept_placement'
 ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
 LOCALE = 'buendia'  # a special locale that can bundle text in multiple locales
 
@@ -89,10 +88,12 @@ class OpenmrsDatabase:
 
     def insert(self, table, **kwargs):
         """Inserts a row, creating a UUID and filling in metadata if needed."""
+        if 'uuid' not in self.get_columns(table):
+            raise ValueError('insert() only works for tables with uuid columns')
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
-        if 'uuid' in self.get_columns(table):
-            kwargs.setdefault('uuid', uuid.uuid4())
+        if 'uuid' not in kwargs:
+            kwargs['uuid'] = '*' + str(uuid.uuid4())
 
         columns = kwargs.keys()
         values = kwargs.values()
@@ -113,10 +114,11 @@ class OpenmrsDatabase:
 
         # In concept and concept_name, the uuid column is based on the id.
         if table in ['concept', 'concept_name']:
-            filler = (table == 'concept') and 'A' or 'B'
-            pseudo_uuid = str(id).ljust(36, filler)
-            self.db.execute('update %s set uuid = %s where %s = %s' %
-                (table, '%s', id_column, '%s'), pseudo_uuid, id)
+            if kwargs['uuid'].startswith('*'):
+                filler = (table == 'concept') and 'A' or 'B'
+                pseudo_uuid = str(id).ljust(36, filler)
+                self.db.execute('update %s set uuid = %s where %s = %s' %
+                    (table, '%s', id_column, '%s'), pseudo_uuid, id)
         return id
 
     def update(self, table, id, **kwargs):
@@ -192,9 +194,6 @@ def apply(tabs):
             apply_forms(tabs['form'])
         if 'chart' in tabs:
             # Then apply charts, which requires all concepts to already exist.
-            placement_id = get_or_insert('concept', uuid=PLACEMENT_CONCEPT_UUID)
-            update_or_insert('concept', placement_id, short_name='Placement',
-                             datatype_id=text_datatype, class_id=misc_class)
             chart_enctype = get_or_insert(
                 'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
             odb.update('encounter_type', chart_enctype, name='CHART', retired=1,

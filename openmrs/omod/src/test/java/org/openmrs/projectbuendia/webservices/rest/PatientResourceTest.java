@@ -84,7 +84,6 @@ public class PatientResourceTest extends BaseApiRequestTest {
         assertEquals("1970-01-01", response.get("birthdate"));
 
         Patient patient = patientService.getPatientByUuid(uuid);
-        PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtils.IDENTIFIER_TYPE_MSF_UUID);
-        assertEquals("XYZ", patient.getPatientIdentifier(identType).getIdentifier());
+        assertEquals("XYZ", patient.getPatientIdentifier(DbUtils.getMsfIdType()).getIdentifier());
     }
 }

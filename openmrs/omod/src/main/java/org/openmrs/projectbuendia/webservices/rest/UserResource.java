@@ -18,16 +18,12 @@ import static org.openmrs.projectbuendia.Utils.getRequiredString;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class UserResource extends BaseResource<Provider> {
-    private static final String PROVIDER_GUEST_UUID = "buendia_provider_guest";
-    private static final String GUEST_NAME = "Guest User";
-
     public UserResource() {
         super("users", Representation.DEFAULT);
+        DbUtils.ensureRequiredObjectsExist();
     }
 
     @Override protected Collection<Provider> listItems(RequestContext context) {
-        ensureGuestProviderExists();
-        ensurePlacementConceptExists();
         return providerService.getAllProviders(false /* include retired */);
     }
 
@@ -57,21 +53,5 @@ public class UserResource extends BaseResource<Provider> {
             json.add("given_name", person.getGivenName());
             json.add("family_name", person.getFamilyName());
         }
-    }
-
-    /** Creates a Provider named "Guest User" if one doesn't already exist. */
-    private synchronized void ensureGuestProviderExists() {
-        Provider guest = providerService.getProviderByUuid(PROVIDER_GUEST_UUID);
-        if (guest == null) {
-            guest = new Provider();
-            guest.setCreator(DbUtils.getAuthenticatedUser());
-            guest.setUuid(PROVIDER_GUEST_UUID);
-            guest.setName(GUEST_NAME);
-            providerService.saveProvider(guest);
-        }
-    }
-
-    private synchronized void ensurePlacementConceptExists() {
-        DbUtils.getPlacementConcept();
     }
 }
