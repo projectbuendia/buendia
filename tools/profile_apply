@@ -18,6 +18,7 @@ VERBOSE = False
 CHART_UUID = 'buendia_form_chart'
 MAX_UUID_LEN = 36
 
+PLACEMENT_CONCEPT_UUID = 'buendia_concept_placement'
 ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
 LOCALE = 'buendia'  # a special locale that can bundle text in multiple locales
 
@@ -183,6 +184,7 @@ def apply(tabs):
     # "Finding", "Symptom", and "Symptom/Finding" all seem like reasonable
     # classes for observations; "Finding" is by far the most commonly used.
     obs_class = db.get('concept_class_id', name='Finding')
+    misc_class = db.get('concept_class_id', name='Misc')
 
     def main():  # main entry point, invoked at the end of this block
         if 'form' in tabs:
@@ -190,6 +192,9 @@ def apply(tabs):
             apply_forms(tabs['form'])
         if 'chart' in tabs:
             # Then apply charts, which requires all concepts to already exist.
+            placement_id = get_or_insert('concept', uuid=PLACEMENT_CONCEPT_UUID)
+            update_or_insert('concept', placement_id, short_name='Placement',
+                             datatype_id=text_datatype, class_id=misc_class)
             chart_enctype = get_or_insert(
                 'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
             odb.update('encounter_type', chart_enctype, name='CHART', retired=1,
