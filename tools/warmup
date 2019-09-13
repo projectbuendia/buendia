@@ -123,7 +123,7 @@ check_url 'HTTP.*200 OK' http://$hostport/
 check_url '<title>.*OpenMRS' http://$hostport/openmrs
 
 # Buendia
-check_url '{"results":' http://$hostport/openmrs/ws/rest/v1/projectbuendia/users -u $OPENMRS_USER:$OPENMRS_PASSWORD
+check_url '{"results":' http://$hostport/openmrs/ws/rest/buendia/providers -u $OPENMRS_USER:$OPENMRS_PASSWORD
 
 echo
 echo "    \o/  Success!  Buendia API at $hostport is up."

@@ -41,7 +41,7 @@ import static org.junit.Assert.assertNotNull;
     }
 
     @Override public String getURI() {
-        return "/projectbuendia/locations";
+        return "/locations";
     }
 
     @Override public String getUuid() {

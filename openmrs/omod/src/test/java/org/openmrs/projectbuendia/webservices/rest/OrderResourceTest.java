@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 /** REST API tests for OrderResource */
 @SkipBaseSetup public class OrderResourceTest extends BaseApiRequestTest {
-    private static final String ENCOUNTERS_URL = "/projectbuendia/encounters";
+    private static final String ENCOUNTERS_URL = "/encounters";
 
     private static final long ONE_DAY_IN_MILLIS = 1000 * 60 * 60 * 24;
     private static final long ONE_WEEK_IN_MILLIS = ONE_DAY_IN_MILLIS * 7;
@@ -48,7 +48,7 @@ import static org.junit.Assert.assertTrue;
     };
 
     @Override public String getURI() {
-        return "/projectbuendia/orders";
+        return "/orders";
     }
 
     @Override public long getAllCount() {

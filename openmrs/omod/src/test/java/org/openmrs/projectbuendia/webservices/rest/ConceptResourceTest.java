@@ -36,7 +36,7 @@ public class ConceptResourceTest extends BaseApiRequestTest {
     };
 
     public String getURI() {
-        return "/projectbuendia/concepts";
+        return "/concepts";
     }
 
     public long getAllCount() {
