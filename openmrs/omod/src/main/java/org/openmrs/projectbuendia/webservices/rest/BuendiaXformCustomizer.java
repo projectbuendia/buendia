@@ -18,6 +18,7 @@ import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Provider;
 import org.openmrs.module.xforms.buendia.XformCustomizer;
+import org.openmrs.projectbuendia.Utils;
 import org.openmrs.util.FormConstants;
 
 import java.util.Locale;
@@ -31,7 +32,9 @@ public class BuendiaXformCustomizer extends XformCustomizer {
     }
 
     @Override public String getLabel(Concept concept) {
-        return DbUtils.getConceptName(concept, locale);
+        String result = DbUtils.getConceptName(concept, locale);
+        Utils.log("getLabel(%d) in locale %s -> %s", concept.getId(), locale.toLanguageTag(), result);
+        return result;
     }
 
     @Override public String getLabel(Location location) {

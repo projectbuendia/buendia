@@ -48,6 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import javax.annotation.Nullable;
 
@@ -56,7 +57,7 @@ import static org.openmrs.projectbuendia.Utils.eq;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
-    public static final Locale DEFAULT_LOCALE = new Locale("en");
+    public static final Locale DEFAULT_LOCALE = Locale.forLanguageTag("en");
 
     // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
     // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
@@ -165,27 +166,45 @@ public class DbUtils {
     }
 
     public static String getConceptName(Concept concept, Locale locale) {
-        String name = findNameInMatchingLocale(concept, locale);
-        if (name != null) return name;
-        name = findNameInMatchingLocale(concept, DEFAULT_LOCALE);
-        if (name != null) return name;
-        return concept.getDisplayString();
-    }
+        Locale fr = Locale.forLanguageTag("fr");
+        Locale en = Locale.forLanguageTag("en");
+        
+        Utils.log("%d.getPreferredName(fr) -> %s", concept.getId(), concept.getPreferredName(fr));
+        Utils.log("%d.getName(fr, true) -> %s", concept.getId(), concept.getName(fr, true));
+        Utils.log("%d.getName(fr) -> %s", concept.getId(), concept.getName(fr));
+        Utils.log("%d.getNames(fr) -> %d", concept.getId(), concept.getNames(fr).size());
+        for (ConceptName n : concept.getNames(fr)) {
+            Utils.log("  - %s", n.getName());
+        }
 
-    private static String findNameInMatchingLocale(Concept concept, Locale locale) {
-        ConceptName name = concept.getPreferredName(locale);
+        Utils.log("%d.getPreferredName(en) -> %s", concept.getId(), concept.getPreferredName(en));
+        Utils.log("%d.getName(en, true) -> %s", concept.getId(), concept.getName(en, true));
+        Utils.log("%d.getName(en) -> %s", concept.getId(), concept.getName(en));
+        Utils.log("%d.getNames(en) -> %d", concept.getId(), concept.getNames(en).size());
+        for (ConceptName n : concept.getNames(en)) {
+            Utils.log("  - %s", n.getName());
+        }
+
+        for (ConceptName n : concept.getNames()) {
+            Utils.log("  - %s (%s, %s)", n.getName(), n.getLocale(), n.getLocalePreferred());
+        }
+
+        ConceptName name = concept.getName(locale, true);
         if (name != null) return name.getName();
 
         String lang = locale.getLanguage();
         String region = locale.getCountry();  // this Locale method is misnamed
         String variant = locale.getVariant();
-        name = concept.getPreferredName(new Locale(lang, region, variant));
+        if (variant != null) name = concept.getName(new Locale(lang, region, variant), true);
         if (name != null) return name.getName();
-        name = concept.getPreferredName(new Locale(lang, region));
+        if (region != null) name = concept.getName(new Locale(lang, region), true);
         if (name != null) return name.getName();
-        name = concept.getPreferredName(new Locale(lang));
+        name = concept.getName(new Locale(lang), true);
         if (name != null) return name.getName();
-        return null;
+        name = concept.getName(DEFAULT_LOCALE);
+        if (name != null) return name.getName();
+
+        return concept.getId() + "?";
     }
 
     public static String getConceptTypeName(Concept concept) {
@@ -226,7 +245,7 @@ public class DbUtils {
         if (concept == null) {
             concept = new Concept();
             concept.setUuid(uuid);
-            concept.setShortName(new ConceptName(name, new Locale("en")));
+            concept.setShortName(new ConceptName(name, Locale.forLanguageTag("en")));
             concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
             concept.setConceptClass(conceptService.getConceptClassByName(className));
             conceptService.saveConcept(concept);

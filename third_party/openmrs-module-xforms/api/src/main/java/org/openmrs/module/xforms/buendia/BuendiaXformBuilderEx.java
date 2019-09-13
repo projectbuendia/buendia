@@ -309,6 +309,8 @@ public class BuendiaXformBuilderEx {
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
                 // TODO(jonskeet): Use the description for a hint?
+                String bindName = FormUtil.getNewTag("section" + formField.getId(), tagList);
+                fieldTokens.put(formField, bindName);
                 fieldUiNode = append(parentNode, NS_XFORMS, NODE_GROUP);
                 Element label = append(fieldUiNode, NS_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
@@ -317,7 +319,9 @@ public class BuendiaXformBuilderEx {
                     fieldUiNode.setAttribute(null, ATTRIBUTE_APPEARANCE, appearanceAttribute);
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_DATABASE) {
-                fieldUiNode = addDatabaseElementUiNode(name, formField, parentNode);
+                String bindName = FormUtil.getNewTag("database" + formField.getId(), tagList);
+                fieldTokens.put(formField, bindName);
+                fieldUiNode = addDatabaseElementUiNode(bindName, formField, parentNode);
             } else {
                 // Don't understand this field type
                 log.warn("Unhandled field type " + field.getFieldType().getName() + " for field " + field.getName());

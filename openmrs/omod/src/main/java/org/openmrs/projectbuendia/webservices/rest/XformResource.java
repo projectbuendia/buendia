@@ -91,7 +91,7 @@ public class XformResource extends BaseResource<Form> {
                 includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);
                 json.add("xml", xml);
-                json.add("locale", locale.toString().replaceAll("_", "-"));
+                json.add("locale", locale.toLanguageTag());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
