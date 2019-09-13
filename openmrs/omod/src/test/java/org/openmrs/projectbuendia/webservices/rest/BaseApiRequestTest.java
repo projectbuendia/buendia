@@ -29,7 +29,11 @@ public abstract class BaseApiRequestTest extends MainResourceControllerTest {
     protected PatientService patientService;
     protected ProviderService providerService;
 
-    /** Returns the path of the resource, beginning with "/projectbuendia". */
+    @Override public String getNamespace() {
+        return "buendia";
+    }
+
+    /** Returns the path of the resource, under the path "/buendia". */
     public abstract String getURI();
 
     /** The expected number of records returned by a GET request to the main resource path. */

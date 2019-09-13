@@ -42,7 +42,7 @@ public class PatientResourceTest extends BaseApiRequestTest {
     };
 
     public String getURI() {
-        return "/projectbuendia/patients";
+        return "/patients";
     }
 
     public long getAllCount() {
