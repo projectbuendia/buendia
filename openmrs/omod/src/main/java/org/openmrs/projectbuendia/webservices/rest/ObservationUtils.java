@@ -86,12 +86,12 @@ public class ObservationUtils {
      * @param patient           the patient for whom to add the encounter
      * @param encounterTime     the time of the encounter
      * @param encounterTypeName the OpenMRS name for the encounter type, configured in OpenMRS
-     * @param entererUuid      the provider who entered the observations
+     * @param providerUuid      the provider who entered the observations
      * @param locationUuid      the UUID of the location where the encounter happened
      */
     public static Encounter addEncounter(List observations, List orderUuids, Patient patient,
                                          Date encounterTime, String encounterTypeName,
-                                         String entererUuid, String locationUuid) {
+                                         String providerUuid, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = DbUtils.fixEncounterDatetime(encounterTime);
@@ -140,10 +140,10 @@ public class ObservationUtils {
                 obsService.saveObs(obs, null);
             }
         }
-        if (entererUuid != null) {
-            Provider enterer = Context.getProviderService().getProviderByUuid(entererUuid);
-            if (enterer != null) {
-                encounter.addProvider(DbUtils.getUnknownEncounterRole(), enterer);
+        if (providerUuid != null) {
+            Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
+            if (provider != null) {
+                encounter.addProvider(DbUtils.getUnknownEncounterRole(), provider);
             }
         }
         return encounter;

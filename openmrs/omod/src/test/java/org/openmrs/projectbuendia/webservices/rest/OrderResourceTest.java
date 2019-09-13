@@ -290,7 +290,7 @@ import static org.junit.Assert.assertTrue;
             order.add("patient_uuid", patientUuid);
         }
         if (providerUuid != null) {
-            order.add("orderer_uuid", providerUuid);
+            order.add("provider_uuid", providerUuid);
         }
         if (instructions != null) {
             order.add("instructions", instructions);

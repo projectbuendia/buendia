@@ -68,7 +68,7 @@ public class EncounterResource extends BaseResource<Encounter> {
         }
         return ObservationUtils.addEncounter(
             (List) data.get("observations"), (List) data.get("order_uuids"),
-            patient, encounterTime, "ADULTRETURN", (String) data.get("enterer_uuid"), null);
+            patient, encounterTime, "ADULTRETURN", (String) data.get("provider_uuid"), null);
     }
 
     @Override protected void populateJson(SimpleObject json, Encounter item, RequestContext context) {

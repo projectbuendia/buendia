@@ -64,7 +64,7 @@ public class OrderResource extends BaseResource<Order> {
 
     @Override protected Order createItem(SimpleObject data, RequestContext context) {
         Patient patient = DbUtils.patientsByUuid.get(Utils.getRequiredString(data, "patient_uuid"));
-        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "orderer_uuid"));
+        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "provider_uuid"));
         Date dateCreated = new Date();
 
         Order order = new Order();
@@ -94,7 +94,7 @@ public class OrderResource extends BaseResource<Order> {
 
     @Override protected Order updateItem(Order order, SimpleObject data, RequestContext context) {
         Patient patient = DbUtils.patientsByUuid.get(Utils.getOptionalString(data, "patient_uuid"));
-        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "orderer_uuid"));
+        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "provider_uuid"));
         Date dateUpdated = new Date();
 
         Order lastOrder = getLastRevision(order);

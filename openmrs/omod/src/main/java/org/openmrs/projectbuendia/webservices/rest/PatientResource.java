@@ -124,10 +124,10 @@ public class PatientResource extends BaseResource<Patient> {
         }
 
         // Store any initial observations that are included with the new patient.
-        String entererUuid = (String) data.get("enterer_uuid");
+        String providerUuid = (String) data.get("provider_uuid");
         ObservationUtils.addEncounter(
             (List) data.get("observations"), null,
-            patient, patient.getDateCreated(), "ADULTINITIAL", entererUuid, null);
+            patient, patient.getDateCreated(), "ADULTINITIAL", providerUuid, null);
         return patient;
 
     }

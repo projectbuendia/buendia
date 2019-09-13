@@ -77,7 +77,7 @@ public class ObservationResource extends BaseResource<Obs> {
 
         for (EncounterProvider ep : obs.getEncounter().getEncounterProviders()) {
             if (ep.getProvider() != null) {
-                json.add("enterer_uuid", ep.getProvider().getUuid());
+                json.add("provider_uuid", ep.getProvider().getUuid());
                 break;
             }
         }
