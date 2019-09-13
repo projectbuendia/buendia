@@ -17,6 +17,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 
@@ -67,8 +68,8 @@ public class EncounterResource extends BaseResource<Encounter> {
             throw new InvalidObjectDataException(
                 "Expected seconds since epoch for \"timestamp\" value: " + ex.getMessage());
         }
-        return ObservationUtils.addEncounter(
-            (List) data.get("observations"), (List) data.get("order_uuids"),
+        return ObsUtils.addEncounter(
+            (List<Map>) data.get("observations"), (List<String>) data.get("order_uuids"),
             patient, encounterTime, "ADULTRETURN", (String) data.get("provider_uuid"), null);
     }
 
@@ -85,27 +86,6 @@ public class EncounterResource extends BaseResource<Encounter> {
                 break;
             }
         }
-
-        SimpleObject observations = new SimpleObject();
-        List<String> orderUuids = new ArrayList<>();
-        for (Obs obs : item.getObs()) {
-            Concept concept = obs.getConcept();
-            if (concept != null && eq(concept.getUuid(), DbUtils.CONCEPT_ORDER_EXECUTED_UUID)) {
-                orderUuids.add(obs.getOrder().getUuid());
-                continue;
-            }
-
-            // When encounters are returned, the observations are in one big map,
-            // which is a different format than when encounters are posted,
-            // with an array of observations (see ObservationUtils).
-            // TODO(ping): Include the concept type name in this observation dump.
-            observations.put(obs.getConcept().getUuid(), ObservationUtils.obsValueToString(obs));
-        }
-        if (!observations.isEmpty()) {
-            json.put("observations", observations);
-        }
-        if (!orderUuids.isEmpty()) {
-            json.put("order_uuids", orderUuids);
-        }
+        ObsUtils.putObservationsAndOrders(json, item.getObs());
     }
 }

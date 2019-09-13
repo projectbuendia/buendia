@@ -1,5 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.openmrs.Encounter;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.PersonName;
@@ -20,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.formatUtcDate;
@@ -124,10 +126,10 @@ public class PatientResource extends BaseResource<Patient> {
         }
 
         // Store any initial observations that are included with the new patient.
-        String providerUuid = (String) data.get("provider_uuid");
-        ObservationUtils.addEncounter(
-            (List) data.get("observations"), null,
-            patient, patient.getDateCreated(), "ADULTINITIAL", providerUuid, null);
+        Date encounterTime = patient.getDateCreated();
+        ObsUtils.addEncounter(
+            (List<Map>) data.get("observations"), (List<String>) data.get("order_uuids"),
+            patient, encounterTime, "ADULTINITIAL", (String) data.get("provider_uuid"), null);
         return patient;
 
     }
@@ -183,6 +185,13 @@ public class PatientResource extends BaseResource<Patient> {
         }
         json.add("given_name", denormalizeName(patient.getGivenName()));
         json.add("family_name", denormalizeName(patient.getFamilyName()));
+
+        List<Encounter> initialEncounters = encounterService.getEncounters(
+            patient, null, patient.getDateCreated(), patient.getDateCreated(),
+            null, null, null, null, null, false);
+        if (initialEncounters.size() > 0) {
+            ObsUtils.putObservationsAndOrders(json, initialEncounters.get(0).getObs());
+        }
     }
 
     /** Normalizes a name to something OpenMRS will accept. */

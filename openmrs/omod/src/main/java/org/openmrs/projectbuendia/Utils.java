@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -225,14 +226,14 @@ public class Utils {
 
     // === JSON SimpleObjects ===
 
-    public static void requirePropertyAbsent(SimpleObject obj, String key) {
+    public static void requirePropertyAbsent(Map obj, String key) {
         if (obj.containsKey(key)) {
             throw new InvalidObjectDataException(String.format(
                 "Property \"%s\" is not allowed", key));
         }
     }
 
-    public static @Nonnull String getRequiredString(SimpleObject obj, String key) {
+    public static @Nonnull String getRequiredString(Map obj, String key) {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
@@ -245,11 +246,45 @@ public class Utils {
         return (String) value;
     }
 
-    public static @Nullable String getOptionalString(SimpleObject obj, String key) {
+    public static @Nullable String getOptionalString(Map obj, String key) {
         return obj.get(key) != null ? getRequiredString(obj, key) : null;
     }
 
-    public static @Nonnull Date getRequiredDate8601(SimpleObject obj, String key) {
+    public static @Nonnull double getRequiredNumber(Map obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing or null", key));
+        }
+        if (value instanceof Double) {
+            return (double) value;
+        } else if (value instanceof Float) {
+            return (float) value;
+        } else if (value instanceof Integer) {
+            return (int) value;
+        } else if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                throw new InvalidObjectDataException(String.format(
+                    "Property \"%s\" has the value \"%s\" but a number is required", key, value));
+            }
+        } else {
+            throw new InvalidObjectDataException(String.format(
+                "Property \"%s\" should be a number, not %s", key, value.getClass()));
+        }
+    }
+
+    public static @Nonnull Date getRequiredDate(Map obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing or null", key));
+        }
+        return parseLocalDate(value.toString());
+    }
+
+    public static @Nonnull Date getRequiredDatetime(Map obj, String key) {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
@@ -258,8 +293,8 @@ public class Utils {
         return parse8601(value.toString());
     }
 
-    public static @Nullable Date getOptionalDate8601(SimpleObject obj, String key) {
-        return obj.get(key) != null ? getRequiredDate8601(obj, key) : null;
+    public static @Nullable Date getOptionalDatetime(Map obj, String key) {
+        return obj.get(key) != null ? getRequiredDatetime(obj, key) : null;
     }
 
 
