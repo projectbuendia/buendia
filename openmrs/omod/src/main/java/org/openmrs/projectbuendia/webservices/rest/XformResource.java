@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import javax.annotation.Nullable;
 
@@ -83,14 +84,14 @@ public class XformResource extends BaseResource<Form> {
         json.add("version", form.getVersion());
         boolean includesProviders = false;
         if (context.getRepresentation() == Representation.FULL) {
+            Locale locale = DbUtils.getLocaleForTag(context.getParameter("locale"));
             try {
-                // TODO: Use description instead of name?
-                FormData formData = BuendiaXformBuilderEx.buildXform(
-                    form, new BuendiaXformCustomizer());
+                FormData formData = BuendiaXformBuilderEx.buildXform(form, locale);
                 String xml = convertToOdkCollect(formData.xml, form.getName());
                 includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);
                 json.add("xml", xml);
+                json.add("locale", locale.toLanguageTag());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

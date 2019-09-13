@@ -12,7 +12,6 @@ args = sys.argv[1:]
 
 try:
     server, path = args[:2]
-    assert '.' in server
 except:
     sys.stderr.write('''Usage: %s <server>:<port> <path> [curl options...]
 

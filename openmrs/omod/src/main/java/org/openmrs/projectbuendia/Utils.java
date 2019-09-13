@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -275,5 +276,65 @@ public class Utils {
         HttpServletResponse response = context.getResponse();
         response.addHeader("Buendia-Server-Version", "0.13");
         response.addHeader("Buendia-Client-Minimum-Version", "0.17");
+    }
+
+
+    // ==== Debugging ====
+
+    public static String format(String format, Object... args) {
+        return String.format(Locale.US, format, args);
+    }
+
+    public static void log(String format, Object... args) {
+        System.err.println(format(format, args));
+    }
+
+    /** Returns an unambiguous string representation of a string, suitable for logging. */
+    public static String repr(String str) {
+        return repr(str, 100);
+    }
+
+    /** Returns an unambiguous string representation of a string, suitable for logging. */
+    public static String repr(String str, int maxLength) {
+        try {
+            return str != null ? escape(str, maxLength) : "(null String)";
+        } catch (Throwable ignored) {
+            return "(repr of " + str + " failed)";
+        }
+    }
+
+    /** Uses backslash sequences to form a printable representation of a string. */
+    private static String escape(String str, int maxLength) {
+        StringBuilder buffer = new StringBuilder("\"");
+        for (int i = 0; i < str.length() && i < maxLength; i++) {
+            char c = str.charAt(i);
+            switch (str.charAt(i)) {
+                case '\t':
+                    buffer.append("\\t");
+                    break;
+                case '\r':
+                    buffer.append("\\r");
+                    break;
+                case '\n':
+                    buffer.append("\\n");
+                    break;
+                case '\\':
+                    buffer.append("\\\\");
+                    break;
+                case '"':
+                    buffer.append("\\\"");
+                    break;
+                default:
+                    if ((int) c >= 32 && (int) c <= 126) {
+                        buffer.append(c);
+                    } else if ((int) c < 256) {
+                        buffer.append(format("\\x%02x", (int) c));
+                    } else {
+                        buffer.append(format("\\u%04x", (int) c));
+                    }
+            }
+        }
+        buffer.append(str.length() > maxLength ? "\"..." : "\"");
+        return buffer.toString();
     }
 }

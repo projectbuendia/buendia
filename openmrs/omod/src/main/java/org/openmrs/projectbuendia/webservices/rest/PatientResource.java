@@ -1,32 +1,25 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
-import org.openmrs.PatientIdentifierType;
 import org.openmrs.PersonName;
 import org.openmrs.User;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.formatUtcDate;
@@ -39,13 +32,9 @@ import static org.openmrs.projectbuendia.Utils.parseLocalDate;
 )
 public class PatientResource extends BaseResource<Patient> {
     private static final int MAX_PATIENTS_PER_PAGE = 100;
-    private final PatientIdentifierType IDENTIFIER_TYPE_MSF;
-    private final PatientIdentifierType IDENTIFIER_TYPE_LOCAL;
 
     public PatientResource() {
         super("patients", Representation.DEFAULT);
-        IDENTIFIER_TYPE_MSF = DbUtils.getIdentifierTypeMsf();
-        IDENTIFIER_TYPE_LOCAL = DbUtils.getIdentifierTypeLocal();
     }
 
     @Override protected Collection<Patient> listItems(RequestContext context) {
@@ -109,10 +98,10 @@ public class PatientResource extends BaseResource<Patient> {
         String id = Utils.getOptionalString(data, "id");
         if (id != null) {
             requireValidUniqueMsfIdentifier(id);
-            ident.setIdentifierType(DbUtils.getIdentifierTypeMsf());
+            ident.setIdentifierType(DbUtils.getMsfIdType());
             ident.setIdentifier(id);
         } else {
-            ident.setIdentifierType(DbUtils.getIdentifierTypeLocal());
+            ident.setIdentifierType(DbUtils.getLocalIdType());
             // To generate an integer ID, we need to save the patient identifier and
             // let the table fill in the ID AUTO_INCREMENT column.  But OpenMRS will
             // not let us save the patient identifier with a blank identifier string,
@@ -129,7 +118,7 @@ public class PatientResource extends BaseResource<Patient> {
         // the Patient and PatientIdentifier objects have been saved.  At this
         // point the PatientIdentifier has a freshly-generated ID column, which
         // we use to construct the string identifier.
-        if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeLocal())) {
+        if (eq(ident.getIdentifierType(), DbUtils.getLocalIdType())) {
             ident.setIdentifier("" + ident.getId());
             patientService.savePatientIdentifier(ident);
         }
@@ -163,12 +152,12 @@ public class PatientResource extends BaseResource<Patient> {
         PatientIdentifier ident = patient.getPatientIdentifier();
         if (id != null && !eq(id, toClientIdent(ident))) {
             requireValidUniqueMsfIdentifier(id);
-            if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeMsf())) {
+            if (eq(ident.getIdentifierType(), DbUtils.getMsfIdType())) {
                 ident.setIdentifier(id);
             } else {
                 ident.setPreferred(false);
                 PatientIdentifier newIdent = new PatientIdentifier(
-                    id, IDENTIFIER_TYPE_MSF, DbUtils.getDefaultRoot());
+                    id, DbUtils.getMsfIdType(), DbUtils.getDefaultRoot());
                 newIdent.setCreator(user);
                 newIdent.setPreferred(true);
                 patient.addIdentifier(newIdent);
@@ -223,9 +212,9 @@ public class PatientResource extends BaseResource<Patient> {
 
     private PatientIdentifier fromClientIdent(String clientIdent) {
         if (clientIdent.startsWith("*")) {
-            return new PatientIdentifier(clientIdent.substring(1), IDENTIFIER_TYPE_LOCAL, DbUtils.getDefaultRoot());
+            return new PatientIdentifier(clientIdent.substring(1), DbUtils.getLocalIdType(), DbUtils.getDefaultRoot());
         } else {
-            return new PatientIdentifier(clientIdent, IDENTIFIER_TYPE_MSF, DbUtils.getDefaultRoot());
+            return new PatientIdentifier(clientIdent, DbUtils.getMsfIdType(), DbUtils.getDefaultRoot());
         }
     }
 
@@ -235,7 +224,7 @@ public class PatientResource extends BaseResource<Patient> {
         // "*" followed by an integer, where the integer is a local
         // (type "LOCAL") server-generated identifier; or otherwise
         // it is an MSF (type "MSF") client-provided identifier.
-        if (eq(ident.getIdentifierType(), IDENTIFIER_TYPE_LOCAL)) {
+        if (eq(ident.getIdentifierType(), DbUtils.getLocalIdType())) {
             return "*" + ident.getIdentifier();
         } else {
             return ident.getIdentifier();
@@ -253,7 +242,7 @@ public class PatientResource extends BaseResource<Patient> {
             ));
         }
         List<Patient> existing = patientService.getPatients(null, ident,
-            Collections.singletonList(IDENTIFIER_TYPE_MSF), true /* exact match */);
+            Collections.singletonList(DbUtils.getMsfIdType()), true /* exact match */);
         if (!existing.isEmpty()) {
             String name = getFullName(existing.get(0));
             throw new InvalidObjectDataException(String.format(

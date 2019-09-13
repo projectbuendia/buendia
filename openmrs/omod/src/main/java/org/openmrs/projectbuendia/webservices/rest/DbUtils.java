@@ -17,6 +17,7 @@ import org.openmrs.ConceptClass;
 import org.openmrs.ConceptName;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterRole;
+import org.openmrs.EncounterType;
 import org.openmrs.Form;
 import org.openmrs.Location;
 import org.openmrs.Obs;
@@ -36,8 +37,10 @@ import org.openmrs.api.LocationService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.PersonService;
+import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
+import org.openmrs.projectbuendia.Utils;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -54,9 +57,15 @@ import static org.openmrs.projectbuendia.Utils.eq;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
+    public static final Locale DEFAULT_LOCALE = Locale.forLanguageTag("en");
+
     // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
     // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
     // facilitate readability, all UUIDs specific to Buendia are prefixed "buendia_".
+
+    // The concept UUID for all orders.  This is used internally by the server and
+    // does not need to be known by clients.
+    public static final String CONCEPT_FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
 
     // Clients must use this concept UUID for observations that signify that an
     // order was executed.  This is the only hardcoded UUID that clients need to know.
@@ -67,9 +76,11 @@ public class DbUtils {
     // is used; the only effect is that the other concept will not be created automatically.
     public static final String CONCEPT_PLACEMENT_UUID = "buendia_concept_placement";
 
-    // The concept UUID for all orders.  This is used internally by the server and
-    // does not need to be known by clients.
-    public static final String CONCEPT_FREE_TEXT_ORDER_UUID = "buendia_concept_free_text_order";
+    // This UUID is hardcoded but only used internally by the server to distinguish
+    // chart forms (exposed at /charts) from XForm forms (exposed at /xforms).
+    public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+
+    public static final String ORDER_TYPE_MISC_UUID = "buendia_order_type_misc";
 
     // The UUIDs of these two PatientIdentifierTypes are hardcoded.  If rows don't
     // exist in the database with these names, they will be created.  Clients don't
@@ -78,12 +89,12 @@ public class DbUtils {
     public static final String IDENTIFIER_TYPE_MSF_UUID = "buendia_identifier_type_msf";
     public static final String IDENTIFIER_TYPE_LOCAL_UUID = "buendia_identifier_type_local";
 
-    // This UUID is hardcoded but only used internally by the server to distinguish
-    // chart forms (exposed at /charts) from XForm forms (exposed at /xforms).
-    public static final String ENCOUNTER_TYPE_CHART_UUID = "buendia_encounter_type_chart";
+    // This UUID is for the default provider, named "Guest".
+    private static final String PROVIDER_GUEST_UUID = "buendia_provider_guest";
+    private static final String GUEST_NAME = "Guest";
 
     /** A map from HL7 type abbreviations to short names used in JSON output. */
-    static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
+    private static final Map<String, String> HL7_TYPE_NAMES = new HashMap<>();
     static {
         HL7_TYPE_NAMES.put(HL7Constants.HL7_BOOLEAN, "coded");
         HL7_TYPE_NAMES.put(HL7Constants.HL7_CODED, "coded");
@@ -95,8 +106,112 @@ public class DbUtils {
         HL7_TYPE_NAMES.put("ZZ", "none");
     }
 
-    /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
-    public static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
+    // Gets the default concept for orders in Buendia.  We don't store dosages,
+    // frequencies, etc. in the drug_* and order_* tables; our orders encode
+    // such information in the "instructions" field and use this concept.
+    public static Concept getFreeTextOrderConcept() {
+        ensureRequiredObjectsExist();
+        return Context.getConceptService().getConceptByUuid(CONCEPT_FREE_TEXT_ORDER_UUID);
+    }
+
+    // Gets the concept representing that an order has been executed.  Each time
+    // an order is executed, this is recorded in the system as an encounter in
+    // which "order executed" is observed for the appropriate order.
+    public static Concept getOrderExecutedConcept() {
+        ensureRequiredObjectsExist();
+        return Context.getConceptService().getConceptByUuid(CONCEPT_ORDER_EXECUTED_UUID);
+    }
+
+    // Gets the concept representing the placement of patients at a location and bed.
+    public static Concept getPlacementConcept() {
+        ensureRequiredObjectsExist();
+        return Context.getConceptService().getConceptByUuid(CONCEPT_PLACEMENT_UUID);
+    }
+
+    public static EncounterType getChartEncounterType() {
+        ensureRequiredObjectsExist();
+        return Context.getEncounterService().getEncounterTypeByUuid(ENCOUNTER_TYPE_CHART_UUID);
+    }
+
+    public static OrderType getMiscOrderType() {
+        ensureRequiredObjectsExist();
+        return Context.getOrderService().getOrderTypeByUuid(ORDER_TYPE_MISC_UUID);
+    }
+
+    public static PatientIdentifierType getLocalIdType() {
+        ensureRequiredObjectsExist();
+        return Context.getPatientService().getPatientIdentifierTypeByUuid(IDENTIFIER_TYPE_LOCAL_UUID);
+    }
+
+    public static PatientIdentifierType getMsfIdType() {
+        ensureRequiredObjectsExist();
+        return Context.getPatientService().getPatientIdentifierTypeByUuid(IDENTIFIER_TYPE_MSF_UUID);
+    }
+
+    public static Provider getGuestProvider() {
+        ensureRequiredObjectsExist();
+        return Context.getProviderService().getProviderByUuid(PROVIDER_GUEST_UUID);
+    }
+
+    /** Creates all the required objects at once (in a fixed order, yielding predictable IDs). */
+    public static void ensureRequiredObjectsExist() {
+        getConcept(CONCEPT_FREE_TEXT_ORDER_UUID, "Free text order", "N/A", "Misc");
+        getConcept(CONCEPT_ORDER_EXECUTED_UUID, "Order executed", "N/A", "Misc");
+        getConcept(CONCEPT_PLACEMENT_UUID, "Placement", "Text", "Misc");
+        getEncounterType(ENCOUNTER_TYPE_CHART_UUID, "Chart");
+        getOrderType(ORDER_TYPE_MISC_UUID, "Misc", "Misc order", "org.openmrs.Order");
+        getIdentifierType(IDENTIFIER_TYPE_LOCAL_UUID, "LOCAL", "Local numeric patient identifier");
+        getIdentifierType(IDENTIFIER_TYPE_MSF_UUID, "MSF", "MSF patient identifier");
+        getProvider(PROVIDER_GUEST_UUID, GUEST_NAME);
+    }
+
+    /** Gets or creates a Concept with a given UUID and name. */
+    private static Concept getConcept(String uuid, String name, String typeName, String className) {
+        ConceptService conceptService = Context.getConceptService();
+        Concept concept = conceptService.getConceptByUuid(uuid);
+        if (concept == null) {
+            concept = new Concept();
+            concept.setUuid(uuid);
+            concept.setShortName(new ConceptName(name, Locale.forLanguageTag("en")));
+            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
+            concept.setConceptClass(conceptService.getConceptClassByName(className));
+            conceptService.saveConcept(concept);
+        }
+        return concept;
+    }
+
+    /** Gets or creates an EncounterType with the given UUID and name. */
+    private static EncounterType getEncounterType(String uuid, String name) {
+        EncounterService encounterService = Context.getEncounterService();
+        EncounterType encType = encounterService.getEncounterTypeByUuid(uuid);
+        if (encType == null) {
+            encType = new EncounterType();
+            encType.setUuid(uuid);
+            encType.setName(name);
+            encType.setDescription(name);
+            encounterService.saveEncounterType(encType);
+        }
+        return encType;
+    }
+
+    /** Gets or creates an OrderType with the given properties. */
+    private static OrderType getOrderType(String uuid, String conceptClassName, String name, String javaClassName) {
+        OrderService orderService = Context.getOrderService();
+        OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass(conceptClassName));
+        if (orderType == null) {
+            orderType = new OrderType();
+            orderType.setUuid(uuid);
+            orderType.addConceptClass(getConceptClass(conceptClassName));
+            orderType.setName(name);
+            orderType.setDescription(name);
+            orderType.setJavaClassName(javaClassName);
+            orderService.saveOrderType(orderType);
+        }
+        return orderType;
+    }
+
+    /** Gets or creates a PatientIdentifierType with the given UUID and name. */
+    private static PatientIdentifierType getIdentifierType(String uuid, String name, String description) {
         PatientService service = Context.getPatientService();
         PatientIdentifierType identifierType =
             service.getPatientIdentifierTypeByUuid(uuid);
@@ -113,46 +228,46 @@ public class DbUtils {
         return identifierType;
     }
 
-    /** Gets or creates the PatientIdentifierType for MSF patient IDs. */
-    public static PatientIdentifierType getIdentifierTypeMsf() {
-        return getIdentifierType(IDENTIFIER_TYPE_MSF_UUID, "MSF", "MSF patient identifier");
-    }
-
-    /** Gets or creates the PatientIdentifierType for local integers (used for patients with no MSF ID). */
-    public static PatientIdentifierType getIdentifierTypeLocal() {
-        return getIdentifierType(IDENTIFIER_TYPE_LOCAL_UUID, "LOCAL", "Local numeric patient identifier");
+    /** Gets or creates a Provider with the given UUID and name. */
+    private static Provider getProvider(String uuid, String name) {
+        ProviderService providerService = Context.getProviderService();
+        Provider provider = providerService.getProviderByUuid(uuid);
+        if (provider == null) {
+            provider = new Provider();
+            provider.setCreator(DbUtils.getAuthenticatedUser());
+            provider.setUuid(uuid);
+            provider.setName(name);
+            providerService.saveProvider(provider);
+        }
+        return provider;
     }
 
     public static CareSetting getInpatientCareSetting() {
         return Context.getOrderService().getCareSettingByName("INPATIENT");
     }
 
-    public static OrderType getDrugOrderType() {
-        OrderService orderService = Context.getOrderService();
-        OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass("Drug"));
-        if (orderType == null) {
-            orderType = new OrderType();
-            orderType.addConceptClass(getConceptClass("Drug"));
-            orderType.setName("Drug");
-            orderType.setDescription("Drug order");
-            orderType.setJavaClassName("org.openmrs.DrugOrder");
-            orderService.saveOrderType(orderType);
-        }
-        return orderType;
+    public static Locale getLocaleForTag(String languageTag) {
+        if (Utils.isBlank(languageTag)) return DEFAULT_LOCALE;
+        return Locale.forLanguageTag(languageTag.trim());
     }
 
-    public static OrderType getMiscOrderType() {
-        OrderService orderService = Context.getOrderService();
-        OrderType orderType = orderService.getOrderTypeByConceptClass(getConceptClass("Misc"));
-        if (orderType == null) {
-            orderType = new OrderType();
-            orderType.addConceptClass(getConceptClass("Misc"));
-            orderType.setName("Misc order");
-            orderType.setDescription("Misc order");
-            orderType.setJavaClassName("org.openmrs.Order");
-            orderService.saveOrderType(orderType);
-        }
-        return orderType;
+    public static String getConceptName(Concept concept, Locale locale) {
+        ConceptName name = concept.getName(locale, true);
+        if (name != null) return name.getName();
+
+        String lang = locale.getLanguage();
+        String region = locale.getCountry();  // this Locale method is misnamed
+        String variant = locale.getVariant();
+        if (variant != null) name = concept.getName(new Locale(lang, region, variant), true);
+        if (name != null) return name.getName();
+        if (region != null) name = concept.getName(new Locale(lang, region), true);
+        if (name != null) return name.getName();
+        name = concept.getName(new Locale(lang), true);
+        if (name != null) return name.getName();
+        name = concept.getName(DEFAULT_LOCALE);
+        if (name != null) return name.getName();
+
+        return concept.getId() + "?";
     }
 
     public static String getConceptTypeName(Concept concept) {
@@ -160,45 +275,7 @@ public class DbUtils {
     }
 
     public static ConceptClass getConceptClass(String name) {
-        ConceptService conceptService = Context.getConceptService();
-        return conceptService.getConceptClassByName(name);
-    }
-
-    // Gets the concept representing that an order has been executed.  Each time
-    // an order is executed, this is recorded in the system as an encounter in
-    // which "order executed" is observed for the appropriate order.
-    public static Concept getOrderExecutedConcept() {
-        return DbUtils.getConcept(
-            "Order executed", CONCEPT_ORDER_EXECUTED_UUID, "N/A", "Finding");
-    }
-
-    public static Concept getPlacementConcept() {
-        return DbUtils.getConcept(
-            "Placement", CONCEPT_PLACEMENT_UUID, "Text", "Misc");
-    }
-
-    // Gets the default concept for orders in Buendia.  We don't store dosages,
-    // frequencies, etc. in the drug_* and order_* tables; our orders encode
-    // such information in the "instructions" field and use this concept.
-    public static Concept getFreeTextOrderConcept() {
-        return getConcept(
-            "Order described in free text instructions",
-            CONCEPT_FREE_TEXT_ORDER_UUID, "N/A", "Misc");
-    }
-
-    /** Gets or creates a Concept with a given UUID and name. */
-    public static Concept getConcept(String name, String uuid, String typeName, String className) {
-        ConceptService conceptService = Context.getConceptService();
-        Concept concept = conceptService.getConceptByUuid(uuid);
-        if (concept == null) {
-            concept = new Concept();
-            concept.setUuid(uuid);
-            concept.setShortName(new ConceptName(name, new Locale("en")));
-            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
-            concept.setConceptClass(conceptService.getConceptClassByName(className));
-            conceptService.saveConcept(concept);
-        }
-        return concept;
+        return Context.getConceptService().getConceptClassByName(name);
     }
 
     /** Returns the currently authenticated user. */
@@ -317,13 +394,15 @@ public class DbUtils {
     }
 
     public static boolean isPublishedXform(Form form) {
-        return !form.isRetired() && form.getPublished() &&
-            !eq(form.getEncounterType().getUuid(), ENCOUNTER_TYPE_CHART_UUID);
+        ensureRequiredObjectsExist();
+        EncounterType encType = form.getEncounterType();
+        return !form.isRetired() && form.getPublished() && !eq(encType, getChartEncounterType());
     }
 
     public static boolean isChartForm(Form form) {
-        return !form.isRetired() && eq(form.getEncounterType().getUuid(),
-            ENCOUNTER_TYPE_CHART_UUID);
+        ensureRequiredObjectsExist();
+        EncounterType encType = form.getEncounterType();
+        return !form.isRetired() && encType != null && eq(encType, getChartEncounterType());
     }
 
     protected static abstract class Getter<T> {
