@@ -165,29 +165,6 @@ public class DbUtils {
     }
 
     public static String getConceptName(Concept concept, Locale locale) {
-        Locale fr = Locale.forLanguageTag("fr");
-        Locale en = Locale.forLanguageTag("en");
-        
-        Utils.log("%d.getPreferredName(fr) -> %s", concept.getId(), concept.getPreferredName(fr));
-        Utils.log("%d.getName(fr, true) -> %s", concept.getId(), concept.getName(fr, true));
-        Utils.log("%d.getName(fr) -> %s", concept.getId(), concept.getName(fr));
-        Utils.log("%d.getNames(fr) -> %d", concept.getId(), concept.getNames(fr).size());
-        for (ConceptName n : concept.getNames(fr)) {
-            Utils.log("  - %s", n.getName());
-        }
-
-        Utils.log("%d.getPreferredName(en) -> %s", concept.getId(), concept.getPreferredName(en));
-        Utils.log("%d.getName(en, true) -> %s", concept.getId(), concept.getName(en, true));
-        Utils.log("%d.getName(en) -> %s", concept.getId(), concept.getName(en));
-        Utils.log("%d.getNames(en) -> %d", concept.getId(), concept.getNames(en).size());
-        for (ConceptName n : concept.getNames(en)) {
-            Utils.log("  - %s", n.getName());
-        }
-
-        for (ConceptName n : concept.getNames()) {
-            Utils.log("  - %s (%s, %s)", n.getName(), n.getLocale(), n.getLocalePreferred());
-        }
-
         ConceptName name = concept.getName(locale, true);
         if (name != null) return name.getName();
 
