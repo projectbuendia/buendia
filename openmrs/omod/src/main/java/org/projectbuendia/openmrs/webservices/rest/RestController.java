@@ -41,7 +41,7 @@ import javax.servlet.http.HttpServletResponse;
 @Controller
 @RequestMapping("/rest/" + RestController.PATH)
 public class RestController extends MainResourceController {
-    public static final String PATH = RestConstants.VERSION_1 + "/projectbuendia";
+    public static final String PATH = "/buendia";
     private final Log log = LogFactory.getLog(getClass());
 
     public RestController() { }

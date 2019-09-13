@@ -13,13 +13,13 @@ import java.util.Collection;
 import static org.openmrs.projectbuendia.Utils.getRequiredString;
 
 @Resource(
-    name = RestController.PATH + "/users",
+    name = RestController.PATH + "/providers",
     supportedClass = Provider.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
-public class UserResource extends BaseResource<Provider> {
-    public UserResource() {
-        super("users", Representation.DEFAULT);
+public class ProviderResource extends BaseResource<Provider> {
+    public ProviderResource() {
+        super("providers", Representation.DEFAULT);
         DbUtils.ensureRequiredObjectsExist();
     }
 
@@ -46,7 +46,6 @@ public class UserResource extends BaseResource<Provider> {
     }
 
     @Override protected void populateJson(SimpleObject json, Provider provider, RequestContext context) {
-        json.add("user_id", provider.getUuid());
         json.add("full_name", provider.getName());
         Person person = provider.getPerson();
         if (person != null) {

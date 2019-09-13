@@ -38,7 +38,7 @@ function post() {
     given="Given$id.$n"
     family="Family$id.$n"
     echo -n "Post id=$id given=$given family=$family: "
-    curl -s -X POST $root_url/ws/rest/v1/projectbuendia/patients -u "$username:$password" -H 'Content-Type: application/json' -d '{"id": "'$id'", "gender": "F", "given_name": "'$given'", "family_name": "'$family'"}' >/tmp/$name.$$.$n
+    curl -s -X POST $root_url/ws/rest/buendia/patients -u "$username:$password" -H 'Content-Type: application/json' -d '{"id": "'$id'", "gender": "F", "given_name": "'$given'", "family_name": "'$family'"}' >/tmp/$name.$$.$n
     grep -o -E '"message":"([^"]|\\")*"' /tmp/$name.$$.$n || head -1 /tmp/$name.$$.$n
     echo
 }

@@ -46,7 +46,7 @@ if ':' not in server:
     server += ':9000'
 path = path.lstrip('/')
 
-args[:2] = ['http://%s/openmrs/ws/rest/v1/projectbuendia/%s' % (server, path)]
+args[:2] = ['http://%s/openmrs/ws/rest/buendia/%s' % (server, path)]
 args = ['curl', '-isS', '-H', AUTH_HEADER] + args
 if any(arg.startswith('-d') for arg in args):
     args[4:4] = ['-H', CONTENT_TYPE_HEADER, '-X', 'POST']

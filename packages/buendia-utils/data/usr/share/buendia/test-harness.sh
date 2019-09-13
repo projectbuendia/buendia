@@ -114,12 +114,12 @@ openmrs_auth () {
 # is taken from stdin.
 openmrs_post () {
     curl -H "$(openmrs_auth)" -H "Content-Type: application/json" \
-        -s -d @- "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+        -s -d @- "http://localhost:9000/openmrs/ws/rest/buendia/$1"
 }
 
 # openmrs_get sends a GET request to a local API endpoint.
 openmrs_get () {
-    curl -s -H "$(openmrs_auth)" "http://localhost:9000/openmrs/ws/rest/v1/projectbuendia/$1"
+    curl -s -H "$(openmrs_auth)" "http://localhost:9000/openmrs/ws/rest/buendia/$1"
 }
 
 # execute_openmrs_sql sends SQL commands directly to the OpenMRS database
