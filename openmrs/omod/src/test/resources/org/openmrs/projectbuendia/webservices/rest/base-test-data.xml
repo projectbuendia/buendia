@@ -224,4 +224,6 @@
     <order_type order_type_id="1" name="Drug order" parent="17" java_class_name="org.openmrs.DrugOrder" description="Categorises medication orders for the patient" date_created="2008-08-15 13:49:47.0" retired="false" uuid="131168f4-15f5-102d-96e4-000c29c2a5d7" creator="1" />
     <encounter_type encounter_type_id="76" name="ADULTINITIAL" description="Outpatient Adult Initial Visit" creator="1" date_created="2005-02-24 00:00:00" retired="0" uuid="8d5b2be0-c2cc-11de-8d13-0010c6dffd11" />
     <encounter_type encounter_type_id="77" name="ADULTRETURN" description="Outpatient Adult Return Visit" creator="1" date_created="2005-02-24 00:00:00" retired="0" uuid="8d5b2be0-c2cc-11de-8d13-0010c6dffd0f" />
+    <person person_id="99" gender="M" birthdate="1948-01-01 00:00:00.0" birthdate_estimated="0" dead="false" creator="1" date_created="2005-01-01 00:00:00.0" voided="false" uuid="ca6008b4-29fb-4eea-bd5e-116a04cc6c8d" />
+    <provider provider_id="23" person_id="99" identifier="Provider23" name="Observer" creator="1" date_created="2005-01-01 00:00:00.0" retired="false" uuid="0a828bd6-d63c-4acc-b987-2400f2ab8c4c" />
 </dataset>

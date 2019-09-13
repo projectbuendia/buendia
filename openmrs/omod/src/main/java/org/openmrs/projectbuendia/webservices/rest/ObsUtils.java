@@ -91,6 +91,7 @@ public class ObsUtils {
         List<Obs> obsList = new ArrayList<>();
         if (observations != null) {
             for (Map observation : observations) {
+                if (providerUuid == null) providerUuid = Utils.getOptionalString(observation, "provider_uuid");
                 String conceptUuid = Utils.getRequiredString(observation, "concept_uuid");
                 Concept concept = Context.getConceptService().getConceptByUuid(conceptUuid);
                 Obs obs = new Obs(patient, concept, encounterTime, location);
@@ -111,6 +112,12 @@ public class ObsUtils {
         encounter.setPatient(patient);
         encounter.setLocation(location);
         encounter.setEncounterType(encounterType);
+        if (providerUuid != null) {
+            Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
+            if (provider != null) {
+                encounter.addProvider(DbUtils.getUnknownEncounterRole(), provider);
+            }
+        }
         encounter = encounterService.saveEncounter(encounter);
 
         ObsService obsService = Context.getObsService();
@@ -118,12 +125,6 @@ public class ObsUtils {
             if (obs != null) {
                 encounter.addObs(obs);
                 obsService.saveObs(obs, null);
-            }
-        }
-        if (providerUuid != null) {
-            Provider provider = Context.getProviderService().getProviderByUuid(providerUuid);
-            if (provider != null) {
-                encounter.addProvider(DbUtils.getUnknownEncounterRole(), provider);
             }
         }
         return encounter;
