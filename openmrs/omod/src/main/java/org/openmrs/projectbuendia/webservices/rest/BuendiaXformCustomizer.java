@@ -32,9 +32,7 @@ public class BuendiaXformCustomizer extends XformCustomizer {
     }
 
     @Override public String getLabel(Concept concept) {
-        String result = DbUtils.getConceptName(concept, locale);
-        Utils.log("getLabel(%d) in locale %s -> %s", concept.getId(), locale.toLanguageTag(), result);
-        return result;
+        return DbUtils.getConceptName(concept, locale);
     }
 
     @Override public String getLabel(Location location) {
