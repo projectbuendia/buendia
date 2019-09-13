@@ -2,6 +2,7 @@ package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
+import org.openmrs.EncounterProvider;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
@@ -78,7 +79,12 @@ public class EncounterResource extends BaseResource<Encounter> {
         if (item.getEncounterDatetime() != null) {
             json.put("timestamp", Utils.formatUtc8601(item.getEncounterDatetime()));
         }
-        json.put("uuid", item.getUuid());
+        for (EncounterProvider ep : item.getEncounterProviders()) {
+            if (ep.getProvider() != null) {
+                json.put("provider_uuid", ep.getProvider().getUuid());
+                break;
+            }
+        }
 
         SimpleObject observations = new SimpleObject();
         List<String> orderUuids = new ArrayList<>();
