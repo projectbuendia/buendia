@@ -102,7 +102,7 @@ public class BuendiaXformBuilderEx {
     private static final Log log = LogFactory.getLog(BuendiaXformBuilderEx.class);
 
     private final Map<String, Element> bindings = new HashMap<>();
-    private final Map<FormField, String> fieldTokens = new HashMap<>();
+    private final Map<FormField, String> bindNames = new HashMap<>();
     private final boolean useConceptIdAsHint;
     private final Locale locale;
     private final XformCustomizer customizer;
@@ -246,9 +246,9 @@ public class BuendiaXformBuilderEx {
         Vector<String> tagList = new Vector<>();
 
         for (FormField formField : section) {
-            String sectionName = FormUtil.getXmlToken(formField.getField().getName());
-            String name = FormUtil.getNewTag(sectionName, tagList);
-            fieldTokens.put(formField, name);
+            String fieldToken = FormUtil.getXmlToken(formField.getField().getName());
+            String bindName = FormUtil.getNewTag(fieldToken, tagList);
+            bindNames.put(formField, bindName);
 
             Field field = formField.getField();
             boolean required = formField.isRequired();
@@ -260,11 +260,11 @@ public class BuendiaXformBuilderEx {
                 ConceptDatatype datatype = concept.getDatatype();
 
                 // TODO(jonskeet): Don't rely on names here? (Do we even need problem lists?)
-                if ((name.contains("problem_added") || name.contains("problem_resolved")) &&
+                if ((bindName.contains("problem_added") || bindName.contains("problem_resolved")) &&
                     formField.getParent() != null &&
                     (formField.getParent().getField().getName().contains("PROBLEM LIST"))) {
                     fieldUiNode = addProblemList(parentNode, formField, concept);
-                } else if (eq(name, "problem_list")) {
+                } else if (eq(bindName, "problem_list")) {
                     // TODO(jonskeet): Work out what we should do here. There won't be any
                     // bindings for this.
                     // The child nodes will be covered by the case above, when we recurse down.
@@ -309,8 +309,6 @@ public class BuendiaXformBuilderEx {
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_SECTION) {
                 // TODO(jonskeet): Use the description for a hint?
-                String bindName = FormUtil.getNewTag("section" + formField.getId(), tagList);
-                fieldTokens.put(formField, bindName);
                 fieldUiNode = append(parentNode, NS_XFORMS, NODE_GROUP);
                 Element label = append(fieldUiNode, NS_XFORMS, NODE_LABEL);
                 label.addChild(Node.TEXT, getDisplayName(formField));
@@ -319,8 +317,6 @@ public class BuendiaXformBuilderEx {
                     fieldUiNode.setAttribute(null, ATTRIBUTE_APPEARANCE, appearanceAttribute);
                 }
             } else if (fieldTypeId == FormConstants.FIELD_TYPE_DATABASE) {
-                String bindName = FormUtil.getNewTag("database" + formField.getId(), tagList);
-                fieldTokens.put(formField, bindName);
                 fieldUiNode = addDatabaseElementUiNode(bindName, formField, parentNode);
             } else {
                 // Don't understand this field type
@@ -344,7 +340,7 @@ public class BuendiaXformBuilderEx {
             }
         }
 
-        String bindName = fieldTokens.get(formField);
+        String bindName = bindNames.get(formField);
         Element bindNode = bindings.get(bindName);
         if (bindNode == null) {
             throw new IllegalArgumentException("No bind node for bindName " + bindName);
@@ -420,7 +416,7 @@ public class BuendiaXformBuilderEx {
     }
 
     private Element addProblemList(Element parentNode, FormField formField, Concept concept) {
-        String token = fieldTokens.get(formField);
+        String token = bindNames.get(formField);
         Element groupNode = append(parentNode, NS_XFORMS, NODE_GROUP);
         addHintNode(appendText(groupNode, NS_XFORMS, NODE_LABEL,
             customizer.getLabel(formField.getField().getConcept())), concept);
@@ -442,7 +438,7 @@ public class BuendiaXformBuilderEx {
     }
 
     private Element createGroupNode(Element parentNode, FormField formField) {
-        String token = fieldTokens.get(formField);
+        String token = bindNames.get(formField);
 
         Element groupNode = append(parentNode, NS_XFORMS, NODE_GROUP);
         addHintNode(appendText(
