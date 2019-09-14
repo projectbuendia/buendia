@@ -14,7 +14,9 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
+import org.openmrs.ConceptDatatype;
 import org.openmrs.ConceptName;
+import org.openmrs.ConceptNumeric;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
@@ -156,7 +158,7 @@ public class DbUtils {
     /** Creates all the required objects at once (in a fixed order, yielding predictable IDs). */
     public static void ensureRequiredObjectsExist() {
         getConcept(CONCEPT_FREE_TEXT_ORDER_UUID, "Free text order", "N/A", "Misc");
-        getConcept(CONCEPT_ORDER_EXECUTED_UUID, "Order executed", "N/A", "Misc");
+        getConcept(CONCEPT_ORDER_EXECUTED_UUID, "Order executed", "Numeric", "Misc");
         getConcept(CONCEPT_PLACEMENT_UUID, "Placement", "Text", "Misc");
         getEncounterType(ENCOUNTER_TYPE_CHART_UUID, "Chart");
         getOrderType(ORDER_TYPE_MISC_UUID, "Misc", "Misc order", "org.openmrs.Order");
@@ -170,10 +172,15 @@ public class DbUtils {
         ConceptService conceptService = Context.getConceptService();
         Concept concept = conceptService.getConceptByUuid(uuid);
         if (concept == null) {
-            concept = new Concept();
+            ConceptDatatype type = conceptService.getConceptDatatypeByName(typeName);
+            if (eq(type.getHl7Abbreviation(), HL7Constants.HL7_NUMERIC)) {
+                concept = new ConceptNumeric();
+            } else {
+                concept = new Concept();
+            }
             concept.setUuid(uuid);
             concept.setShortName(new ConceptName(name, Locale.forLanguageTag("en")));
-            concept.setDatatype(conceptService.getConceptDatatypeByName(typeName));
+            concept.setDatatype(type);
             concept.setConceptClass(conceptService.getConceptClassByName(className));
             conceptService.saveConcept(concept);
         }

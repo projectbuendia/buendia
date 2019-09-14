@@ -195,7 +195,7 @@ def apply(tabs):
     ensure_concept('buendia_concept_free_text_order',
         'Free text order', answer_datatype, misc_class)
     ensure_concept('buendia_concept_order_executed',
-        'Order executed', answer_datatype, misc_class)
+        'Order executed', numeric_datatype, misc_class)
     ensure_concept('buendia_concept_placement',
         'Placement', text_datatype, misc_class)
 

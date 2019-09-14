@@ -64,8 +64,8 @@ public class ObsUtils {
 
     private static Log log = LogFactory.getLog(ObsUtils.class);
 
-    /** Adds a new encounter with the given observations and order executions. */
-    public static Encounter addEncounter(List<Map> observations, List<String> orderUuids, Patient patient,
+    /** Adds a new encounter with the given observations. */
+    public static Encounter addEncounter(List<Map> observations, Patient patient,
                                          Date encounterTime, String encounterTypeName,
                                          String providerUuid, String locationUuid) {
         // OpenMRS will reject the encounter if the time is in the past, even if
@@ -100,12 +100,6 @@ public class ObsUtils {
             }
         }
 
-        if (orderUuids != null) {
-            for (String item : orderUuids) {
-                obsList.add(orderUuidToObs(item, patient, encounterTime, location));
-            }
-        }
-
         // Write the encounter and all the observations to the database.
         Encounter encounter = new Encounter();
         encounter.setEncounterDatetime(encounterTime);
@@ -128,18 +122,6 @@ public class ObsUtils {
             }
         }
         return encounter;
-    }
-
-    static Obs orderUuidToObs(String orderUuid, Patient patient, Date encounterTime, Location location) {
-        Order order = Context.getOrderService().getOrderByUuid(orderUuid);
-        if (order == null) {
-            log.warn("Order not found: " + orderUuid);
-            return null;
-        }
-        Obs obs = new Obs(patient, DbUtils.getOrderExecutedConcept(), encounterTime, location);
-        obs.setOrder(order);
-        obs.setValueNumeric(1d);
-        return obs;
     }
 
     public static void setObsValueFromJson(Map json, Obs obs) {
@@ -167,28 +149,15 @@ public class ObsUtils {
         }
     }
 
-    public static void putObservationsAndOrders(SimpleObject json, Collection<Obs> observations) {
+    public static void putObservationsAsJson(SimpleObject json, Collection<Obs> observations) {
         List<Map> obsArrayJson = new ArrayList<>();
-        List<String> orderUuidsJson = new ArrayList<>();
         for (Obs obs : observations) {
-            Concept concept = obs.getConcept();
-            if (concept != null && eq(concept.getUuid(), DbUtils.CONCEPT_ORDER_EXECUTED_UUID)) {
-                orderUuidsJson.add(obs.getOrder().getUuid());
-                continue;
-            }
-            SimpleObject obsJson = new SimpleObject();
-            ObsUtils.putObsAsJson(obsJson, obs);
-            obsArrayJson.add(obsJson);
+            obsArrayJson.add(ObsUtils.putObsAsJson(new SimpleObject(), obs));
         }
-        if (!obsArrayJson.isEmpty()) {
-            json.put("observations", obsArrayJson);
-        }
-        if (!orderUuidsJson.isEmpty()) {
-            json.put("order_uuids", orderUuidsJson);
-        }
+        json.put("observations", obsArrayJson);
     }
 
-    public static void putObsAsJson(SimpleObject json, Obs obs) {
+    public static SimpleObject putObsAsJson(SimpleObject json, Obs obs) {
         json.put("uuid", obs.getUuid());
         if (obs.getEncounter() != null) {
             json.add("encounter_uuid", obs.getEncounter().getUuid());
@@ -205,7 +174,7 @@ public class ObsUtils {
         if (obs.getConcept() != null) {
             json.add("concept_uuid", obs.getConcept().getUuid());
         }
-        ObsUtils.putObsValueAsJson(json, obs);
+        return ObsUtils.putObsValueAsJson(json, obs);
     }
 
     public static SimpleObject putObsValueAsJson(SimpleObject json, Obs obs) {

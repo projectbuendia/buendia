@@ -126,10 +126,8 @@ public class PatientResource extends BaseResource<Patient> {
         }
 
         // Store any initial observations that are included with the new patient.
-        Date encounterTime = patient.getDateCreated();
-        ObsUtils.addEncounter(
-            (List<Map>) data.get("observations"), (List<String>) data.get("order_uuids"),
-            patient, encounterTime, "ADULTINITIAL", (String) data.get("provider_uuid"), null);
+        ObsUtils.addEncounter((List<Map>) data.get("observations"), patient,
+            patient.getDateCreated(), "ADULTINITIAL", null, null);
         return patient;
 
     }
@@ -190,7 +188,7 @@ public class PatientResource extends BaseResource<Patient> {
             patient, null, patient.getDateCreated(), patient.getDateCreated(),
             null, null, null, null, null, false);
         if (initialEncounters.size() > 0) {
-            ObsUtils.putObservationsAndOrders(json, initialEncounters.get(0).getObs());
+            ObsUtils.putObservationsAsJson(json, initialEncounters.get(0).getObs());
         }
     }
 
