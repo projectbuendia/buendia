@@ -67,10 +67,10 @@ if [ -b "$root" ]; then
     final_dir="$root/backup.$backup_id"
     new_dir="$root/new-$$.$backup_id"
     old_dir="$root/old-$$.$backup_id"
-    final_deb="$root/packages"
-    new_deb="$new_dir/packages"
+    final_packages="$root/packages"
+    new_packages="$new_dir/packages"
 
-    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; umount "$mnt_dir" || true; rm -rf "$mnt_dir"' EXIT
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_packages"; umount "$mnt_dir" || true; rm -rf "$mnt_dir"' EXIT
 
     if [ -n "$limit" ]; then
         percent=limit
@@ -84,9 +84,9 @@ elif [ -d "$root" -o ! -e "$root" ]; then
     final_dir="$root/backup.$backup_id"
     new_dir="$root/new-$$.$backup_id"
     old_dir="$root/old-$$.$backup_id"
-    final_deb="$root/packages"
-    new_deb="$new_dir/packages"
-    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"' EXIT
+    final_packages="$root/packages"
+    new_packages="$new_dir/packages"
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_packages"' EXIT
 
 else
     echo "$root is neither a block device nor a directory."
@@ -94,8 +94,8 @@ else
 fi
 
 # Prepare some empty temporary directories.
-rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"
-mkdir -p "$tmp" "$new_dir" "$old_dir" "$new_deb"
+rm -rf "$tmp" "$new_dir" "$old_dir" "$new_packages"
+mkdir -p "$tmp" "$new_dir" "$old_dir" "$new_packages"
 
 # First we'll write everything to $new_dir, then move it to $final_dir.  The
 # move is atomic because $new_dir is in the same filesystem as $root.
@@ -112,14 +112,11 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 echo "Saving Buendia configuration..."
 tar cfz "$new_dir/buendia.tar.gz" \
     /usr/share/buendia \
-    /usr/share/buendia/packages/*.apk \
     --exclude /usr/share/buendia/config.d \
     --exclude /usr/share/buendia/db \
     --exclude /usr/share/buendia/diversions \
     --exclude /usr/share/buendia/openmrs/modules \
-    --exclude /usr/share/buendia/packages/dists \
-    --exclude /usr/share/buendia/packages/stable \
-    --exclude /usr/share/buendia/packages/unstable
+    --exclude /usr/share/buendia/packages
 ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.
@@ -148,21 +145,24 @@ packages=($(cat "$new_dir/buendia.list"))  # safe, as each line has no spaces
 s=s; [ $packages = 1 ] && s=
 echo Backing up ${#packages} package$s...
 
-# Copying may take some time, so first copy to $new_deb, a temporary directory
-# that's under $new_dir, in the same filesystem as $root.
+# Copying may take some time, so first copy to $new_packages, a temporary
+# directory that's under $new_dir, in the same filesystem as $root.
 for package in "${packages[@]}"; do
     prefix=$(echo "$package" | tr = _ | sed -e 's/:/%3a/g')
     file=($(echo /var/cache/apt/archives/$prefix*.deb))
     if [ -f "$file" ]; then
-        final_file="$final_deb/$(basename "$file")"
+        final_file="$final_packages/$(basename "$file")"
         if [ -f "$file" -a -f "$final_file" ]; then
             if [ $(stat -c %s "$file") = $(stat -c %s "$final_file") ]; then
                 continue  # same name, same size, assume identical
             fi
         fi
-        cp -p "$file" "$new_deb" || true
+        cp -p "$file" "$new_packages" || true
     fi
 done
+
+echo Backing up APK files...
+cp -p "/usr/share/buendia/packages/*.apk" "$new_packages"
 
 # ---- Commit the backup by moving the directory atomically to its final place.
 
@@ -192,8 +192,8 @@ echo Cleaning up old or interrupted backups...
 # This sweeping process is safely interruptible because the moving of each
 # individual file move is atomic, and if packages are left behind because
 # the sweep is interrupted, they will get picked up on the next sweep.
-mkdir -p "$final_deb"
-mv "$root"/backup.*/packages/* "$final_deb" 2>/dev/null || true
+mkdir -p "$final_packages"
+mv "$root"/backup.*/packages/* "$final_packages" 2>/dev/null || true
 
 # Remove all the empty package directories.
 rmdir "$root"/backup.*/packages 2>/dev/null || true
