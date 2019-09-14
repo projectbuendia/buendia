@@ -14,13 +14,11 @@ package org.openmrs.projectbuendia.webservices.rest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
-import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterProvider;
 import org.openmrs.EncounterType;
 import org.openmrs.Location;
 import org.openmrs.Obs;
-import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
 import org.openmrs.api.EncounterService;
@@ -28,7 +26,6 @@ import org.openmrs.api.ObsService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.projectbuendia.ObsValueVisitor;
 import org.openmrs.projectbuendia.Utils;
 
 import java.util.ArrayList;
@@ -36,8 +33,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
-import static org.openmrs.projectbuendia.Utils.eq;
 
 /** Utility methods for dealing with observations. */
 public class ObsUtils {
@@ -72,14 +67,8 @@ public class ObsUtils {
         // the client's clock is off by only one millisecond; work around this.
         encounterTime = DbUtils.fixEncounterDatetime(encounterTime);
 
+        Location location = DbUtils.locationsByUuid.get(locationUuid);
         EncounterService encounterService = Context.getEncounterService();
-        Location location = null;
-        if (locationUuid != null) {
-            location = Context.getLocationService().getLocationByUuid(locationUuid);
-            if (location == null) {
-                throw new InvalidObjectDataException("Location not found: " + locationUuid);
-            }
-        }
         EncounterType encounterType = encounterService.getEncounterType(encounterTypeName);
         if (encounterType == null) {
             throw new InvalidObjectDataException("Encounter type not found: " + encounterTypeName);
@@ -118,7 +107,6 @@ public class ObsUtils {
         for (Obs obs : obsList) {
             if (obs != null) {
                 encounter.addObs(obs);
-                Utils.log("saveObs: patient=%s concept=%s time=%s", obs.getPatient(), obs.getConcept(), obs.getObsDatetime());
                 obsService.saveObs(obs, null);
             }
         }
@@ -129,6 +117,10 @@ public class ObsUtils {
         String conceptUuid = Utils.getRequiredString(json, "concept_uuid");
         Concept concept = Context.getConceptService().getConceptByUuid(conceptUuid);
         obs.setConcept(concept);
+        if (json.containsKey("order_uuid")) {
+            String orderUuid = Utils.getRequiredString(json, "order_uuid");
+            obs.setOrder(Context.getOrderService().getOrderByUuid(orderUuid));
+        }
         if (json.containsKey("value_coded")) {
             String coded = Utils.getRequiredString(json, "value_coded");
             obs.setValueCoded(Context.getConceptService().getConceptByUuid(coded));
@@ -140,13 +132,8 @@ public class ObsUtils {
             obs.setValueDate(Utils.getRequiredDate(json, "value_date"));
         } else if (json.containsKey("value_datetime")) {
             obs.setValueDate(Utils.getRequiredDatetime(json, "value_datetime"));
-        } else if (json.containsKey("order_uuid")) {
-            String orderUuid = Utils.getRequiredString(json, "order_uuid");
-            obs.setOrder(Context.getOrderService().getOrderByUuid(orderUuid));
-            obs.setValueNumeric(1d);
         } else {
-            throw new IllegalArgumentException(
-                "JSON object contains no observation value: " + json.toString());
+            Utils.log("Warning! JSON observation contains no value: " + json.toString());
         }
     }
 
@@ -217,8 +204,8 @@ public class ObsUtils {
                 return json.add(
                     "value_datetime", datetime == null ? null : Utils.formatUtc8601(datetime));
             default:
-                throw new IllegalArgumentException(
-                    "Obs has unknown HL7 type " + hl7Type + " for concept " + obs.getConcept());
+                Utils.log("Warning! Obs has unknown HL7 type " + hl7Type + " for concept " + obs.getConcept());
+                return json;
         }
     }
 }
