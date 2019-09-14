@@ -53,13 +53,17 @@ def create_index(package_directory, base_url):
             continue
 
     # Write each package index to its respective file
+    if packages:
+        sys.stderr.write('\n')
     for module in packages:
         # Order the packages on their version label
         package_list = sorted(
             packages[module], key=lambda x: map(int, x['version'].split('.')))
         # Write the index file
+        content = json.dumps(package_list, indent=2) + '\n'
         with open('%s/%s.json' % (package_directory, module), 'w') as f:
-            f.write(json.dumps(package_list))
+            f.write(content)
+        sys.stderr.write('%s: %s\n' % (module, content))
         count = len(package_list)
         sys.stderr.write('%s: indexed %d .apk file%s.\n' % (
             module, count, count != 1 and 's' or ''))
