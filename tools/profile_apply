@@ -188,9 +188,14 @@ def apply(tabs):
     misc_class = db.get('concept_class_id', name='Misc')
 
     def ensure_concept(uuid, name, datatype_id, class_id):
-        if not db.get('concept_id', uuid=uuid):
-            odb.insert('concept', uuid=uuid, short_name=name,
+        concept_id = db.get('concept_id', uuid=uuid)
+        if not concept_id:
+            concept_id = odb.insert('concept', uuid=uuid, short_name=name,
                 datatype_id=datatype_id, class_id=class_id)
+        if datatype_id == numeric_datatype:
+            if not db.get('concept_id', 'concept_numeric', concept_id=concept_id):
+                db.execute('insert into concept_numeric '
+                    '(concept_id) values (%s)' % concept_id)
 
     ensure_concept('buendia_concept_free_text_order',
         'Free text order', answer_datatype, misc_class)
