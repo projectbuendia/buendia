@@ -1,8 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Patient;
@@ -20,7 +18,6 @@ import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.ParseException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -76,8 +73,8 @@ public class OrderResource extends BaseResource<Order> {
         order.setPatient(patient);
         order.setEncounter(createEncounter(patient, provider, dateCreated));
         order.setInstructions(Utils.getOptionalString(data, "instructions"));
-        order.setScheduledDate(Utils.getOptionalDate8601(data, "start_time"));
-        order.setAutoExpireDate(Utils.getOptionalDate8601(data, "stop_time"));
+        order.setScheduledDate(Utils.getOptionalDatetime(data, "start_time"));
+        order.setAutoExpireDate(Utils.getOptionalDatetime(data, "stop_time"));
 
         // Fixed fields
         order.setOrderType(DbUtils.getMiscOrderType());
@@ -112,10 +109,10 @@ public class OrderResource extends BaseResource<Order> {
             newOrder.setInstructions(Utils.getOptionalString(data, "instructions"));
         }
         if (data.containsKey("start_time")) {
-            newOrder.setScheduledDate(Utils.getOptionalDate8601(data, "start_time"));
+            newOrder.setScheduledDate(Utils.getOptionalDatetime(data, "start_time"));
         }
         if (data.containsKey("stop_time")) {
-            newOrder.setAutoExpireDate(Utils.getOptionalDate8601(data, "stop_time"));
+            newOrder.setAutoExpireDate(Utils.getOptionalDatetime(data, "stop_time"));
         }
 
         // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore, for

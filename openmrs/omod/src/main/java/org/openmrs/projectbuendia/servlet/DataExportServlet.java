@@ -25,12 +25,13 @@ import org.openmrs.PatientIdentifier;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
+import org.openmrs.hl7.HL7Constants;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.projectbuendia.ObsValueVisitor;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
-import org.openmrs.projectbuendia.webservices.rest.ObservationUtils;
+import org.openmrs.projectbuendia.webservices.rest.ObsUtils;
 import org.openmrs.util.FormUtil;
 
 import java.io.IOException;
@@ -96,12 +97,11 @@ public class DataExportServlet extends HttpServlet {
             response.getWriter(), CSVFormat.EXCEL.withDelimiter(','));
         final Locale locale = DbUtils.getLocaleForTag(request.getParameter("locale"));
 
-        //check for authenticated users
         if (!XformsUtil.isAuthenticated(request, response, null)) return;
 
         Date now = new Date();
-        DateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss");
-        String filename = String.format("buendiadata_%s.csv", format.format(now));
+        DateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss");
+        String filename = String.format("buendia-%s.csv", format.format(now));
         String contentDispositionHeader = String.format("attachment; filename=%s;", filename);
         response.addHeader("Content-Disposition", contentDispositionHeader);
 
@@ -111,15 +111,8 @@ public class DataExportServlet extends HttpServlet {
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
 
-        // We may want to get the observations displayed in the chart/xform, in which case there
-        // are a few
-        // sensible orders:
-        // 1: UUID
-        // 2: Order in chart
-        // 3: Order in Xform
-
-        // Order in Xform/chart is not good as stuff changes every time we change xform
-        // So instead we will use UUID order, but use the Chart form to use the concepts to display.
+        // To keep ordering consistent, we emit the observations in UUID order, while
+        // using the chart forms to select the concepts to display.
         Set<Concept> questionConcepts = new HashSet<>();
         for (Form form : ChartResource.getChartForms(Context.getFormService())) {
             TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
@@ -144,17 +137,17 @@ public class DataExportServlet extends HttpServlet {
             int numCols = numEncCols + numObsCols;
             for (Encounter encounter : encounters) {
                 try {
-                    final Object[] values = new Object[numCols];
-                    Arrays.fill(values, "");
-                    values[0] = patient.getUuid();
-                    values[1] = patient.getPatientIdentifier("MSF");
+                    final Object[] cells = new Object[numCols];
+                    Arrays.fill(cells, "");
+                    cells[0] = patient.getUuid();
+                    cells[1] = patient.getPatientIdentifier("MSF");
                     if (patient.getBirthdate() != null) {
-                        values[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
+                        cells[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
                     }
-                    values[3] = encounter.getUuid();
-                    values[4] = encounter.getEncounterDatetime().getTime();
-                    values[5] = Utils.formatUtc8601(encounter.getEncounterDatetime());
-                    values[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
+                    cells[3] = encounter.getUuid();
+                    cells[4] = encounter.getEncounterDatetime().getTime();
+                    cells[5] = Utils.formatUtc8601(encounter.getEncounterDatetime());
+                    cells[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
                         if (index == null) continue;
@@ -162,44 +155,41 @@ public class DataExportServlet extends HttpServlet {
                         // they contain the English name and the compressed concept ID; otherwise,
                         // both columns contain the formatted value.
                         final int col = numEncCols + index * COLUMNS_PER_OBS;
-                        ObservationUtils.visit(obs, new ObsValueVisitor<Void>() {
-                            @Override public Void visitCoded(Concept value) {
-                                if (value == null || value.getUuid() == null || value.getUuid().isEmpty()) {
-                                    values[col] = values[col + 1] = "";
-                                } else {
-                                    values[col] = DbUtils.getConceptName(value, locale);
-                                    values[col + 1] = compressUuid(value.getUuid());
-                                }
-                                return null;
-                            }
 
-                            @Override public Void visitNumeric(Double value) {
-                                values[col] = values[col + 1] = value != null ? Double.toString(value) : "";
-                                return null;
-                            }
-
-                            @Override public Void visitBoolean(Boolean value) {
-                                values[col] = values[col + 1] = value != null ? Boolean.toString(value) : "";
-                                return null;
-                            }
-
-                            @Override public Void visitText(String value) {
-                                values[col] = values[col + 1] = value != null ? value : "";
-                                return null;
-                            }
-
-                            @Override public Void visitDate(Date d) {
-                                values[col] = values[col + 1] = d != null ? Utils.YYYYMMDD_UTC_FORMAT.format(d) : "";
-                                return null;
-                            }
-
-                            @Override public Void visitDatetime(Date d) {
-                                values[col] = values[col + 1] = d != null ? Utils.SPREADSHEET_FORMAT.format(d) : "";
-                                return null;
-                            }
-                        });
+                        String hl7Type = obs.getConcept().getDatatype().getHl7Abbreviation();
+                        switch (hl7Type) {
+                            case HL7Constants.HL7_BOOLEAN:
+                                Boolean bool = obs.getValueAsBoolean();
+                                cells[col] = cells[col + 1] = bool == null ? "" : Boolean.toString(bool);
+                                break;
+                            case HL7Constants.HL7_CODED:
+                            case HL7Constants.HL7_CODED_WITH_EXCEPTIONS:
+                                Concept coded = obs.getValueCoded();
+                                cells[col] =
+                                    coded == null ? "" : DbUtils.getConceptName(coded, locale);
+                                cells[col + 1] =
+                                    coded == null ? "" : compressUuid(coded.getUuid());
+                                break;
+                            case HL7Constants.HL7_NUMERIC:
+                                Double numeric = obs.getValueNumeric();
+                                cells[col] = cells[col + 1] =
+                                    numeric == null ? "" : Double.toString(numeric);
+                                break;
+                            case HL7Constants.HL7_TEXT:
+                                String text = obs.getValueText();
+                                cells[col] = cells[col + 1] = text == null ? "" : text;
+                                break;
+                            case HL7Constants.HL7_DATE:
+                                Date date = obs.getValueDate();
+                                cells[col] = cells[col + 1] = date == null ? "" : Utils.YYYYMMDD_UTC_FORMAT.format(date);
+                                break;
+                            case HL7Constants.HL7_DATETIME:
+                                Date datetime = obs.getValueDatetime();
+                                cells[col] = cells[col + 1] = datetime == null ? "" : Utils.formatUtc8601(datetime);
+                                break;
+                        }
                     }
-                    printer.printRecord(values);
+                    printer.printRecord(cells);
                 } catch (Exception e) {
                     log.error("Error exporting encounter", e);
                 }

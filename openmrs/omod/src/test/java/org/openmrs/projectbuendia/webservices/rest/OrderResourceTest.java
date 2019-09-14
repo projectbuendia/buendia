@@ -20,6 +20,8 @@ import org.openmrs.projectbuendia.Utils;
 import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 import javax.annotation.Nullable;
@@ -270,8 +272,13 @@ import static org.junit.Assert.assertTrue;
 
     private void executeOrder(Order order) throws Exception {
         handle(newPostRequest(ENCOUNTERS_URL, new SimpleObject()
-            .add("uuid", order.getPatient().getUuid())
-            .add("order_uuids", new String[] {order.getUuid()})
+            .add("patient_uuid", order.getPatient().getUuid())
+            .add("observations", Arrays.asList(
+                new SimpleObject()
+                    .add("concept_uuid", DbUtils.CONCEPT_ORDER_EXECUTED_UUID)
+                    .add("order_uuid", order.getUuid())
+                    .add("value_numeric", 1)
+            ))
         ));
     }
 
