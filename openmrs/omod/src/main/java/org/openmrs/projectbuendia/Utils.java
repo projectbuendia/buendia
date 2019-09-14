@@ -302,7 +302,7 @@ public class Utils {
 
     public static void addVersionHeaders(RequestContext context) {
         HttpServletResponse response = context.getResponse();
-        response.addHeader("Buendia-Server-Version", "0.14");
+        response.addHeader("Buendia-Server-Version", "0.15");
         response.addHeader("Buendia-Client-Minimum-Version", "0.18");
     }
 

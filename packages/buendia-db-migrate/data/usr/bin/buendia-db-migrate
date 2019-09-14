@@ -56,5 +56,12 @@ if [[ $current_minor =~ ^(0.9|0.10|0.11|0.12)$ ]]; then
     fi
 fi
 
+if [[ $current_minor =~ ^(0.13|0.14|0.15)$ ]]; then
+    if [[ $target_minor =~ ^(0.13|0.14|0.15)$ ]]; then
+        echo "$0: Migrated from $current to $target (no-op: no schema changes from 0.13 through 0.15)."
+        exit 0
+    fi
+fi
+
 echo "$0: Don't know how to migrate from version $current to version $target."
 exit 1
