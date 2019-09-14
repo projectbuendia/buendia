@@ -37,7 +37,7 @@ if [ "$1" = "-h" -o "$source" = "" ]; then
     echo "installed again.  However, bundles whose names contain '-reuse-'"
     echo "are special and get renamed by incrementing a number in the"
     echo "filename, and nothing is prepended, so they can be used again."
-    echo 
+    echo
     echo "<suite> is the Debian package suite in which to perform the import."
     echo "Defaults to 'stable'."
     exit 1

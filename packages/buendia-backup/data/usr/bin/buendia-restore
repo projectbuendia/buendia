@@ -75,6 +75,12 @@ elif [ ! -d "$root" ]; then
     exit 1
 fi
 
+if [ -d "$root/packages" ]; then
+    package_dir="$root/packages"
+elif [ -d "$root/../packages" ]; then
+    package_dir="$root/../packages"
+fi
+
 # The file to mark our current progress. This is a sequence of lines, as listed
 # below.
 # started -> restore started, but nothing done
@@ -116,17 +122,18 @@ else
   progress_state=$PROGRESS_SETTINGS_NEXT
 fi
 
-# TODO(nfortescue): work out how to restore packages. Probably uninstall all
-# buendia upgradable packages, remove them all from the package server. Then
-# copy the packages from the backup into the package server. Finally install
-# the package again. All without breaking this script :-(.
-
 if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
-  # Restore backed up packages
-  echo "Restoring packages"
-  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/packages
-  buendia-pkgserver-index-apks
-  buendia-pkgserver-index-debs /usr/share/buendia/packages
+  if [ -d "$package_dir" ]; then
+    # Restore backed up packages
+    echo "Restoring packages"
+    suite=stable
+
+    mkdir -p /usr/share/buendia/packages/$suite
+    cp -p $package_dir/*.apk /usr/share/buendia/packages
+    cp -p $package_dir/*.deb /usr/share/buendia/packages/$suite
+    buendia-pkgserver-index-apks
+    buendia-pkgserver-index-debs /usr/share/buendia/packages $suite
+  fi
 
   # Restore backed up site settings
   echo "Restoring buendia-settings"
