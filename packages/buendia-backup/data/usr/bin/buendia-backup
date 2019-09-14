@@ -112,11 +112,14 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 echo "Saving Buendia configuration..."
 tar cfz "$new_dir/buendia.tar.gz" \
     /usr/share/buendia \
+    /usr/share/buendia/packages/*.apk \
     --exclude /usr/share/buendia/config.d \
     --exclude /usr/share/buendia/db \
     --exclude /usr/share/buendia/diversions \
     --exclude /usr/share/buendia/openmrs/modules \
-    --exclude /usr/share/buendia/packages
+    --exclude /usr/share/buendia/packages/dists \
+    --exclude /usr/share/buendia/packages/stable \
+    --exclude /usr/share/buendia/packages/unstable
 ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.

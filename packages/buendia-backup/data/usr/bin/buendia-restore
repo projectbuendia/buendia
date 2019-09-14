@@ -122,10 +122,14 @@ fi
 # the package again. All without breaking this script :-(.
 
 if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
-  # ---- Restore the buendia settings
-  echo "Restoring buendia-settings"
+  # Restore backed up packages
+  echo "Restoring packages"
+  tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/packages
+  buendia-pkgserver-index-apks
+  buendia-pkgserver-index-debs /usr/share/buendia/packages
 
   # Restore backed up site settings
+  echo "Restoring buendia-settings"
   mv /usr/share/buendia/site /usr/share/buendia/site.$$
   # TODO(nfortescue): investigate tar then move rather than straight tar
   # to reduce time directory is empty
