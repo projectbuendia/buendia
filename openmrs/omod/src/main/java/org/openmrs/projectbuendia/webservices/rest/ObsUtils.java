@@ -118,6 +118,7 @@ public class ObsUtils {
         for (Obs obs : obsList) {
             if (obs != null) {
                 encounter.addObs(obs);
+                Utils.log("saveObs: patient=%s concept=%s time=%s", obs.getPatient(), obs.getConcept(), obs.getObsDatetime());
                 obsService.saveObs(obs, null);
             }
         }

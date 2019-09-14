@@ -79,7 +79,7 @@ public class RestController extends MainResourceController {
 
         StackTraceElement top = t.getStackTrace()[0];
         List<String> frames = new ArrayList<>();
-        int maxLevels = 20;
+        int maxLevels = 40;
         int level = 0;
         for (StackTraceElement frame : t.getStackTrace()) {
             frames.add(frame.toString());
