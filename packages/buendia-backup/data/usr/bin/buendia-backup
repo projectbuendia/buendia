@@ -70,7 +70,7 @@ if [ -b "$root" ]; then
     final_deb="$root/packages"
     new_deb="$new_dir/packages"
 
-    trap 'umount "$mnt_dir" || true; rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb" "$mnt_dir"' EXIT
+    trap 'rm -rf "$tmp" "$new_dir" "$old_dir" "$new_deb"; umount "$mnt_dir" || true; rm -rf "$mnt_dir"' EXIT
 
     if [ -n "$limit" ]; then
         percent=limit
@@ -174,7 +174,13 @@ sync
 
 # Now atomically commit the backup.
 mv "$new_dir" "$final_dir"
-echo Done.
+sync
+echo
+echo "Done!"
+ls -alR "$final_dir"
+
+echo
+echo Cleaning up old or interrupted backups...
 
 # ---- Sweep all the packages in completed backups into a common directory.
 
@@ -206,3 +212,7 @@ for dir in "$root"/backup.*; do
         rm -rf "$dir"
     fi
 done
+
+echo
+echo Backups remaining:
+du "$root"/backup.*
