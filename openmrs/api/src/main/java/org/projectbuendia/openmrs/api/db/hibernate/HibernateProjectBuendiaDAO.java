@@ -17,14 +17,13 @@ import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.classic.Session;
 import org.hibernate.criterion.Criterion;
-import org.hibernate.criterion.Restrictions;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.Type;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.sync.ObsSyncParameters;
@@ -33,14 +32,13 @@ import org.projectbuendia.openmrs.sync.PatientSyncParameters;
 import org.projectbuendia.openmrs.sync.SyncParameters;
 
 import javax.annotation.Nullable;
-import javax.validation.constraints.Null;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.hibernate.criterion.Order.asc;
 import static org.hibernate.criterion.Restrictions.eq;
 import static org.hibernate.criterion.Restrictions.in;
-import static org.hibernate.criterion.Restrictions.ne;
 import static org.hibernate.criterion.Restrictions.sqlRestriction;
 
 /** Default implementation of {@link ProjectBuendiaDAO}. */
@@ -61,26 +59,26 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
 
     @Override
     public SyncPage<Obs> getObservationsModifiedAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
         //noinspection unchecked
         return fetchSyncPage(
                 (Class<SyncParameters<Obs>>) (Class<?>) ObsSyncParameters.class,
-                syncToken, null, includeVoided, maxResults);
+            bookmark, null, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Patient> getPatientsModifiedAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults) {
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
         //noinspection unchecked
         return fetchSyncPage(
                 (Class<SyncParameters<Patient>>) (Class<?>) PatientSyncParameters.class,
-                syncToken, null, includeVoided, maxResults);
+            bookmark, null, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Order> getOrdersModifiedAtOrAfter(
-            @Nullable SyncToken syncToken, boolean includeVoided, int maxResults,
-            @Nullable Order.Action[] allowedOrderTypes) {
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
+        @Nullable Order.Action[] allowedOrderTypes) {
 
         final Criterion itemFilter = allowedOrderTypes != null
                 ? in("action", allowedOrderTypes)
@@ -89,38 +87,38 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
         //noinspection unchecked
         return fetchSyncPage(
                 (Class<SyncParameters<Order>>)(Class<?>) OrderSyncParameters.class,
-                syncToken, itemFilter, includeVoided, maxResults);
+            bookmark, itemFilter, includeVoided, maxResults);
     }
 
 
     private <T extends BaseOpenmrsData> SyncPage<T> fetchSyncPage(
-            Class<SyncParameters<T>> clazz, @Nullable SyncToken syncToken, Criterion restriction,
-            boolean includeVoided, int maxResults) {
+        Class<SyncParameters<T>> clazz, @Nullable Bookmark bookmark, Criterion restriction,
+        boolean includeVoided, int maxResults) {
         List<SyncParameters<T>> dbList =
-                fetchResults(clazz, syncToken, restriction, includeVoided, maxResults);
+                fetchResults(clazz, bookmark, restriction, includeVoided, maxResults);
         return resultsToSyncPage(dbList);
 
 
     }
 
     private <T extends SyncParameters> List<T> fetchResults(
-            Class<T> clazz, @Nullable SyncToken syncToken,
+            Class<T> clazz, @Nullable Bookmark bookmark,
             @Nullable Criterion restriction, boolean includeVoided, int maxResults) {
         Session session = sessionFactory.getCurrentSession();
 
         Criteria criteria = session.createCriteria(clazz);
 
-        if (syncToken != null) {
+        if (bookmark != null) {
             // (a, b) > (x, y) is equivalent to (a > x) OR ((a = x) AND (b > y)). See
             // http://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#operator_greater-than
             criteria.add(sqlRestriction(
                     // {alias} is substituted for the table alias that hibernate uses for the type.
                     "({alias}.date_updated, {alias}.uuid) > (?, ?)",
                     new Object[]{
-                            syncToken.greaterThanOrEqualToTimestamp,
-                            // If syncToken.greaterThanUuid is null, we use the empty string, which
+                            bookmark.minTime,
+                            // If bookmark.minUuid is null, we use the empty string, which
                             // is 'smaller' than every other string in terms of sort order.
-                            syncToken.greaterThanUuid == null ? "" : syncToken.greaterThanUuid},
+                            bookmark.minUuid == null ? "" : bookmark.minUuid},
                     new Type[] {StandardBasicTypes.TIMESTAMP, StandardBasicTypes.STRING}));
         }
 
@@ -153,10 +151,10 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
             items.add(params.getItem());
         }
 
-        SyncToken token = null;
+        Bookmark token = null;
         if (dbResults.size() > 0) {
             SyncParameters<T> lastEntry = dbResults.get(dbResults.size() - 1);
-            token = new SyncToken(lastEntry.getDateUpdated(), lastEntry.getUuid());
+            token = new Bookmark(lastEntry.getDateUpdated(), lastEntry.getUuid());
         }
         return new SyncPage<>(items, token);
     }

@@ -1,8 +1,0 @@
-Package: ${PACKAGE_NAME}
-Version: ${PACKAGE_VERSION}
-Architecture: all
-Pre-Depends: buendia-utils
-Provides: buendia-site
-Conflicts: buendia-site
-Description: Site config: Cloud - Integration test
-Maintainer: projectbuendia.org

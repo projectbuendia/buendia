@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,27 +88,27 @@ public class Utils {
     // ==== Dates and times ====
 
     /** ISO 8601 format for a complete date and time in UTC. */
-    public static final DateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+    public static final DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
     /** A SimpleDateFormat that formats as "yyyy-MM-dd" in UTC. */
     public static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     /** A SimpleDateFormat that formats a date and time to be auto-parsed in a spreadsheet. */
     public static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     public static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     static {
-        FORMAT.setTimeZone(UTC);
+        ISO8601_FORMAT.setTimeZone(UTC);
         YYYYMMDD_UTC_FORMAT.setTimeZone(UTC);
         SPREADSHEET_FORMAT.setTimeZone(UTC);
     }
 
     /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
     public static String formatUtc8601(Date datetime) {
-        return FORMAT.format(datetime);
+        return ISO8601_FORMAT.format(datetime);
     }
 
     /** Parses an ISO 8601-formatted date into a {@link Date}. */
     public static Date parse8601(String iso8601) {
         try {
-            return FORMAT.parse(iso8601);
+            return ISO8601_FORMAT.parse(iso8601);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(e.getMessage());
         }
@@ -224,18 +226,18 @@ public class Utils {
 
     // === JSON SimpleObjects ===
 
-    public static void requirePropertyAbsent(SimpleObject obj, String key) {
+    public static void requirePropertyAbsent(Map obj, String key) {
         if (obj.containsKey(key)) {
             throw new InvalidObjectDataException(String.format(
                 "Property \"%s\" is not allowed", key));
         }
     }
 
-    public static @Nonnull String getRequiredString(SimpleObject obj, String key) {
+    public static @Nonnull String getRequiredString(Map obj, String key) {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
-                "Required property \"%s\" is missing", key));
+                "Required property \"%s\" is missing or null", key));
         }
         if (!(value instanceof String)) {
             throw new InvalidObjectDataException(String.format(
@@ -244,28 +246,55 @@ public class Utils {
         return (String) value;
     }
 
-    public static @Nullable String getOptionalString(SimpleObject obj, String key) {
+    public static @Nullable String getOptionalString(Map obj, String key) {
         return obj.get(key) != null ? getRequiredString(obj, key) : null;
     }
 
-    public static @Nonnull Date getRequiredDateMillis(SimpleObject obj, String key) {
+    public static @Nonnull double getRequiredNumber(Map obj, String key) {
         Object value = obj.get(key);
         if (value == null) {
             throw new InvalidObjectDataException(String.format(
-                "Required property \"%s\" is missing", key));
+                "Required property \"%s\" is missing or null", key));
         }
-        long millis;
-        try {
-            millis = asLong(value);
-        } catch (ClassCastException e) {
+        if (value instanceof Double) {
+            return (double) value;
+        } else if (value instanceof Float) {
+            return (float) value;
+        } else if (value instanceof Integer) {
+            return (int) value;
+        } else if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                throw new InvalidObjectDataException(String.format(
+                    "Property \"%s\" has the value \"%s\" but a number is required", key, value));
+            }
+        } else {
             throw new InvalidObjectDataException(String.format(
                 "Property \"%s\" should be a number, not %s", key, value.getClass()));
         }
-        return new Date(millis);
     }
 
-    public static @Nullable Date getOptionalDateMillis(SimpleObject obj, String key) {
-        return obj.get(key) != null ? getRequiredDateMillis(obj, key) : null;
+    public static @Nonnull Date getRequiredDate(Map obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing or null", key));
+        }
+        return parseLocalDate(value.toString());
+    }
+
+    public static @Nonnull Date getRequiredDatetime(Map obj, String key) {
+        Object value = obj.get(key);
+        if (value == null) {
+            throw new InvalidObjectDataException(String.format(
+                "Required property \"%s\" is missing or null", key));
+        }
+        return parse8601(value.toString());
+    }
+
+    public static @Nullable Date getOptionalDatetime(Map obj, String key) {
+        return obj.get(key) != null ? getRequiredDatetime(obj, key) : null;
     }
 
 
@@ -273,7 +302,67 @@ public class Utils {
 
     public static void addVersionHeaders(RequestContext context) {
         HttpServletResponse response = context.getResponse();
-        response.addHeader("Buendia-Server-Version", "0.13");
-        response.addHeader("Buendia-Client-Minimum-Version", "0.17");
+        response.addHeader("Buendia-Server-Version", "0.14");
+        response.addHeader("Buendia-Client-Minimum-Version", "0.18");
+    }
+
+
+    // ==== Debugging ====
+
+    public static String format(String format, Object... args) {
+        return String.format(Locale.US, format, args);
+    }
+
+    public static void log(String format, Object... args) {
+        System.err.println(format(format, args));
+    }
+
+    /** Returns an unambiguous string representation of a string, suitable for logging. */
+    public static String repr(String str) {
+        return repr(str, 100);
+    }
+
+    /** Returns an unambiguous string representation of a string, suitable for logging. */
+    public static String repr(String str, int maxLength) {
+        try {
+            return str != null ? escape(str, maxLength) : "(null String)";
+        } catch (Throwable ignored) {
+            return "(repr of " + str + " failed)";
+        }
+    }
+
+    /** Uses backslash sequences to form a printable representation of a string. */
+    private static String escape(String str, int maxLength) {
+        StringBuilder buffer = new StringBuilder("\"");
+        for (int i = 0; i < str.length() && i < maxLength; i++) {
+            char c = str.charAt(i);
+            switch (str.charAt(i)) {
+                case '\t':
+                    buffer.append("\\t");
+                    break;
+                case '\r':
+                    buffer.append("\\r");
+                    break;
+                case '\n':
+                    buffer.append("\\n");
+                    break;
+                case '\\':
+                    buffer.append("\\\\");
+                    break;
+                case '"':
+                    buffer.append("\\\"");
+                    break;
+                default:
+                    if ((int) c >= 32 && (int) c <= 126) {
+                        buffer.append(c);
+                    } else if ((int) c < 256) {
+                        buffer.append(format("\\x%02x", (int) c));
+                    } else {
+                        buffer.append(format("\\u%04x", (int) c));
+                    }
+            }
+        }
+        buffer.append(str.length() > maxLength ? "\"..." : "\"");
+        return buffer.toString();
     }
 }

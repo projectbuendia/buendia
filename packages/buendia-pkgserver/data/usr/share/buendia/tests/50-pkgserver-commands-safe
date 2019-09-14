@@ -1,0 +1,64 @@
+make_bundle () {
+    echo "touch /tmp/i-was-touched" > commands.sh
+    echo "BUENDIA_IS_AWESOME=1" > 87-pkgserver-test
+    zip projectbuendia-$1-50.zip commands.sh 87-pkgserver-test
+    mount_loopback
+    mv projectbuendia-$1-50.zip loop
+}
+
+assert_commands_sh_was_run () {
+    # if the file was created, then we can remove it without error
+    rm /tmp/i-was-touched
+}
+
+assert_site_file_was_installed () {
+    . /usr/share/buendia/site/87-pkgserver-test
+    bool $BUENDIA_IS_AWESOME
+    rm /usr/share/buendia/site/87-pkgserver-test
+    unset BUENDIA_IS_AWESOME
+}
+
+test_10_install_all_bundle () {
+    make_bundle all
+    # TODO: pkgserver cron fails because it tries to mount /dev/loop[1-7] and
+    # can't because there's nothing there. This shouldn't really be treated as
+    # an error.
+    execute_cron_right_now pkgserver || true
+}
+
+test_11_commands_sh_was_run () {
+    assert_commands_sh_was_run
+}
+
+test_12_site_file_was_installed () {
+    assert_site_file_was_installed
+}
+
+test_20_install_site_bundle () {
+    . /usr/share/buendia/site/id
+    make_bundle $SITE_ID
+    # TODO: see test_install_all_bundle
+    execute_cron_right_now pkgserver || true
+}
+
+test_21_commands_sh_was_run () {
+    assert_commands_sh_was_run
+}
+
+test_22_site_file_was_installed () {
+    assert_site_file_was_installed
+}
+
+test_30_dont_install_this_other_bundle () {
+    make_bundle not-this-site
+    # TODO: see test_install_all_bundle
+    execute_cron_right_now pkgserver || true
+}
+
+test_31_commands_sh_was_not_run () {
+    ! rm /tmp/i-was-touched
+}
+
+test_32_site_file_was_not_installed () {
+    ! rm /usr/share/buendia/site/87-pkgserver-test
+}

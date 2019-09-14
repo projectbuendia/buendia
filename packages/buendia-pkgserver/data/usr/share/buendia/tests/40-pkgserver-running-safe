@@ -1,0 +1,3 @@
+test_10_pkgserver_has_release_file () {
+    curl -f http://localhost:9001/dists/stable/Release
+}   

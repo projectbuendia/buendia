@@ -10,6 +10,8 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
+set -e; . /usr/share/buendia/utils.sh
+
 if [ -z $NETWORKING_WIFI_INTERFACE ]; then
   MAIN_INTERFACE=$NETWORKING_ETHERNET_INTERFACE
 else
@@ -20,8 +22,6 @@ if ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
     echo "Main interface $MAIN_INTERFACE not found. Skipping network configuration."
     exit 0
 fi
-
-set -e; . /usr/share/buendia/utils.sh
 
 # Update the /etc/hosts file with mappings for this machine's IP addresses.
 buendia-update-hosts

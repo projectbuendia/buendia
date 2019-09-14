@@ -65,14 +65,14 @@ if [ -n "$all" ]; then
         echo -e '\n---- du /var/log'
         du /var/log
 
-        echo -e '\n---- ifconfig wlan0'
-        ifconfig wlan0
+        echo -e '\n---- ip a'
+        ip a
+
+        echo -e '\n---- ip route'
+        ip route
 
         echo -e '\n---- ls -l /usr/share/buendia/site'
         ls -l /usr/share/buendia/site
-
-        echo -e '\n---- netstat -ln'
-        netstat -ln
 
         echo -e '\n---- buendia-mysql-watchdog'
         buendia-last buendia-mysql-watchdog

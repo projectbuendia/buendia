@@ -41,7 +41,7 @@ import static org.junit.Assert.assertNotNull;
     }
 
     @Override public String getURI() {
-        return "/projectbuendia/locations";
+        return "/locations";
     }
 
     @Override public String getUuid() {
@@ -59,7 +59,7 @@ import static org.junit.Assert.assertNotNull;
         assertNotNull(response);
         assertEquals(NEVER_NEVER_UUID, response.get("uuid"));
         assertEquals(XANADU_UUID, response.get("parent_uuid"));
-        assertEquals(NEVER_NEVER_NAME, ((Map<String, Object>) response.get("names")).get("en"));
+        assertEquals(NEVER_NEVER_NAME, response.get("name"));
     }
 
     @Test public void testGetMissingLocation() throws Exception {

@@ -22,6 +22,8 @@ import org.openmrs.test.SkipBaseSetup;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -42,7 +44,7 @@ public class PatientResourceTest extends BaseApiRequestTest {
     };
 
     public String getURI() {
-        return "/projectbuendia/patients";
+        return "/patients";
     }
 
     public long getAllCount() {
@@ -82,25 +84,42 @@ public class PatientResourceTest extends BaseApiRequestTest {
         assertEquals("Poppins", response.get("family_name"));
         assertEquals("F", response.get("sex"));
         assertEquals("1970-01-01", response.get("birthdate"));
-        assertFalse(response.containsKey("assigned_location"));
 
         Patient patient = patientService.getPatientByUuid(uuid);
-        PatientIdentifierType identType = patientService.getPatientIdentifierTypeByUuid(DbUtils.IDENTIFIER_TYPE_MSF_UUID);
-        assertEquals("XYZ", patient.getPatientIdentifier(identType).getIdentifier());
+        assertEquals("XYZ", patient.getPatientIdentifier(DbUtils.getMsfIdType()).getIdentifier());
     }
 
-    @Test public void testMovePatient() throws Exception {
-        // Post an edit that sets the location of a patient.
+    @Test public void testCreatePatientWithObservation() throws Exception {
         SimpleObject input = new SimpleObject();
-        input.add("assigned_location", new SimpleObject().add("uuid", XANADU_UUID));
+        input.add("id", "XYZ");
+        input.add("given_name", "Mary");
+        input.add("family_name", "Poppins");
+        input.add("sex", "F");
+        input.add("birthdate", "1970-01-01");
 
-        MockHttpServletRequest request = newPostRequest(getURI() + "/" + PETER_PAN_UUID, input);
+        List<Map> observations = new ArrayList<>();
+        SimpleObject obs = new SimpleObject();
+        obs.add("provider_uuid", "0a828bd6-d63c-4acc-b987-2400f2ab8c4c");
+        obs.add("concept_uuid", "96408258-000b-424e-af1a-403919332938");
+        obs.add("value_text", "abc");
+        observations.add(obs);
+        input.add("observations", observations);
+
+        MockHttpServletRequest request = newPostRequest(getURI(), input);
         SimpleObject response = deserialize(handle(request));
 
-        // Fetch the patient record and expect to see the updated location.
-        request = this.request(RequestMethod.GET, this.getURI() + "/" + PETER_PAN_UUID);
-        response = this.deserialize(this.handle(request));
+        String uuid = (String) response.get("uuid");
+        assertEquals("XYZ", response.get("id"));
+        assertEquals("Mary", response.get("given_name"));
+        assertEquals("Poppins", response.get("family_name"));
+        assertEquals("F", response.get("sex"));
+        assertEquals("1970-01-01", response.get("birthdate"));
 
-        assertEquals(XANADU_UUID, ((Map<String, Object>) response.get("assigned_location")).get("uuid"));
+        List<Map> respList = (List<Map>) response.get("observations");
+        assertEquals(1, respList.size());
+        Map respObs = respList.get(0);
+        assertEquals("0a828bd6-d63c-4acc-b987-2400f2ab8c4c", respObs.get("provider_uuid"));
+        assertEquals("96408258-000b-424e-af1a-403919332938", respObs.get("concept_uuid"));
+        assertEquals("abc", respObs.get("value_text"));
     }
 }

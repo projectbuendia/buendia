@@ -1,25 +1,20 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.openmrs.Location;
+import org.openmrs.Encounter;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
-import org.openmrs.PatientIdentifierType;
 import org.openmrs.PersonName;
 import org.openmrs.User;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
-import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 
 import org.openmrs.projectbuendia.Utils;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,19 +28,15 @@ import static org.openmrs.projectbuendia.Utils.formatUtcDate;
 import static org.openmrs.projectbuendia.Utils.parseLocalDate;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/patients",
+    name = RestController.PATH + "/patients",
     supportedClass = Patient.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class PatientResource extends BaseResource<Patient> {
     private static final int MAX_PATIENTS_PER_PAGE = 100;
-    private final PatientIdentifierType IDENTIFIER_TYPE_MSF;
-    private final PatientIdentifierType IDENTIFIER_TYPE_LOCAL;
 
     public PatientResource() {
         super("patients", Representation.DEFAULT);
-        IDENTIFIER_TYPE_MSF = DbUtils.getIdentifierTypeMsf();
-        IDENTIFIER_TYPE_LOCAL = DbUtils.getIdentifierTypeLocal();
     }
 
     @Override protected Collection<Patient> listItems(RequestContext context) {
@@ -65,23 +56,16 @@ public class PatientResource extends BaseResource<Patient> {
         return results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Patient> items) {
-        SyncToken token;
-        try {
-            token = SyncTokenUtils.jsonToSyncToken(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Patient> items) {
         SyncPage<Patient> patients = buendiaService.getPatientsModifiedAtOrAfter(
-            token, true /* include voided */, MAX_PATIENTS_PER_PAGE);
+            bookmark, true /* include voided */, MAX_PATIENTS_PER_PAGE);
         items.addAll(patients.results);
-        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
-            patients.syncToken, new Date());
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
+            patients.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = patients.results.size() == MAX_PATIENTS_PER_PAGE;
         return new SimpleObject()
-            .add("syncToken", SyncTokenUtils.syncTokenToJson(newToken))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 
@@ -116,10 +100,10 @@ public class PatientResource extends BaseResource<Patient> {
         String id = Utils.getOptionalString(data, "id");
         if (id != null) {
             requireValidUniqueMsfIdentifier(id);
-            ident.setIdentifierType(DbUtils.getIdentifierTypeMsf());
+            ident.setIdentifierType(DbUtils.getMsfIdType());
             ident.setIdentifier(id);
         } else {
-            ident.setIdentifierType(DbUtils.getIdentifierTypeLocal());
+            ident.setIdentifierType(DbUtils.getLocalIdType());
             // To generate an integer ID, we need to save the patient identifier and
             // let the table fill in the ID AUTO_INCREMENT column.  But OpenMRS will
             // not let us save the patient identifier with a blank identifier string,
@@ -130,30 +114,20 @@ public class PatientResource extends BaseResource<Patient> {
             ident.setIdentifier("temp-" + new Date().getTime());
         }
         patient.addIdentifier(ident);
-
-        // TODO(ping): Replace with an observation.
-        // Set assigned location last, as doing so saves the patient, which could fail
-        // if performed in the middle of patient creation.
-        Map location = (Map) data.get("assigned_location");
-        if (location != null) {
-            setLocation(patient, (String) location.get("uuid"));
-        }
         patientService.savePatient(patient);
 
         // For LOCAL-type identifiers, we can only determine the identifier after
         // the Patient and PatientIdentifier objects have been saved.  At this
         // point the PatientIdentifier has a freshly-generated ID column, which
         // we use to construct the string identifier.
-        if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeLocal())) {
+        if (eq(ident.getIdentifierType(), DbUtils.getLocalIdType())) {
             ident.setIdentifier("" + ident.getId());
             patientService.savePatientIdentifier(ident);
         }
 
         // Store any initial observations that are included with the new patient.
-        String entererUuid = (String) data.get("enterer_uuid");
-        ObservationUtils.addEncounter(
-            (List) data.get("observations"), null,
-            patient, patient.getDateCreated(), "ADULTINITIAL", entererUuid, null);
+        ObsUtils.addEncounter((List<Map>) data.get("observations"), patient,
+            patient.getDateCreated(), "ADULTINITIAL", null, null);
         return patient;
 
     }
@@ -174,20 +148,16 @@ public class PatientResource extends BaseResource<Patient> {
         if (givenName != null) name.setGivenName(normalizeName(givenName));
         String familyName = Utils.getOptionalString(data, "family_name");
         if (familyName != null) name.setFamilyName(normalizeName(familyName));
-        Map location = (Map) data.get("assigned_location");
-        if (location != null) {
-            setLocation(patient, (String) location.get("uuid"));
-        }
         String id = Utils.getOptionalString(data, "id");
         PatientIdentifier ident = patient.getPatientIdentifier();
         if (id != null && !eq(id, toClientIdent(ident))) {
             requireValidUniqueMsfIdentifier(id);
-            if (eq(ident.getIdentifierType(), DbUtils.getIdentifierTypeMsf())) {
+            if (eq(ident.getIdentifierType(), DbUtils.getMsfIdType())) {
                 ident.setIdentifier(id);
             } else {
                 ident.setPreferred(false);
                 PatientIdentifier newIdent = new PatientIdentifier(
-                    id, IDENTIFIER_TYPE_MSF, DbUtils.getDefaultRoot());
+                    id, DbUtils.getMsfIdType(), DbUtils.getDefaultRoot());
                 newIdent.setCreator(user);
                 newIdent.setPreferred(true);
                 patient.addIdentifier(newIdent);
@@ -213,13 +183,12 @@ public class PatientResource extends BaseResource<Patient> {
         }
         json.add("given_name", denormalizeName(patient.getGivenName()));
         json.add("family_name", denormalizeName(patient.getFamilyName()));
-        String locationId = DbUtils.getPersonAttributeValue(
-            patient, DbUtils.getAssignedLocationAttributeType());
-        if (locationId != null) {
-            Location location = locationService.getLocation(Integer.parseInt(locationId));
-            if (location != null) {
-                json.add("assigned_location", new SimpleObject().add("uuid", location.getUuid()));
-            }
+
+        List<Encounter> initialEncounters = encounterService.getEncounters(
+            patient, null, patient.getDateCreated(), patient.getDateCreated(),
+            null, null, null, null, null, false);
+        if (initialEncounters.size() > 0) {
+            ObsUtils.putObservationsAsJson(json, initialEncounters.get(0).getObs());
         }
     }
 
@@ -248,23 +217,11 @@ public class PatientResource extends BaseResource<Patient> {
         }
     }
 
-    private void setLocation(Patient patient, String locationUuid) {
-        // Apply the given assigned location to a patient, if locationUuid is not null.
-        if (locationUuid != null) {
-            Location location = locationService.getLocationByUuid(locationUuid);
-            if (location != null) {
-                DbUtils.setPersonAttributeValue(patient,
-                    DbUtils.getAssignedLocationAttributeType(),
-                    Integer.toString(location.getId()));
-            }
-        }
-    }
-
     private PatientIdentifier fromClientIdent(String clientIdent) {
         if (clientIdent.startsWith("*")) {
-            return new PatientIdentifier(clientIdent.substring(1), IDENTIFIER_TYPE_LOCAL, DbUtils.getDefaultRoot());
+            return new PatientIdentifier(clientIdent.substring(1), DbUtils.getLocalIdType(), DbUtils.getDefaultRoot());
         } else {
-            return new PatientIdentifier(clientIdent, IDENTIFIER_TYPE_MSF, DbUtils.getDefaultRoot());
+            return new PatientIdentifier(clientIdent, DbUtils.getMsfIdType(), DbUtils.getDefaultRoot());
         }
     }
 
@@ -274,7 +231,7 @@ public class PatientResource extends BaseResource<Patient> {
         // "*" followed by an integer, where the integer is a local
         // (type "LOCAL") server-generated identifier; or otherwise
         // it is an MSF (type "MSF") client-provided identifier.
-        if (eq(ident.getIdentifierType(), IDENTIFIER_TYPE_LOCAL)) {
+        if (eq(ident.getIdentifierType(), DbUtils.getLocalIdType())) {
             return "*" + ident.getIdentifier();
         } else {
             return ident.getIdentifier();
@@ -292,7 +249,7 @@ public class PatientResource extends BaseResource<Patient> {
             ));
         }
         List<Patient> existing = patientService.getPatients(null, ident,
-            Collections.singletonList(IDENTIFIER_TYPE_MSF), true /* exact match */);
+            Collections.singletonList(DbUtils.getMsfIdType()), true /* exact match */);
         if (!existing.isEmpty()) {
             String name = getFullName(existing.get(0));
             throw new InvalidObjectDataException(String.format(

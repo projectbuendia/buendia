@@ -58,7 +58,7 @@ function add_location() {
         values
             ('$name', $parent_id, '$USER_ID', now(), '$uuid');
     " >/dev/null;
-    echo 'Added location "'$name'".'
+    echo 'Added location "'$name'".' 1>&2
     $MYSQL <<< "
         select location_id from location where uuid = '$uuid';
     "
@@ -68,8 +68,8 @@ $MYSQL <<< "
     update location set retired = 1;
 ";
 
-etc=$(add_location "[1] Bunia ETC" null)
+etc=$(add_location "[1] Bunia ETC [fr:Bunia CTE]" null)
 triage=$(add_location "[2] Triage" $etc)
-suspected=$(add_location "[3] Suspected" $etc)
-confirmed=$(add_location "[4] Confirmed" $etc)
-discharged=$(add_location "[5] Discharged" null)
+suspected=$(add_location "[3] Suspected [fr:Suspecté]" $etc)
+confirmed=$(add_location "[4] Confirmed [fr:Confirmé]" $etc)
+discharged=$(add_location "[5] Discharged [fr:Sortie]" null)

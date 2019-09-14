@@ -107,7 +107,7 @@ check_url http://$host:8080/
 check_url http://$host:8080/openmrs
 
 # Buendia
-check_url http://$host:8080/openmrs/ws/rest/v1/projectbuendia/users -u android:Android123
+check_url http://$host:8080/openmrs/ws/rest/buendia/providers -u android:Android123
 
 echo
 echo

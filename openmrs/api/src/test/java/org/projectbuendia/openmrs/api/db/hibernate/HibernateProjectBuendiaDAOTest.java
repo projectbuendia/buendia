@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.SkipBaseSetup;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 
 import javax.annotation.Nullable;
 import java.sql.ResultSet;
@@ -36,7 +36,7 @@ import static org.junit.Assert.fail;
 @SkipBaseSetup
 public abstract class HibernateProjectBuendiaDAOTest extends BaseModuleContextSensitiveTest {
 
-    protected static final SyncToken CATCH_ALL_SYNCTOKEN = new SyncToken(new Date(0), null);
+    protected static final Bookmark CATCH_ALL = new Bookmark(new Date(0), null);
     protected static final DateFormat DB_DATE_FORMAT =
             new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.S");
 
@@ -80,9 +80,9 @@ public abstract class HibernateProjectBuendiaDAOTest extends BaseModuleContextSe
      * @param dateString Specified in the same format as in the dataset XML files, for readability.
      *                   e.g. "2015-07-18 12:00:00.0"
      */
-    protected static SyncToken createSyncToken(String dateString, @Nullable String uuid) {
+    protected static Bookmark createBookmark(String dateString, @Nullable String uuid) {
         try {
-            return new SyncToken(DB_DATE_FORMAT.parse(dateString), uuid);
+            return new Bookmark(DB_DATE_FORMAT.parse(dateString), uuid);
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }

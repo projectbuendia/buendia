@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import javax.annotation.Nullable;
 
@@ -34,7 +35,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requireDescendant;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforms",
+    name = RestController.PATH + "/xforms",
     supportedClass = Form.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
@@ -65,7 +66,7 @@ public class XformResource extends BaseResource<Form> {
 
     /**
      * Adds the following fields to the {@link SimpleObject}:
-     *   - name: display name of the form
+     *   - name: display type of the form
      *   - date_created: the date the form was created, as ms since epoch
      *   - version: the version number of the form (e.g. 0.2.1)
      *   - date_changed: the date the form was last modified, as ms since epoch;
@@ -83,14 +84,14 @@ public class XformResource extends BaseResource<Form> {
         json.add("version", form.getVersion());
         boolean includesProviders = false;
         if (context.getRepresentation() == Representation.FULL) {
+            Locale locale = DbUtils.getLocaleForTag(context.getParameter("locale"));
             try {
-                // TODO: Use description instead of name?
-                FormData formData = BuendiaXformBuilderEx.buildXform(
-                    form, new BuendiaXformCustomizer());
+                FormData formData = BuendiaXformBuilderEx.buildXform(form, locale);
                 String xml = convertToOdkCollect(formData.xml, form.getName());
                 includesProviders = formData.includesProviders;
                 xml = removeRelationshipNodes(xml);
                 json.add("xml", xml);
+                json.add("locale", locale.toLanguageTag());
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

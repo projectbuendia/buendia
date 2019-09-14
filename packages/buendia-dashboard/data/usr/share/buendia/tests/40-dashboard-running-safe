@@ -1,0 +1,21 @@
+test_10_run_dashboard_cron () {
+    execute_cron_right_now dashboard
+}
+
+test_20_dashboard_says_server_is_running () {
+    # When a user visits the dashboard page,
+    # Then they are told that the server is serving.
+    curl http://localhost:9999/ > dashboard.htm
+    grep SERVING dashboard.htm
+}
+
+test_30_status_is_password_protected () {
+    curl -s -o /dev/null -w "%{http_code}" http://localhost:9999/status \
+        | grep 401
+}
+
+test_30_status_works_with_credentials () {
+    curl -s -o /dev/null -w "%{http_code}" \
+        http://$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD@localhost:9999/status \
+        | grep 200
+}

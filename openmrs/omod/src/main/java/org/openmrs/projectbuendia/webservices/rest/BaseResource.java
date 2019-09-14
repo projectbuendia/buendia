@@ -5,6 +5,7 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.FormService;
 import org.openmrs.api.LocationService;
+import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
@@ -20,9 +21,10 @@ import org.openmrs.module.webservices.rest.web.resource.api.Listable;
 import org.openmrs.module.webservices.rest.web.resource.api.Retrievable;
 import org.openmrs.module.webservices.rest.web.resource.api.Searchable;
 import org.openmrs.module.webservices.rest.web.resource.api.Updatable;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
+import org.openmrs.module.webservices.rest.web.response.InvalidSearchException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 
 import java.util.ArrayList;
@@ -40,18 +42,19 @@ public abstract class BaseResource<T extends OpenmrsObject>
     private static final RequestLogger logger = RequestLogger.LOGGER;
     private final List<Representation> availableRepresentations;
     
-    protected final String collectionName;
+    protected final String pluralCollectionName;
     protected final ProjectBuendiaService buendiaService;
     protected final ConceptService conceptService;
     protected final EncounterService encounterService;
     protected final FormService formService;
     protected final LocationService locationService;
+    protected final ObsService obsService;
     protected final OrderService orderService;
     protected final PatientService patientService;
     protected final ProviderService providerService;
 
-    protected BaseResource(String collectionName, Representation... representations) {
-        this.collectionName = collectionName;
+    protected BaseResource(String pluralCollectionName, Representation... representations) {
+        this.pluralCollectionName = pluralCollectionName;
         availableRepresentations = Arrays.asList(representations);
         buendiaService = Context.getService(ProjectBuendiaService.class);
         conceptService = Context.getConceptService();
@@ -59,6 +62,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         formService = Context.getFormService();
         locationService = Context.getLocationService();
         orderService = Context.getOrderService();
+        obsService = Context.getObsService();
         patientService = Context.getPatientService();
         providerService = Context.getProviderService();
     }
@@ -100,7 +104,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
      */
     public SimpleObject search(RequestContext context) throws ResponseException {
         Utils.addVersionHeaders(context);
-        String bookmark = getSyncToken(context);
+        Bookmark bookmark = getBookmark(context);
         String op = bookmark != null ? "sync" : "search";
         logger.request(context, this, op);
         try {
@@ -144,8 +148,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "retrieve");
-            T item = retrieveItem(uuid);
-            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T item = retrieveRequiredItem(uuid);
             return logger.reply(context, this, "retrieve", toJson(item, context));
         } catch (Exception e) {
             logger.error(context, this, "retrieve", e);
@@ -158,8 +161,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "update", data);
-            T item = retrieveItem(uuid);
-            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T item = retrieveRequiredItem(uuid);
             T newItem = updateItem(item, data, context);
             return logger.reply(context, this, "update", toJson(newItem, context));
         } catch (Exception e) {
@@ -173,8 +175,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         Utils.addVersionHeaders(context);
         try {
             logger.request(context, this, "delete", reason);
-            T item = retrieveItem(uuid);
-            if (item == null || DbUtils.isVoidedOrRetired(item)) throw new ObjectNotFoundException();
+            T item = retrieveRequiredItem(uuid);
             deleteItem(item, reason, context);
             logger.reply(context, this, "delete", null);
         } catch (Exception e) {
@@ -186,43 +187,43 @@ public abstract class BaseResource<T extends OpenmrsObject>
     /** Retrieves a list of all items. */
     protected Collection<T> listItems(RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Listing all %s is not implemented", collectionName));
+            "Listing all %s is not implemented", pluralCollectionName));
     }
 
     /** Searches for all items matching the criteria in the RequestContext. */
     protected Collection<T> searchItems(RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Searching for %s is not implemented", collectionName));
+            "Searching for %s is not implemented", pluralCollectionName));
     }
 
     /** Fetches a chunk of items newer than a bookmarked position, returning an updated bookmark. */
-    protected SimpleObject syncItems(String bookmark, List<T> items) {
+    protected SimpleObject syncItems(Bookmark bookmark, List<T> items) {
         throw new UnsupportedOperationException(String.format(
-            "Searching for %s is not implemented", collectionName));
+            "Searching for %s is not implemented", pluralCollectionName));
     }
 
     /** Creates an item from the given data and returns it. */
     protected T createItem(SimpleObject data, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Creating %s is not implemented", collectionName));
+            "Creating %s is not implemented", pluralCollectionName));
     }
 
     /** Retrieves a single item by UUID, returning null if it can't be found. */
     protected T retrieveItem(String uuid) {
         throw new UnsupportedOperationException(String.format(
-            "Retrieving individual %s is not implemented", collectionName));
+            "Retrieving individual %s is not implemented", pluralCollectionName));
     }
 
     /** Updates the given item using the given data. */
     protected T updateItem(T item, SimpleObject data, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Updating %s is not implemented", collectionName));
+            "Updating %s is not implemented", pluralCollectionName));
     }
 
     /** Deletes (voids or retires) the given item. */
     protected void deleteItem(T item, String reason, RequestContext context) {
         throw new UnsupportedOperationException(String.format(
-            "Deleting %s is not implemented", collectionName));
+            "Deleting %s is not implemented", pluralCollectionName));
     }
 
     /** Converts a single item to JSON (or returns an empty JSON object for null). */
@@ -238,6 +239,14 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Populates the given JSON object with data from the given item. */
     protected abstract void populateJson(SimpleObject json, T item, RequestContext context);
+
+    private T retrieveRequiredItem(String uuid) {
+        T item = retrieveItem(uuid);
+        if (item == null || DbUtils.isVoidedOrRetired(item)) {
+            throw new ItemNotFoundException(pluralCollectionName, uuid);
+        }
+        return item;
+    }
 
     private SimpleObject abbreviateReply(SimpleObject reply) {
         final int MAX_ITEMS = 10;
@@ -257,11 +266,17 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
         return new SimpleObject()
             .add("results", resultsValue)
-            .add("syncToken", reply.get("syncToken"))
+            .add("bookmark", reply.get("bookmark"))
             .add("more", reply.get("more"));
     }
 
-    private String getSyncToken(RequestContext context) {
-        return context.getParameter("since");
+    private static Bookmark getBookmark(RequestContext context) {
+        String since = context.getParameter("since");
+        if (since == null) return null;
+        try {
+            return Bookmark.deserialize(since);
+        } catch (Exception e) {
+            throw new InvalidSearchException("Invalid bookmark \"" + since + "\"");
+        }
     }
 }

@@ -15,7 +15,6 @@ import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
-import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.module.xforms.XformsQueueProcessor;
 import org.openmrs.module.xforms.util.XformsUtil;
@@ -38,7 +37,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstances",
+    name = RestController.PATH + "/xforminstances",
     supportedClass = Void.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
@@ -72,8 +71,7 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         String xml = Utils.getRequiredString(post, "xml");
 
         String patientUuid = Utils.getRequiredString(post, "patient_uuid");
-        Patient patient = patientService.getPatientByUuid(patientUuid);
-        if (patient == null) throw new ObjectNotFoundException();
+        Patient patient = DbUtils.patientsByUuid.get(patientUuid);
 
         Document doc = XmlUtils.parse(xml);
         Element formElement = XmlUtils.requireElementTagName(doc.getDocumentElement(), "form");
@@ -102,7 +100,9 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         XmlUtils.getOrCreatePath(doc, root, "header", "date_entered")
             .setTextContent(Utils.formatUtc8601(dateEntered));
 
-        // OpenMRS can't handle the encounter_datetime in the format we receive.
+        // The encounter_datetime field should usually be omitted by the client,
+        // which signals us to use the current server time.  When the client does
+        // supply it, we need to reformat it.  See fixEncounterDatetime() below.
         setEncounterDatetime(doc, fixEncounterDatetime(getEncounterDatetime(doc)));
 
         // Make sure that all observations are under the obs element, with appropriate attributes.
@@ -134,7 +134,7 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         // in the database's clob_datatype_storage table with a known UUID.
 
         FormService formService = Context.getFormService();
-        Form form = formService.getFormByUuid(formUuid);
+        Form form = DbUtils.formsByUuid.get(formUuid);
         String resourceName = form.getName() + ".xFormXslt";
         FormResource resource = formService.getFormResource(form, resourceName);
         if (resource == null) {
@@ -162,7 +162,10 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
     private static String fixEncounterDatetime(String text) {
         Date datetime = parseTimestamp(text);
         if (datetime == null) {
-            LOG.warn("No encounter_datetime found; using the current time");
+            // If the encounter_datetime field is missing, we use server time.
+            // The server's clock is the authoritative clock, so, unless the
+            // user is explicitly backdating a set of observations, the client
+            // should omit the encounter_datetime field.
             datetime = new Date();
         }
 
@@ -195,7 +198,9 @@ public class XformInstanceResource extends BaseResource<OpenmrsObject> {
         for (String pattern : acceptablePatterns) {
             try {
                 return new SimpleDateFormat(pattern).parse(timestamp);
-            } catch (ParseException e) { /* ignore and continue */ }
+            } catch (ParseException e) {
+                LOG.warn("Unparseable encounter_datetime: " + timestamp);
+            }
         }
         return null;
     }

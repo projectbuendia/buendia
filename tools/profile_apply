@@ -17,9 +17,7 @@ VERBOSE = False
 # create_uuid_from_name.
 CHART_UUID = 'buendia_form_chart'
 MAX_UUID_LEN = 36
-
-ENCOUNTER_TYPE_CHART_UUID = 'buendia_encounter_type_chart'
-LOCALE = 'en_GB_client'
+LOCALE = 'buendia'  # a special locale that can bundle text in multiple locales
 
 try:
     INT_TYPES = (int, long)
@@ -88,10 +86,12 @@ class OpenmrsDatabase:
 
     def insert(self, table, **kwargs):
         """Inserts a row, creating a UUID and filling in metadata if needed."""
+        if 'uuid' not in self.get_columns(table):
+            raise ValueError('insert() only works for tables with uuid columns')
         if 'creator' in self.get_columns(table):
             kwargs.setdefault('creator', self.user_id)
-        if 'uuid' in self.get_columns(table):
-            kwargs.setdefault('uuid', uuid.uuid4())
+        if 'uuid' not in kwargs:
+            kwargs['uuid'] = '*' + str(uuid.uuid4())
 
         columns = kwargs.keys()
         values = kwargs.values()
@@ -112,10 +112,11 @@ class OpenmrsDatabase:
 
         # In concept and concept_name, the uuid column is based on the id.
         if table in ['concept', 'concept_name']:
-            filler = (table == 'concept') and 'A' or 'B'
-            pseudo_uuid = str(id).ljust(36, filler)
-            self.db.execute('update %s set uuid = %s where %s = %s' %
-                (table, '%s', id_column, '%s'), pseudo_uuid, id)
+            if kwargs['uuid'].startswith('*'):
+                filler = (table == 'concept') and 'A' or 'B'
+                pseudo_uuid = str(id).ljust(36, filler)
+                self.db.execute('update %s set uuid = %s where %s = %s' %
+                    (table, '%s', id_column, '%s'), pseudo_uuid, id)
         return id
 
     def update(self, table, id, **kwargs):
@@ -161,6 +162,7 @@ def read_csv(filename, tab=None):
 def apply(tabs):
     db = get_db('openmrs')
     odb = OpenmrsDatabase(db, 'buendia_admin')
+
     form_uuids = []
     concept_field_type = db.get('field_type_id', name='Concept')
     element_field_type = db.get('field_type_id', name='Database element')
@@ -183,13 +185,33 @@ def apply(tabs):
     # "Finding", "Symptom", and "Symptom/Finding" all seem like reasonable
     # classes for observations; "Finding" is by far the most commonly used.
     obs_class = db.get('concept_class_id', name='Finding')
+    misc_class = db.get('concept_class_id', name='Misc')
+
+    def ensure_concept(uuid, name, datatype_id, class_id):
+        concept_id = db.get('concept_id', uuid=uuid)
+        if not concept_id:
+            concept_id = odb.insert('concept', uuid=uuid, short_name=name,
+                datatype_id=datatype_id, class_id=class_id)
+        if datatype_id == numeric_datatype:
+            if not db.get('concept_id', 'concept_numeric', concept_id=concept_id):
+                db.execute('insert into concept_numeric '
+                    '(concept_id) values (%s)' % concept_id)
+
+    ensure_concept('buendia_concept_free_text_order',
+        'Free text order', answer_datatype, misc_class)
+    ensure_concept('buendia_concept_order_executed',
+        'Order executed', numeric_datatype, misc_class)
+    ensure_concept('buendia_concept_placement',
+        'Placement', text_datatype, misc_class)
 
     def main():  # main entry point, invoked at the end of this block
         if 'form' in tabs:
+            # Apply forms first, which creates all referenced concepts.
             apply_forms(tabs['form'])
         if 'chart' in tabs:
+            # Then apply charts, which requires all concepts to already exist.
             chart_enctype = get_or_insert(
-                'encounter_type', uuid=ENCOUNTER_TYPE_CHART_UUID)
+                'encounter_type', uuid='buendia_encounter_type_chart')
             odb.update('encounter_type', chart_enctype, name='CHART', retired=1,
                 description='Reserved for Buendia patient chart definitions')
             form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
@@ -235,26 +257,13 @@ def apply(tabs):
         if name:
             concept_name_id = get_or_insert(
                 'concept_name', concept_id=concept_id, locale=locale, voided=0)
+            # Ensure the new name is the only preferred name in this locale.
             db.execute('update concept_name set locale_preferred = 0'
                        ' where concept_id = %s and locale = %s',
                        concept_id, locale)
             odb.update('concept_name', concept_name_id,
                        name=name, locale_preferred=1,
                        concept_name_type='FULLY_SPECIFIED')
-            # Adjust any other names to ensure there are no duplicates.
-            dup = 1
-            for (id, dup_concept_id, dup_name, dup_voided) in db.iter(
-                'select concept_name_id, concept_id, name, voided '
-                'from concept_name where name like %s', name + '%'):
-                if id != concept_name_id:
-                    # Ensure the name is not duplicated, even by other concepts.
-                    if dup_name.split(' (#')[0] == name:
-                        dup += 1
-                        alternate_name = name + ' (#%d)' % dup
-                        odb.update('concept_name', id, name=alternate_name)
-                    # Ensure this concept has exactly one unvoided concept_name.
-                    if dup_concept_id == concept_id and not dup_voided:
-                        odb.void('concept_name', id)
             return concept_name_id
 
     def set_concept_numeric(concept_id, (normal_low, normal_high),
@@ -332,7 +341,7 @@ def apply(tabs):
                 sections.append(('[chart_divider]',
                                  [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
                 section, section_rows = (row['section'] or '').strip(), []
-            if validate_str(row['type']) and validate_ints(row['concept']):
+            if validate_str(row['type']) and validate_concept_ids(row['concept']):
                 section_rows.append(row)
         if section and section_rows:
             sections.append((section, section_rows))
@@ -350,10 +359,13 @@ def apply(tabs):
         clear_form(form_id)
 
         for i, (section, rows) in enumerate(sections):
+            section_type = 'GRID_SECTION'
             if section == '[chart_divider]':
                 section_type = 'CHART_DIVIDER'
-            else:
-                section_type = section[:1] == '[' and 'TILE_ROW' or 'GRID_SECTION'
+            elif section.startswith('[['):
+                section_type = 'FIXED_ROW'
+            elif section.startswith('['):
+                section_type = 'TILE_ROW'
             field_id = get_field_for_section(
                 section, description=json.dumps({'type': section_type}))
             section_id = add_field_to_form(form_id, field_id, None, i + 1)
@@ -364,7 +376,7 @@ def apply(tabs):
             # column in the CSV gives the rendering type, not the data type.
             for j, row in enumerate(rows):
                 label = row.get('label', '')
-                concept_ids = validate_ints(row.get('concept'))
+                concept_ids = validate_concept_ids(row.get('concept'))
                 if section_type == 'GRID_SECTION' and len(concept_ids) != 1:
                     raise ValueError('Grid rows must have exactly 1 concept ID')
                 for concept_id in concept_ids:
@@ -560,8 +572,18 @@ def apply(tabs):
         except ValueError:
             return None
 
-    def validate_ints(text):
-        return filter(lambda x: x, [validate_int(n) for n in text.split(',')])
+    def validate_concept_ids(text):
+        result = []
+        for item in text.split(','):
+            if item.startswith('buendia_concept_'):  # special concept UUID
+                concept_id = db.get('concept_id', uuid=item)
+                if not concept_id:
+                    raise ValueError(
+                        'Concept "%s" not found in the dictionary', item)
+                result.append(concept_id)
+            else:
+                result.append(validate_int(item))
+        return result
 
     def validate_boolean(text):
         # Treat "no", "none", "nil", "false", "0" etc. as false; else true.

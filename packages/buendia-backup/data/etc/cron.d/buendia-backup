@@ -2,11 +2,11 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 MAILTO=""
 
-# Back up to the first /dev/sd* partition we can find.
-0 * * * * root . /usr/share/buendia/utils.sh; if bool "$BACKUP_EXTERNAL"; then for dev in $(external_file_systems); do [ -e $dev ] && buendia-log buendia-backup $dev $BACKUP_EXTERNAL_LIMIT_PERCENT && break; done; fi
+# Back up to the first available external filesystem.
+*/4 * * * * root . /usr/share/buendia/utils.sh; if bool "$BACKUP_EXTERNAL"; then for dev in $(external_file_systems); do [ -e $dev ] && buendia-log buendia-backup $dev $BACKUP_EXTERNAL_LIMIT_PERCENT && break; done; fi
 
 # Back up to the internal directory.
-10 * * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_INTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_INTERNAL_DIR $BACKUP_INTERNAL_LIMIT_KB
+*/10 * * * * root . /usr/share/buendia/utils.sh; [ -n "$BACKUP_INTERNAL_DIR" ] && buendia-log buendia-backup $BACKUP_INTERNAL_DIR $BACKUP_INTERNAL_LIMIT_KB
 
 # Restore from a USB drive
 * * * * * root . /usr/share/buendia/utils.sh; for dev in $(external_file_systems); do [ -e $dev ] && buendia-log buendia-restore $dev && break; done;

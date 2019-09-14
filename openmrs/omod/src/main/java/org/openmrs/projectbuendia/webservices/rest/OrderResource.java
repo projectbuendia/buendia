@@ -1,8 +1,6 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Patient;
@@ -16,11 +14,10 @@ import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalPropertyException;
 
 import org.openmrs.projectbuendia.Utils;
-import org.projectbuendia.openmrs.api.SyncToken;
+import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 
-import java.text.ParseException;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,7 +27,7 @@ import java.util.Map;
 import static org.openmrs.projectbuendia.Utils.eq;
 
 @Resource(
-    name = RestController.REST_VERSION_1_AND_NAMESPACE + "/orders",
+    name = RestController.PATH + "/orders",
     supportedClass = Order.class,
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
@@ -49,29 +46,22 @@ public class OrderResource extends BaseResource<Order> {
             null, false /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS).results;
     }
 
-    @Override protected SimpleObject syncItems(String tokenJson, List<Order> items) {
-        SyncToken token;
-        try {
-            token = SyncTokenUtils.jsonToSyncToken(tokenJson);
-        } catch (ParseException | JsonParseException | JsonMappingException e) {
-            throw new IllegalPropertyException(String.format(
-                "Invalid sync token \"%s\"", tokenJson));
-        }
+    @Override protected SimpleObject syncItems(Bookmark bookmark, List<Order> items) {
         SyncPage<Order> orders = buendiaService.getOrdersModifiedAtOrAfter(
-            token, true /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS);
+            bookmark, true /* include voided */, MAX_ORDERS_PER_PAGE, ALLOWABLE_ACTIONS);
         items.addAll(orders.results);
-        SyncToken newToken = SyncTokenUtils.clampSyncTokenToBufferedRequestTime(
-            orders.syncToken, new Date());
+        Bookmark newBookmark = Bookmark.clampToBufferedRequestTime(
+            orders.bookmark, new Date());
         // If we fetched a full page, there's probably more data available.
         boolean more = orders.results.size() == MAX_ORDERS_PER_PAGE;
         return new SimpleObject()
-            .add("syncToken", SyncTokenUtils.syncTokenToJson(newToken))
+            .add("bookmark", newBookmark.serialize())
             .add("more", more);
     }
 
     @Override protected Order createItem(SimpleObject data, RequestContext context) {
         Patient patient = DbUtils.patientsByUuid.get(Utils.getRequiredString(data, "patient_uuid"));
-        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "orderer_uuid"));
+        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "provider_uuid"));
         Date dateCreated = new Date();
 
         Order order = new Order();
@@ -83,8 +73,8 @@ public class OrderResource extends BaseResource<Order> {
         order.setPatient(patient);
         order.setEncounter(createEncounter(patient, provider, dateCreated));
         order.setInstructions(Utils.getOptionalString(data, "instructions"));
-        order.setScheduledDate(Utils.getOptionalDateMillis(data, "start_millis"));
-        order.setAutoExpireDate(Utils.getOptionalDateMillis(data, "stop_millis"));
+        order.setScheduledDate(Utils.getOptionalDatetime(data, "start_time"));
+        order.setAutoExpireDate(Utils.getOptionalDatetime(data, "stop_time"));
 
         // Fixed fields
         order.setOrderType(DbUtils.getMiscOrderType());
@@ -101,7 +91,7 @@ public class OrderResource extends BaseResource<Order> {
 
     @Override protected Order updateItem(Order order, SimpleObject data, RequestContext context) {
         Patient patient = DbUtils.patientsByUuid.get(Utils.getOptionalString(data, "patient_uuid"));
-        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "orderer_uuid"));
+        Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "provider_uuid"));
         Date dateUpdated = new Date();
 
         Order lastOrder = getLastRevision(order);
@@ -115,12 +105,15 @@ public class OrderResource extends BaseResource<Order> {
             throw new IllegalPropertyException("Cannot change the Patient on an Order");
         }
         newOrder.setEncounter(createEncounter(newOrder.getPatient(), provider, dateUpdated));
-        String instructions = Utils.getOptionalString(data, "instructions");
-        if (instructions != null) newOrder.setInstructions(instructions);
-        Date startDate = Utils.getOptionalDateMillis(data, "start_millis");
-        if (startDate != null) newOrder.setScheduledDate(startDate);
-        Date stopDate = Utils.getOptionalDateMillis(data, "stop_millis");
-        if (stopDate != null) newOrder.setAutoExpireDate(stopDate);
+        if (data.containsKey("instructions")) {
+            newOrder.setInstructions(Utils.getOptionalString(data, "instructions"));
+        }
+        if (data.containsKey("start_time")) {
+            newOrder.setScheduledDate(Utils.getOptionalDatetime(data, "start_time"));
+        }
+        if (data.containsKey("stop_time")) {
+            newOrder.setAutoExpireDate(Utils.getOptionalDatetime(data, "stop_time"));
+        }
 
         // OpenMRS refuses to revise any order whose autoexpire date is in the past.  Therefore, for
         // such orders, we have to store revisions with the NEW action instead of the REVISE action.
@@ -151,12 +144,12 @@ public class OrderResource extends BaseResource<Order> {
         }
         json.add("instructions", order.getInstructions());
         if (order.getScheduledDate() != null) {
-            json.add("start_millis", order.getScheduledDate().getTime());
+            json.add("start_time", Utils.formatUtc8601(order.getScheduledDate()));
         }
         Date stop = order.getDateStopped();
         if (stop == null) stop = order.getAutoExpireDate();
         if (stop != null) {
-            json.add("stop_millis", stop.getTime());
+            json.add("stop_time", Utils.formatUtc8601(stop));
         }
     }
 
