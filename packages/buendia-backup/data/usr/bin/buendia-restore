@@ -61,19 +61,20 @@ if [ -b "$root" ]; then
     trap 'umount "$mnt_dir" || true; rm -rf "$mnt_dir" "$tmp"' EXIT
     mkdir -p "$mnt_dir"
     mount "$root" "$mnt_dir"
-
-    # Find the latest backup directory on the device, or else.
-    backup_dir=$(ls -d $mnt_dir/backup.????-??-?? 2>/dev/null | tail -1)
-    if [ -z "$backup_dir" ]; then
-        echo "No backups found on $root, exiting."
-        exit 1
-    fi
-    root=$backup_dir
+    root="$mnt_dir"
 
 elif [ ! -d "$root" ]; then
     echo "$root is neither a block device nor a directory."
     exit 1
 fi
+
+# Find the latest backup directory on the device, or else.
+backup_dir=$(ls -d $root/backup.????-??-?? 2>/dev/null | tail -1)
+if [ -z "$backup_dir" ]; then
+    echo "No backups found in $root; exiting."
+    exit 1
+fi
+root="$backup_dir"
 
 if [ -d "$root/packages" ]; then
     package_dir="$root/packages"
@@ -125,21 +126,21 @@ fi
 if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
   if [ -d "$package_dir" ]; then
     # Restore backed up packages
-    echo "Restoring packages"
+    echo
+    echo "Restoring packages..."
     suite=stable
 
     mkdir -p /usr/share/buendia/packages/$suite
-    cp -p $package_dir/*.apk /usr/share/buendia/packages
-    cp -p $package_dir/*.deb /usr/share/buendia/packages/$suite
+    cp -p $package_dir/*.apk /usr/share/buendia/packages || true
+    cp -p $package_dir/*.deb /usr/share/buendia/packages/$suite || true
     buendia-pkgserver-index-apks
     buendia-pkgserver-index-debs /usr/share/buendia/packages $suite
   fi
 
   # Restore backed up site settings
-  echo "Restoring buendia-settings"
+  echo
+  echo "Restoring settings..."
   mv /usr/share/buendia/site /usr/share/buendia/site.$$
-  # TODO(nfortescue): investigate tar then move rather than straight tar
-  # to reduce time directory is empty
   if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site; then
     rm -rf /usr/share/buendia/site.$$
   else
@@ -154,6 +155,7 @@ if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
 
   # Reconfigure everything using the new settings
   # TODO(nfortescue): consider how to cope with failure here
+  echo
   buendia-reconfigure
   echo "settings" >> $progressfile
   sync
@@ -167,6 +169,7 @@ fi
 
 if [ $progress_state -le $PROGRESS_MYSQL_NEXT ]; then
   # ---- Restore the MySQL database.
+  echo
   echo "Restoring MySQL database..."
   service tomcat7 stop
   if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
@@ -179,7 +182,10 @@ if [ $progress_state -le $PROGRESS_MYSQL_NEXT ]; then
   fi
   service tomcat7 start
 fi
+buendia-count /usr/share/buendia/counts
 
 # ---- Mark successful completion
 echo "finished" >> $progressfile
 sync
+
+echo "Restore complete!"
