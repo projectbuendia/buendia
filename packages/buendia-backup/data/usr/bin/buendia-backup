@@ -42,13 +42,13 @@ if buendia-db-is-empty >/dev/null; then
 fi
 
 # We use MD5 hashes to detect if files are unchanged and don't need recopying.
-if which md5sum; then
+if which md5sum >/dev/null; then
     SUM=md5sum
-elif which md5; then
+elif which md5 >/dev/null; then
     SUM=md5
-elif which cksum; then
+elif which cksum >/dev/null; then
     SUM=cksum
-elif which sum; then
+elif which sum >/dev/null; then
     SUM=sum
 fi
 
@@ -120,6 +120,7 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 # ---- Back up the Buendia configuration.
 
+echo
 echo "Saving Buendia configuration..."
 tar cfz "$new_dir/buendia.tar.gz" \
   --exclude '*.omod' \
@@ -132,6 +133,7 @@ ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.
 
+echo
 echo "Dumping MySQL database..."
 if ! buendia-mysql-dump openmrs "$new_dir/openmrs.zip" >"$tmp/out" 2>&1; then
     cat "$tmp/out"
@@ -153,7 +155,9 @@ else
     grep '^buendia-' "$new_dir/all.list" > "$new_dir/buendia.list"
 fi
 packages=($(cat "$new_dir/buendia.list"))  # safe, as each line has no spaces
+
 s=s; [ $packages = 1 ] && s=
+echo
 echo Backing up ${#packages} package$s...
 
 # Copying may take some time, so first copy to $new_packages, a temporary
@@ -161,7 +165,7 @@ echo Backing up ${#packages} package$s...
 for package in "${packages[@]}"; do
     echo -n "$package: "
     name=$(echo "$package" | tr = _ | sed -e 's/:/%3a/g')
-    deb_file=($(ls -t -1 /var/cache/apt/archives/$name*.deb | head -1))
+    deb_file=($(ls -t -1 /var/cache/apt/archives/$name*.deb 2>/dev/null | head -1))
     filename=$(basename "$deb_file")
     final_file="$final_packages/$filename"
     if [ -f "$deb_file" -a -f "$final_file" ]; then
@@ -178,10 +182,15 @@ for package in "${packages[@]}"; do
     fi
 done
 
+echo
 echo Backing up APK files...
 for apk_file in /usr/share/buendia/packages/*.apk; do
-    basename "$apk_file"
-    cp -p "$apk_file" "$new_packages"
+    if [ -f "$apk_file" ]; then
+        basename "$apk_file"
+        cp -p "$apk_file" "$new_packages"
+    else
+        echo "No APK files found."
+    fi
 done
 
 # ---- Commit the backup by moving the directory atomically to its final place.
@@ -198,14 +207,11 @@ sync
 # Now atomically commit the backup.
 mv "$new_dir" "$final_dir"
 sync
-echo
-echo "Done!"
-ls -alR "$final_dir"
-
-echo
-echo Cleaning up old or interrupted backups...
 
 # ---- Sweep all the packages in completed backups into a common directory.
+
+echo
+echo Sweeping packages into packages/ directory...
 
 # All the backups at the same backup root share one directory for packages,
 # since packages can be large and new ones are infrequently added.
@@ -219,6 +225,10 @@ mv "$root"/backup.*/packages/* "$final_packages" 2>/dev/null || true
 rmdir "$root"/backup.*/packages 2>/dev/null || true
 
 # ---- Limit the total size of backups.
+
+echo
+echo Cleaning up old or interrupted backups...
+
 if [ -n "$limit" ]; then
   half_limit=$(($limit / 2))
   if [[ $half_limit > 0 ]]; then
@@ -237,5 +247,10 @@ for dir in "$root"/backup.*; do
 done
 
 echo
-echo Backups remaining:
+echo "Done!  Result:"
+echo
+ls -alR "$final_dir" "$final_packages"
+
+echo
+echo "All remaining backup directories:"
 du "$root"/backup.*
