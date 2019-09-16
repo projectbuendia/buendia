@@ -86,17 +86,17 @@ class OpenmrsDatabase:
 
     def insert(self, table, **kwargs):
         """Inserts a row, creating a UUID and filling in metadata if needed."""
-        if 'uuid' not in self.get_columns(table):
-            raise ValueError('insert() only works for tables with uuid columns')
-        if 'creator' in self.get_columns(table):
+        table_columns = self.get_columns(table)
+        if 'creator' in table_columns:
             kwargs.setdefault('creator', self.user_id)
-        if 'uuid' not in kwargs:
-            kwargs['uuid'] = '*' + str(uuid.uuid4())
+        uuid_generated = 'uuid' not in kwargs and 'uuid' in table_columns
+        if uuid_generated:
+            kwargs['uuid'] = uuid.uuid4()
 
         columns = kwargs.keys()
         values = kwargs.values()
         placeholders = ['%s'] * len(values)
-        if 'date_created' in self.get_columns(table):
+        if 'date_created' in table_columns:
             columns += ['date_created']
             placeholders += ['now()']
 
@@ -104,20 +104,20 @@ class OpenmrsDatabase:
             'insert into %s (%s) values (%s)' %
             (table, ', '.join(columns), ', '.join(placeholders)), *values)
 
-        # Retrieve the generated primary key.
-        id = None
-        id_column = table + '_id'
-        if id_column in self.get_columns(table):
-            id = self.db.get(id_column, uuid=kwargs['uuid'])
+        if 'uuid' in table_columns:
+            # Retrieve the generated primary key.
+            id = None
+            id_column = table + '_id'
+            if id_column in table_columns:
+                id = self.db.get(id_column, uuid=kwargs['uuid'])
 
-        # In concept and concept_name, the uuid column is based on the id.
-        if table in ['concept', 'concept_name']:
-            if kwargs['uuid'].startswith('*'):
+            # In concept and concept_name, the uuid column is based on the id.
+            if table in ['concept', 'concept_name'] and uuid_generated:
                 filler = (table == 'concept') and 'A' or 'B'
                 pseudo_uuid = str(id).ljust(36, filler)
                 self.db.execute('update %s set uuid = %s where %s = %s' %
                     (table, '%s', id_column, '%s'), pseudo_uuid, id)
-        return id
+            return id
 
     def update(self, table, id, **kwargs):
         """Updates a row, filling in metadata if needed."""
@@ -187,15 +187,22 @@ def apply(tabs):
     obs_class = db.get('concept_class_id', name='Finding')
     misc_class = db.get('concept_class_id', name='Misc')
 
+    def get_or_insert(table, **values):
+        return (db.get('*', table, **values) or odb.insert(table, **values))
+
+    def update_or_insert(table, id, **values):
+        if db.get(table + '_id', **{table + '_id': id}):
+            odb.update(table, id, **values)
+        else:
+            odb.insert(table, **dict(values.items() + [(table + '_id', id)]))
+
     def ensure_concept(uuid, name, datatype_id, class_id):
         concept_id = db.get('concept_id', uuid=uuid)
         if not concept_id:
             concept_id = odb.insert('concept', uuid=uuid, short_name=name,
                 datatype_id=datatype_id, class_id=class_id)
         if datatype_id == numeric_datatype:
-            if not db.get('concept_id', 'concept_numeric', concept_id=concept_id):
-                db.execute('insert into concept_numeric '
-                    '(concept_id) values (%s)' % concept_id)
+            get_or_insert('concept_numeric', concept_id=concept_id)
 
     ensure_concept('buendia_concept_free_text_order',
         'Free text order', answer_datatype, misc_class)
@@ -217,15 +224,6 @@ def apply(tabs):
             form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
             apply_chart(tabs['chart'], form_id)
         db.commit()
-
-    def get_or_insert(table, **values):
-        return (db.get(table + '_id', **values) or odb.insert(table, **values))
-
-    def update_or_insert(table, id, **values):
-        if db.get(table + '_id', **{table + '_id': id}):
-            odb.update(table, id, **values)
-        else:
-            odb.insert(table, **dict(values.items() + [(table + '_id', id)]))
 
     def get_datatype_name(datatype_id):
         return db.get('name', concept_datatype_id=datatype_id)
@@ -339,7 +337,9 @@ def apply(tabs):
                 # TODO(ping): Get rid of the [chart_divider] hack, and
                 # instead store each chart in its own separate form.
                 sections.append(('[chart_divider]',
-                                 [{'label': row['title'].strip(), 'concept':'162169', 'type':'CHART_DIVIDER'}]))
+                                 [{'label': row['title'].strip(),
+                                   'concept':'162169',
+                                   'type':'CHART_DIVIDER'}]))
                 section, section_rows = (row['section'] or '').strip(), []
             if validate_str(row['type']) and validate_concept_ids(row['concept']):
                 section_rows.append(row)
@@ -433,6 +433,7 @@ def apply(tabs):
         return uuid
 
     def normalize_name(name):
+        name = re.sub(r'\[[^]]*\]', '', name)
         words = re.split(r'[\W_]+', name.strip().lower())
         return '_'.join(word for word in words if word not in
                         ['a', 'an', 'and', 'or', 'of', 'the']
@@ -513,8 +514,8 @@ def apply(tabs):
                     field_id = get_field_for_section('[invisible]')
                     section_id = add_field_to_form(form_id, field_id, None, fn)
 
-                if (concept_id and
-                    type in ['number', 'text', 'yes_no', 'yes_no_unknown', 'select_one']):
+                if (concept_id and type in ['number', 'text', 'yes_no',
+                                            'yes_no_unknown', 'select_one']):
                     put_concept(concept_id, label, LOCALE, datatype, obs_class)
                     if type == 'yes_no':
                         # Answers are: no (1066) or yes (1065)
