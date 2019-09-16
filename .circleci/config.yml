@@ -173,7 +173,10 @@ jobs:
                       git fetch --force origin gh-pages && \
                       git reset --hard origin/gh-pages && \
                       git checkout -q -B gh-pages && \
-                      git archive gh-pages | tar -C/var/www/html/deb --strip-components 1 -xvf - packages"
+                      mkdir /var/www/html/deb.new && \
+                      git archive gh-pages | tar -C/var/www/html/deb.new --strip-components 1 -xf - packages && \
+                      rm -r /var/www/html/deb && \
+                      mv /var/www/html/deb.new /var/www/html/deb"
             fi
 
       - deploy:
