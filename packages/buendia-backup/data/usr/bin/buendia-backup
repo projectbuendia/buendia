@@ -41,6 +41,17 @@ if buendia-db-is-empty >/dev/null; then
     exit 0
 fi
 
+# We use MD5 hashes to detect if files are unchanged and don't need recopying.
+if which md5sum; then
+    SUM=md5sum
+elif which md5; then
+    SUM=md5
+elif which cksum; then
+    SUM=cksum
+elif which sum; then
+    SUM=sum
+fi
+
 # Use the file descriptor to place a runtime lock, to prevent two updates
 # happening simultaneously. When the process exits the file descriptor will be
 # lost (unlike a file). This prevents multiple backups, or backup and restore
@@ -111,12 +122,12 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 echo "Saving Buendia configuration..."
 tar cfz "$new_dir/buendia.tar.gz" \
-    /usr/share/buendia \
-    --exclude /usr/share/buendia/config.d \
-    --exclude /usr/share/buendia/db \
-    --exclude /usr/share/buendia/diversions \
-    --exclude /usr/share/buendia/openmrs/modules \
-    --exclude /usr/share/buendia/packages
+  --exclude '*.omod' \
+  /usr/share/buendia/counts \
+  /usr/share/buendia/distilled \
+  /usr/share/buendia/openmrs \
+  /usr/share/buendia/profiles \
+  /usr/share/buendia/site
 ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.
@@ -148,21 +159,30 @@ echo Backing up ${#packages} package$s...
 # Copying may take some time, so first copy to $new_packages, a temporary
 # directory that's under $new_dir, in the same filesystem as $root.
 for package in "${packages[@]}"; do
-    prefix=$(echo "$package" | tr = _ | sed -e 's/:/%3a/g')
-    file=($(echo /var/cache/apt/archives/$prefix*.deb))
-    if [ -f "$file" ]; then
-        final_file="$final_packages/$(basename "$file")"
-        if [ -f "$file" -a -f "$final_file" ]; then
-            if [ $(stat -c %s "$file") = $(stat -c %s "$final_file") ]; then
-                continue  # same name, same size, assume identical
-            fi
+    echo -n "$package: "
+    name=$(echo "$package" | tr = _ | sed -e 's/:/%3a/g')
+    deb_file=($(ls -t -1 /var/cache/apt/archives/$name*.deb | head -1))
+    filename=$(basename "$deb_file")
+    final_file="$final_packages/$filename"
+    if [ -f "$deb_file" -a -f "$final_file" ]; then
+        deb_sum=$($SUM < "$deb_file")
+        final_sum=$($SUM < "$final_file")
+        if [ "$deb_sum" = "$final_sum" ]; then
+            echo "$deb_file is unchanged"
+            continue
         fi
-        cp -p "$file" "$new_packages" || true
+        echo "copying $deb_file"
+        cp -p "$deb_file" "$new_packages" || true
+    else
+        echo "no .deb file found"
     fi
 done
 
 echo Backing up APK files...
-cp -p "/usr/share/buendia/packages/*.apk" "$new_packages"
+for apk_file in /usr/share/buendia/packages/*.apk; do
+    basename "$apk_file"
+    cp -p "$apk_file" "$new_packages"
+done
 
 # ---- Commit the backup by moving the directory atomically to its final place.
 
