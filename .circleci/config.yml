@@ -165,9 +165,21 @@ jobs:
           path: /tmp/artifacts
 
       - deploy:
+          name: Deploy to download.buendia.org
+          command: |
+            if [ "$BUENDIA_BRANCH" = "dev" -o "$BUENDIA_BRANCH" = "master" ]; then
+                ssh-keyscan $DOWNLOAD_HOST >> $HOME/.ssh/known_hosts
+                ssh $SSH_USER@$DOWNLOAD_HOST "cd builds && \
+                      git fetch --force origin gh-pages && \
+                      git reset --hard origin/gh-pages && \
+                      git checkout -q -B gh-pages && \
+                      git archive gh-pages | tar -C/var/www/html/deb --strip-components 1 -xvf - packages"
+            fi
+
+      - deploy:
           name: Deploy to staging.buendia.org
           command: |
-            if [ "$BUENDIA_BRANCH" = "dev" ]; then
+            if [ "$BUENDIA_BRANCH" = "dev" -o "$BUENDIA_BRANCH" = "master" ]; then
                 ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
                 ssh $SSH_USER@$STAGING_HOST "sudo apt-get update; sudo apt-get -y -f install; sudo apt-get -y upgrade; sudo apt-get -y -f install"
             fi
