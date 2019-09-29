@@ -13,6 +13,9 @@ package org.projectbuendia.openmrs.webservices.rest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.JsonParser;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -26,10 +29,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -42,12 +50,53 @@ import javax.servlet.http.HttpServletResponse;
 @RequestMapping("/rest/" + RestController.PATH)
 public class RestController extends MainResourceController {
     public static final String PATH = "buendia";
+    public static GitProperties git;
+
     private final Log log = LogFactory.getLog(getClass());
 
-    public RestController() { }
+    public static class GitProperties {
+        String commitId = null;
+        String commitTime = null;
+        String nearestTag = null;
+        int numCommitsAfterTag = -1;
+        boolean dirty = false;
+
+        public String describe() {
+            // TODO(ping): The "git.dirty" property is always "true" even if the
+            // working tree is clean.  Figure out why.  For now, ignore "dirty".
+            boolean release = numCommitsAfterTag == 0;
+            String desc = release ? nearestTag : String.format(
+                "%s+%d (%s)", nearestTag, numCommitsAfterTag, commitId
+            );
+            return String.format("%s [%s]", desc, commitTime);
+        }
+    }
+
+    public RestController() {
+        git = loadGitProperties();
+    }
+
+    private GitProperties loadGitProperties() {
+        GitProperties git = new GitProperties();
+        Map props = new HashMap();
+        try {
+            ClassLoader classLoader = getClass().getClassLoader();
+            InputStream stream = classLoader.getResourceAsStream("git.properties");
+            props = new ObjectMapper().readValue(stream, Map.class);
+        } catch (IOException e) { }
+        try {
+            git.commitId = (String) props.get("git.commit.id.abbrev");
+            git.commitTime = (String) props.get("git.commit.time");
+            git.nearestTag = (String) props.get("git.closest.tag.name");
+            git.numCommitsAfterTag = Integer.parseInt((String) props.get("git.closest.tag.commit.count"));
+            git.dirty = Boolean.parseBoolean((String) props.get("git.dirty"));
+        } catch (ClassCastException | NumberFormatException e) { }
+        return git;
+    }
 
     public SimpleObject get(@PathVariable("resource") String resource, HttpServletRequest request, HttpServletResponse response) throws ResponseException {
-        // The "locale" parameter should not be treated as a search criterion.
+        // These parameters should not be treated as search criteria.
+        RestConstants.SPECIAL_REQUEST_PARAMETERS.add("clear-cache");
         RestConstants.SPECIAL_REQUEST_PARAMETERS.add("locale");
         return super.get(resource, request, response);
     }

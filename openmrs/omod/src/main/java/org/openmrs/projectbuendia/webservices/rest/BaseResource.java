@@ -26,11 +26,15 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
+import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 // The default OpenMRS behaviour when attempting to perform an unsupported
 // operation on a resource is terrible (it simply fails to cast the resource
@@ -83,7 +87,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     /** Returns all items in the collection. */
     public SimpleObject getAll(RequestContext context) throws ResponseException {
-        Utils.addVersionHeaders(context);
+        initialize(context);
         try {
             logger.request(context, this, "getAll");
             List<SimpleObject> results = new ArrayList<>();
@@ -95,6 +99,8 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             logger.error(context, this, "getAll", e);
             throw e;
+        } finally {
+            finalize(context);
         }
     }
 
@@ -103,7 +109,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
      * otherwise searches for items matching the criteria in context.
      */
     public SimpleObject search(RequestContext context) throws ResponseException {
-        Utils.addVersionHeaders(context);
+        initialize(context);
         Bookmark bookmark = getBookmark(context);
         String op = bookmark != null ? "sync" : "search";
         logger.request(context, this, op);
@@ -125,13 +131,15 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             logger.error(context, this, op, e);
             throw e;
+        } finally {
+            finalize(context);
         }
 
     }
 
     /** Creates a new item from the posted data. */
     public Object create(SimpleObject data, RequestContext context) throws ResponseException {
-        Utils.addVersionHeaders(context);
+        initialize(context);
         try {
             logger.request(context, this, "create", data);
             Utils.requirePropertyAbsent(data, "uuid");
@@ -140,12 +148,14 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             logger.error(context, this, "create", e);
             throw e;
+        } finally {
+            finalize(context);
         }
     }
 
     /** Retrieves the item with the given UUID. */
     public Object retrieve(String uuid, RequestContext context) throws ResponseException {
-        Utils.addVersionHeaders(context);
+        initialize(context);
         try {
             logger.request(context, this, "retrieve");
             T item = retrieveRequiredItem(uuid);
@@ -153,12 +163,14 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             logger.error(context, this, "retrieve", e);
             throw e;
+        } finally {
+            finalize(context);
         }
     }
 
     /** Updates the item with the given UUID. */
     public Object update(String uuid, SimpleObject data, RequestContext context) throws ResponseException {
-        Utils.addVersionHeaders(context);
+        initialize(context);
         try {
             logger.request(context, this, "update", data);
             T item = retrieveRequiredItem(uuid);
@@ -167,12 +179,14 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             logger.error(context, this, "update", e);
             throw e;
+        } finally {
+            finalize(context);
         }
     }
 
     /** Deletes the item with the given UUID. */
     public void delete(String uuid, String reason, RequestContext context) throws ResponseException {
-        Utils.addVersionHeaders(context);
+        initialize(context);
         try {
             logger.request(context, this, "delete", reason);
             T item = retrieveRequiredItem(uuid);
@@ -181,6 +195,8 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             logger.error(context, this, "delete", e);
             throw e;
+        } finally {
+            finalize(context);
         }
     }
 
@@ -278,5 +294,18 @@ public abstract class BaseResource<T extends OpenmrsObject>
         } catch (Exception e) {
             throw new InvalidSearchException("Invalid bookmark \"" + since + "\"");
         }
+    }
+
+    private void initialize(RequestContext context) {
+        HttpServletRequest request = context.getRequest();
+        if (request.getHeader("Clear-Cache") != null) buendiaService.clearCache();
+
+        HttpServletResponse response = context.getResponse();
+        response.addHeader("Buendia-Server-Version", RestController.git.describe());
+        response.addHeader("Buendia-Client-Minimum-Version", "0.18");
+    }
+
+    private void finalize(RequestContext context) {
+        // Nothing to do.
     }
 }

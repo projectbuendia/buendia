@@ -77,8 +77,6 @@ public class XformResource extends BaseResource<Form> {
      * containing the XML of the form model definition.
      */
     @Override protected void populateJson(SimpleObject json, Form form, RequestContext context) {
-        buendiaService.clearCache();
-
         json.add("name", form.getName());
         json.add("id", form.getFormId());
         json.add("version", form.getVersion());
