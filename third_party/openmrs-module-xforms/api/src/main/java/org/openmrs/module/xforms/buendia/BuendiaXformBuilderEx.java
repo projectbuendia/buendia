@@ -369,8 +369,10 @@ public class BuendiaXformBuilderEx {
             boolean precise = numeric.isPrecise();
             String min = minValue != null ? FormSchemaFragment.numericToString(minValue, precise) : null;
             String max = maxValue != null ? FormSchemaFragment.numericToString(maxValue, precise) : null;
-            String msgAttr = XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE;
+            bindNode.setAttribute(null, "constraint-min", min);
+            bindNode.setAttribute(null, "constraint-max", max);
 
+            String msgAttr = XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE;
             if (min != null && max != null) {
                 bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + min + " and . <= " + max);
                 bindNode.setAttribute(null, msgAttr, "Value should be between " + min + " and " + max);

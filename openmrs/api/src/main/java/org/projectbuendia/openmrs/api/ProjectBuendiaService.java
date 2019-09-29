@@ -37,6 +37,8 @@ public interface ProjectBuendiaService extends OpenmrsService {
     /** Sets the DAO for this service. This is done by DI and Spring. */
     void setDAO(ProjectBuendiaDAO dao);
 
+    void clearCache();
+
     /**
      * Returns all observations modified on or after the given {@code date}.
      * @param bookmark a token representing the first record to be excluded from the result set.
