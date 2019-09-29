@@ -44,8 +44,8 @@ import javax.servlet.http.HttpServletResponse;
 public abstract class BaseResource<T extends OpenmrsObject>
     implements Listable, Searchable, Creatable, Retrievable, Updatable, Deletable {
     private static final RequestLogger logger = RequestLogger.LOGGER;
+
     private final List<Representation> availableRepresentations;
-    
     protected final String pluralCollectionName;
     protected final ProjectBuendiaService buendiaService;
     protected final ConceptService conceptService;
@@ -298,11 +298,12 @@ public abstract class BaseResource<T extends OpenmrsObject>
 
     private void initialize(RequestContext context) {
         HttpServletRequest request = context.getRequest();
-        if (request.getHeader("Clear-Cache") != null) buendiaService.clearCache();
+        if (request.getParameter("clear-cache") != null) buendiaService.clearCache();
 
         HttpServletResponse response = context.getResponse();
         response.addHeader("Buendia-Server-Version", RestController.git.describe());
-        response.addHeader("Buendia-Client-Minimum-Version", "0.18");
+        String minVer = VersionUtils.getMinimumClientVersion(RestController.git.nearestRelease);
+        if (minVer != null) response.addHeader("Buendia-Client-Minimum-Version", minVer);
     }
 
     private void finalize(RequestContext context) {

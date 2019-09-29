@@ -55,18 +55,19 @@ public class RestController extends MainResourceController {
     private final Log log = LogFactory.getLog(getClass());
 
     public static class GitProperties {
-        String commitId = null;
-        String commitTime = null;
-        String nearestTag = null;
-        int numCommitsAfterTag = -1;
-        boolean dirty = false;
+        public String commitId = null;
+        public String commitTime = null;
+        public String nearestTag = null;
+        public String nearestRelease = null;
+        public int numCommitsAfterTag = -1;
+        public boolean dirty = false;
 
         public String describe() {
             // TODO(ping): The "git.dirty" property is always "true" even if the
             // working tree is clean.  Figure out why.  For now, ignore "dirty".
             boolean release = numCommitsAfterTag == 0;
-            String desc = release ? nearestTag : String.format(
-                "%s+%d (%s)", nearestTag, numCommitsAfterTag, commitId
+            String desc = release ? nearestRelease : String.format(
+                "%s+%d (%s)", nearestRelease, numCommitsAfterTag, commitId
             );
             return String.format("%s [%s]", desc, commitTime);
         }
@@ -88,6 +89,7 @@ public class RestController extends MainResourceController {
             git.commitId = (String) props.get("git.commit.id.abbrev");
             git.commitTime = (String) props.get("git.commit.time");
             git.nearestTag = (String) props.get("git.closest.tag.name");
+            git.nearestRelease = git.nearestTag.replaceAll("^v", "");
             git.numCommitsAfterTag = Integer.parseInt((String) props.get("git.closest.tag.commit.count"));
             git.dirty = Boolean.parseBoolean((String) props.get("git.dirty"));
         } catch (ClassCastException | NumberFormatException e) { }
