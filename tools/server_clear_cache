@@ -16,5 +16,5 @@ set -e
 
 eval $(buendia-settings 2>/dev/null)
 
-curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" \
-    'http://localhost:9000/openmrs/ws/rest/buendia/providers?clear-cache=1'
+curl -u "$SERVER_OPENMRS_USER:$SERVER_OPENMRS_PASSWORD" -sS \
+    'http://localhost:9000/openmrs/ws/rest/buendia/providers?clear-cache=1' >/dev/null
