@@ -285,4 +285,5 @@ run_all_test_suites () {
     suites_run=$(wc -l < ${test_results}/suites)
     tests_passed=$(wc -l < ${test_results}/tests)
     echo "$suites_run of $suite_count suites run, $tests_passed tests passed, $tests_failed test(s) failed."
+    return $tests_failed
 }

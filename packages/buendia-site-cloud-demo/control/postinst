@@ -12,15 +12,10 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-# Provide a randomly generated password for the Buendia user, if necessary.
-generated=/usr/share/buendia/site/20-server
-if [ ! -e $generated -o -z "$SERVER_OPENMRS_PASSWORD" ]; then
-    echo "SERVER_OPENMRS_PASSWORD=$(buendia-mkpass)" > $generated
-    . /usr/share/buendia/utils.sh  # reload settings
-fi
+case $1 in
+    configure|abort-upgrade|abort-remove|abort-deconfigure)
+        buendia-reconfigure
+        ;;
 
-# Set up the Buendia user account.
-service mysql start
-export MYSQL_USER="$OPENMRS_MYSQL_USER"
-export MYSQL_PASSWORD="$OPENMRS_MYSQL_PASSWORD"
-buendia-openmrs-account-setup "$SERVER_OPENMRS_USER" "$SERVER_OPENMRS_PASSWORD"
+    *) exit 1
+esac

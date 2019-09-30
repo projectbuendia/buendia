@@ -16,7 +16,7 @@ test_30_create_backup () {
 }
 
 test_40_delete_all_patients () {
-    echo "delete from encounter; delete from patient" | execute_openmrs_sql
+    echo "delete from provider; delete from obs; delete from encounter; delete from patient" | execute_openmrs_sql
 }
 
 test_50_confirm_changed_patient_list () {

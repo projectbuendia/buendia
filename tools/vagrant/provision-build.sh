@@ -5,13 +5,15 @@
 # cp -av /mnt/buendia/tools/apt/* /etc/apt/
 
 # Get apt-transport-https so that we can apt-get install from an https server
-apt-get update
-apt-get install apt-transport-https
+# apt-get update
+# apt-get install apt-transport-https
 
 # Use our private archive for openjdk-7 and tomcat
-echo "deb [trusted=yes] https://projectbuendia.github.io/builds/packages stable main java" > /etc/apt/sources.list.d/openjdk-7.list
+echo "deb [trusted=yes] http://download.buendia.org/deb stable java" > /etc/apt/sources.list.d/openjdk-7.list
 echo "deb http://security.debian.org/debian-security stretch/updates experimental" > /etc/apt/sources.list.d/wpasupplicant.list
 apt-get update
+
+export DEBIAN_FRONTEND=noninteractive
 
 # Install OpenJDK 7 *before* installing Maven; else Maven will pull in OpenJDK 8
 apt-get install -y openjdk-7-jdk
