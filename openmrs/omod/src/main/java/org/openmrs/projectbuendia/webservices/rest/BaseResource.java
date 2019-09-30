@@ -292,7 +292,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         try {
             return Bookmark.deserialize(since);
         } catch (Exception e) {
-            throw new InvalidSearchException("Invalid bookmark \"" + since + "\"");
+            throw new InvalidSearchException("Invalid bookmark \"" + since + "\": " + e.getMessage());
         }
     }
 
