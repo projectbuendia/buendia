@@ -1,4 +1,6 @@
 test_10_run_dashboard_cron () {
+    # Run the server cron first, to make sure that buendia-warmup is run
+    execute_cron_right_now server
     execute_cron_right_now dashboard
 }
 
