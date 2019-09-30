@@ -14,6 +14,7 @@ import org.openmrs.module.xforms.buendia.BuendiaXformBuilderEx;
 import org.openmrs.module.xforms.buendia.FormData;
 import org.openmrs.module.xforms.util.XformsUtil;
 import org.openmrs.util.FormConstants;
+import org.projectbuendia.openmrs.api.ProjectBuendiaService;
 import org.projectbuendia.openmrs.webservices.rest.RestController;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

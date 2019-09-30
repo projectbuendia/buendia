@@ -298,15 +298,6 @@ public class Utils {
     }
 
 
-    // ==== HTTP responses ====
-
-    public static void addVersionHeaders(RequestContext context) {
-        HttpServletResponse response = context.getResponse();
-        response.addHeader("Buendia-Server-Version", "0.15.4");
-        response.addHeader("Buendia-Client-Minimum-Version", "0.18");
-    }
-
-
     // ==== Debugging ====
 
     public static String format(String format, Object... args) {

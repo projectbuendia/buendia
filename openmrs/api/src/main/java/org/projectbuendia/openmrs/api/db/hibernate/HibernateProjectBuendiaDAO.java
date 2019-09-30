@@ -57,6 +57,10 @@ public class HibernateProjectBuendiaDAO implements ProjectBuendiaDAO {
         this.sessionFactory = sessionFactory;
     }
 
+    public void clearCache() {
+        sessionFactory.getCache().evictEntityRegions();
+    }
+
     @Override
     public SyncPage<Obs> getObservationsModifiedAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
