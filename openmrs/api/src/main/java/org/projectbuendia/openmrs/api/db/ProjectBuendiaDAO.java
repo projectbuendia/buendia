@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 /** Database methods for {@link ProjectBuendiaService}. */
 public interface ProjectBuendiaDAO {
+    void clearCache();
 
     SyncPage<Obs> getObservationsModifiedAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);

@@ -6,6 +6,7 @@ import MySQLdb
 import os
 import re
 import sys
+import time
 import uuid
 import warnings
 
@@ -224,6 +225,17 @@ def apply(tabs):
             form_id = put_form(CHART_UUID, 'Chart definition', chart_enctype)
             apply_chart(tabs['chart'], form_id)
         db.commit()
+        sys.stdout.flush()
+        sys.stderr.flush()
+        server_clear_cache()
+
+    def server_clear_cache():
+        dir = os.path.dirname(sys.argv[0])
+        script_path = os.path.join(dir, 'server_clear_cache')
+        if os.path.exists(script_path):
+            os.system(script_path)
+        else:
+            os.system('buendia-server-clear-cache')
 
     def get_datatype_name(datatype_id):
         return db.get('name', concept_datatype_id=datatype_id)

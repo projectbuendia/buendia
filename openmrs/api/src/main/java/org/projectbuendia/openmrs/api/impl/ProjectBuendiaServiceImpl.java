@@ -36,6 +36,11 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
     }
 
     @Override
+    public void clearCache() {
+        if (dao != null) dao.clearCache();
+    }
+
+    @Override
     public SyncPage<Obs> getObservationsModifiedAtOrAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
         return dao.getObservationsModifiedAfter(bookmark, includeVoided, maxResults);
