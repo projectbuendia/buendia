@@ -317,6 +317,9 @@ workflows:
       - deploy-download:
           requires:
               - apt-archive
+          filters:
+            tags:
+              only: /^v.*/
 
   clean-apt-archive:
     # Eliminate older unstable packages every night at 2am. This is intended to
