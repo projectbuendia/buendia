@@ -1,7 +1,16 @@
 TOMCAT7_USER=tomcat7
 TOMCAT7_GROUP=tomcat7
 
+# NOTE SDE 2019-09-25: the following comment says "Edison" but I see no reason
+# to change it yet
+#
 # JVM parameters tuned for Edison
 # Increasing the memory limit from 128M to 256M reduces swapping overhead.
 # CMSIncrementalMode reduces latency by yielding periodically during GC sweeps.
 JAVA_OPTS="-Djava.awt.headless=true -Xmx256m -XX:+UseConcMarkSweepGC -XX:+CMSIncrementalMode"
+
+# Eliminate slow startup due to Catalina looking for a secure random source, e.g.
+# https://ruleoftech.com/2016/avoiding-jvm-delays-caused-by-random-number-generation
+#
+# Otherwise Catalina may take 5-10 minutes for a cold start.
+CATALINA_OPTS="-Djava.security.egd=file:/dev/./urandom"
