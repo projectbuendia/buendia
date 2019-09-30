@@ -228,6 +228,7 @@ public class ProfileManager {
             setCurrentProfile(file.getName());
             model.addAttribute("success", true);
             model.addAttribute("message", "Success applying profile: " + file.getName());
+            model.addAttribute("output", StringUtils.join(lines, "\n"));
         } else {
             model.addAttribute("success", false);
             model.addAttribute("message", "Error applying profile: " + file.getName());
