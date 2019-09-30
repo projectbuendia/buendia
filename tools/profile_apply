@@ -505,9 +505,9 @@ def apply(tabs):
                 continue
 
             type, datatype = validate_type(row['type'])
-            concept_id = validate_int(row['concept'])
+            concept_id = validate_concept_id(row['concept'])
             label = row['label'] or ''
-            option_concept_id = validate_int(row['option concept'])
+            option_concept_id = validate_concept_id(row['option concept'])
             option_label = row['option label'] or ''
 
             if type:
@@ -538,9 +538,9 @@ def apply(tabs):
                     if datatype == numeric_datatype:
                         set_concept_numeric(
                             concept_id,
-                            validate_range(row.get('normal range')),
-                            validate_range(row.get('noncritical range')),
-                            validate_range(row.get('absolute range')),
+                            validate_range(row.get('normal')),
+                            validate_range(row.get('noncritical')),
+                            validate_range(row.get('absolute')),
                             row.get('units'))
                     field_id = get_field_for_concept(concept_id, label)
                     add_field_to_form(form_id, field_id, section_id, None, i,
@@ -574,16 +574,18 @@ def apply(tabs):
         type = (type or '').strip().lower()
         if not type:
             return None, None
-        elif type in datatypes_by_type:
+        if type in datatypes_by_type:
             return type, datatypes_by_type[type]
-        else:
-            return 'n/a', None
+        raise ValueError('Invalid type "%s" (should be one of %r)'
+            % (type, datatypes_by_type.keys()))
 
-    def validate_int(text):
-        try:
-            return int(text or '')
-        except ValueError:
+    def validate_concept_id(text):
+        if not text:
             return None
+        try:
+            return int(text)
+        except ValueError:
+            raise ValueError('Invalid concept ID "%s" (should be int)' % text)
 
     def validate_concept_ids(text):
         result = []
@@ -592,10 +594,10 @@ def apply(tabs):
                 concept_id = db.get('concept_id', uuid=item)
                 if not concept_id:
                     raise ValueError(
-                        'Concept "%s" not found in the dictionary', item)
+                        'Concept "%s" not found in the dictionary' % item)
                 result.append(concept_id)
             else:
-                result.append(validate_int(item))
+                result.append(validate_concept_id(item))
         return result
 
     def validate_boolean(text):
@@ -604,15 +606,22 @@ def apply(tabs):
         return re.match('[a-z1-9]', word) and word[0] not in 'nf' and 1 or 0
 
     def validate_range(range):
+        range = (range or '').strip()
+        if not range:
+            return None, None
         try:
             # Separator can be '-' or '..' for backward compatibility.
             range = re.sub(r'(.)(-|\.\.+)', r'\1 ', (range or '').strip())
             low, high = range.split(' ', 1)
-            low = low.strip() and float(low) or None
-            high = high.strip() and float(high) or None
+            min = max = None
+            if low.strip():
+                low = float(low)
+            if high.strip():
+                high = float(high)
             return low, high
-        except ValueError:
-            return None, None
+        except ValueError, e:
+            raise ValueError(
+                'Invalid range "%s" (should be min-max, e.g. "0-100")' % range)
 
     main()
 
