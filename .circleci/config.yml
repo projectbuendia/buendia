@@ -198,13 +198,13 @@ jobs:
             - "99:7c:11:11:e7:7b:e8:de:c4:0c:4e:6d:1d:cc:2e:1a"
 
       - deploy:
-          name: Deploy to staging host
+          name: Run buendia-update on staging
           command: |
             ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
-            ssh $SSH_USER@$STAGING_HOST "sudo apt-get update; sudo apt-get -y -f install; sudo apt-get -y upgrade; sudo apt-get -y -f install"
+            ssh $SSH_USER@$STAGING_HOST "sudo buendia-update"
 
       - deploy:
-          name: Run all integration tests
+          name: Run all integration tests on staging
           command: ssh $SSH_USER@$STAGING_HOST "sudo buendia-run-tests --unsafe"
 
   purge-unstable-repo:
