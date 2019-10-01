@@ -27,10 +27,6 @@ if ! flock -n 9; then
     exit 1
 fi
 
-# Checking for updates: red on
-buendia-led red on
-trap 'buendia-led red off; buendia-led yellow off' EXIT
-
 export DEBIAN_FRONTEND=noninteractive
 echo "--- Starting: $0 $@"
 buendia-status
@@ -54,11 +50,42 @@ if [ -n "$1" ]; then
 else
     packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
 fi
+
+# Attempt database migration first, if requested
+if echo $packages | grep buendia-server; then
+    echo "--- Attempting database migration"
+    apt-get -V -y --allow-unauthenticated install buendia-db-migrate
+
+    from_version=$(dpkg-query --showformat='${Version}' --show buendia-server)
+    to_version=$(dpkg-query --showformat='${Version}' --show buendia-db-migrate)
+    buendia-db-migrate $from_version $to_version
+    migration_failed=$?
+
+    if bool $migration_failed && bool "$UPDATE_FORCE_UPGRADE"; then
+        echo "--- Migration failed; performing forced upgrade"
+        if [ -x /usr/bin/buendia-openmrs-dump ]; then
+            echo "--- Dumping database v${from_version}"
+            buendia-openmrs-dump openmrs /var/backups/buendia/buendia-db-${from_version}.zip
+        fi
+
+        echo "--- Remove old database"
+        apt-get purge -y buendia-db
+        rm /etc/buendia-db-init-installed
+
+        echo "--- Create new database"
+        apt-get install -V -y buendia-db-init buendia-server
+        buendia-openmrs-account-setup $SERVER_OPENMRS_USER $SERVER_OPENMRS_PASSWORD
+        buendia-openmrs-location-setup
+
+        latest_profile=$(ls -t /usr/share/buendia/profiles/* | head -1)
+        if [ -x /usr/bin/buendia-profile-apply -a -n "$latest_profile" ]; then
+            buendia-profile-apply $latest_profile
+        fi
+    fi
+fi
+
 echo
 echo "--- Updating packages: $packages"
-# Applying updates: red and yellow
-buendia-led red on
-buendia-led yellow on
 
 apt-get -V -y --allow-unauthenticated install $packages
 install_status=$?
