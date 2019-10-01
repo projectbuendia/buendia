@@ -61,7 +61,12 @@ if echo $packages | grep buendia-server; then
     buendia-db-migrate $from_version $to_version
     migration_failed=$?
 
-    if bool $migration_failed && bool "$UPDATE_FORCE_UPGRADE"; then
+    if bool $migration_failed; then
+        if ! bool "$UPDATE_FORCE_UPGRADE"; then
+            echo "--- MIGRATION FAILED FROM v${from_version} to v{$to_version}; EXITING"
+            exit $migration_failed
+        fi
+
         echo "--- Migration failed; performing forced upgrade"
         if [ -x /usr/bin/buendia-openmrs-dump ]; then
             echo "--- Dumping database v${from_version}"
