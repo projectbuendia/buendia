@@ -82,14 +82,22 @@ if [ -n "$NETWORKING_IP_ADDRESS" ]; then
         auto $MAIN_INTERFACE
         iface $MAIN_INTERFACE inet static
             address $NETWORKING_IP_ADDRESS/24
-            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
     " > /etc/network/interfaces.d/$MAIN_INTERFACE
 else
     unindent <<< "
         auto $MAIN_INTERFACE
         iface $MAIN_INTERFACE inet dhcp
-            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
     " > /etc/network/interfaces.d/$MAIN_INTERFACE
+fi
+
+# Tell wpa_supplicant where to get its credentials, and ensure that wireless
+# power management is off -- this is a must for NUC, as otherwise network
+# performance suffers badly.
+if [ -n "$USE_WIFI" ]; then
+    unindent <<< "
+            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+            wireless-power off
+    " >> /etc/network/interfaces.d/$MAIN_INTERFACE
 fi
 
 # Special case: If we're using Wi-Fi, but we also have an ethernet interface,
