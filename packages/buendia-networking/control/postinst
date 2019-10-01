@@ -10,10 +10,8 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-# This package installation enables and configures hostap and udhcp daemons.
-# It sets the dns server to be located at the provided ip addres of this
-# machine after the access point is up.
-# Finally it signals apt that it requires a reboot.
+# This package installation enables and configures hostap, udhcpc, and dnsmasq.
+# After configuration, it signals buendia-update that a reboot is needed.
 
 set -e; . /usr/share/buendia/utils.sh
 

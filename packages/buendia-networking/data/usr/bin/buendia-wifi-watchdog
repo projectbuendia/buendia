@@ -51,7 +51,8 @@ fi
 # The "wpa_cli" command tells us the status of the wifi client subsystem.
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
-wpa_cli status; true >$tmpfile 2>&1
+echo wpa_cli -i $NETWORKING_WIFI_INTERFACE status
+wpa_cli -i $NETWORKING_WIFI_INTERFACE status >$tmpfile 2>&1 || true
 
 cat $tmpfile  # cause the output of wpa_cli status to appear in the log
 
