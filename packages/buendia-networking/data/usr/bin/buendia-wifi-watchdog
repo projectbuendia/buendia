@@ -43,26 +43,30 @@ if bool "$NETWORKING_AP"; then
     exit 1
 fi
 
-if [ -z "$NETWORKING_SSID" ]; then
-    echo "Not checking wifi: NETWORKING_SSID is unset."
+if [ -z "$NETWORKING_WIFI_INTERFACE" -o -z "$NETWORKING_SSID" ]; then
+    echo "Not checking wifi: NETWORKING_WIFI_INTERFACE or NETWORKING_SSID is unset."
     exit 1
 fi
 
-# The "wpa_cli" command tells us the status of the wifi client subsystem.
+# iwconfig will tell us if we're associated to an access point.
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
-wpa_cli status; true >$tmpfile 2>&1
-
+iwconfig $NETWORKING_WIFI_INTERFACE >$tmpfile 2>&1
 cat $tmpfile  # cause the output of wpa_cli status to appear in the log
 
-# If wpa_supplicant is not running at all, wpa_cli status will just contain
-# an error message.  If wpa_supplicant is up but not (yet) connected to an AP,
-# wpa_cli status will say that the state is something other than COMPLETED,
-# such as SCANNING or DISCONNECTED or ASSOCIATING.  In all of these cases, we
-# just want to restart the wifi connection.
-if ! grep -q wpa_state=COMPLETED $tmpfile; then
-    echo "Restarting wifi."
-    # "-f" means to force redoing network setup even though the network
-    # configuration settings haven't changed.
-    buendia-reconfigure -f networking
+# If we are associated to an access point, _and_ we have a broadcast address we
+# can ping, then we assume that the wifi network is up.
+if ! grep -q "Access Point: Not-Associated" $tmpfile; then
+    broadcast_address=$(ip route | grep "^[0-9\.]*/[0-9]* dev $NETWORKING_WIFI_INTERFACE" | cut -d/ -f1)
+    if [ -n "$broadcast_address" ] && ping -q -w1 -c1 -b $broadcast_address >/dev/null; then
+        # Success!
+        exit 0
+    fi
 fi
+
+# If we couldn't find an access point or someone on the local network, then
+# restart the networking stack.
+echo "Restarting wifi."
+# "-f" means to force redoing network setup even though the network
+# configuration settings haven't changed.
+buendia-reconfigure -f networking
