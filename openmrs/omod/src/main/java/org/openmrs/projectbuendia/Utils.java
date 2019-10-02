@@ -11,9 +11,9 @@
 
 package org.openmrs.projectbuendia;
 
-import org.openmrs.module.webservices.rest.SimpleObject;
-import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
+import org.openmrs.projectbuendia.webservices.rest.VersionInfo;
+import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.math.BigInteger;
 import java.text.DateFormat;

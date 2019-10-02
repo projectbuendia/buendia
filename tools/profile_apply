@@ -589,7 +589,7 @@ def apply(tabs):
 
     def validate_concept_ids(text):
         result = []
-        for item in text.split(','):
+        for item in text.replace(',', ';').split(';'):
             if item.startswith('buendia_concept_'):  # special concept UUID
                 concept_id = db.get('concept_id', uuid=item)
                 if not concept_id:
