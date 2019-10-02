@@ -53,10 +53,10 @@ public class VersionInfo {
     }
 
     static class GitProperties {
-        String commitId = null;
-        String commitTime = null;
-        String nearestTag = null;
-        String nearestRelease = null;
+        String commitId = "";
+        String commitTime = "";
+        String nearestTag = "";
+        String nearestRelease = "";
         int numCommitsAfterTag = -1;
         boolean dirty = false;
 
@@ -67,9 +67,9 @@ public class VersionInfo {
                 props = new ObjectMapper().readValue(stream, Map.class);
             } catch (IOException e) { }
             try {
-                commitId = (String) props.get("commit.id.abbrev");
-                commitTime = (String) props.get("commit.time");
-                nearestTag = (String) props.get("closest.tag.name");
+                commitId = Utils.toNonnull((String) props.get("commit.id.abbrev"));
+                commitTime = Utils.toNonnull((String) props.get("commit.time"));
+                nearestTag = Utils.toNonnull((String) props.get("closest.tag.name"));
                 nearestRelease = nearestTag.replaceAll("^v", "");
                 numCommitsAfterTag = Integer.parseInt((String) props.get("closest.tag.commit.count"));
                 dirty = Boolean.parseBoolean((String) props.get("dirty"));
@@ -80,7 +80,8 @@ public class VersionInfo {
             // TODO(ping): We are ignoring the "git.dirty" property because it
             // is always "true" even if the working tree is clean.  Figure out why.
             boolean release = numCommitsAfterTag == 0;
-            String desc = release ? nearestRelease : String.format(
+            String desc = nearestRelease.isEmpty() ? "unknown" :
+                release ? nearestRelease : String.format(
                 "%s+%d (%s)", nearestRelease, numCommitsAfterTag, commitId
             );
             return String.format("%s [%s]", desc, commitTime);
