@@ -198,7 +198,7 @@ public class ObsUtils {
             case HL7Constants.HL7_DATE:
                 Date date = obs.getValueDate();
                 return json.add(
-                    "value_date", date == null ? null : Utils.YYYYMMDD_UTC_FORMAT.format(date));
+                    "value_date", date == null ? null : Utils.formatUtcDate(date));
             case HL7Constants.HL7_DATETIME:
                 Date datetime = obs.getValueDatetime();
                 return json.add(

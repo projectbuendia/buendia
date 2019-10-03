@@ -1,0 +1,16 @@
+#!/bin/bash
+
+server="$1"
+cd $(dirname "$0")
+
+while true; do
+    time ./rest $server /charts?v=full
+    time ./rest $server /concepts
+    time ./rest $server /locations
+    time ./rest $server /observations
+    time ./rest $server /orders
+    time ./rest $server /patients
+    time ./rest $server /providers
+    time ./rest $server /xforms?v=full
+    sleep 0.1
+done

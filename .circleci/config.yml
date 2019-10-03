@@ -203,6 +203,10 @@ jobs:
             ssh-keyscan $STAGING_HOST >> $HOME/.ssh/known_hosts
             ssh $SSH_USER@$STAGING_HOST "sudo apt-get update; sudo apt-get -y -f install; sudo apt-get -y upgrade; sudo apt-get -y -f install"
 
+      - deploy:
+          name: Run all integration tests
+          command: ssh $SSH_USER@$STAGING_HOST "sudo buendia-run-tests --unsafe"
+
   purge-unstable-repo:
     working_directory: ~/buendia
 

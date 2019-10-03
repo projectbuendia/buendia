@@ -142,12 +142,12 @@ public class DataExportServlet extends HttpServlet {
                     cells[0] = patient.getUuid();
                     cells[1] = patient.getPatientIdentifier("MSF");
                     if (patient.getBirthdate() != null) {
-                        cells[2] = Utils.YYYYMMDD_UTC_FORMAT.format(patient.getBirthdate());
+                        cells[2] = Utils.formatUtcDate(patient.getBirthdate());
                     }
                     cells[3] = encounter.getUuid();
                     cells[4] = encounter.getEncounterDatetime().getTime();
                     cells[5] = Utils.formatUtc8601(encounter.getEncounterDatetime());
-                    cells[6] = Utils.SPREADSHEET_FORMAT.format(encounter.getEncounterDatetime());
+                    cells[6] = Utils.formatYmdhms(encounter.getEncounterDatetime());
                     for (Obs obs : encounter.getAllObs()) {
                         Integer index = indexer.getIndex(obs.getConcept());
                         if (index == null) continue;
@@ -181,7 +181,7 @@ public class DataExportServlet extends HttpServlet {
                                 break;
                             case HL7Constants.HL7_DATE:
                                 Date date = obs.getValueDate();
-                                cells[col] = cells[col + 1] = date == null ? "" : Utils.YYYYMMDD_UTC_FORMAT.format(date);
+                                cells[col] = cells[col + 1] = date == null ? "" : Utils.formatUtcDate(date);
                                 break;
                             case HL7Constants.HL7_DATETIME:
                                 Date datetime = obs.getValueDatetime();

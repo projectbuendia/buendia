@@ -27,9 +27,16 @@ unset CLICOLOR_FORCE
 unset LSCOLORS
 unset LS_COLORS
 
+names="buendia buendia.local"
+for continent in africa antarctica asia europe north-america oceania south-america; do
+    names="$names $continent.pool.ntp.org"
+done
+for number in 0 1 2 3; do
+    names="$names $number.pool.ntp.org"
+done
+
 # Add a line for each of the machine's IP addresses.
 # TODO this matching pattern apparently isn't quite right
-names="buendia buendia.local"
 for ip in $(ip a | grep 'inet ' | cut -d' ' -f6 | cut -d/ -f1 | grep -v '^127\.'); do
     echo "$ip $names  # added by buendia-update-hosts" >> $tmp
 done

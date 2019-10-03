@@ -87,42 +87,50 @@ public class Utils {
 
     // ==== Dates and times ====
 
+    // WARNING!  SimpleDateFormat objects (particularly their format() and
+    // parse() methods) are not thread-safe.  Always clone() before using.
+
     /** ISO 8601 format for a complete date and time in UTC. */
-    public static final DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
+    private static final DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSX");
     /** A SimpleDateFormat that formats as "yyyy-MM-dd" in UTC. */
-    public static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final DateFormat YYYYMMDD_UTC_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
     /** A SimpleDateFormat that formats a date and time to be auto-parsed in a spreadsheet. */
-    public static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-    public static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
+    private static final DateFormat SPREADSHEET_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private static final TimeZone UTC = TimeZone.getTimeZone("Etc/UTC");
     static {
         ISO8601_FORMAT.setTimeZone(UTC);
         YYYYMMDD_UTC_FORMAT.setTimeZone(UTC);
         SPREADSHEET_FORMAT.setTimeZone(UTC);
     }
 
-    /** Formats a {@link Date} as an ISO 8601 string in the UTC timezone. */
+    /** Formats a Date as an ISO 8601 string in the UTC timezone. */
     public static String formatUtc8601(Date datetime) {
-        return ISO8601_FORMAT.format(datetime);
+        return ((DateFormat) ISO8601_FORMAT.clone()).format(datetime);
     }
 
-    /** Parses an ISO 8601-formatted date into a {@link Date}. */
+    /** Parses an ISO 8601-formatted date into a Date. */
     public static Date parse8601(String iso8601) {
         try {
-            return ISO8601_FORMAT.parse(iso8601);
+            return ((DateFormat) ISO8601_FORMAT.clone()).parse(iso8601);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(e.getMessage());
         }
     }
 
+    /** Formats a Date as a "yyyy-mm-dd hh:mm:ss", which is both sortable and readable. */
+    public static String formatYmdhms(Date datetime) {
+        return ((DateFormat) SPREADSHEET_FORMAT).format(datetime);
+    }
+
     public static String formatUtcDate(Date date) {
-        return YYYYMMDD_UTC_FORMAT.format(date);
+        return ((DateFormat) YYYYMMDD_UTC_FORMAT.clone()).format(date);
     }
 
     /** Parses a yyyy-MM-dd date, yielding a Date object at UTC midnight on the given date. */
     public static @Nullable Date parseLocalDate(String text) {
         if (text == null) return null;
         try {
-            return YYYYMMDD_UTC_FORMAT.parse(text);
+            return ((DateFormat) YYYYMMDD_UTC_FORMAT.clone()).parse(text);
         } catch (ParseException e) {
             throw new InvalidObjectDataException(e.getMessage());
         }
