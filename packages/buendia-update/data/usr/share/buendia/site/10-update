@@ -3,4 +3,4 @@ UPDATE_AUTOUPDATE=1
 
 # Don't automatically force database upgrades as this *will* destroy the
 # contents of your database when a migration is impossible!
-UPDATE_FORCE_UPGRADE=0
+UPDATE_DESTRUCTIVE_MIGRATION=0

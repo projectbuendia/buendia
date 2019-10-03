@@ -19,4 +19,4 @@ MONITORING_LIMITS='
 # Enable automatic upgrades and forced upgrades, so that we always have the
 # latest code running.
 UPDATE_AUTOUPDATE=1
-UPDATE_FORCE_UPGRADE=1
+UPDATE_DESTRUCTIVE_MIGRATION=1

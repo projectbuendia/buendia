@@ -62,7 +62,7 @@ if echo $packages | grep buendia-server; then
     migration_failed=$?
 
     if bool $migration_failed; then
-        if ! bool "$UPDATE_FORCE_UPGRADE"; then
+        if ! bool "$UPDATE_DESTRUCTIVE_MIGRATION"; then
             echo "--- MIGRATION FAILED FROM v${from_version} to v{$to_version}; EXITING"
             exit $migration_failed
         fi
