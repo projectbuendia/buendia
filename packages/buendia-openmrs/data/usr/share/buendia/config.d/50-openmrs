@@ -41,6 +41,12 @@ mysql -uroot -p$MYSQL_ROOT_PASSWORD <<< "
     flush privileges;
 "
 
+# Enable OpenMRS support for gzip encoding of HTTP responses.
+# NOTE: The value must be the string "true", not the value true!
+mysql -uroot -p$MYSQL_ROOT_PASSWORD openmrs <<< "
+    update global_property set property_value = 'true' where property = 'gzip.enabled';
+"
+
 # Configure OpenMRS to use the specified password for openmrs_user.
 unindent <<< "
     connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
