@@ -14,6 +14,7 @@ package org.projectbuendia.openmrs.webservices.rest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -114,12 +115,19 @@ public class RestController extends MainResourceController {
         if (status == 401) {
             response.addHeader("WWW-Authenticate", "Basic realm=\"OpenMRS at " + RestConstants.URI_PREFIX + "\"");
         }
+        if (e instanceof APIException && e.getMessage().startsWith("Unknown resource:")) {
+            status = 404;
+        }
 
         List<Map<String, Object>> errors = new ArrayList<>();
         for (Throwable t = e; t != null; t = t.getCause()) {
             errors.add(describeError(t));
         }
         return new SimpleObject().add("errors", errors);
+    }
+
+    @Override public SimpleObject apiAuthenticationExceptionHandler(Exception e, HttpServletRequest request, HttpServletResponse response) throws Exception {
+        return handleException(e, request, response);
     }
 
     private Map<String, Object> describeError(Throwable t) {
