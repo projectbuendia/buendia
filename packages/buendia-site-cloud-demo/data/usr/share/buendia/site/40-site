@@ -16,7 +16,5 @@ MONITORING_LIMITS='
 100000 /usr/share/buendia/packages
 '
 
-# Enable automatic upgrades and forced upgrades, so that we always have the
-# latest code running.
+# Enable automatic upgrades!
 UPDATE_AUTOUPDATE=1
-UPDATE_DESTRUCTIVE_MIGRATION=1
