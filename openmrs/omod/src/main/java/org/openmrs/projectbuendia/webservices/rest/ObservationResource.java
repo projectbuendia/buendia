@@ -21,7 +21,7 @@ import java.util.List;
     supportedOpenmrsVersions = "1.10.*,1.11.*"
 )
 public class ObservationResource extends BaseResource<Obs> {
-    private static final int MAX_OBSERVATIONS_PER_PAGE = 100;
+    private static final int MAX_OBSERVATIONS_PER_PAGE = 500;
 
     public ObservationResource() {
         super("observations", Representation.DEFAULT);
