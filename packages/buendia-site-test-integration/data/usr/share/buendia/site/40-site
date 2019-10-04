@@ -20,5 +20,9 @@ MONITORING_LIMITS='
 # risking collision
 UPDATE_AUTOUPDATE=0
 
+# Enable forced upgrades so that we always have the latest code running,
+# regardless of whatever was in the database.
+UPDATE_DESTRUCTIVE_MIGRATION=1
+
 # Enable unsafe testing for this site by default.
 UTILS_RUN_UNSAFE_TESTS=1
