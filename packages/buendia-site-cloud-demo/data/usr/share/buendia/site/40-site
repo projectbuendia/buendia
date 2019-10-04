@@ -16,4 +16,5 @@ MONITORING_LIMITS='
 100000 /usr/share/buendia/packages
 '
 
+# Enable automatic upgrades!
 UPDATE_AUTOUPDATE=1

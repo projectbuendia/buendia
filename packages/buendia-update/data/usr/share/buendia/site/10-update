@@ -1,1 +1,6 @@
+# Automatically update all packages by default.
 UPDATE_AUTOUPDATE=1
+
+# Don't automatically force database upgrades as this *will* destroy the
+# contents of your database when a migration is impossible!
+UPDATE_DESTRUCTIVE_MIGRATION=0
