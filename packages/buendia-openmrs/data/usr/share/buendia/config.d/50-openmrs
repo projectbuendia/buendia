@@ -13,6 +13,9 @@
 set -e; . /usr/share/buendia/utils.sh
 properties=/usr/share/buendia/openmrs/openmrs-runtime.properties
 
+# Ensure that OpenMRS can find its runtime properties file.
+ln -sf $properties /var/lib/tomcat7/openmrs-runtime.properties
+
 # Provide a randomly generated password for openmrs_user.
 generated=/usr/share/buendia/site/20-openmrs
 if [ ! -e $generated ]; then
