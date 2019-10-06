@@ -170,10 +170,17 @@ def apply(tabs):
     section_field_type = db.get('field_type_id', name='Section')
     adult_return_enctype = db.get('encounter_type_id', name='ADULTRETURN')
 
+    concept_id_list = []
+    concept_datatypes = {}  # maps concept_id % 1000000 to concept_datatype_id
+    concept_names = {}
+    datatype_names = {}
+
+    boolean_datatype = db.get('concept_datatype_id', name='Boolean')
     coded_datatype = db.get('concept_datatype_id', name='Coded')
     numeric_datatype = db.get('concept_datatype_id', name='Numeric')
     text_datatype = db.get('concept_datatype_id', name='Text')
     answer_datatype = db.get('concept_datatype_id', name='N/A')
+    date_datatype = db.get('concept_datatype_id', name='Date')
     datatypes_by_type = {
         'yes_no': coded_datatype,  # yes (1065) or no (1066)
         'yes_no_unknown': coded_datatype,  # yes, no, or unknown (1067)
@@ -203,7 +210,7 @@ def apply(tabs):
             concept_id = odb.insert('concept', uuid=uuid, short_name=name,
                 datatype_id=datatype_id, class_id=class_id)
         if datatype_id == numeric_datatype:
-            get_or_insert('concept_numeric', concept_id=concept_id)
+            return get_or_insert('concept_numeric', concept_id=concept_id)
 
     ensure_concept('buendia_concept_free_text_order',
         'Free text order', answer_datatype, misc_class)
@@ -238,7 +245,18 @@ def apply(tabs):
             os.system('buendia-server-clear-cache')
 
     def get_datatype_name(datatype_id):
-        return db.get('name', concept_datatype_id=datatype_id)
+        if datatype_id not in datatype_names:
+            datatype_names[datatype_id] = db.get(
+                'name', concept_datatype_id=datatype_id)
+        return datatype_names[datatype_id]
+
+    def record_concept_datatype(concept_id, new_datatype_id):
+        datatype_id = concept_datatypes.get(concept_id)
+        if datatype_id and datatype_id != new_datatype_id:
+            raise ValueError("Concept %d: cannot be both %s and %s" %
+                             (concept_id, get_datatype_name(datatype_id),
+                              get_datatype_name(new_datatype_id)))
+        concept_datatypes[concept_id] = new_datatype_id
 
     def get_field_for_element(table, attribute, name=None):
         field_id = get_or_insert('field', field_type=element_field_type,
@@ -251,6 +269,7 @@ def apply(tabs):
                              name=name, description=description or name)
 
     def get_field_for_concept(concept_id, name=None, description=None):
+        concept_id = add_type_tag(concept_id)
         name = name or db.get('name', 'concept_name', concept_id=concept_id)
         return get_or_insert('field', field_type=concept_field_type,
                              name=name, description=description or name,
@@ -263,22 +282,45 @@ def apply(tabs):
                           field_number=field_number, sort_weight=sort_weight,
                           required=required and 1 or 0)
 
-    def set_concept_name(concept_id, name, locale):
+    def add_type_tag(concept_id):
+        if concept_id >= 999000000:
+            return concept_id
+        concept_id = remove_type_tag(concept_id)
+        datatype_id = concept_datatypes.get(concept_id)
+        if not datatype_id:
+            raise ValueError("Can't determine type for concept %d" % concept_id)
+        if concept_id in [1065, 1066]:
+            # Some widgets rely on the specific concept IDs for "yes" and "no".
+            return concept_id
+        return concept_id + 1000000 * datatype_id
+
+    def add_type_tags(concept_ids):
+        return [add_type_tag(concept_id) for concept_id in concept_ids]
+
+    def remove_type_tag(concept_id):
+        return concept_id % 1000000
+
+    def set_concept_name(concept_id, name):
+        concept_id = remove_type_tag(concept_id)
         if name:
             concept_name_id = get_or_insert(
-                'concept_name', concept_id=concept_id, locale=locale, voided=0)
+                'concept_name', concept_id=add_type_tag(concept_id),
+                locale=LOCALE, voided=0)
             # Ensure the new name is the only preferred name in this locale.
             db.execute('update concept_name set locale_preferred = 0'
                        ' where concept_id = %s and locale = %s',
-                       concept_id, locale)
+                       add_type_tag(concept_id), LOCALE)
             odb.update('concept_name', concept_name_id,
                        name=name, locale_preferred=1,
                        concept_name_type='FULLY_SPECIFIED')
+            concept_id_list.append(concept_id)
+            concept_names[concept_id] = name
             return concept_name_id
 
     def set_concept_numeric(concept_id, (normal_low, normal_high),
                             (noncritical_low, noncritical_high),
                             (absolute_low, absolute_high), units, precise=1):
+        concept_id = add_type_tag(concept_id)
         db.execute('delete from concept_numeric'
                    ' where concept_id = %s', concept_id)
         p = 'precise'
@@ -292,25 +334,26 @@ def apply(tabs):
                    noncritical_high, absolute_low, absolute_high,
                    units, precise)
 
-    def put_coded_concept(concept_id, name, locale):
-        put_concept(concept_id, name, locale, coded_datatype, obs_class)
+    def put_coded_concept(concept_id, name):
+        put_concept(concept_id, name, coded_datatype, obs_class)
 
-    def put_answer_concept(concept_id, name, locale):
+    def put_answer_concept(concept_id, name):
         # If the concept already exists, preserve its current datatype.
-        put_concept(concept_id, name, locale,
-            db.get('datatype_id', concept_id=concept_id) or answer_datatype,
-            obs_class)
+        put_concept(concept_id, name, answer_datatype, obs_class)
 
     def set_concept_answers(concept_id, answer_concept_ids):
         """Replaces the list of answers for a concept with the given list."""
+        concept_id = add_type_tag(concept_id)
+        answer_concept_ids = add_type_tags(answer_concept_ids)
         db.execute(
             'delete from concept_answer where concept_id = %s', concept_id)
         for i, answer_concept_id in enumerate(answer_concept_ids):
             odb.insert('concept_answer', concept_id=concept_id,
                        answer_concept=answer_concept_id, sort_weight=i)
 
-    def put_concept(concept_id, name, locale, new_datatype_id, class_id):
+    def put_concept(concept_id, name, new_datatype_id, class_id):
         """Creates or updates a concept with the given name, type, and class."""
+        concept_id = add_type_tag(concept_id)
         datatype_id = db.get('datatype_id', concept_id=concept_id)
         # Changing the datatype of an existing concept is illegal in OpenMRS.
         if datatype_id and new_datatype_id != datatype_id:
@@ -319,7 +362,7 @@ def apply(tabs):
                               get_datatype_name(new_datatype_id)))
         update_or_insert('concept', concept_id, datatype_id=new_datatype_id,
                          class_id=class_id, retired=0)
-        set_concept_name(concept_id, name, locale)
+        set_concept_name(concept_id, name)
 
     def apply_charts(rows):
         for chart_rows in split_by_title(rows):
@@ -353,7 +396,7 @@ def apply(tabs):
                                    'concept':'162169',
                                    'type':'CHART_DIVIDER'}]))
                 section, section_rows = (row['section'] or '').strip(), []
-            if validate_str(row['type']) and validate_concept_ids(row['concept']):
+            if validate_str(row['type']) and row['concept']:
                 section_rows.append(row)
         if section and section_rows:
             sections.append((section, section_rows))
@@ -383,26 +426,37 @@ def apply(tabs):
             section_id = add_field_to_form(form_id, field_id, None, i + 1)
 
             # Add the fields to the section with the specified names.  Concepts
-            # must already exist (we can't create them here, because we don't
-            # know what data type they should have).  For charts, the "type"
-            # column in the CSV gives the rendering type, not the data type.
+            # must already exist.  For charts, the CSV "type" column gives the
+            # rendering type, not the data type.
             for j, row in enumerate(rows):
                 label = row.get('label', '')
-                concept_ids = validate_concept_ids(row.get('concept'))
-                if section_type == 'GRID_SECTION' and len(concept_ids) != 1:
-                    raise ValueError('Grid rows must have exactly 1 concept ID')
-                for concept_id in concept_ids:
-                    if not db.get('concept_id', concept_id=concept_id):
+                ref = row.get('concept')  # integer ID or special UUID
+                if ref.startswith('buendia_concept_'):  # special concept UUID
+                    concept_id = db.get('concept_id', uuid=ref)
+                    if not concept_id:
                         raise ValueError(
-                            'Concept %d not found in the existing dictionary'
-                            'or any form in this profile' % concept_id)
+                            'Concept "%s" not found in the dictionary' % ref)
+                    concept_ids = [concept_id]
+                else:
+                    concept_ids = validate_concept_ids(row.get('concept'))
+                    if section_type == 'GRID_SECTION' and len(concept_ids) != 1:
+                        raise ValueError(
+                            'Grid row should have 1 concept ID but has %r' %
+                            row.get('concept')
+                        )
+                    for concept_id in concept_ids:
+                        if not db.get(
+                            'concept_id', concept_id=add_type_tag(concept_id)):
+                            raise ValueError(
+                                'Concept %d not found in existing dictionary '
+                                'or any form in this profile' % concept_id)
 
                 # Copy everything, but omit 'concept' as we have 'concepts'
                 # and omit 'required' because there's a DB column for that.
                 required = validate_boolean(row.get('required'))
                 config = dict([(normalize_name(key), (value or '').strip())
                                for key, value in row.items() if key],
-                              concepts=concept_ids,
+                              concepts=add_type_tags(concept_ids),
                               type=validate_str(row['type']))
                 for key in config.keys():
                     if key in ['concept', 'required'] or config[key] == '':
@@ -411,7 +465,7 @@ def apply(tabs):
                 # Put the first concept ID in the 'concept_id' column;
                 # serialize all the rest of the details in the description.
                 field_id = get_field_for_concept(
-                        concept_ids[0], label, description=json.dumps(config))
+                    concept_ids[0], label, description=json.dumps(config))
                 add_field_to_form(form_id, field_id, section_id,
                                   field_number=j + 1, required=required)
 
@@ -427,8 +481,26 @@ def apply(tabs):
     def apply_forms(rows):
         # Hide all the existing forms, then add all the new forms.
         db.execute('update form set published = 0')
+        gather_concept_datatypes(rows)
+
+        # Yes, no, admission date, and date of first symptoms can be used
+        # in the chart even if not defined in a form.
+        concept_datatypes[1065] = answer_datatype
+        concept_datatypes[1066] = answer_datatype
+
+        concept_datatypes[162622] = date_datatype
+        put_concept(162622, "Admission date [fr:Date d'admission]",
+                    date_datatype, obs_class)
+        concept_datatypes[1730] = date_datatype
+        put_concept(1730, "Symptom start date [fr:Date debut des symptomes]",
+                    date_datatype, obs_class)
+
         for form_rows in split_by_title(rows):
             put_form_with_rows(form_rows)
+        for concept_id in concept_id_list:
+            datatype_id = concept_datatypes[concept_id]
+            print('%d (%s): %s' % (concept_id, get_datatype_name(datatype_id),
+                                   concept_names[concept_id]))
 
     def create_uuid_from_name(prefix, name):
         """Constructs a UUID from a form name."""
@@ -467,6 +539,22 @@ def apply(tabs):
         form_id = put_form(uuid, title, adult_return_enctype)
         apply_form(rows, form_id)
         db.execute('update form set published = 1 where form_id = %s', form_id)
+
+    def gather_concept_datatypes(rows):
+        """Collects the datatype for each concept, ensuring consistent type."""
+        last_type = None
+        for row in rows:
+            type, datatype = validate_type(row['type'])
+            concept_id = validate_concept_id(row['concept'])
+            option_concept_id = validate_concept_id(row['option concept'])
+            if concept_id and type:
+                record_concept_datatype(concept_id, datatype)
+            last_type = type or last_type
+            if option_concept_id:
+                if last_type == 'select_one':
+                    record_concept_datatype(option_concept_id, answer_datatype)
+                if last_type == 'select_multiple':
+                    record_concept_datatype(option_concept_id, boolean_datatype)
 
     def apply_form(rows, form_id):
         """
@@ -510,6 +598,10 @@ def apply(tabs):
             option_concept_id = validate_concept_id(row['option concept'])
             option_label = row['option label'] or ''
 
+            datatype_id = concept_datatypes.get(concept_id)
+            if concept_id and not datatype_id:
+                raise ValueError("Couldn't get type of concept %s" % concept_id)
+
             if type:
                 if type == 'select_multiple':
                     # To make a group of toggle buttons, we have to create a
@@ -528,7 +620,7 @@ def apply(tabs):
 
                 if (concept_id and type in ['number', 'text', 'yes_no',
                                             'yes_no_unknown', 'select_one']):
-                    put_concept(concept_id, label, LOCALE, datatype, obs_class)
+                    put_concept(concept_id, label, datatype, obs_class)
                     if type == 'yes_no':
                         # Answers are: no (1066) or yes (1065)
                         set_concept_answers(concept_id, [1066, 1065])
@@ -550,13 +642,15 @@ def apply(tabs):
             last_type = type or last_type
 
             if option_concept_id:
+                option_datatype_id = concept_datatypes[option_concept_id]
+
                 if last_type == 'select_one':
-                    put_answer_concept(option_concept_id, option_label, LOCALE)
+                    put_answer_concept(option_concept_id, option_label)
                     select_answer_ids += [option_concept_id]
                     set_concept_answers(select_concept_id, select_answer_ids)
 
                 if last_type == 'select_multiple':
-                    put_coded_concept(option_concept_id, option_label, LOCALE)
+                    put_coded_concept(option_concept_id, option_label)
                     # Answers for a toggle button are: no (1066) or yes (1065)
                     # NOTE: org.odk.collect.android.widgets2.selectone.
                     # BinarySelectOneWidget requires one of the answers to
@@ -583,22 +677,15 @@ def apply(tabs):
         if not text:
             return None
         try:
-            return int(text)
+            concept_id = int(text)
         except ValueError:
             raise ValueError('Invalid concept ID "%s" (should be int)' % text)
+        if concept_id > 999999:
+            raise ValueError('Concept ID "%s" should not exceed 999999' % text)
+        return concept_id
 
     def validate_concept_ids(text):
-        result = []
-        for item in text.split(','):
-            if item.startswith('buendia_concept_'):  # special concept UUID
-                concept_id = db.get('concept_id', uuid=item)
-                if not concept_id:
-                    raise ValueError(
-                        'Concept "%s" not found in the dictionary' % item)
-                result.append(concept_id)
-            else:
-                result.append(validate_concept_id(item))
-        return result
+        return [validate_concept_id(item) for item in text.split(',')]
 
     def validate_boolean(text):
         # Treat "no", "none", "nil", "false", "0" etc. as false; else true.
