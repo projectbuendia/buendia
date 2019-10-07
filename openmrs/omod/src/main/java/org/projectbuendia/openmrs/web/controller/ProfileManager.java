@@ -72,17 +72,21 @@ public class ProfileManager {
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.GET)
     public void get(HttpServletRequest request, ModelMap model) {
-        String currentProfile = getCurrentProfile();
-        model.addAttribute("currentProfile", currentProfile);
-        model.addAttribute("authorized", authorized());
-        model = queryParamsToModelAttr(request, model);
-        if (!profileDir.exists()) {
-            model.addAttribute("success", false);
-            model.addAttribute("message", "The Profile Manager directory does not exist. It must reside on " +
+        try {
+            String currentProfile = getCurrentProfile();
+            model.addAttribute("currentProfile", currentProfile);
+            model.addAttribute("authorized", authorized());
+            model = queryParamsToModelAttr(request, model);
+            if (!profileDir.exists()) {
+                model.addAttribute("success", false);
+                model.addAttribute("message", "The Profile Manager directory does not exist. It must reside on " +
                     "/usr/share/buendia/profiles or on a directory specified in openmrs-runtime.properties " +
                     "file under profile_manager.profile_dir directive.");
-        } else {
-            model.addAttribute("profiles", listProfiles());
+            } else {
+                model.addAttribute("profiles", listProfiles());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -122,29 +126,31 @@ public class ProfileManager {
 
     @RequestMapping(value = "/module/projectbuendia/openmrs/profiles", method = RequestMethod.POST)
     public View post(HttpServletRequest request, HttpServletResponse response, ModelMap model) {
-        if (!authorized()) {
-            return new RedirectView("profiles.form");
-        }
-
-        if (request instanceof MultipartHttpServletRequest) {
-            addProfile((MultipartHttpServletRequest) request, model);
-        } else {
-            String filename = request.getParameter("profile");
-            String op = request.getParameter("op");
-            if (filename != null) {
-                File file = new File(profileDir, filename);
-                if (file.isFile()) {
-                    model.addAttribute("filename", filename);
-                    if (eq(op, "Apply")) {
-                        applyProfile(file, model);
-                    } else if (eq(op, "Download")) {
-                        downloadProfile(file, response);
-                        return null;  // download the file, don't redirect
-                    } else if (eq(op, "Delete")) {
-                        deleteProfile(file, model);
+        try {
+            if (authorized()) {
+                if (request instanceof MultipartHttpServletRequest) {
+                    addProfile((MultipartHttpServletRequest) request, model);
+                } else {
+                    String filename = request.getParameter("profile");
+                    String op = request.getParameter("op");
+                    if (filename != null) {
+                        File file = new File(profileDir, filename);
+                        if (file.isFile()) {
+                            model.addAttribute("filename", filename);
+                            if (eq(op, "Apply")) {
+                                applyProfile(file, model);
+                            } else if (eq(op, "Download")) {
+                                downloadProfile(file, response);
+                                return null;  // download the file, don't redirect
+                            } else if (eq(op, "Delete")) {
+                                deleteProfile(file, model);
+                            }
+                        }
                     }
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return new RedirectView("profiles.form");  // reload this page with a GET request
     }
