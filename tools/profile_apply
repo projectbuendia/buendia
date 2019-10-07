@@ -503,10 +503,12 @@ def apply(tabs):
 
         for form_rows in split_by_title(rows):
             put_form_with_rows(form_rows)
+
+        print ''
         for concept_id in concept_id_list:
             datatype_id = concept_datatypes[concept_id]
-            print('%d (%s): %s' % (concept_id, get_datatype_name(datatype_id),
-                                   concept_names[concept_id]))
+            print '%d (%s): %s' % (concept_id, get_datatype_name(datatype_id),
+                                   concept_names[concept_id])
 
     def create_uuid_from_name(prefix, name):
         """Constructs a UUID from a form name."""
@@ -517,8 +519,8 @@ def apply(tabs):
             index += 1
             suffix = '_%d' % index  # tack on an number to avoid collisions
             uuid = base[:MAX_UUID_LEN - len(suffix)] + suffix
-        print('Stored "%s" with UUID: %s%s' % (name, uuid,
-            uuid != base and ' (adjusted for uniqueness)' or ''))
+        print 'Stored "%s" with UUID: %s%s' % (
+            name, uuid, uuid != base and ' (adjusted for uniqueness)' or '')
         form_uuids.append(uuid)
         return uuid
 
