@@ -445,6 +445,10 @@ def apply(tabs):
                             row.get('concept')
                         )
                     for concept_id in concept_ids:
+                        if concept_datatypes[concept_id] == answer_datatype:
+                            raise ValueError(
+                                'Concept %d is not a question; it cannot '
+                                'be displayed in a chart' % concept_id)
                         if not db.get(
                             'concept_id', concept_id=add_type_tag(concept_id)):
                             raise ValueError(
