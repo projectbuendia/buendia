@@ -504,6 +504,10 @@ def apply(tabs):
         for form_rows in split_by_title(rows):
             put_form_with_rows(form_rows)
 
+        # If the output is too large, the profile manager will crash.
+        # print_concept_list()
+
+    def print_concept_list():  # for feedback and debugging
         print ''
         for concept_id in concept_id_list:
             datatype_id = concept_datatypes[concept_id]
