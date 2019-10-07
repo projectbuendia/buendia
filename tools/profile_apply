@@ -169,6 +169,7 @@ def apply(tabs):
     element_field_type = db.get('field_type_id', name='Database element')
     section_field_type = db.get('field_type_id', name='Section')
     adult_return_enctype = db.get('encounter_type_id', name='ADULTRETURN')
+    special_concept_ids = []
 
     concept_id_list = []
     concept_datatypes = {}  # maps concept_id % 1000000 to concept_datatype_id
@@ -283,7 +284,7 @@ def apply(tabs):
                           required=required and 1 or 0)
 
     def add_type_tag(concept_id):
-        if concept_id >= 999000000:
+        if concept_id in special_concept_ids:
             return concept_id
         concept_id = remove_type_tag(concept_id)
         datatype_id = concept_datatypes.get(concept_id)
@@ -437,6 +438,7 @@ def apply(tabs):
                         raise ValueError(
                             'Concept "%s" not found in the dictionary' % ref)
                     concept_ids = [concept_id]
+                    special_concept_ids.append(concept_id)
                 else:
                     concept_ids = validate_concept_ids(row.get('concept'))
                     if section_type == 'GRID_SECTION' and len(concept_ids) != 1:
