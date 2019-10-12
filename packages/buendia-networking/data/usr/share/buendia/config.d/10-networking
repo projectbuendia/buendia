@@ -122,11 +122,7 @@ fi
 # Activate or deactivate the DHCP server and client according to the settings.
 if bool $NETWORKING_DHCP_DNS_SERVER; then
     if [ -n "$NETWORKING_IP_ADDRESS" -a -n "$NETWORKING_DHCP_RANGE" ]; then
-        echo 'Turning on DHCP and DNS server; disabling DHCP client.'
-
-        # Turn off the local DHCP client.
-        systemctl stop dhcpcd
-        systemctl disable dhcpcd
+        echo 'Turning on DHCP/DNS server.'
 
         unindent <<< "
             dhcp-authoritative
@@ -143,12 +139,7 @@ if bool $NETWORKING_DHCP_DNS_SERVER; then
     service dnsmasq restart
     update-rc.d dnsmasq enable
 else
-    echo "Turning off DHCP/DNS server; enabling DHCP client."
-
-    # Turn on the local DHCP client.
-    systemctl enable dhcpcd
-    systemctl start dhcpcd
-
+    echo "Turning off DHCP/DNS server."
     rm -f /etc/network/if-up.d/buendia-update-hosts
 
     # Disable dnsmasq now, and also for future boots.
