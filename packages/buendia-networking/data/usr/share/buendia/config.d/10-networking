@@ -188,6 +188,23 @@ else
     systemctl disable hostapd
 fi
 
+# If we have an Ethernet interface, and the fallback address is set,
+# self-assign this address on the Ethernet device when we can't find a DHCP
+# server. That way an admin can always SSH in on a known IP adddress if all
+# else fails.
+if [ -n "$NETWORKING_IP_FALLBACK" -a -n "$NETWORKING_ETHERNET_INTERFACE" ]; then
+	# Apply dhcpcd configuration
+	unindent <<< "
+		# Static ethernet profile
+		profile static_ethernet
+		static ip_address=$NETWORKING_IP_FALLBACK/24
+
+		# fallback to static profile on $NETWORKING_ETHERNET_INTERFACE
+		interface $NETWORKING_ETHERNET_INTERFACE
+		fallback static_ethernet
+	" > /etc/dhcpcd.conf
+fi
+
 # Bring back up the interface
 ifup $MAIN_INTERFACE
 
