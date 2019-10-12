@@ -105,7 +105,7 @@ if [ -n "$USE_WIFI" -a -n "$NETWORKING_ETHERNET_INTERFACE" ]; then
     unindent <<< "
         allow-hotplug $NETWORKING_ETHERNET_INTERFACE
         iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
-    " > /etc/network/interfaces
+    " >> /etc/network/interfaces
 fi
 
 # If we have an SSID and password, set up the wpa_supplicant configuration.
