@@ -121,19 +121,20 @@ fi
 
 # Activate or deactivate the DHCP server and client according to the settings.
 if bool $NETWORKING_DHCP_DNS_SERVER; then
-    echo 'Turning on DHCP and DNS server; disabling DHCP client.'
+    if [ -n "$NETWORKING_IP_ADDRESS" -a -n "$NETWORKING_DHCP_RANGE" ]; then
+        echo 'Turning on DHCP and DNS server; disabling DHCP client.'
 
-    # Turn off the local DHCP client.
-    systemctl stop dhcpcd
-    systemctl disable dhcpcd
+        # Turn off the local DHCP client.
+        systemctl stop dhcpcd
+        systemctl disable dhcpcd
 
-    if [ -n "$NETWORKING_DHCP_RANGE" ]; then
         unindent <<< "
             dhcp-authoritative
             dhcp-range=$NETWORKING_DHCP_RANGE
             dhcp-option=option:ntp-server,$NETWORKING_IP_ADDRESS
         " > /etc/dnsmasq.d/buendia-dhcp.conf
     else
+        echo "Turning on DNS server."
         rm -f /etc/dnsmasq.d/buendia-dhcp.conf
     fi
 
