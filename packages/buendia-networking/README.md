@@ -63,38 +63,50 @@ contains some additional detail.
 
 ## Site settings
 
-### `NETWORKING_ETHERNET_INTERFACE` (required)
+### `NETWORKING_WIFI_INTERFACE`
 
-The Linux device name for the ethernet interface. Currently, this interface is
-always configured to request an address over DHCP.
+The Linux device name for the wireless interface. If set, this is assumed to be
+the "main" interface for communicating with clients.
 
-### `NETWORKING_WIFI_INTERFACE` (required)
+### `NETWORKING_ETHERNET_INTERFACE`
 
-The Linux device name for the wireless interface.
+The Linux device name for the ethernet interface. If
+`NETWORKING_WIFI_INTERFACE` is unset, then this must be set, and it is treated
+as the "main" interface. If the Wi-Fi interface is set, then this device is
+configured to attempt to request a DHCP lease whenever a cable is connected,
+and fall back to the adddress provided in `NETWORKING_IP_FALLBACK` if no DHCP
+server answers.
 
-### `NETWORKING_SSID` (required)
+### `NETWORKING_SSID`
 
-The SSID for the wireless network.
+The SSID for the wireless network. Required if `NETWORKING_WIFI_INTERFACE` is set.
 
-### `NETWORKING_PASSWORD` (required)
+### `NETWORKING_PASSWORD`
 
-The WPA2 password for the wireless network.
+The WPA2 password for the wireless network. Required if `NETWORKING_WIFI_INTERFACE` is set.
 
-### `NETWORKING_IP_ADDRESS` (optional)
+### `NETWORKING_IP_ADDRESS`
 
-The static IP address for the `NETWORKING_WIFI_INTERFACE` device. If set, the
-netmask is assumed to be 24 bits.
+The static IP address for the main network interface. If set, the netmask is
+assumed to be 24 bits.
 
-If this setting is left blank, then the Wi-Fi interface is configured to
+If this setting is left blank, then the main interface is configured to
 request an address via DHCP.
 
-### `NETWORKING_DHCP_DNS_SERVER` (optional)
+### `NETWORKING_IP_FALLBACK`
+
+The static "fallback" IP address for the `NETWORKING_ETHERNET_INTERFACE`,
+assuming the Wi-Fi interface is configured as the "main" interface. If so, then
+the Ethernet interface attempts to find a lease, and adopts the
+`NETWORKING_IP_FALLBACK` address if no DHCP server answers on the wire.
+
+### `NETWORKING_DHCP_DNS_SERVER`
 
 A boolean setting determining whether or not the Buendia server provides DNS
 and/or DHCP on its subnet. Defaults to off. If this is set, then
 `NETWORKING_IP_ADDRESS` is required.
 
-### `NETWORKING_DHCP_RANGE` (optional)
+### `NETWORKING_DHCP_RANGE`
 
 The DHCP assignment range passed to dnsmasq. Must be in the form `<start IP>,
 <end IP>, <lease time>`, e.g. `192.168.10.10,192.168.10.50,12h`. If left unset,
