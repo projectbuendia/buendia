@@ -41,10 +41,12 @@ for ip in $(ip a | grep 'inet ' | cut -d' ' -f6 | cut -d/ -f1 | grep -v '^127\.'
     echo "$ip $names  # added by buendia-update-hosts" >> $tmp
 done
 
-# Install the new hosts file.
-mv $tmp /etc/hosts
+# Install the new hosts file, if it has changed.
+if ! diff -q $tmp /etc/hosts >/dev/null; then
+    mv $tmp /etc/hosts
 
-# Tell dnsmasq to reload the hosts file, if it's running.
-if [ -e /var/run/dnsmasq/dnsmasq.pid ]; then
-    service dnsmasq restart
+    # Tell dnsmasq to reload the hosts file, if it's running.
+    if [ -e /var/run/dnsmasq/dnsmasq.pid ]; then
+        service dnsmasq restart
+    fi
 fi
