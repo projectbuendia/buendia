@@ -134,6 +134,14 @@
         <Valve className="org.apache.catalina.authenticator.SingleSignOn" />
         -->
 
+        <!-- CrawlerSessionManagerValve performs session management for clients
+             who won't return jsessionid cookies. Here we treat any client
+             whose user agent doesn't start with "Mozilla" as an API client,
+             which keeps the session cache from expanding at an unfortunate
+             rate and blowing out the heap. -->
+        <Valve className="org.apache.catalina.valves.CrawlerSessionManagerValve"
+            crawlerUserAgents="^(?!Mozilla).*" sessionInactiveInterval="300"/>
+
         <!-- Access log processes all example.
              Documentation at: /docs/config/valve.html
              Note: The pattern used is equivalent to using pattern="common" -->
