@@ -13,27 +13,39 @@
 cat <<EOF
 Content-Type: text/html
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/style.css">
 <h1>Reboot</h1>
 EOF
 
-if [ "$REQUEST_METHOD" == "POST" ]; then
+if [ "$REQUEST_METHOD" = POST ]; then
+    buendia-led red 10
+    touch /tmp/reboot-requested
     cat <<EOF
 <p>
-Rebooting now.  The server will come back up in about 5 minutes.
+Rebooting now.  The server will come back up in about 3 minutes.
 
 <p>
 Please wait 1 minute before checking for status...
-<script>setTimeout('window.location = "status"', 60000)</script>
+<script>setTimeout('location = "status"', 60000)</script>
 EOF
-    touch /tmp/reboot-requested
+
 else
     cat <<EOF
-<form method="POST">
-<p>
-After reboot, the server will take about 5 minutes to come up.
-<p>
-<input type="submit" value="Reboot now">
-</form>
+<p>After reboot, the server will take about 5 minutes to come up.
+
+<p><a href="#" onclick="reboot()">Reboot</a>
+
+<p><a href="/">Back to dashboard</a>
+
+<form id="form" method="POST"></form>
+
+<script>
+    var form = document.getElementById('form');
+    function reboot() {
+        if (confirm("Reboot the server now?")) {
+            form.submit();
+        }
+    }
+</script>
 EOF
 fi

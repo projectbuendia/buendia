@@ -3,11 +3,15 @@ body { background: #93a1a1; color: #113355; margin: 2em 2em; opacity: 0.8; }
 h1 { font-weight: 300; font-size: 48px; margin: 0 0 1em; }
 h2 { margin: 2em 0 0; text-transform: uppercase; }
 h2, .legend { font-weight: 200; }
-p { margin: 0.7em 0; }
+section { margin: 2.1em 0; }
+div { margin: 0.7em 0; }
 .group h2 { display: inline-block; width: 8em; }
 .item { font-weight: 400; margin: 0 12px; display: inline-block; }
 .date { font-weight: 100; opacity: 0.5; }
-a, .item a { text-decoration: none; color: inherit; }
+a, .item a { text-decoration: underline; color: inherit; }
 a:hover, .item a:hover { color: #000000; opacity: 1; }
-ul { margin: 0; }
-li { margin: 0.5em 0; }
+ul { display: inline; margin: 0; padding: 0; font-size: 0; }
+li { display: inline; margin: 0; font-size: 24px; }
+li:before { content: '\a0\b7\a0'; }
+li:first-child:before { content: ''; }
+.advanced { opacity: 0.5; }

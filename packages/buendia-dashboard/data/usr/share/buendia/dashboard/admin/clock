@@ -10,41 +10,50 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-let time="$QUERY_STRING"+0
+if [ "$REQUEST_METHOD" = POST ]; then read data; fi
+time=${data#time=}
+let time=time+0
 
 cat <<EOF
 Content-Type: text/html
 
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/style.css">
 <h1>Server clock</h1>
 
-<p>Server clock time is now: $(date)
+<p>Current server clock time: $(date)
 EOF
 
-if [ $time -gt 0 ]; then
-    cat <<EOF
-<p>
-Setting clock, please wait...
-<script>setTimeout('window.location = "clock"', 2000)</script>
-EOF
+if [ "$REQUEST_METHOD" = POST -a "$time" -gt 0 ]; then
     # nginx aborts the HTTP request if the clock changes during page delivery,
     # so make buendia-setclock run in the background after this script exits.
     let time=time+1
     (sleep 1; buendia-setclock "$time") </dev/null >/dev/null 2>&1 &
+    cat <<EOF
+<p>
+Setting clock, please wait...
+<script>setTimeout('location = "clock"', 2000)</script>
+EOF
+
 else
     cat <<EOF
 <p><a href="#" onclick="setclock()">Set the server clock</a>
 
 <p><a href="/">Back to dashboard</a>
 
+<form id="form" method="POST">
+    <input id="time" type="hidden" name="time">
+</form>
+
 <script>
-  function setclock() {
-    var date = new Date();
-    if (confirm("This will set the server clock to match your computer's clock, which currently reads " + date + ".  Proceed?")) {
-      var seconds = (new Date()).getTime() / 1000;
-      window.location = "clock?" + Math.floor(seconds);
+    var form = document.getElementById('form');
+    var time = document.getElementById('time');
+
+    function setclock() {
+        if (confirm("This will set the server clock to match your computer's clock, which currently reads " + (new Date()) + ".  Proceed?")) {
+            time.value = Math.floor((new Date()).getTime() / 1000);
+            form.submit();
+        }
     }
-  }
 </script>
 EOF
 fi

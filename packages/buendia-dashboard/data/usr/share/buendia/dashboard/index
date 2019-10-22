@@ -10,27 +10,47 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-tail -5 /var/log/buendia/buendia-warmup.log | grep -q Success && updown=SERVING || updown=DOWN
-
-uptime=$(uptime | sed -e 's/.* up//' -e 's/, *[0-9][0-9]* *user.*//')
-
-cd /usr/share/buendia/counts
-latest=$(ls -t *.count | head -1)
 cdot='&#xb7;'
-if [ -f "$latest" ]; then
-    eval $(sed -e 's/^"//; s/"$//; s/","/=/' $latest | grep '^\w\+=[0-9]\+$')
-    counts="
-$patient_count patient$([ $patient_count -ne 1 ] && echo s)
-$cdot
-$provider_count user$([ $provider_count -ne 1 ] && echo s)
-$cdot
-$encounter_count submission$([ $encounter_count -ne 1 ] && echo s)
-$cdot
-$obs_count observation$([ $obs_count -ne 1 ] && echo s)
-"
-else
-    counts="No record counts available yet.  This server is brand new!"
-fi
+
+function get_server_version() {
+    dpkg-query -W -f'${Version}' buendia-server
+}
+
+function get_latest_apk() {
+    cd /usr/share/buendia/packages
+    ls -t buendia-client*.apk | head -1
+}
+
+function get_up_down_status() {
+    if tail -5 /var/log/buendia/buendia-warmup.log | grep -q Success; then
+        echo SERVING
+    else
+        echo DOWN
+    fi
+}
+
+function get_uptime() {
+    uptime | sed -e 's/.* up *//' -e 's/, *[0-9][0-9]* *user.*//'
+}
+
+function get_counts() {
+    cd /usr/share/buendia/counts
+    latest=$(ls -t *.count | head -1)
+    if [ -f "$latest" ]; then
+        eval $(sed -e 's/"//g; s/,/=/g' $latest | grep '^\w\+=[0-9]\+$')
+        echo "
+    $patient_count patient$([ $patient_count -ne 1 ] && echo s)
+    $cdot
+    $provider_count user$([ $provider_count -ne 1 ] && echo s)
+    $cdot
+    $encounter_count submission$([ $encounter_count -ne 1 ] && echo s)
+    $cdot
+    $obs_count observation$([ $obs_count -ne 1 ] && echo s)
+    "
+    else
+        echo "No record counts available yet.  This server is brand new!"
+    fi
+}
 
 cat <<EOF
 Content-Type: text/html; charset=utf-8
@@ -38,32 +58,56 @@ Refresh: 10
 
 <link rel="stylesheet" href="style.css">
 
-<h1>Project Buendia server</h1>
+<h1>Buendia server $(get_server_version)</h1>
 
-<h2>Staff access</h2>
+<section id="app">
+<div>
+Install the app:
+<a href="/packages/$(get_latest_apk)">$(get_latest_apk)</a>
+<span class="advanced">(<a href="client">older</a>)</span>
+</div>
+</section>
 
-<p><a href="client">Download client app</a>
+<section id="database">
+<div id="openmrs">
+OpenMRS:
+<ul>
+<li id="dictionary"><a href="/openmrs/dictionary">concept dictionary</a></li>
+<li id="admin"><a href="/openmrs/admin">administration</a></li>
+<li id="profiles"><a href="/openmrs/module/projectbuendia/openmrs/profiles.form">Buendia profiles</a></li>
+</ul>
+</div>
 
-<p><a href="//buendia:9000/openmrs/moduleServlet/buendiadata">Download CSV data</a>
+<div id="export">Export patient data:
+first <a href="/openmrs">log in</a>, then
+<a href="/openmrs/moduleServlet/buendiadata">download observations.csv</a>
+</div>
+</section>
 
-<p><a href="stats.zip">Download usage stats</a>
+<section id="admin">
+<div id="admin">
+Administration:
+<ul>
+<li id="status"><a href="admin/status">status</a></li>
+<li id="clock"><a href="admin/clock">clock</a></li>
+<li id="reboot"><a href="admin/reboot">reboot</a></li>
+<li id="packages"><a href="packages">packages</a></li>
+</ul>
+</div>
+</section>
 
+<section id="status">
+<div id="summary">
+<ul>
+<li id="updown">$(get_up_down_status)</li>
+<li id="time">$(date +'%Y-%m-%d at %H:%M:%S') UTC</li>
+<li id="uptime">$(get_uptime) since boot</li>
+</ul>
+</div>
 
-<h2>System maintenance</h2>
-
-<p><a href="clock">Server clock</a>
-
-<p><a href="status">System status</a>
-
-<p><a href="//buendia:9001">Package repository</a>
-
-<p><a href="reboot">Reboot server</a>
-
-
-<h2>Currently $updown</h2>
-
-<p>$(date +'%Y-%m-%d at %H:%M:%S') UTC $cdot $uptime since boot
-
-<p>$counts
+<div id="counts">$(get_counts)
+<span class="advanced">(<a href="stats.zip">stats</a>)</span>
+</div>
+</section>
 
 EOF
