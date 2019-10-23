@@ -5,7 +5,7 @@ server {
     root /usr/share/buendia/dashboard;
     index index;
 
-    location ~* \. { }  # files with extensions are served as plain files
+    location ~ ^/[^/]*\. { }  # top-level files with extensions
 
     location / {
         fastcgi_index index;

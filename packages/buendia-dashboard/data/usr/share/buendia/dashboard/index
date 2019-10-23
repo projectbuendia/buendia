@@ -64,7 +64,7 @@ Refresh: 10
 <div>
 Install the app:
 <a href="/packages/$(get_latest_apk)">$(get_latest_apk)</a>
-<span class="advanced">(<a href="client">older</a>)</span>
+<span class="advanced">(<a href="client">older versions</a>)</span>
 </div>
 </section>
 
@@ -84,9 +84,9 @@ first <a href="/openmrs">log in</a>, then
 </div>
 </section>
 
-<section id="admin">
-<div id="admin">
-Administration:
+<section id="maintenance">
+<div>
+Maintenance:
 <ul>
 <li id="status"><a href="admin/status">status</a></li>
 <li id="clock"><a href="admin/clock">clock</a></li>
