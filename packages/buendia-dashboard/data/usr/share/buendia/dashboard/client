@@ -19,7 +19,7 @@ else
 fi
 
 cat <<EOF
-Content-Type: text/html
+Content-Type: text/html; charset=UTF-8
 
 <link rel="stylesheet" href="style.css">
 <h1>Client app</h1>

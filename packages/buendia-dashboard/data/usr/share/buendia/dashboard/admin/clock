@@ -15,7 +15,7 @@ time=${data#time=}
 let time=time+0
 
 cat <<EOF
-Content-Type: text/html
+Content-Type: text/html; charset=UTF-8
 
 <link rel="stylesheet" href="/style.css">
 <h1>Server clock</h1>
@@ -29,17 +29,15 @@ if [ "$REQUEST_METHOD" = POST -a "$time" -gt 0 ]; then
     let time=time+1
     (sleep 1; buendia-setclock "$time") </dev/null >/dev/null 2>&1 &
     cat <<EOF
-<div class="message">
-    Setting clock, please wait...
-</div>
-<script>setTimeout('location = "clock"', 2000);</script>
+<div><a class="action">Setting clock, please wait...</a></div>
+<script>setTimeout('location = "clock"', 1000);</script>
 EOF
 
 else
     cat <<EOF
-<div><a class="action" onclick="setclock()">Set the server clock</a></div>
+<div><a id="action" class="action" onclick="go()">Set the server clock</a></div>
 
-<div><a class="back" href="/">Back to dashboard</a></div>
+<div><a id="back" class="back" href="/">Back to dashboard</a></div>
 
 <form id="form" method="POST">
     <input id="time" type="hidden" name="time">
@@ -48,16 +46,29 @@ else
 <script>
     var form = document.getElementById('form');
     var time = document.getElementById('time');
+    var action = document.getElementById('action');
+    var back = document.getElementById('back');
 
-    function setclock() {
+    function go() {
         if (confirm(
             'This will set the server clock to match ' +
             'your computer\'s clock, which currently reads ' +
             (new Date()) + '.  Proceed?'
         )) {
-            time.value = Math.floor((new Date()).getTime() / 1000);
-            form.submit();
+            action.innerText = 'Setting clock, please wait...';
+            back.style.display = 'none';
+            setTimeout(setclock, 100);
         }
+    }
+
+    function setclock() {
+        var value = Math.floor(new Date().getTime() / 1000) + 2;
+        time.value = value;
+        var target = value * 1000 - 100;
+        console.log('start', new Date().getTime(), 'waiting for', target);
+        while (new Date().getTime() < target);
+        console.log('submitting', time.value, 'at', new Date().getTime());
+        form.submit();
     }
 </script>
 EOF
