@@ -32,7 +32,7 @@ section { margin: 1em 0; }
 section#state { margin: 0; }
 div { margin: 1em 0; }
 
-ul.inline { display: inline; padding: 0; font-size: 0; }
+ul.inline { display: inline; padding: 0; }
 ul.inline li { display: inline; }
 ul.inline li:before { content: '\a0\b7\a0'; }
 ul.inline li:first-child:before { content: ''; }

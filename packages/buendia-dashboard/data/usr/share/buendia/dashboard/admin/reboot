@@ -22,23 +22,23 @@ if [ "$REQUEST_METHOD" = POST ]; then
     touch /tmp/reboot-requested
     cat <<EOF
 <div class="message">
-Rebooting now.  The server will come back up in about 3 minutes.
+    Rebooting now.  The server will come back up in about 3 minutes.
 </div>
 
 <div class="message">
-Please wait <span id="remain">1 minute</span> before checking for status...
+    Please wait <span id="remain">1 minute</span> before checking for status...
 </div>
 
 <script>
-    var span = document.getElementById('remain');
-    var remain = 60;
+    var remain = document.getElementById('remain');
+    var seconds = 60;
     function tick() {
-        remain -= 1;
-        span.innerText = remain + ' second' + (remain == 1 ? '' : 's');
-        setTimeout('tick()', 1000);
+        if (seconds > 1) seconds -= 1;
+        remain.innerText = seconds + ' second' + (seconds == 1 ? '' : 's');
+        if (seconds > 0) setTimeout(tick, 1000);
+        else location = '/';
     }
-    setTimeout('location = "status"', 60000);
-    setTimeout('tick()', 1000);
+    setTimeout(tick, 1000);
 </script>
 EOF
 

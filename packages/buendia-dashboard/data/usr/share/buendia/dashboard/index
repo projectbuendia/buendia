@@ -30,7 +30,13 @@ function get_up_down_status() {
 }
 
 function get_uptime() {
-    uptime | sed -e 's/.* up *//' -e 's/, *[0-9][0-9]* *user.*//'
+    minutes=$(uptime -p | sed -e 's/.* up *//')
+    if [ -n "$minutes" ]; then
+        echo $minutes
+    else
+        cat /proc/uptime
+        echo seconds
+    fi
 }
 
 function get_counts() {
@@ -38,15 +44,14 @@ function get_counts() {
     latest=$(ls -t *.count | head -1)
     if [ -f "$latest" ]; then
         eval $(sed -e 's/"//g; s/,/=/g' $latest | grep '^\w\+=[0-9]\+$')
-        echo "
-    $patient_count patient$([ $patient_count -ne 1 ] && echo s)
-    $cdot
-    $provider_count user$([ $provider_count -ne 1 ] && echo s)
-    $cdot
-    $encounter_count submission$([ $encounter_count -ne 1 ] && echo s)
-    $cdot
-    $obs_count observation$([ $obs_count -ne 1 ] && echo s)
-    "
+        cat <<EOF
+<ul class="inline">
+  <li>$patient_count patient$([ $patient_count -ne 1 ] && echo s)</li
+  ><li>$provider_count user$([ $provider_count -ne 1 ] && echo s)</li
+  ><li>$encounter_count submission$([ $encounter_count -ne 1 ] && echo s)</li
+  ><li>$obs_count observation$([ $obs_count -ne 1 ] && echo s)</li>
+</ul>
+EOF
     else
         echo "No record counts available yet.  This server is brand new!"
     fi
@@ -62,9 +67,9 @@ Refresh: 10
     <section id="state">
         <div id="summary">
             <ul class="inline">
-                <li id="updown">$(get_up_down_status)</li>
-                <li id="time">$(date +'%Y-%m-%d at %H:%M:%S') UTC</li>
-                <li id="uptime">$(get_uptime) since boot</li>
+                <li id="updown">$(get_up_down_status)</li
+                ><li id="time">$(date +'%Y-%m-%d at %H:%M:%S') UTC</li
+                ><li id="uptime">$(get_uptime) since boot</li>
             </ul>
         </div>
         <div id="counts">$(get_counts)
@@ -82,15 +87,13 @@ Refresh: 10
 <section id="database">
     <div id="openmrs">OpenMRS:
         <ul class="inline">
-            <li id="dictionary">
-                <a href="/openmrs/dictionary">concept dictionary</a>
-            </li>
-            <li id="admin"><a href="/openmrs/admin">administration</a></li>
-            <li id="profiles">
-                <a href="/openmrs/module/projectbuendia/openmrs/profiles.form">
-                    Buendia profiles
-                </a>
-            </li>
+            <li id="dictionary"
+                ><a href="/openmrs/dictionary">concept dictionary</a></li
+            ><li id="admin"
+                ><a href="/openmrs/admin">administration</a></li
+            ><li id="profiles"
+                ><a href="/openmrs/module/projectbuendia/openmrs/profiles.form"
+                    >Buendia profiles</a></li>
         </ul>
     </div>
 
@@ -104,11 +107,11 @@ Refresh: 10
 <section id="maintenance">
     <div>Maintenance:
         <ul class="inline">
-            <li id="status"><a href="admin/status">status</a></li>
-            <li id="clock"><a href="admin/clock">clock</a></li>
-            <li id="reboot"><a href="admin/reboot">reboot</a></li>
-            <li id="packages"><a href="packages">packages</a></li>
-            <li id="app-versions"><a href="client">app versions</a></li>
+            <li id="status"><a href="admin/status">status</a></li
+            ><li id="clock"><a href="admin/clock">clock</a></li
+            ><li id="reboot"><a href="admin/reboot">reboot</a></li
+            ><li id="packages"><a href="packages">packages</a></li
+            ><li id="app-versions"><a href="client">app versions</a></li>
         </ul>
     </div>
 </section>
