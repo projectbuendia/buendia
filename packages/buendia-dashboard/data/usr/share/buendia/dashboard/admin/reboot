@@ -21,30 +21,43 @@ if [ "$REQUEST_METHOD" = POST ]; then
     buendia-led red 10
     touch /tmp/reboot-requested
     cat <<EOF
-<p>
+<div class="message">
 Rebooting now.  The server will come back up in about 3 minutes.
+</div>
 
-<p>
-Please wait 1 minute before checking for status...
-<script>setTimeout('location = "status"', 60000)</script>
+<div class="message">
+Please wait <span id="remain">1 minute</span> before checking for status...
+</div>
+
+<script>
+    var span = document.getElementById('remain');
+    var remain = 60;
+    function tick() {
+        remain -= 1;
+        span.innerText = remain + ' second' + (remain == 1 ? '' : 's');
+        setTimeout('tick()', 1000);
+    }
+    setTimeout('location = "status"', 60000);
+    setTimeout('tick()', 1000);
+</script>
 EOF
 
 else
     cat <<EOF
-<p>After reboot, the server will take about 5 minutes to come up.
+<div id="message">
+    After reboot, the server will take about 5 minutes to come up.
+</div>
 
-<p><a href="#" onclick="reboot()">Reboot</a>
+<div><a class="action" onclick="reboot()">Reboot</a></div>
 
-<p><a href="/">Back to dashboard</a>
+<div><a class="back" href="/">Back to dashboard</a></div>
 
 <form id="form" method="POST"></form>
 
 <script>
     var form = document.getElementById('form');
     function reboot() {
-        if (confirm("Reboot the server now?")) {
-            form.submit();
-        }
+        if (confirm("Reboot the server now?")) form.submit();
     }
 </script>
 EOF

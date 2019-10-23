@@ -24,21 +24,19 @@ Content-Type: text/html
 <link rel="stylesheet" href="style.css">
 <h1>Client app</h1>
 
-<div>
-$message
-</div>
+<div class="message">$message</div>
 
-<div>
+<ul>
 EOF
 
 for file in $(ls -t *.apk); do
     cat <<EOF
-<p><a href="/packages/$file">$file</a>
+    <li><a href="/packages/$file">$file</a>
 EOF
 done
 
 cat <<EOF
-</div>
+</ul>
 
-<div><a href="/">Back to dashboard</a></div>
+<div><a class="back" href="/">Back to dashboard</a></div>
 EOF
