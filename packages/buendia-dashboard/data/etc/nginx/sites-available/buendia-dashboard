@@ -5,48 +5,28 @@ server {
     root /usr/share/buendia/dashboard;
     index index;
 
-    location /index {
+    location ~ ^/[^/]*\. { }  # top-level files with extensions
+
+    location / {
+        fastcgi_index index;
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
-        fastcgi_param SCRIPT_NAME index;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/index;
-        fastcgi_param REQUEST_METHOD $request_method;
-        fastcgi_param REQUEST_URI $request_uri;
-        fastcgi_param QUERY_STRING $query_string;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
-    location /client {
+
+    location /admin {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
-        fastcgi_param SCRIPT_NAME client;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/client;
-        fastcgi_param REQUEST_METHOD $request_method;
-        fastcgi_param REQUEST_URI $request_uri;
         fastcgi_param QUERY_STRING $query_string;
-    }
-    location /status {
-        fastcgi_pass unix:/var/run/fcgiwrap.socket;
-        fastcgi_param SCRIPT_NAME status;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/status;
         fastcgi_param REQUEST_METHOD $request_method;
-        fastcgi_param REQUEST_URI $request_uri;
-        fastcgi_param QUERY_STRING $query_string;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         auth_basic "Buendia Administration";
         auth_basic_user_file /usr/share/buendia/dashboard/.htpasswd;
     }
-    location /reboot {
-        fastcgi_pass unix:/var/run/fcgiwrap.socket;
-        fastcgi_param SCRIPT_NAME reboot;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/reboot;
-        fastcgi_param REQUEST_METHOD $request_method;
-        fastcgi_param REQUEST_URI $request_uri;
-        fastcgi_param QUERY_STRING $query_string;
-        auth_basic "Buendia Administration";
-        auth_basic_user_file /usr/share/buendia/dashboard/.htpasswd;
+
+    location /openmrs {
+        proxy_pass http://127.0.0.1:9000/openmrs;
     }
-    location /clock {
-        fastcgi_pass unix:/var/run/fcgiwrap.socket;
-        fastcgi_param SCRIPT_NAME clock;
-        fastcgi_param SCRIPT_FILENAME /usr/share/buendia/dashboard/clock;
-        fastcgi_param REQUEST_METHOD $request_method;
-        fastcgi_param REQUEST_URI $request_uri;
-        fastcgi_param QUERY_STRING $query_string;
+
+    location /packages {
+        proxy_pass http://127.0.0.1:9001/;
     }
 }

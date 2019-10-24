@@ -3,7 +3,8 @@ Description=Periodically check for a reboot request
 
 [Timer]
 OnBootSec=120
-OnUnitActiveSec=5
+OnUnitActiveSec=2.5
+AccuracySec=1
 Unit=reboot-check.service
 
 [Install]

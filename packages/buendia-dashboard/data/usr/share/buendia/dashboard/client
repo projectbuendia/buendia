@@ -11,28 +11,32 @@
 # specific language governing permissions and limitations under the License.
 
 cd /usr/share/buendia/packages
-latest=$(ls -t buendia-client*.apk | head -1)
+
+if [ -n "$(ls *.apk)" ]; then
+    message='Versions available for download:'
+else
+    message='No versions of the client app are available for donwload.'
+fi
 
 cat <<EOF
-Content-Type: text/html
+Content-Type: text/html; charset=UTF-8
 
 <link rel="stylesheet" href="style.css">
 <h1>Client app</h1>
 
-<p>Latest version: <a href="http://buendia:9001/$latest">$latest</a>
+<div class="message">$message</div>
 
-<p>All files:
 <ul>
 EOF
 
 for file in $(ls -t *.apk); do
     cat <<EOF
-<li><a href="http://buendia:9001/$file">$file</a>
+    <li><a href="/packages/$file">$file</a>
 EOF
 done
 
 cat <<EOF
 </ul>
 
-<p><a href="/">Back to dashboard</a>
+<div><a class="back" href="/">Back to dashboard</a></div>
 EOF
