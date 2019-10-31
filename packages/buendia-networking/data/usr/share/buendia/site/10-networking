@@ -7,7 +7,7 @@
 
 # Fallback address for Ethernet device: This is the address that the Ethernet
 # device takes if it can't find a DHCP server.
-NETWORKING_IP_FALLBACK=10.10.10.10
+NETWORKING_ETHERNET_ADDRESS=10.10.10.10
 
 # SSID and WPA password for the network to join or create.
 # NETWORKING_SSID=buendia
@@ -23,4 +23,4 @@ NETWORKING_IP_FALLBACK=10.10.10.10
 
 # This host's wireless IP address. If unset, then DHCP is used to get an
 # address on the wireless interface.
-# NETWORKING_IP_ADDRESS=10.0.0.50
+# NETWORKING_WIFI_ADDRESS=10.0.0.50
