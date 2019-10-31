@@ -51,15 +51,9 @@ configure_ethernet () {
         NETWORKING_IP_ADDRESS=""
     fi
 
-    # Bring down the interface during reconfiguration, but don't fail if we can't.
-    ifdown $NETWORKING_ETHERNET_INTERFACE || true
-
     # Configure the IP address for this Interface
     configure_ip_address "$NETWORKING_ETHERNET_INTERFACE" \
         "$NETWORKING_ETHERNET_ADDRESS" >> /etc/network/interfaces
-
-    # Bring it back up
-    ifup $NETWORKING_ETHERNET_INTERFACE
 }
 
 # Configure the WiFi device
@@ -78,9 +72,6 @@ configure_wifi () {
         NETWORKING_WIFI_ADDRESS=$NETWORKING_IP_ADDRESS
         NETWORKING_IP_ADDRESS=""
     fi
-
-    # Bring down the interface during reconfiguration, but don't fail if we can't.
-    ifdown $NETWORKING_WIFI_INTERFACE || true
 
     # Configure the IP address for this Interface
     configure_ip_address "$NETWORKING_WIFI_INTERFACE" "$NETWORKING_WIFI_ADDRESS" >> /etc/network/interfaces
@@ -108,8 +99,6 @@ configure_wifi () {
         # Turn this machine into an access point now, and also on future boots.
         systemctl enable hostapd
         systemctl start hostapd
-        
-        ifup $NETWORKING_WIFI_INTERFACE
         return 0
     fi
 
@@ -133,9 +122,6 @@ configure_wifi () {
     # Turn wifi power management off -- this is a must for NUC, as otherwise
     # network performance suffers badly.
     echo "wireless-power off" >> /etc/network/interfaces
-
-    # Start the interface
-    ifup $NETWORKING_WIFI_INTERFACE
 }
 
 # Check the network settings to see if we need to configure networking.
@@ -236,6 +222,22 @@ configure_services () {
     fi
 }
 
+# Stop the WiFi and Ethernet interfaces but don't fail if we can't.
+stop_interfaces () {
+    for iface in $NETWORKING_WIFI_INTERFACE $NETWORKING_ETHERNET_INTERFACE; do
+        ( interface_exists $iface && ifdown $iface ) || true
+    done
+}
+
+# Start the WiFi and Ethernet interfaces as necessary *and* fail if we can't.
+start_interfaces () {
+    for iface in $NETWORKING_WIFI_INTERFACE $NETWORKING_ETHERNET_INTERFACE; do
+        if interface_exists $iface; then
+            ifup $iface
+        fi
+    done
+}
+
 # Check to make sure the networking stack needs configuration, and exit early if not.
 check_network_settings || exit 0
 
@@ -243,9 +245,11 @@ check_network_settings || exit 0
 backup_original_interfaces_file
 
 # Configure the networking devices
+stop_interfaces
 configure_loopback
 configure_wifi
 configure_ethernet
+start_interfaces
 
 # Configure DHCP and DNS 
 configure_services
