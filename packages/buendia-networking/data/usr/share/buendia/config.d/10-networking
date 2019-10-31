@@ -12,192 +12,251 @@
 
 set -e; . /usr/share/buendia/utils.sh
 
-# If we have a Wi-Fi interface, treat it as the "main" one. Otherwise rely on
-# the ethernet interface.
-if [ -z $NETWORKING_WIFI_INTERFACE ]; then
-  MAIN_INTERFACE=$NETWORKING_ETHERNET_INTERFACE
-else
-  MAIN_INTERFACE=$NETWORKING_WIFI_INTERFACE
-  USE_WIFI=1
-fi
+# Return true if a network interface can be found by name
+interface_exists () {
+    [ -n "$1" ] && ( ip a | grep -q " $1:" )
+}
 
-if [ -z "$MAIN_INTERFACE" ] || ! ( ip a | grep -q " $MAIN_INTERFACE:" ); then
-    echo "Main interface $MAIN_INTERFACE not found. Skipping network configuration."
-    exit 0
-fi
+# Configure an interface address in /etc/network/interfaces
+configure_ip_address () {
+    iface=$1
+    addr=$2
+
+    # If the interface was given a static IP address, then apply it.
+    # Otherwise, configure it to use DHCP.
+    echo "auto $iface"
+    if [ -n "$addr" ]; then
+        unindent <<< "
+            iface $iface inet static
+                address $addr/24
+        "
+    else
+        unindent <<< "
+            iface $iface inet dhcp
+        "
+    fi
+}
+
+# Configure the Ethernet device
+configure_ethernet () {
+    # Make sure the Ethernet interface is present
+    if ! interface_exists "$NETWORKING_ETHERNET_INTERFACE"; then
+        return 0
+    fi
+
+    # Adopt NETWORKING_IP_ADDRESS as a default if NETWORKING_ETHERNET_ADDRESS
+    # isn't set
+    if [ -z "$NETWORKING_ETHERNET_ADDRESS" ]; then
+        NETWORKING_ETHERNET_ADDRESS=$NETWORKING_IP_ADDRESS
+        NETWORKING_IP_ADDRESS=""
+    fi
+
+    # Configure the IP address for this Interface
+    configure_ip_address "$NETWORKING_ETHERNET_INTERFACE" \
+        "$NETWORKING_ETHERNET_ADDRESS" >> /etc/network/interfaces
+}
+
+# Configure the WiFi device
+configure_wifi () {
+    # Make sure the WiFi interface is present
+    if ! interface_exists "$NETWORKING_WIFI_INTERFACE"; then
+        return 0
+    fi
+
+    if [ -z "$NETWORKING_SSID" ]; then
+      echo "No NETWORKING_SSID configured."
+      return 1
+    fi
+
+    if [ -z "$NETWORKING_WIFI_ADDRESS" ]; then
+        NETWORKING_WIFI_ADDRESS=$NETWORKING_IP_ADDRESS
+        NETWORKING_IP_ADDRESS=""
+    fi
+
+    # Configure the IP address for this Interface
+    configure_ip_address "$NETWORKING_WIFI_INTERFACE" "$NETWORKING_WIFI_ADDRESS" >> /etc/network/interfaces
+
+    # If $NETWORKING_AP is set, enable hostapd and return early.
+    if bool $NETWORKING_AP; then
+        echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
+        hostapd_conf=/etc/hostapd/hostapd.conf
+        unindent <<< "
+            interface=$NETWORKING_WIFI_INTERFACE
+            ssid=$NETWORKING_SSID
+            wpa=2
+            wpa_key_mgmt=WPA-PSK
+            wpa_passphrase=$NETWORKING_PASSWORD
+            hw_mode=g
+            channel=24
+            ieee80211n=1
+            wmm_enabled=1
+            macaddr_acl=0
+            auth_algs=1
+            ignore_broadcast_ssid=0
+            rsn_pairwise=CCMP
+        " > $hostapd_conf
+
+        # Turn this machine into an access point now, and also on future boots.
+        systemctl enable hostapd
+        systemctl start hostapd
+        return 0
+    fi
+
+    # If this is the normal case and $NETWORKING_AP is *not* set, then stop
+    # being an access point now, and do not become one on future boots.
+    systemctl stop hostapd
+    systemctl disable hostapd
+
+    echo "Joining existing wifi network '$NETWORKING_SSID'."
+
+    # Enable the wpa_supplicant hook
+    mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
+    if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
+      ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
+    fi
+
+    # Tell wpa_supplicant where to get its credentials
+    wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
+    echo "wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf" >> /etc/network/interfaces
+
+    # Turn wifi power management off -- this is a must for NUC, as otherwise
+    # network performance suffers badly.
+    echo "wireless-power off" >> /etc/network/interfaces
+}
+
+# Check the network settings to see if we need to configure networking.
+check_network_settings () {
+    # Exit early if we have no interfaces to configure. This is potentially
+    # nominal, e.g. when running in the cloud, and is not treated as an error.
+    if ! interface_exists "$NETWORKING_WIFI_INTERFACE" && \
+       ! interface_exists "$NETWORKING_ETHERNET_INTERFACE"; then
+       echo "No known network interfaces available; skipping network configuration."
+       return 0
+    fi
+
+    # Create a file that records the requested settings in a canonical format.
+    # We'll put this in a temporary location for now, and move it over to /run
+    # to indicate that the settings have been applied successfully.
+    tmp_settings=/tmp/buendia-networking.settings.$$
+    run_settings=/run/buendia-networking.settings
+
+    # We persist a record of successful configuration to the file specified by
+    # $run_settings. It should exist if and only if the settings it contains
+    # were completely and successfully applied, so we create a temp file first,
+    # and copy it to its final local in commit_network_settings().
+    buendia-settings | grep '^NETWORKING_' > $tmp_settings
+    trap "rm -f $tmp_settings" EXIT  # clean up temporary files
+
+    # Compare the desired settings against those that were last successfully
+    # applied, allowing us to avoid bringing the network down if nothing has
+    # changed.  (Specifying the -f switch forces reconfiguration even when
+    # nothing appears to have changed.)
+    if [ "$1" != "-f" ]; then
+        if [ -e $run_settings ] && diff -q $tmp_settings $run_settings; then
+            echo "Networking configuration unchanged."
+            return 1
+        fi
+    fi
+
+    # In case anything goes wrong, don't leave behind an indicator of success.
+    rm -f $run_settings
+}
+
+# Record the fact that the settings that were successfully configured.
+commit_network_settings () {
+    mv $tmp_settings $run_settings
+}
+
+# Back up the original interfaces file if no backup has been made.
+backup_original_interfaces_file () {
+    if [ ! -e /etc/network/interfaces.pre-buendia ]; then
+        cp /etc/network/interfaces /etc/network/interfaces.pre-buendia
+    fi
+}
+
+# Configure the loopback device
+configure_loopback () {
+    unindent <<< "
+        # Generated by buendia-networking
+        auto lo
+        iface lo inet loopback
+    " > /etc/network/interfaces
+}
+
+# Activate or deactivate the DHCP and DNS servers according to the settings
+configure_services () {
+    if bool $NETWORKING_DHCP_DNS_SERVER; then
+        # If a DHCP range is set, then assume we want to be a DHCP server as
+        # well as a DNS server.
+        if [ -n "$NETWORKING_DHCP_RANGE" ]; then
+            echo 'Turning on DHCP and DNS server.'
+            ntp_address=$NETWORKING_IP_ADDRESS
+            if [ -z "$ntp_server" -a -n "$NETWORKING_WIFI_ADDRESS" ]; then
+                ntp_address=$NETWORKING_WIFI_ADDRESS
+            fi
+            if [ -z "$ntp_server" -a -n "$NETWORKING_ETHERNET_ADDRESS" ]; then
+                ntp_address=$NETWORKING_ETHERNET_ADDRESS
+            fi
+            unindent <<< "
+                dhcp-authoritative
+                dhcp-range=$NETWORKING_DHCP_RANGE
+                dhcp-option=option:ntp-server,$ntp_address
+            " > /etc/dnsmasq.d/buendia-dhcp.conf
+        else
+            # Otherwise, serve DNS but not DHCP.
+            echo "Turning on DNS server."
+            rm -f /etc/dnsmasq.d/buendia-dhcp.conf
+        fi
+
+        # Call update-hosts whenever an interface comes up
+        ln -sf /usr/bin/buendia-update-hosts /etc/network/if-up.d/
+                
+        service dnsmasq restart
+        update-rc.d dnsmasq enable
+    else
+        echo "Turning off DHCP/DNS server."
+        rm -f /etc/network/if-up.d/buendia-update-hosts
+
+        # Disable dnsmasq now, and also for future boots.
+        service dnsmasq stop
+        update-rc.d dnsmasq disable
+    fi
+}
+
+# Stop the WiFi and Ethernet interfaces but don't fail if we can't.
+stop_interfaces () {
+    for iface in $NETWORKING_WIFI_INTERFACE $NETWORKING_ETHERNET_INTERFACE; do
+        ( interface_exists $iface && ifdown $iface ) || true
+    done
+}
+
+# Start the WiFi and Ethernet interfaces as necessary *and* fail if we can't.
+start_interfaces () {
+    for iface in $NETWORKING_WIFI_INTERFACE $NETWORKING_ETHERNET_INTERFACE; do
+        if interface_exists $iface; then
+            ifup $iface
+        fi
+    done
+}
+
+# Check to make sure the networking stack needs configuration, and exit early if not.
+check_network_settings $@ || exit 0
+
+# Backup the pre-buendia config
+backup_original_interfaces_file
+
+# Configure the networking devices
+stop_interfaces
+configure_loopback
+configure_wifi
+configure_ethernet
+start_interfaces
+
+# Configure DHCP and DNS 
+configure_services
 
 # Update the /etc/hosts file with mappings for this machine's IP addresses.
 buendia-update-hosts
 
-if [ -n "$USE_WIFI" -a -z "$NETWORKING_SSID" ]; then
-    echo "No NETWORKING_SSID configured."
-    exit 1
-fi
-
-# Create a file that records the requested settings in a canonical format.
-# We'll put this in a temporary location for now, and move it over to /run
-# to indicate that the settings have been applied successfully.
-tmp_settings=/tmp/buendia-networking.settings.$$
-buendia-settings | grep '^NETWORKING_' > $tmp_settings
-trap "rm -f $tmp_settings" EXIT  # clean up temporary files
-
-# This file persists as a record of successful configuration.  It should
-# exist if and only if the settings it contains were completely and
-# successfully applied.
-run_settings=/run/buendia-networking.settings
-
-# Compare the desired settings against those that were last successfully
-# applied, allowing us to avoid bringing the network down if nothing has
-# changed.  (Specifying the -f switch forces reconfiguration even when
-# nothing appears to have changed.)
-if [ "$1" != "-f" ]; then
-    if [ -e $run_settings ] && diff -q $tmp_settings $run_settings; then
-        echo "Networking configuration unchanged."
-        exit 0
-    fi
-fi
-
-# In case anything goes wrong, don't leave behind an indicator of success.
-rm -f $run_settings
-
-# Bring down the interface during reconfiguration, but don't fail if we can't.
-ifdown $MAIN_INTERFACE || true
-
-# Back up the original interfaces file.
-if [ ! -e /etc/network/interfaces.pre-buendia ]; then
-    cp /etc/network/interfaces /etc/network/interfaces.pre-buendia
-fi
-
-unindent <<< "
-    # Generated by buendia-networking
-    auto lo
-    iface lo inet loopback
-" > /etc/network/interfaces
-
-# If the main interface was given a static IP address, then apply it.
-# Otherwise, configure it to use DHCP.
-if [ -n "$NETWORKING_IP_ADDRESS" ]; then
-    unindent <<< "
-        auto $MAIN_INTERFACE
-        iface $MAIN_INTERFACE inet static
-            address $NETWORKING_IP_ADDRESS/24
-    " >> /etc/network/interfaces
-else
-    unindent <<< "
-        auto $MAIN_INTERFACE
-        iface $MAIN_INTERFACE inet dhcp
-    " >> /etc/network/interfaces
-fi
-
-# Tell wpa_supplicant where to get its credentials, and ensure that wireless
-# power management is off -- this is a must for NUC, as otherwise network
-# performance suffers badly.
-if [ -n "$USE_WIFI" ]; then
-    unindent <<< "
-            wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
-            wireless-power off
-    " >> /etc/network/interfaces
-fi
-
-# Special case: If we're using Wi-Fi, but we also have an ethernet interface,
-# try to get DHCP from it because it might be an upstream network.
-if [ -n "$USE_WIFI" -a -n "$NETWORKING_ETHERNET_INTERFACE" ]; then
-    unindent <<< "
-        allow-hotplug $NETWORKING_ETHERNET_INTERFACE
-        iface $NETWORKING_ETHERNET_INTERFACE inet dhcp
-    " >> /etc/network/interfaces
-fi
-
-# If we have an SSID and password, set up the wpa_supplicant configuration.
-if [ -n "$NETWORKING_SSID" -a -n "$NETWORKING_PASSWORD" ]; then
-    wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
-fi
-
-# Enable the wpa_supplicant hook
-mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
-if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
-  ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
-fi
-
-# Activate or deactivate the DHCP server and client according to the settings.
-if bool $NETWORKING_DHCP_DNS_SERVER; then
-    if [ -n "$NETWORKING_IP_ADDRESS" -a -n "$NETWORKING_DHCP_RANGE" ]; then
-        echo 'Turning on DHCP/DNS server.'
-
-        unindent <<< "
-            dhcp-authoritative
-            dhcp-range=$NETWORKING_DHCP_RANGE
-            dhcp-option=option:ntp-server,$NETWORKING_IP_ADDRESS
-        " > /etc/dnsmasq.d/buendia-dhcp.conf
-    else
-        echo "Turning on DNS server."
-        rm -f /etc/dnsmasq.d/buendia-dhcp.conf
-    fi
-
-    ln -sf /usr/bin/buendia-update-hosts /etc/network/if-up.d/
-            
-    service dnsmasq restart
-    update-rc.d dnsmasq enable
-else
-    echo "Turning off DHCP/DNS server."
-    rm -f /etc/network/if-up.d/buendia-update-hosts
-
-    # Disable dnsmasq now, and also for future boots.
-    service dnsmasq stop
-    update-rc.d dnsmasq disable
-fi
-
-# Activate or deactivate access point mode according to the settings.
-if bool $NETWORKING_AP; then
-    echo "Becoming an AP, creating wifi network '$NETWORKING_SSID'."
-    hostapd_conf=/etc/hostapd/hostapd.conf
-    unindent <<< "
-        interface=$NETWORKING_WIFI_INTERFACE
-        ssid=$NETWORKING_SSID
-        wpa=2
-        wpa_key_mgmt=WPA-PSK
-        wpa_passphrase=$NETWORKING_PASSWORD
-        hw_mode=g
-        channel=24
-        ieee80211n=1
-        wmm_enabled=1
-        macaddr_acl=0
-        auth_algs=1
-        ignore_broadcast_ssid=0
-        rsn_pairwise=CCMP
-    " > $hostapd_conf
-
-    # Turn this machine into an access point now, and also on future boots.
-    systemctl enable hostapd
-    systemctl start hostapd
-
-else
-    echo "Joining existing wifi network '$NETWORKING_SSID'."
-
-    # Stop being an access point now, and do not become one on future boots.
-    systemctl stop hostapd
-    systemctl disable hostapd
-fi
-
-# If we have an Ethernet interface, and the fallback address is set,
-# self-assign this address on the Ethernet device when we can't find a DHCP
-# server. That way an admin can always SSH in on a known IP adddress if all
-# else fails.
-if [ -n "$NETWORKING_IP_FALLBACK" -a -n "$NETWORKING_ETHERNET_INTERFACE" ]; then
-	# Apply dhcpcd configuration
-	unindent <<< "
-		# Static ethernet profile
-		profile static_ethernet
-		static ip_address=$NETWORKING_IP_FALLBACK/24
-
-		# fallback to static profile on $NETWORKING_ETHERNET_INTERFACE
-		interface $NETWORKING_ETHERNET_INTERFACE
-		fallback static_ethernet
-	" > /etc/dhcpcd.conf
-fi
-
-# Bring back up the interface
-ifup $MAIN_INTERFACE
-
-# Record the fact that the settings that were successfully configured.
-mv $tmp_settings $run_settings || true
+# Record success
+commit_network_settings

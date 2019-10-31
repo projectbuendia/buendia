@@ -36,15 +36,15 @@ NETWORKING_SSID=buendia
 NETWORKING_PASSWORD=password
 
 # Get a static address on the network and provide DNS but not DHCP.
-NETWORKING_IP_ADDRESS=10.18.0.50
+NETWORKING_WIFI_ADDRESS=10.0.0.2
 NETWORKING_DHCP_DNS_SERVER=1
 NETWORKING_DHCP_RANGE=
 ```
 
-The Nanostation would then be configured as `10.18.0.1` on the WLAN and deliver
-DHCP on the `10.18.0.x` network, with the DNS address hardcoded to
-`10.18.0.50`. (Alternately, the DHCP server could be disabled on the
-Nanostation and enabled on the NUC as documented below.)
+The Nanostation would then be configured as `10.0.0.1` on the WLAN and deliver
+DHCP on the `10.0.0.x` network, with the DNS address hardcoded to `10.0.0.2`.
+(Alternately, the DHCP server could be disabled on the Nanostation and enabled
+on the NUC as documented below.)
 
 The Nanostation Ethernet address can be left set to the default `192.168.1.20`
 to permit mainenance access.
@@ -65,17 +65,7 @@ contains some additional detail.
 
 ### `NETWORKING_WIFI_INTERFACE`
 
-The Linux device name for the wireless interface. If set, this is assumed to be
-the "main" interface for communicating with clients.
-
-### `NETWORKING_ETHERNET_INTERFACE`
-
-The Linux device name for the ethernet interface. If
-`NETWORKING_WIFI_INTERFACE` is unset, then this must be set, and it is treated
-as the "main" interface. If the Wi-Fi interface is set, then this device is
-configured to attempt to request a DHCP lease whenever a cable is connected,
-and fall back to the adddress provided in `NETWORKING_IP_FALLBACK` if no DHCP
-server answers.
+The Linux device name for the wireless interface.
 
 ### `NETWORKING_SSID`
 
@@ -85,20 +75,21 @@ The SSID for the wireless network. Required if `NETWORKING_WIFI_INTERFACE` is se
 
 The WPA2 password for the wireless network. Required if `NETWORKING_WIFI_INTERFACE` is set.
 
-### `NETWORKING_IP_ADDRESS`
+### `NETWORKING_WIFI_ADDRESS`
 
-The static IP address for the main network interface. If set, the netmask is
-assumed to be 24 bits.
+The IP address for the Wi-Fi interface. If this is left blank, then the
+deprecated setting `NETWORKING_IP_ADDRESS` is used. If both are blank, then the
+Wi-Fi device is configured to use DHCP to find an IP address.
 
-If this setting is left blank, then the main interface is configured to
-request an address via DHCP.
+### `NETWORKING_ETHERNET_INTERFACE`
 
-### `NETWORKING_IP_FALLBACK`
+The Linux device name for the Ethernet interface.
 
-The static "fallback" IP address for the `NETWORKING_ETHERNET_INTERFACE`,
-assuming the Wi-Fi interface is configured as the "main" interface. If so, then
-the Ethernet interface attempts to find a lease, and adopts the
-`NETWORKING_IP_FALLBACK` address if no DHCP server answers on the wire.
+### `NETWORKING_ETHERNET_ADDRESS`
+
+The IP address for the Ethernet interface. If this is left blank, then the
+deprecated setting `NETWORKING_IP_ADDRESS` is used. If both are blank, then the
+Ethernet device is configured to use DHCP to find an IP address.
 
 ### `NETWORKING_DHCP_DNS_SERVER`
 
@@ -112,3 +103,11 @@ The DHCP assignment range passed to dnsmasq. Must be in the form `<start IP>,
 <end IP>, <lease time>`, e.g. `192.168.10.10,192.168.10.50,12h`. If left unset,
 then the Buendia server will not provide DHCP. Ignored if
 `NETWORKING_DHCP_DNS_SERVER` is unset.
+
+### `NETWORKING_IP_ADDRESS` **(deprecated)**
+
+The static IP address for the "main" network interface, if
+`NETWORKING_WIFI_ADDRESS` or `NETWORKING_ETHERNET_ADDRESS` is left unset.
+
+This setting is deprecated and is here only to support older installations. It
+will probably be removed in a future version of the package.
