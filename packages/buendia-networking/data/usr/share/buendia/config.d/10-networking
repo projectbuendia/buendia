@@ -46,7 +46,7 @@ configure_ethernet () {
 
     # Adopt NETWORKING_IP_ADDRESS as a default if NETWORKING_ETHERNET_ADDRESS
     # isn't set
-    if [ -z "$NEWORKING_ETHERNET_ADDRESS" ]; then
+    if [ -z "$NETWORKING_ETHERNET_ADDRESS" ]; then
         NETWORKING_ETHERNET_ADDRESS=$NETWORKING_IP_ADDRESS
         NETWORKING_IP_ADDRESS=""
     fi
@@ -68,7 +68,7 @@ configure_wifi () {
       return 1
     fi
 
-    if [ -z "$NEWORKING_WIFI_ADDRESS" ]; then
+    if [ -z "$NETWORKING_WIFI_ADDRESS" ]; then
         NETWORKING_WIFI_ADDRESS=$NETWORKING_IP_ADDRESS
         NETWORKING_IP_ADDRESS=""
     fi
