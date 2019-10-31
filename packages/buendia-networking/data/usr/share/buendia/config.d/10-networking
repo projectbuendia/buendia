@@ -240,7 +240,7 @@ start_interfaces () {
 }
 
 # Check to make sure the networking stack needs configuration, and exit early if not.
-check_network_settings || exit 0
+check_network_settings $@ || exit 0
 
 # Backup the pre-buendia config
 backup_original_interfaces_file
