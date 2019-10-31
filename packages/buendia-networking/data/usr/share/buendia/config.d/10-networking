@@ -140,9 +140,10 @@ check_network_settings () {
     tmp_settings=/tmp/buendia-networking.settings.$$
     run_settings=/run/buendia-networking.settings
 
-    # This file persists as a record of successful configuration.  It should
-    # exist if and only if the settings it contains were completely and
-    # successfully applied.
+    # We persist a record of successful configuration to the file specified by
+    # $run_settings. It should exist if and only if the settings it contains
+    # were completely and successfully applied, so we create a temp file first,
+    # and copy it to its final local in commit_network_settings().
     buendia-settings | grep '^NETWORKING_' > $tmp_settings
     trap "rm -f $tmp_settings" EXIT  # clean up temporary files
 
