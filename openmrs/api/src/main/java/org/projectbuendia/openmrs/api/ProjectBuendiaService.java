@@ -14,7 +14,10 @@ package org.projectbuendia.openmrs.api;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.api.APIException;
 import org.openmrs.api.OpenmrsService;
+import org.openmrs.annotation.Authorized;
+import org.openmrs.util.PrivilegeConstants;
 import org.projectbuendia.openmrs.api.db.ProjectBuendiaDAO;
 import org.projectbuendia.openmrs.api.db.SyncPage;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +49,10 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * @param includeVoided if {@code true}, results will include voided observations.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
+    @Authorized(PrivilegeConstants.VIEW_OBS)
     SyncPage<Obs> getObservationsModifiedAtOrAfter(
-        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults)
+        throws APIException;
 
     /**
      * Returns all patients modified on or after the given {@code date}.
@@ -56,8 +61,10 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * @param includeVoided if {@code true}, results will include voided patients.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
+    @Authorized(PrivilegeConstants.VIEW_PATIENTS)
     SyncPage<Patient> getPatientsModifiedAtOrAfter(
-        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults);
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults)
+        throws APIException;
 
     /**
      * Returns all orders modified on or after the given {@code date}.
@@ -68,7 +75,9 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * @param allowedOrderTypes only order types specified in this whitelist will be fetched. If
      *                          null, all order types are permissible.
      */
+    @Authorized(PrivilegeConstants.VIEW_ORDERS)
     SyncPage<Order> getOrdersModifiedAtOrAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
-        @Nullable Order.Action[] allowedOrderTypes);
+        @Nullable Order.Action[] allowedOrderTypes)
+        throws APIException;
 }
