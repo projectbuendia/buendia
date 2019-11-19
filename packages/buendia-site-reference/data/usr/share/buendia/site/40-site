@@ -24,10 +24,14 @@ NETWORKING_ETHERNET_INTERFACE=enp3s0
 NETWORKING_SSID=buendia
 NETWORKING_PASSWORD=plumpynut
 
-# Get a static address on the network and provide DNS but not DHCP.
-NETWORKING_IP_ADDRESS=10.0.0.2
+# Get a static address on the wi-fi network and provide DNS but not DHCP.
+NETWORKING_WIFI_ADDRESS=10.0.0.2
 NETWORKING_DHCP_DNS_SERVER=1
 NETWORKING_DHCP_RANGE=
+
+# Set the Ethernet IP to a known static address so that you can always SSH in
+# over a wired connection if all else fails.
+NETWORKING_ETHERNET_ADDRESS=10.10.10.10
 
 # Keep the NUC up to date.
 UPDATE_AUTOUPDATE=1

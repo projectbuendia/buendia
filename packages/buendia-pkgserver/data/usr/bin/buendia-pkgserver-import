@@ -77,8 +77,6 @@ name=$(basename $0)
 exdir=/tmp/$name.ex.$$
 package_repo=/usr/share/buendia/packages
 pkgdir=${package_repo}.import.$$
-rm -rf $exdir $pkgdir
-mkdir -p $exdir $pkgdir
 
 # Mount the given device, if necessary.
 if [ -b "$source" ]; then
@@ -98,6 +96,10 @@ else
     echo "$source is neither a block device nor a directory."
     exit 1
 fi
+
+# Create working directories
+rm -rf $exdir $pkgdir
+mkdir -p $exdir $pkgdir
 
 # Search the directory for bundles.
 cd "$source"
@@ -145,8 +147,8 @@ if [ -n "$unpacked" ]; then
 	echo "Found apks:" ${apks[@]-"(none)"}
 	echo
 
-	let deb_count=${#debs} || true  # let exits with 1 if rhs is 0
-	let apk_count=${#apks} || true  # let exits with 1 if rhs is 0
+	let deb_count=${#debs[@]} || true  # let exits with 1 if rhs is 0
+	let apk_count=${#apks[@]} || true  # let exits with 1 if rhs is 0
 	let count=$deb_count+$apk_count || true  # let exits with 1 if rhs is 0
 
 	if [ "$count" -gt 0 ]; then

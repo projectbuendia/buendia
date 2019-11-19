@@ -19,4 +19,8 @@
 
 # This host's wireless IP address. If unset, then DHCP is used to get an
 # address on the wireless interface.
-# NETWORKING_IP_ADDRESS=10.0.0.50
+# NETWORKING_WIFI_ADDRESS=10.0.0.50
+
+# This host's ethernet IP address. If unset, then DHCP is used to get an
+# address on the wireless interface.
+# NETWORKING_ETHERNET_ADDRESS=10.10.10.10
