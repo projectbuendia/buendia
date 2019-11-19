@@ -122,13 +122,10 @@ sleep 1  # ensure that keep has the uniquely lowest timestamp in the directory
 
 echo
 echo "Saving Buendia configuration..."
-tar cfz "$new_dir/buendia.tar.gz" \
-  --exclude '*.omod' \
-  /usr/share/buendia/counts \
-  /usr/share/buendia/distilled \
-  /usr/share/buendia/openmrs \
-  /usr/share/buendia/profiles \
-  /usr/share/buendia/site
+# Back up only those configuration directories which already exist; don't worry
+# about any which might be missing.
+config_paths=$(ls -d /usr/share/buendia/{counts,distilled,openmrs,profiles,site} || true)
+tar cfz "$new_dir/buendia.tar.gz" --exclude '*.omod' $config_paths
 ls -l "$new_dir/buendia.tar.gz"
 
 # ---- Back up the MySQL database.
