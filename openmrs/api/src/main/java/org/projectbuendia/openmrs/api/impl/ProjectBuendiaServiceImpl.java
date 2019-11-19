@@ -16,6 +16,7 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.api.APIException;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.projectbuendia.openmrs.api.Bookmark;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
@@ -42,20 +43,20 @@ public class ProjectBuendiaServiceImpl extends BaseOpenmrsService implements Pro
 
     @Override
     public SyncPage<Obs> getObservationsModifiedAtOrAfter(
-        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) throws APIException {
         return dao.getObservationsModifiedAfter(bookmark, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Patient> getPatientsModifiedAtOrAfter(
-        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) {
+        @Nullable Bookmark bookmark, boolean includeVoided, int maxResults) throws APIException {
         return dao.getPatientsModifiedAfter(bookmark, includeVoided, maxResults);
     }
 
     @Override
     public SyncPage<Order> getOrdersModifiedAtOrAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
-        @Nullable Order.Action[] allowedOrderTypes) {
+        @Nullable Order.Action[] allowedOrderTypes) throws APIException {
         return dao.getOrdersModifiedAtOrAfter(
             bookmark, includeVoided, maxResults, allowedOrderTypes);
     }

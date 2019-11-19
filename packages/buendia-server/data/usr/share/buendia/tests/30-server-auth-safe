@@ -1,0 +1,22 @@
+endpoint_requires_auth () {
+    curl -s -o /dev/null -w "%{http_code}" \
+        http://localhost:9000/openmrs/ws/rest/buendia/$1 \
+        | grep 401
+}
+
+# This is an expected behavior of OpenMRS
+
+test_10_patients_requires_auth () {
+    endpoint_requires_auth patients
+}
+
+# The next two tests confirm that issue #223 has been fixed
+# https://github.com/projectbuendia/buendia/issues/223
+
+test_20_orders_requires_auth () {
+    endpoint_requires_auth orders
+}
+
+test_30_observations_requires_auth () {
+    endpoint_requires_auth observations
+}
