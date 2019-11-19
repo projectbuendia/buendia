@@ -77,8 +77,6 @@ name=$(basename $0)
 exdir=/tmp/$name.ex.$$
 package_repo=/usr/share/buendia/packages
 pkgdir=${package_repo}.import.$$
-rm -rf $exdir $pkgdir
-mkdir -p $exdir $pkgdir
 
 # Mount the given device, if necessary.
 if [ -b "$source" ]; then
@@ -98,6 +96,10 @@ else
     echo "$source is neither a block device nor a directory."
     exit 1
 fi
+
+# Create working directories
+rm -rf $exdir $pkgdir
+mkdir -p $exdir $pkgdir
 
 # Search the directory for bundles.
 cd "$source"
