@@ -39,6 +39,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  * Controller for the REST resources in this module. This implicitly picks up
@@ -107,7 +108,14 @@ public class RestController extends MainResourceController {
     }
 
     private void finish(HttpServletRequest request, HttpServletResponse response) {
-        // Nothing to do.
+        // Since we don't expect the REST client to return jsession ID cookies
+        // or URL parameters, we invalidate any extant session when finalizing
+        // the response. This way the servlet's session cache doesn't fill up
+        // with unused sessions and eventually grind to a halt.
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
     }
 
     @Override public SimpleObject handleException(Exception e, HttpServletRequest request, HttpServletResponse response) throws Exception {
