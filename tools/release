@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -e
+ver=$1
+
+if [[ "$ver" = "" || "$ver" = -* ]]; then
+    echo Usage: $0 '<version>'
+    echo
+    echo 'Performs the release process for the buendia project.  To ensure'
+    echo 'consistency, run this script instead of individual git flow commands.'
+    echo 'The argument should be a version number, for example:'
+    echo
+    echo '    tools/release 0.18.1'
+    echo
+    exit 1
+fi
+
+git flow release start $ver || true
+git flow release publish $ver
+git flow release finish $ver
+git checkout master
+git push origin master
+git push --tags origin master
+git checkout dev
+git merge v$ver
+git push origin dev
