@@ -1,0 +1,19 @@
+[Unit]
+Description=Buendia-specific system startup and shutdown
+DefaultDependencies=no
+After=systemd-modules-load.service
+
+# Make this unit start as early as possible during system startup.
+Before=sysinit.target
+
+# Make this unit stop as late as possible during system shutdown.
+Conflicts=umount.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/buendia-init start
+RemainAfterExit=yes
+ExecStop=/usr/bin/buendia-init stop
+
+[Install]
+WantedBy=sysinit.target

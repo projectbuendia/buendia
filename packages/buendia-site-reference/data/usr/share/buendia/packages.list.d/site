@@ -1,10 +1,13 @@
 buendia-backup
 buendia-dashboard
 buendia-monitoring
+buendia-mysql
 buendia-networking
 buendia-ntpserver
 buendia-pkgserver
+buendia-setclock
 buendia-server
 buendia-site-reference
 buendia-sshd
+buendia-tomcat7
 buendia-update

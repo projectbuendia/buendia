@@ -1,0 +1,63 @@
+#!/bin/bash
+
+LOG=/var/log/buendia/buendia-init.log
+HWCLOCK_FILE=/var/log/buendia/hwclock.final
+
+# Ensure no dependency on any environment variables, even PATH.
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+action="$1"
+
+# Reports the date and time on the system clock to nanosecond precision.
+function nanodate() {
+    date +'%Y-%m-%d %H:%M:%S.%N'
+}
+
+# Saves the time reported by the hardware clock (for use during shutdown).
+function save_hwclock() {
+    hwclock -u > $HWCLOCK_FILE
+}
+
+# Checks the hardware clock to see if it has moved backwards since the last
+# shutdown, and if so, disables the Buendia API to prevent database corruption.
+#
+# Loss of battery power to the internal hardware clock can cause the clock to
+# reset to a time in the past.  If data is written to the database that is
+# timestamped in the past, it is not only invalid, but can also make Buendia
+# clients unusable.  Hence, in this eventuality, we disable the Buendia API.
+function check_hwclock() {
+    now=$(echo $(/sbin/hwclock -u))
+    final=$(echo $(cat $HWCLOCK_FILE))
+
+    if [[ "$now" < "$final" ]]; then
+        systemctl mask tomcat7
+        buendia-led pink 100  # system has entered an error state
+    else
+        systemctl unmask tomcat7
+    fi
+}
+
+if [ "$action" = "" ]; then
+    echo 'Usage: $0 <action>'
+    echo
+    echo 'This script performs system startup and shutdown steps for a Buendia'
+    echo 'system.  The systemd unit "buendia-init" should be configued to call'
+    echo 'this script as early as possible during system startup with "start"'
+    echo 'as the <action>, and as late as possible during system shutdown with'
+    echo '"stop" as the <action>.'
+    echo
+    echo 'This script is not intended to be run from a shell or a shell script.'
+    exit 1
+fi
+
+if [ "$action" = start ]; then
+    echo "start $(nanodate)" >> $LOG
+    buendia-led yellow 4  # boot has started
+    check_hwclock
+fi
+
+if [ "$action" = stop ]; then
+    echo "stop $(nanodate)" >> $LOG
+    save_hwclock
+    buendia-led red 4  # shutdown has completed
+fi

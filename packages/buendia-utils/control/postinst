@@ -19,6 +19,7 @@ case $1 in
             systemctl enable reboot-check.timer
             systemctl start reboot-check.timer
             systemctl enable buendia-reconfigure.service
+            systemctl enable buendia-init.service
         fi
 
         update-rc.d buendia-utils defaults
