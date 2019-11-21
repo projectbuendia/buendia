@@ -51,6 +51,9 @@ else
     packages=$(echo $(sed -e 's/#.*//' /usr/share/buendia/packages.list.d/*))
 fi
 
+trap 'buendia-led green' EXIT
+buendia-led cyan 100
+
 # Attempt database migration first, if requested
 if echo $packages | grep buendia-server; then
     echo "--- Attempting database migration"
