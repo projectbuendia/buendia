@@ -19,8 +19,6 @@ if [ "$CIRCLE_TOKEN" = "" ]; then
     exit 1
 fi
 
-export CIRCLE_TOKEN='?circle-token=9d74d78540d30044996fbd71e53ae2169a3d3991'
-
 echo "Getting list of artifacts for projectbuendia/$repo, build $buildnum..."
 
 curl -s "https://circleci.com/api/v1.1/project/github/projectbuendia/$repo/$buildnum/artifacts?circle-token=$CIRCLE_TOKEN" | grep -o 'https://[^"]*' > /tmp/artifacts.txt
