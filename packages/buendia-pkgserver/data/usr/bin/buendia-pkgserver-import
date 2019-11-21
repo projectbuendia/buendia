@@ -84,13 +84,14 @@ if [ -b "$source" ]; then
     mntdir=/mnt/$name.$$
     mkdir -p $mntdir
     mount $source $mntdir
+    buendia-led cyan
     echo "Mounted $source at $mntdir."
-    trap 'rm -rf $exdir $pkgdir; cd /; fuser -m $mntdir || true; umount $mntdir && rm -rf $mntdir || true; buendia-led red off || true; buendia-led yellow off || true' EXIT
+    trap 'rm -rf $exdir $pkgdir; cd /; fuser -m $mntdir || true; umount $mntdir && rm -rf $mntdir || true; buendia-led yellow || true' EXIT
     source="$mntdir"
 
 elif [ -d "$source" ]; then
     echo "$source is a directory; scanning..."
-    trap 'rm -rf $exdir $pkgdir; buendia-led red off || true; buendia-led yellow off || true' EXIT
+    trap 'rm -rf $exdir $pkgdir; buendia-led yellow || true' EXIT
 
 else
     echo "$source is neither a block device nor a directory."
@@ -112,7 +113,7 @@ fi
 for file in "${bundles[@]}"; do
     if [ -f "$file" ]; then
         # Processing update: red only
-        buendia-led red on || true
+        buendia-led cyan 100 || true
         echo "Unpacking bundle: $file"
         if unzip -j -d "$exdir" "$file"; then
             unpacked+=("$file")
@@ -143,22 +144,21 @@ if [ -n "$unpacked" ]; then
         else
             apks=()
         fi
-	echo "Found debs:" ${debs[@]-"(none)"}
-	echo "Found apks:" ${apks[@]-"(none)"}
-	echo
+        echo "Found debs:" ${debs[@]-"(none)"}
+        echo "Found apks:" ${apks[@]-"(none)"}
+        echo
 
-	let deb_count=${#debs[@]} || true  # let exits with 1 if rhs is 0
-	let apk_count=${#apks[@]} || true  # let exits with 1 if rhs is 0
-	let count=$deb_count+$apk_count || true  # let exits with 1 if rhs is 0
+        let deb_count=${#debs[@]} || true  # let exits with 1 if rhs is 0
+        let apk_count=${#apks[@]} || true  # let exits with 1 if rhs is 0
+        let count=$deb_count+$apk_count || true  # let exits with 1 if rhs is 0
 
-	if [ "$count" -gt 0 ]; then
-            # Installing update: red and yellow
-            buendia-led red on || true
-            buendia-led yellow on || true
+        if [ "$count" -gt 0 ]; then
+            # Installing update: cyan
+            buendia-led cyan 100 || true
 
             # Ensure that the suite subdirectory exists
             mkdir -p ${package_repo}/${suite}
-	fi
+        fi
 
         if [ "$deb_count" -gt 0 ]; then
             s=s; [ "$deb_count" == 1 ] && s= || true
@@ -167,18 +167,18 @@ if [ -n "$unpacked" ]; then
             else
                 echo "Error trying to import $deb_count package$s; continuing."
             fi
-	fi
+        fi
 
-	if [ "$apk_count" -gt 0 ]; then
+        if [ "$apk_count" -gt 0 ]; then
             s=s; [ "$apk_count" == 1 ] && s= || true
             if mv $pkgdir/*.apk ${package_repo}; then
                 echo "Imported $apk_count APK$s."
             else
                 echo "Error trying to import $apk_count APK$s; continuing."
             fi
-	fi
+        fi
 
-	if [ "$count" -gt 0 ]; then
+        if [ "$count" -gt 0 ]; then
             # Regenerate indexes.
             buendia-pkgserver-index-debs $package_repo $suite || true
             buendia-pkgserver-index-apks || true
@@ -188,9 +188,8 @@ if [ -n "$unpacked" ]; then
         # Copy over site settings files.
         for file in [0-9][0-9]-*; do
             if [ -f "$file" ]; then
-                # Installing update: red and yellow
-                buendia-led red on || true
-                buendia-led yellow on || true
+                # Installing update: cyan
+                buendia-led cyan 100 || true
                 target=/usr/share/buendia/site/"$file"
                 if cp "$file" "$target"; then
                     echo "Installed $target."
@@ -216,9 +215,8 @@ if [ -n "$unpacked" ]; then
             ls -l /usr/share/buendia/site
             echo "Applying new settings:"
             buendia-settings || true
-            # Applying changes: red and yellow
-            buendia-led red on || true
-            buendia-led yellow on || true
+            # Applying changes: cyan
+            buendia-led cyan 100 || true
             buendia-reconfigure || true
         fi
 
@@ -226,9 +224,8 @@ if [ -n "$unpacked" ]; then
         cd "$exdir"
         if [ -f commands.sh ]; then
             echo "Executing shell script:"
-            # Doing shell commands: red and yellow
-            buendia-led red on || true
-            buendia-led yellow on || true
+            # Doing shell commands: cyan
+            buendia-led cyan 100 || true
             bash -x commands.sh || true
         fi
     ) 2>&1 | tee -a buendia-import.log

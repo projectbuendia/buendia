@@ -10,69 +10,24 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-dev=/dev/ttyMFD1
+dev=/proc/acpi/nuc_led
 name=$(basename $0)
-led=$1
-verb=$2
-on=$3
-off=$4
-timeout=$5
+color=${1/off/white}
+brightness=${2-32}
 
-if [ "$1" = "-h" -o "$verb" = "" ]; then
-    echo "Usage: $0 <led> <verb> [[<on-ticks> <off-ticks>] <timeout-ticks>]"
+if [ "$1" = "-h" -o -z "$color" ]; then
+    echo "Usage: $0 <color> [<brightness>]"
     echo
-    echo "<led>: one of: red, yellow, green, blue, white"
-    echo "<verb>: one of: on, off"
-    echo "<on-ticks>: flash cycle on time, in ticks of 0.1 seconds"
-    echo "<off-ticks>: flash cycle off time, in ticks of 0.1 seconds"
-    echo "<timeout>: timeout for reverting to off, in ticks of 0.1 seconds."
+    echo "<color>: one of: off, red, yellow, green, cyan, blue, pink, white"
+    echo "<brightness>: an integer between 0 and 100 inclusive; defaults to 32"
     exit 1
 fi
 
 # LEDs are entirely optional.  Always exit with success.
 (
-    if [ -c $dev -a -r $dev -a -w $dev ]; then
-        if [ ! -f /var/run/$name.stty ]; then
-            stty 115200 <$dev >$dev
-            touch /var/run/$name.stty
-        fi
-
-        case $led in
-            r*) addr=R ;;
-            a*|y*) addr=A ;;
-            g*) addr=G ;;
-            b*) addr=B ;;
-            w*) addr=W ;;
-            *) addr=R ;;
-        esac
-
-        case $verb in
-            off|0)
-                onoff=0;
-                ;;
-            on|1|*)
-                onoff=1;
-                ;;
-        esac
-
-        if [ -n "$on" ]; then
-            let adj_on=$((on < 0 ? 0 : on > 255 ? 255 : on))
-            let adj_off=$((off < 0 ? 0 : off > 255 ? 255 : off))
-            if [ "$adj_on/$adj_off" != "$on/$off" ]; then
-                echo "buendia-led: using on/off times $adj_on/$adj_off"
-            fi
-            hex_onoff=$(printf '%02x%02x' $adj_on $adj_off)
-        fi
-
-        if [ -n "$timeout" ]; then
-            let adj_timeout=$((
-                    timeout < 0 ? 0 : timeout > 65535 ? 65535 : timeout))
-            if [ "$adj_timeout" != "$timeout" ]; then
-                echo "buendia-led: using timeout $adj_timeout"
-            fi
-            hex_timeout=$(printf '%04x' $adj_timeout)
-        fi
-
-        echo -ne "JFFL${addr}${onoff}${hex_onoff}${hex_timeout}\r\n" >$dev
+    if [ $brightness = on ]; then brightness=100; fi
+    if [ $brightness = off ]; then exit; fi
+    if [ -r $dev -a -w $dev ]; then
+        echo "ring,$brightness,none,$color" > $dev
     fi
 ) || true
