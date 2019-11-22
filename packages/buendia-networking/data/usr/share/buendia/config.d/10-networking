@@ -109,12 +109,6 @@ configure_wifi () {
 
     echo "Joining existing wifi network '$NETWORKING_SSID'."
 
-    # Enable the wpa_supplicant hook
-    mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
-    if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
-      ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
-    fi
-
     # Tell wpa_supplicant where to get its credentials
     wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
     echo "wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf" >> /etc/network/interfaces
