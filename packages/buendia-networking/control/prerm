@@ -38,8 +38,6 @@ case $1 in
         systemctl stop hostapd || true
         service dnsmasq stop
         update-rc.d dnsmasq disable
-        systemctl enable dhcpcd
-        systemctl start dhcpcd || true
         touch /var/run/reboot-required
         ;;
 
