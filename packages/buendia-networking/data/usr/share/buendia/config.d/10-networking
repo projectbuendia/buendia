@@ -126,12 +126,11 @@ configure_wifi () {
 
 # Check the network settings to see if we need to configure networking.
 check_network_settings () {
-    # Exit early if we have no interfaces to configure. This is potentially
-    # nominal, e.g. when running in the cloud, and is not treated as an error.
+    # Exit early if we have no interfaces to configure.
     if ! interface_exists "$NETWORKING_WIFI_INTERFACE" && \
        ! interface_exists "$NETWORKING_ETHERNET_INTERFACE"; then
        echo "No known network interfaces available; skipping network configuration."
-       return 0
+       return 1
     fi
 
     # Create a file that records the requested settings in a canonical format.
