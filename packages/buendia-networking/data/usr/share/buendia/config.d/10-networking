@@ -109,12 +109,6 @@ configure_wifi () {
 
     echo "Joining existing wifi network '$NETWORKING_SSID'."
 
-    # Enable the wpa_supplicant hook
-    mkdir -p /usr/lib/dhcpcd/dhcpcd-hooks
-    if [[ ! -f /usr/share/dhcpcd/hooks/10-wpa_supplicant ]]; then
-      ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks/
-    fi
-
     # Tell wpa_supplicant where to get its credentials
     wpa_passphrase "$NETWORKING_SSID" "$NETWORKING_PASSWORD" > /etc/wpa_supplicant/wpa_supplicant.conf
     echo "wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf" >> /etc/network/interfaces
@@ -126,12 +120,11 @@ configure_wifi () {
 
 # Check the network settings to see if we need to configure networking.
 check_network_settings () {
-    # Exit early if we have no interfaces to configure. This is potentially
-    # nominal, e.g. when running in the cloud, and is not treated as an error.
+    # Exit early if we have no interfaces to configure.
     if ! interface_exists "$NETWORKING_WIFI_INTERFACE" && \
        ! interface_exists "$NETWORKING_ETHERNET_INTERFACE"; then
        echo "No known network interfaces available; skipping network configuration."
-       return 0
+       return 1
     fi
 
     # Create a file that records the requested settings in a canonical format.

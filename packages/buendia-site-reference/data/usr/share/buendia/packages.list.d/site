@@ -4,6 +4,7 @@ buendia-monitoring
 buendia-mysql
 buendia-networking
 buendia-ntpserver
+buendia-openmrs
 buendia-pkgserver
 buendia-setclock
 buendia-server

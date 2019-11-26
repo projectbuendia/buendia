@@ -21,7 +21,6 @@ case $1 in
     configure)
         interface_conf=/etc/network/interfaces
         hostapd_conf=/etc/hostapd/hostapd.conf
-        dhcpd_conf=/etc/dhcpcd.conf
 
         # Save a copy of the original configuration files.
         divert() {
@@ -31,7 +30,12 @@ case $1 in
         }
         divert $interface_conf
         divert $hostapd_conf
-        divert $dhcpd_conf
+
+        # Disable dhcpcd if it was already running
+        if systemctl status dhcpcd >/dev/null; then
+            systemctl stop dhcpcd || true
+            systemctl disable dhcpcd || true
+        fi
 
         systemctl daemon-reload
 
