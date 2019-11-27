@@ -51,17 +51,15 @@ fi
 # The "wpa_cli" command tells us the status of the wifi client subsystem.
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
-echo wpa_cli -i $NETWORKING_WIFI_INTERFACE status
-wpa_cli -i $NETWORKING_WIFI_INTERFACE status >$tmpfile 2>&1 || true
+echo iwconfig $NETWORKING_WIFI_INTERFACE
+iwconfig $NETWORKING_WIFI_INTERFACE >$tmpfile 2>&1 || true
 
 cat $tmpfile  # cause the output of wpa_cli status to appear in the log
 
-# If wpa_supplicant is not running at all, wpa_cli status will just contain
-# an error message.  If wpa_supplicant is up but not (yet) connected to an AP,
-# wpa_cli status will say that the state is something other than COMPLETED,
-# such as SCANNING or DISCONNECTED or ASSOCIATING.  In all of these cases, we
-# just want to restart the wifi connection.
-if ! grep -q wpa_state=COMPLETED $tmpfile; then
+# If the wifi interface is associated to an access point, then iwconfig will
+# return the MAC address of the access point. If we can't see it, then let's
+# try reconfiguring the network to get us associated.
+if ! grep -Eq "Access Point: [0-9A-F]{2}:" $tmpfile; then
     echo "Restarting wifi."
     # "-f" means to force redoing network setup even though the network
     # configuration settings haven't changed.
