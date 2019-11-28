@@ -48,18 +48,22 @@ if [ -z "$NETWORKING_SSID" ]; then
     exit 1
 fi
 
-# The "wpa_cli" command tells us the status of the wifi client subsystem.
 tmpfile=/tmp/$(basename $0).$$
 trap 'rm -rf $tmpfile' EXIT
-echo iwconfig $NETWORKING_WIFI_INTERFACE
-iwconfig $NETWORKING_WIFI_INTERFACE >$tmpfile 2>&1 || true
-
-cat $tmpfile  # cause the output of wpa_cli status to appear in the log
+# Use tee to ensure that the output goes both to $tmpfile and the cron log
+(
+    echo iwconfig $NETWORKING_WIFI_INTERFACE
+    iwconfig $NETWORKING_WIFI_INTERFACE
+    echo ip a show dev $NETWORKING_WIFI_INTERFACE
+    ip address show dev $NETWORKING_WIFI_INTERFACE 
+) 2>&1 | tee $tmpfile || true
 
 # If the wifi interface is associated to an access point, then iwconfig will
-# return the MAC address of the access point. If we can't see it, then let's
-# try reconfiguring the network to get us associated.
-if ! grep -Eq "Access Point: [0-9A-F]{2}:" $tmpfile; then
+# return the MAC address of the access point. If the wifi interface has an IP
+# address, then the ip command will report "state UP". If either condition is
+# false, try reconfiguring the network to get us associated.
+if ! grep -Eq "Access Point: [0-9A-F]{2}:" $tmpfile || \
+   ! grep -q "state UP" $tmpfile; then
     echo "Restarting wifi."
     # "-f" means to force redoing network setup even though the network
     # configuration settings haven't changed.
