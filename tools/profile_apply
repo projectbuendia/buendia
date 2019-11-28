@@ -65,13 +65,20 @@ class Database:
         table = (table or
             (len(keys) == 1 and keys[0].endswith('_id') and keys[0][:-3]) or
             (field.endswith('_id') and field[:-3]))
-        condition = ' and '.join(key + ' = %s' for key in keys)
+        condition = ' and '.join(
+            case_sensitive_equal(key, constraints[key]) for key in keys)
         for row in self.iter(
             'select %s from %s where %s' % (field, table, condition),
             *(constraints[key] for key in keys)):
             if VERBOSE:
                 sys.stderr.write('-> %s\n' % sqlrepr(row[0]))
             return row[0]
+
+
+def case_sensitive_equal(key, value):
+    if type(value) is str:
+        return key + ' = binary %s'
+    return key + ' = %s'
 
 class OpenmrsDatabase:
     def __init__(self, db, username):
@@ -201,7 +208,10 @@ def apply(tabs):
     misc_class = db.get('concept_class_id', name='Misc')
 
     def get_or_insert(table, **values):
-        return (db.get('*', table, **values) or odb.insert(table, **values))
+        column = table + '_id'
+        if column not in odb.get_columns(table):
+            column = '*'  # if no <table>_id column, get the first column
+        return (db.get(column, table, **values) or odb.insert(table, **values))
 
     def update_or_insert(table, id, **values):
         if db.get(table + '_id', **{table + '_id': id}):
