@@ -37,6 +37,11 @@ if [ "$upsecs" -lt "$min_upsecs" ]; then
     exit 1
 fi
 
+if [ -z "$NETWORKING_WIFI_INTERFACE" ]; then
+    echo "Not checking wifi: no interface defined in site configuration."
+    exit 1
+fi
+
 # The observed problem occurs when the server is a wifi client, not a wifi AP.
 if bool "$NETWORKING_AP"; then
     echo "Not checking wifi: server is an AP creating its own wifi network."
