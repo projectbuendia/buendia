@@ -513,8 +513,8 @@ def apply(tabs):
         concept_datatypes[1065] = answer_datatype
         concept_datatypes[1066] = answer_datatype
 
-        concept_datatypes[162622] = datetime_datatype
-        put_concept(162622, "Date and time of admission [fr:Date et heure d'admission]",
+        concept_datatypes[1640] = datetime_datatype
+        put_concept(1640, "Date and time of admission [fr:Date et heure d'admission]",
                     datetime_datatype, obs_class)
         concept_datatypes[1730] = date_datatype
         put_concept(1730, "Date of symptom onset [fr:Date de début des symptômes]",
