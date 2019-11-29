@@ -11,7 +11,9 @@
 # specific language governing permissions and limitations under the License.
 
 if [ "$1" = "-h" ]; then
-    echo "$0 returns true iff no patient records have been created"
+    echo "Usage: $0"
+    echo
+    echo 'Exits with success if no patients and no locations have been created.'
     exit 255
 fi
 
@@ -20,7 +22,10 @@ set -e; . /usr/share/buendia/utils.sh
 patient_count=$(echo "select count(*) from patient" | \
     mysql -s -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs)
 
-if [ "$patient_count" -eq 0 ]; then
+location_count=$(echo "select count(*) from location" | \
+    mysql -s -u$OPENMRS_MYSQL_USER -p$OPENMRS_MYSQL_PASSWORD openmrs)
+
+if [ "$patient_count" -eq 0 -a "$location_count" -eq 0 ]; then
     echo "empty"
     exit 0
 fi
