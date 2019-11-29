@@ -474,7 +474,7 @@ def apply(tabs):
                             raise ValueError(
                                 'Chart item "%s" has the concept ID %d, '
                                 'which cannot be displayed because it is '
-                                'not a question' % (concept_id, label))
+                                'not a question' % (label, concept_id))
 
                 # Copy everything, but omit 'concept' as we have 'concepts'
                 # and omit 'required' because there's a DB column for that.
