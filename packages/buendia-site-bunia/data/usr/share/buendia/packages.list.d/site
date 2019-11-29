@@ -1,9 +1,14 @@
 buendia-backup
 buendia-dashboard
+buendia-monitoring
+buendia-mysql
 buendia-networking
 buendia-ntpserver
+buendia-openmrs
 buendia-pkgserver
-buendia-pushclock
 buendia-server
-buendia-site-msf-ks
+buendia-setclock
+buendia-site-bunia
 buendia-sshd
+buendia-tomcat7
+buendia-update
