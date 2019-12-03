@@ -10,9 +10,9 @@ body {
 
 /* Type sizes */
 
-body, li { font-size: 18px; }
-h1 { font-size: 36px; }
-#state, #state li { font-size: 12px; }
+body { font-size: 18px; }
+h1, .action { font-size: 24px; }
+#state { font-size: 12px; }
 
 /* Type weights */
 
@@ -24,24 +24,25 @@ h1 { font-weight: 300; }
 .advanced { opacity: 0.5; }
 a { color: inherit; }
 a:hover { color: #000000; }
+.clickable { cursor: pointer; }
 
 /* Layout */
 
-h1 { margin: 0 0 0; }
+h1 { margin: 0; }
 section { margin: 1em 0; }
 section#state { margin: 0; }
-div { margin: 1em 0; }
+#state div, #state span { margin: 0; }
+#app { padding: 2em 0; }
+div { margin: 1em 0; white-space: nowrap; }
 
 ul.inline { display: inline; padding: 0; }
 ul.inline li { display: inline; }
 ul.inline li:before { content: '\a0\b7\a0'; }
 ul.inline li:first-child:before { content: ''; }
 
-#state div { margin: 0; }
 .action {
-     display: inline-block;
      margin: 0;
-     padding: 0.6em 1em 0.4em 1em;;
+     padding: 1.1em 2em 1em 2em;
      border: 2px solid #466;
      border-radius: 6px;
 }

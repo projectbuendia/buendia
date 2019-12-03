@@ -57,11 +57,14 @@ EOF
     fi
 }
 
+stamp=$(date +%s)
+
 cat <<EOF
 Content-Type: text/html; charset=UTF-8
 Refresh: 10
 
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<link rel="stylesheet" href="style.css?$stamp">
 
 <h1>Buendia server $(get_server_version)
     <section id="state">
@@ -73,15 +76,19 @@ Refresh: 10
             </ul>
         </div>
         <div id="counts">$(get_counts)
-        <span class="advanced">(<a href="stats.zip">stats</a>)</span>
+            <span class="advanced">
+                (<a href="stats.zip">stats</a>)
+            </span>
         </div>
     </section>
 </h1>
 
 <section id="app">
-    <a class="action" href="/packages/$(get_latest_apk)">
-        Install the app: $(get_latest_apk)
-    </a>
+    <div>
+        <a class="action" href="/packages/$(get_latest_apk)">
+            Install the app: $(get_latest_apk)
+        </a>
+    </div>
 </section>
 
 <section id="database">
