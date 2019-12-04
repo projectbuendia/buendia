@@ -17,6 +17,17 @@ interface_exists () {
     [ -n "$1" ] && ( ip a | grep -q " $1:" )
 }
 
+
+# Return true if no other networking configuration process is running
+acquire_configuration_lock () {
+    exec 9> /var/run/lock/buendia-networking
+    if ! flock -n 9; then
+        echo "buendia-networking configuration is already in progress."
+        return 1
+    fi
+    return 0
+}
+
 # Configure an interface address in /etc/network/interfaces
 configure_ip_address () {
     iface=$1
@@ -227,10 +238,15 @@ stop_interfaces () {
 start_interfaces () {
     for iface in $NETWORKING_WIFI_INTERFACE $NETWORKING_ETHERNET_INTERFACE; do
         if interface_exists $iface; then
-            ifup $iface
+            # Make sure to close FD #9 so we're not hanging on to a lock in the
+            # event that ifup forks a child (e.g. dhclient)
+            ifup $iface 9>&-
         fi
     done
 }
+
+# Make sure no other progress is trying to configure the networking stack.
+acquire_configuration_lock || exit 0
 
 # Check to make sure the networking stack needs configuration, and exit early if not.
 check_network_settings $@ || exit 0
