@@ -76,6 +76,7 @@ function adjust_filename() {
 name=$(basename $0)
 exdir=/tmp/$name.ex.$$
 package_repo=/usr/share/buendia/packages
+profile_dir=/usr/share/buendia/profiles
 pkgdir=${package_repo}.import.$$
 
 # Mount the given device, if necessary.
@@ -148,9 +149,10 @@ if [ -n "$unpacked" ]; then
         echo "Found apks:" ${apks[@]-"(none)"}
         echo
 
-        let deb_count=${#debs[@]} || true  # let exits with 1 if rhs is 0
-        let apk_count=${#apks[@]} || true  # let exits with 1 if rhs is 0
-        let count=$deb_count+$apk_count || true  # let exits with 1 if rhs is 0
+        # "|| true" is here because "let" exits with 1 if the RHS comes out to 0
+        let deb_count=${#debs[@]} || true
+        let apk_count=${#apks[@]} || true
+        let count=$deb_count+$apk_count || true
 
         if [ "$count" -gt 0 ]; then
             # Installing update: cyan
@@ -184,6 +186,18 @@ if [ -n "$unpacked" ]; then
             buendia-pkgserver-index-apks || true
             chmod -R a+rX $package_repo || true
         fi
+
+        # Copy over any profiles.
+        for file in *.csv; do
+            if [ -f "$file" ]; then
+                target=/usr/share/buendia/profiles/"$file"
+                if cp "$file" "$target"; then
+                    echo "Installed $target."
+                else
+                    echo "Error trying to copy file to $target; continuing."
+                fi
+            fi
+        done
 
         # Copy over site settings files.
         for file in [0-9][0-9]-*; do
