@@ -24,6 +24,7 @@ import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
+import org.openmrs.PatientIdentifierType;
 import org.openmrs.Person;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
@@ -47,6 +48,7 @@ import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -78,7 +80,7 @@ public class PrintCharts {
         }
     };
 
-    private boolean authorized() {
+    private boolean isAuthorized() {
         return Context.hasPrivilege("Manage Concepts") &&
             Context.hasPrivilege("Manage Forms");
     }
@@ -114,7 +116,7 @@ public class PrintCharts {
     )
 
     public void get(HttpServletRequest request, ModelMap model) {
-        model.addAttribute("authorized", authorized());
+        model.addAttribute("authorized", isAuthorized());
     }
 
     @RequestMapping(
@@ -125,7 +127,7 @@ public class PrintCharts {
         // TODO: it would be better to do this in a more legitimate part of the stack, but I've got
         // no idea where that would be.
         tryBasicAuth(request);
-        model.addAttribute("authorized", authorized());
+        model.addAttribute("authorized", isAuthorized());
         try {
             try {
                 generateExport(request, response, model);
@@ -205,8 +207,15 @@ public class PrintCharts {
         OrderService orderService = Context.getOrderService();
         Concept orderExecutedConcept = DbUtils.getOrderExecutedConcept();
 
-        List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
-        Collections.sort(patients, PATIENT_COMPARATOR);
+        List<Patient> patients;
+        String patientId = request.getParameter("patient_id");
+        if (Utils.hasChars(patientId)) {
+            PatientIdentifier id = new PatientIdentifier(patientId, DbUtils.getMsfIdType(), null);
+            patients = Arrays.asList(new Patient[] {id.getPatient()});
+        } else {
+            patients = new ArrayList<>(patientService.getAllPatients());
+            Collections.sort(patients, PATIENT_COMPARATOR);
+        }
 
         LinkedHashMap<String, List<Concept>> charts = buildChartModel();
 
