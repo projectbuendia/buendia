@@ -54,6 +54,7 @@ if [ "$action" = start ]; then
     echo "start $(nanodate)" >> $LOG
     buendia-led yellow 4  # boot has started
     check_hwclock
+    rm -f /var/run/lock/buendia-*  # clear any stale locks
 fi
 
 if [ "$action" = stop ]; then
