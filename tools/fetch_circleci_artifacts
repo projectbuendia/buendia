@@ -19,44 +19,67 @@ except ImportError:
 
 parser = argparse.ArgumentParser(description="""Fetches all artifacts matching
 a particular filename glob from a CircleCI job for the given Github project and
-branch to the current directory.""")
+branch to the current directory.  You must specify exactly one of -b or -j; the rest of the flags are optional.""")
 
 parser.add_argument("project", metavar="project",
     help="<project> should be of the form '<username>/<repo>'")
 
-parser.add_argument("branch", metavar="branch")
-
-parser.add_argument("-j", "--job", metavar="job", default="latest",
-    help="if present, the artifacts from <job> are fetched; otherwise, " + \
-         "the latest successful build on <branch> is used.")
-parser.add_argument("-g", "--glob", metavar="glob", default="*")
+parser.add_argument("-b", "--branch", metavar="branch",
+    help="if present, the artifacts for the latest successful build on <branch> are fetched")
+parser.add_argument("-j", "--job", metavar="job",
+    help="if present, the artifacts from <job> are fetched")
+parser.add_argument("-g", "--glob", metavar="glob", default="*",
+    help="if present, fetch only artifacts with paths matching this pattern")
 parser.add_argument("-t", "--token", metavar="token",
-    help="If not set, the script will look in the $CIRCLE_API_TOKEN " + \
-         "environment variable.")
+    help="the API token can be specified with this option or in the $CIRCLE_API_TOKEN environment variable.")
 
 args = parser.parse_args()
 
-latest_artifacts = \
-    "https://circleci.com/api/v1.1/project/github/%(project)s/%(job)s/artifacts?" + \
-        "circle-token=%(token)s&branch=%(branch)s&filter=successful"
-
-project, branch, job, match = args.project, args.branch, args.job, args.glob
+project, branch, job, glob = args.project, args.branch, args.job, args.glob
 token = args.token or os.environ.get("CIRCLE_API_TOKEN")
 
-if not all((project, token, match, branch, job)):
-    args.print_help()
-    args.exit(1)
+if (branch and job) or (not branch and not job):
+    print('You must specify exactly one of -b <branch> or -j <job>.')
+    print('')
+    parser.print_usage()
+    parser.exit(1)
 
-query = latest_artifacts % {
-        "token":token, "project":project, "branch":branch, "job": job}
+if not all([project, token, glob, branch or job]) or (branch and job):
+    parser.print_help()
+    parser.exit(1)
+
+job = job or 'latest'
+query = (
+    'https://circleci.com/api/v1.1/project/github/%(project)s/%(job)s'
+    '/artifacts?circle-token=%(token)s&branch=%(branch)s&filter=successful' %
+    {"token": token, "project": project, "branch": branch, "job": job}
+)
+
+print('Getting list of artifacts for %s, %s...' % (
+    project, 'latest job on ' + branch if branch else ('job ' + job)))
 request = Request(query)
 request.add_header("Accept", "application/json")
 
 response = urlopen(request)
 content = response.read()
 artifacts = json.loads(content.decode())
-for artifact in artifacts:
-    if fnmatch.fnmatch(artifact["path"], match):
+to_fetch = [a for a in artifacts if fnmatch.fnmatch(a['path'], glob)]
+
+print('')
+print('Found %d artifact%s, of which %d match %r%s' % (
+    len(artifacts), '' if len(artifacts) == 1 else 's',
+    len(to_fetch), glob, ':' if to_fetch else '.'
+))
+for artifact in to_fetch:
+    print(artifact['path'])
+
+if to_fetch:
+    print('')
+    print('Fetching %d artifact%s:' % (
+        len(to_fetch), '' if len(to_fetch) == 1 else 's'))
+    for artifact in to_fetch:
         filename = os.path.basename(artifact["path"])
+        sys.stderr.write('Fetching ' + filename + '... ')
+        sys.stderr.flush()
         urlretrieve(artifact["url"], filename)
-        print(filename)
+        sys.stderr.write('done.\n')
