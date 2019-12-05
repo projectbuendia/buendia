@@ -85,6 +85,15 @@ public class Utils {
         return str == null ? "" : str;
     }
 
+    /** Formats a number to the minimum necessary number of decimal places. */
+    public static String format(double x, int maxPrec) {
+        String result = String.format("%." + maxPrec + "f", x);
+        if (result.contains("e")) return result;
+        if (!result.contains(".") && !result.contains(",")) return result;
+        return result.replaceAll("[.,]?0*$", "");
+    }
+
+
     // ==== Dates and times ====
 
     // WARNING!  SimpleDateFormat objects (particularly their format() and

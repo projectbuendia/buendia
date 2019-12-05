@@ -326,6 +326,30 @@ public class DbUtils {
         return order;
     }
 
+    /**
+     * Finds the last order in the chain containing the given order. We need to do this instead of
+     * using {@link OrderService#getRevisionOrder(Order)} because {@code getRevisionOrder(Order)}
+     * only gets orders that have an action of {@link Order.Action#REVISE}. To use
+     * {@code REVISE}, the previous order needs to have not expired, which we can't guarantee.
+     */
+    public static Order getLastRevision(Order order) {
+        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
+        Map<String, String> nextOrderUuids = new HashMap<>();
+        for (Order o : Context.getOrderService().getAllOrdersByPatient(order.getPatient())) {
+            Order prev = o.getPreviousOrder();
+            if (prev != null) {
+                nextOrderUuids.put(prev.getUuid(), o.getUuid());
+            }
+        }
+
+        // Walk forward until the end of the chain.
+        String uuid = order.getUuid();
+        while (nextOrderUuids.containsKey(uuid)) {
+            uuid = nextOrderUuids.get(uuid);
+        }
+        return Context.getOrderService().getOrderByUuid(uuid);
+    }
+
     /** Gets or creates a PersonAttributeType with a given UUID and name. */
     private static PersonAttributeType getPersonAttributeType(String uuid, String name) {
         PersonService personService = Context.getPersonService();

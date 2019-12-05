@@ -17,6 +17,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
+import org.openmrs.ConceptDatatype;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
@@ -29,11 +30,9 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.ContextAuthenticationException;
-import org.openmrs.projectbuendia.ClientConceptNamer;
 import org.openmrs.projectbuendia.Utils;
-import org.openmrs.projectbuendia.VisitObsValue;
 import org.openmrs.projectbuendia.webservices.rest.ChartResource;
-import org.openmrs.projectbuendia.webservices.rest.DbUtil;
+import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.openmrs.projectbuendia.webservices.rest.OrderResource;
 import org.openmrs.util.FormUtil;
 import org.openmrs.util.OpenmrsUtil;
@@ -43,8 +42,6 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DateFormat;
@@ -57,9 +54,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /** The controller for the profile management page. */
 @Controller
@@ -70,7 +71,7 @@ public class PrintCharts {
         @Override public int compare(Patient p1, Patient p2) {
             PatientIdentifier id1 = p1.getPatientIdentifier("MSF");
             PatientIdentifier id2 = p2.getPatientIdentifier("MSF");
-            return Utils.alphanumericComparator.compare(
+            return Utils.ALPHANUMERIC_COMPARATOR.compare(
                 id1 == null ? null : id1.getIdentifier(),
                 id2 == null ? null : id2.getIdentifier()
             );
@@ -84,52 +85,37 @@ public class PrintCharts {
 
     public static final DateFormat HEADER_DATE_FORMAT = new SimpleDateFormat("d MMM");
     private static final DateFormat ORDER_DATE_FORMAT = HEADER_DATE_FORMAT;
-
-    /** Use the client (profile) strings if we can. */
-    private static final ClientConceptNamer NAMER =
-            new ClientConceptNamer(ClientConceptNamer.DEFAULT_CLIENT);
-
     private static final String BASIC_AUTH_MODE = "Basic ";
 
-    private static final VisitObsValue.ObsValueVisitor<String> STRING_VISITOR =
-        new VisitObsValue.ObsValueVisitor<String>() {
-            @Override public String visitCoded(Concept value) {
-                return NAMER.getClientName(value);
-            }
+    private static String formatValue(Obs obs) {
+        ConceptDatatype type = obs.getConcept().getDatatype();
+        switch (type.getHl7Abbreviation()) {
+            case ConceptDatatype.BOOLEAN:
+                return Boolean.toString(obs.getValueBoolean());
+            case ConceptDatatype.CODED:
+                return getConceptName(obs.getValueCoded());
+            case ConceptDatatype.NUMERIC:
+                return Utils.format(obs.getValueNumeric(), 6);
+            case ConceptDatatype.TEXT:
+                return obs.getValueText();
+            case ConceptDatatype.DATE:
+                return Utils.formatUtcDate(obs.getValueDate());  // TODO(ping): time zones
+            case ConceptDatatype.DATETIME:
+                return Utils.formatUtc8601(obs.getValueDatetime()); // TODO(ping): time zones
+        }
+        return "?";
+    }
 
-            @Override public String visitNumeric(Double value) {
-                return Double.toString(value);
-            }
-
-            @Override public String visitBoolean(Boolean value) {
-                return Boolean.toString(value);
-            }
-
-            @Override public String visitText(String value) {
-                return value;
-            }
-
-            @Override public String visitDate(Date d) {
-                return Utils.YYYYMMDD_UTC_FORMAT.format(d);
-            }
-
-            @Override public String visitDateTime(Date d) {
-                return Utils.SPREADSHEET_FORMAT.format(d);
-            }
-        };
-
-    /** This is executed every time a request is made. */
-    @ModelAttribute
-    public void onStart() {}
+    @ModelAttribute public void onStart() {}
 
     @RequestMapping(
-            value = "/module/projectbuendia/openmrs/print-charts",
-            method = RequestMethod.GET)
+        value = "/module/projectbuendia/openmrs/print-charts",
+        method = RequestMethod.GET
+    )
+
     public void get(HttpServletRequest request, ModelMap model) {
         model.addAttribute("authorized", authorized());
     }
-
-
 
     @RequestMapping(
             value = "/module/projectbuendia/openmrs/printable",
@@ -179,9 +165,9 @@ public class PrintCharts {
         LinkedHashMap<String, List<Concept>> charts = new LinkedHashMap<>();
         String chartName = null;
         ArrayList<Concept> concepts = null;
-        // Get the first chart. Currently the "first chart" actually contains multiple charts, the
+        // Get the first chart. Currently the "first chart" actually contains multiple charts; the
         // rest of the logic in this method is parsing those.
-        Form form = ChartResource.getCharts(Context.getFormService()).get(0);
+        Form form = ChartResource.getChartForms(Context.getFormService()).get(0);
         // Get the structure for that chart.
         TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
         TreeSet<FormField> rootNode = formStructure.get(0);
@@ -217,7 +203,7 @@ public class PrintCharts {
         PatientService patientService = Context.getPatientService();
         ObsService obsService = Context.getObsService();
         OrderService orderService = Context.getOrderService();
-        Concept orderExecutedConcept = DbUtil.getOrderExecutedConcept();
+        Concept orderExecutedConcept = DbUtils.getOrderExecutedConcept();
 
         List<Patient> patients = new ArrayList<>(patientService.getAllPatients());
         Collections.sort(patients, PATIENT_COMPARATOR);
@@ -352,8 +338,8 @@ public class PrintCharts {
         List<Order> orders = orderService.getAllOrdersByPatient(patient);
         HashMap<Order, String> filteredOrders = new HashMap<>();
         for (Order order : orders) {
-            Order newest = OrderResource.getLatestVersion(order);
-            filteredOrders.put(newest, OrderResource.getEarliestVersion(order).getUuid());
+            Order newest = DbUtils.getLastRevision(order);
+            filteredOrders.put(newest, DbUtils.getRootOrder(order).getUuid());
         }
         return filteredOrders;
     }
@@ -517,7 +503,7 @@ public class PrintCharts {
             }
 
             w.write("<tr><td>");
-            w.write(NAMER.getClientName(concept));
+            w.write(getConceptName(concept));
             w.write("</td>");
 
             calendar.setTime(startDate);
@@ -527,7 +513,7 @@ public class PrintCharts {
                 List<Obs> dayOfObservations = datesForConcept.get(today);
                 if (dayOfObservations != null) {
                     for (Obs obs : dayOfObservations) {
-                        values.add(VisitObsValue.visit(obs, STRING_VISITOR));
+                        values.add(formatValue(obs));
                     }
                 }
                 w.write("<td>" + StringUtils.join(values, ", ") + "</td>");
@@ -577,6 +563,9 @@ public class PrintCharts {
                 + "</html>");
     }
 
-    private static class NoProfileException extends Exception {
+    private static class NoProfileException extends Exception { }
+
+    private static String getConceptName(Concept concept) {
+        return concept.getName(new Locale("buendia")).getName();
     }
 }
