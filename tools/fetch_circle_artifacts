@@ -21,21 +21,21 @@ parser = argparse.ArgumentParser(description="""Fetches all artifacts matching
 a particular filename glob from a CircleCI job for the given Github project and
 branch to the current directory.  You must specify exactly one of -b or -j; the rest of the flags are optional.""")
 
-parser.add_argument("project", metavar="project",
-    help="<project> should be of the form '<username>/<repo>'")
+parser.add_argument("-b", "--branch",
+    help="if present, the artifacts for the latest successful build on BRANCH are fetched")
+parser.add_argument("-j", "--job",
+    help="if present, the artifacts from JOB are fetched")
+parser.add_argument("-t", "--token",
+    help="if present, sets the API token (which otherwise comes from the $CIRCLE_API_TOKEN environment variable)")
 
-parser.add_argument("-b", "--branch", metavar="branch",
-    help="if present, the artifacts for the latest successful build on <branch> are fetched")
-parser.add_argument("-j", "--job", metavar="job",
-    help="if present, the artifacts from <job> are fetched")
-parser.add_argument("-g", "--glob", metavar="glob", default="*",
+parser.add_argument("project",
+    help="<project> should be of the form '<username>/<repo>'")
+parser.add_argument("globs", metavar='glob', default=['*'], nargs='*',
     help="if present, fetch only artifacts with paths matching this pattern")
-parser.add_argument("-t", "--token", metavar="token",
-    help="the API token can be specified with this option or in the $CIRCLE_API_TOKEN environment variable.")
 
 args = parser.parse_args()
 
-project, branch, job, glob = args.project, args.branch, args.job, args.glob
+project, branch, job, globs = args.project, args.branch, args.job, args.globs
 token = args.token or os.environ.get("CIRCLE_API_TOKEN")
 
 if (branch and job) or (not branch and not job):
@@ -44,7 +44,7 @@ if (branch and job) or (not branch and not job):
     parser.print_usage()
     parser.exit(1)
 
-if not all([project, token, glob, branch or job]) or (branch and job):
+if not all([project, token, globs, branch or job]) or (branch and job):
     parser.print_help()
     parser.exit(1)
 
@@ -63,12 +63,13 @@ request.add_header("Accept", "application/json")
 response = urlopen(request)
 content = response.read()
 artifacts = json.loads(content.decode())
-to_fetch = [a for a in artifacts if fnmatch.fnmatch(a['path'], glob)]
+to_fetch = [a for a in artifacts if
+    any(fnmatch.fnmatch(a['path'], glob) for glob in globs)]
 
 print('')
-print('Found %d artifact%s, of which %d match %r%s' % (
+print('Found %d artifact%s, of which %d match %s%s' % (
     len(artifacts), '' if len(artifacts) == 1 else 's',
-    len(to_fetch), glob, ':' if to_fetch else '.'
+    len(to_fetch), ' or '.join(globs), ':' if to_fetch else '.'
 ))
 for artifact in to_fetch:
     print(artifact['path'])
