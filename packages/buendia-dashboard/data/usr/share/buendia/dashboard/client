@@ -10,23 +10,43 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
+function get_latest_apk() {
+    cd /usr/share/buendia/packages
+    ls -t buendia-client*.apk | head -1
+}
+
 cd /usr/share/buendia/packages
 
 if [ -n "$(ls *.apk)" ]; then
-    message='Versions available for download:'
+    message='All versions available for download:'
 else
     message='No versions of the client app are available for donwload.'
 fi
 
+stamp=$(date +%s)
+
 cat <<EOF
 Content-Type: text/html; charset=UTF-8
 
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<link rel="stylesheet" href="style.css?$stamp">
+
 <h1>Client app</h1>
 
-<div class="message">$message</div>
+<section id="app">
+    <div>
+        <a class="action" href="/packages/$(get_latest_apk)">
+            Install the app: $(get_latest_apk)
+        </a>
+    </div>
+</section>
 
-<ul>
+<div id="version-click" class="clickable advanced" onclick="versionList.style.display='block'">Older versions</div>
+
+<div id="version-list">
+<div class="advanced message">$message</div>
+
+<ul class="advanced">
 EOF
 
 for file in $(ls -t *.apk); do
@@ -37,6 +57,12 @@ done
 
 cat <<EOF
 </ul>
+</div>
 
 <div><a class="back" href="/">Back to dashboard</a></div>
+
+<script>
+    versionList = document.getElementById('version-list');
+    versionList.style.display = 'none';
+</script>
 EOF

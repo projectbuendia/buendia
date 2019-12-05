@@ -5,7 +5,7 @@ import os
 import shlex
 import sys
 
-AUTH_HEADER = 'Authorization: Basic YnVlbmRpYTpidWVuZGlh'
+LOGIN = os.environ.get('BUENDIA_LOGIN', 'buendia:buendia')
 CONTENT_TYPE_HEADER = 'Content-Type: application/json'
 
 args = sys.argv[1:]
@@ -47,7 +47,7 @@ if ':' not in server:
 path = path.lstrip('/')
 
 args[:2] = ['http://%s/openmrs/ws/rest/buendia/%s' % (server, path)]
-args = ['curl', '-isS', '-H', AUTH_HEADER] + args
+args = ['curl', '-isS', '-u', LOGIN] + args
 if any(arg.startswith('-d') for arg in args):
     args[4:4] = ['-H', CONTENT_TYPE_HEADER, '-X', 'POST']
 
