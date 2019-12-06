@@ -202,6 +202,15 @@ public class Utils {
         return result.toArray(a);
     }
 
+    public static <T> List<T> slice(List<T> list, int start, int stop) {
+        int n = list.size();
+        if (start < 0) start += n;
+        if (stop < 0) stop += n;
+        if (start > n) start = n;
+        if (stop > n) stop = n;
+        return list.subList(start, stop);
+    }
+
 
     // ==== Strings ====
 
@@ -400,6 +409,10 @@ public class Utils {
         return instant != null ? new DateTime(instant, DateTimeZone.getDefault()) : null;
     }
 
+    /** Creates a DateTime object in the default local time zone. */
+    public static @Nullable DateTime toLocalDateTime(@Nullable Long millis, DateTimeZone zone) {
+        return millis != null ? new DateTime(millis, zone) : null;
+    }
     /** Converts a yyyy-mm-dd String or null to a nullable LocalDate. */
     public static @Nullable LocalDate toLocalDate(@Nullable String string) {
         try {
