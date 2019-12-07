@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,6 +40,17 @@ import static org.projectbuendia.openmrs.web.controller.HtmlOutput.text;
 class PatientPrinter {
     private final LocalizedWriter writer;
     private final DataHelper helper;
+
+    private static final String IV_ACCESS_UUID = Utils.toUuid(2900012);
+    private static final String OXYGEN_MASK_UUID = Utils.toUuid(2162738);
+    private static final String FIRST_SAMPLE_TAKEN_UUID = Utils.toUuid(2900020);
+    private static final String SECOND_SAMPLE_TAKEN_UUID = Utils.toUuid(2900021);
+    private static final List<String> CONCEPTS_TO_IGNORE_NO = Arrays.asList(
+        IV_ACCESS_UUID,
+        OXYGEN_MASK_UUID,
+        FIRST_SAMPLE_TAKEN_UUID,
+        SECOND_SAMPLE_TAKEN_UUID
+    );
 
     public PatientPrinter(PrintWriter writer, Locale locale, DataHelper helper) {
         this.writer = new LocalizedWriter(writer, locale);
@@ -138,32 +150,36 @@ class PatientPrinter {
     private Sequence renderObsList(Map<String, Obs> obsMap) {
         Sequence results = new Sequence();
         Set<String> done = new HashSet<>();
+        boolean admissionFormSubmitted = obsMap.containsKey(
+            ConceptUuids.ADMISSION_DATETIME_UUID);
+        if (admissionFormSubmitted) {
+            results.add(el("h3", "Admission"));
+        }
         for (Form form : helper.getForms()) {
             Sequence items = new Sequence();
-            if (!isAdmissionForm(form)) {
-                for (FormSection section : helper.getFormSections(form)) {
-                    List<Obs> children = new ArrayList<>();
-                    int noCount = 0;
-                    for (FormField option : section.fields) {
-                        String uuid = DbUtils.getConceptUuid(option);
-                        if (uuid != null && obsMap.containsKey(uuid) && !done.contains(uuid)) {
-                            Obs obs = obsMap.get(uuid);
-                            if (isNo(obs)) noCount++;
-                            children.add(obs);
-                            done.add(uuid);
-                        }
+            if (!admissionFormSubmitted && isAdmissionForm(form)) continue;
+            for (FormSection section : helper.getFormSections(form)) {
+                List<Obs> children = new ArrayList<>();
+                int noCount = 0;
+                for (FormField option : section.fields) {
+                    String uuid = DbUtils.getConceptUuid(option);
+                    if (uuid != null && obsMap.containsKey(uuid) && !done.contains(uuid)) {
+                        Obs obs = obsMap.get(uuid);
+                        if (isNo(obs)) noCount++;
+                        children.add(obs);
+                        done.add(uuid);
                     }
-                    if (!children.isEmpty()) {
-                        Writable title = intl(section.title);
-                        if (section.title.contains("[binary]")) {
-                            if (noCount == section.fields.size()) {
-                                items.add(renderNoneSelected(title, children));
-                            } else {
-                                items.add(renderMultipleSelect(title, children));
-                            }
+                }
+                if (!children.isEmpty()) {
+                    Writable title = intl(section.title);
+                    if (section.title.contains("[binary]")) {
+                        if (noCount == section.fields.size()) {
+                            items.add(renderNoneSelected(title, children));
                         } else {
-                            items.add(renderFormSection(title, children));
+                            items.add(renderMultipleSelect(title, children));
                         }
+                    } else {
+                        items.add(renderFormSection(title, children));
                     }
                 }
             }
@@ -230,7 +246,7 @@ class PatientPrinter {
     }
 
     private Writable renderObsContent(Obs obs) {
-        switch (Utils.compressUuid(DbUtils.getConceptUuid(obs)).toString()) {
+        switch (DbUtils.getConceptUuid(obs)) {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
                 return div("obs placement",
@@ -246,6 +262,7 @@ class PatientPrinter {
                 );
 
             default:
+                if (CONCEPTS_TO_IGNORE_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
                 return div("obs",
                     span("label", coded(obs.getConcept()), ":"),
                     " ",

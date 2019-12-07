@@ -100,9 +100,12 @@ public class DataHelper {
         }
     };
 
-    private final Comparator<FormField> FIELD_SORT_WEIGHT = new Comparator<FormField>() {
+    private final Comparator<FormField> SORT_WEIGHT_FIELD_NUMBER = new Comparator<FormField>() {
         @Override public int compare(FormField f1, FormField f2) {
-            return Float.compare(f1.getSortWeight(), f2.getSortWeight());
+            float w1 = f1.getSortWeight();
+            float w2 = f2.getSortWeight();
+            if (w1 != w2) return Float.compare(w1, w2);
+            return Integer.compare(f1.getFieldNumber(), f2.getFieldNumber());
         }
     };
 
@@ -259,7 +262,7 @@ public class DataHelper {
         for (FormField ff : form.getFormFields()) {
             if (ff != null && ff.getParent() == null) heads.add(ff);
         }
-        Collections.sort(heads, FIELD_SORT_WEIGHT);
+        Collections.sort(heads, SORT_WEIGHT_FIELD_NUMBER);
         for (FormField head : heads) {
             List<FormField> children = new ArrayList<>();
             for (FormField ff : form.getFormFields()) {
@@ -267,7 +270,7 @@ public class DataHelper {
                     children.add(ff);
                 }
             }
-            Collections.sort(children, FIELD_SORT_WEIGHT);
+            Collections.sort(children, SORT_WEIGHT_FIELD_NUMBER);
             sections.add(new FormSection(head.getField().getName(), children));
         }
         return sections;
@@ -407,6 +410,14 @@ public class DataHelper {
 
         public Placement(Obs obs) {
             this(obs.getValueText());
+        }
+
+        public String getDescription() {
+            String desc = Utils.localize(locationName);
+            if (!bed.isEmpty()) {
+                desc += ", " + bed;
+            }
+            return desc;
         }
 
         public Location getLocation() {

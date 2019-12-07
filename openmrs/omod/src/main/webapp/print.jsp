@@ -40,8 +40,7 @@
 <c:forEach var="pp" items="${inpatients}">
   <li><input type=checkbox onchange="update(this)" name="patient" value="${pp.patient.uuid}" id="inp-${pp.patient.uuid}"/>
   <label for="inp-${pp.patient.uuid}">
-    ${fn:escapeXml(pp.placement.locationName)}&nbsp;
-    ${fn:escapeXml(pp.placement.bed)} -
+    ${fn:escapeXml(pp.placement.description)} -
     ${fn:escapeXml(pp.patient.personName)}
   </label>
 </c:forEach>

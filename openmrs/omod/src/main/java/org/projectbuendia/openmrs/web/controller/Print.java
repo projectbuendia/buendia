@@ -41,6 +41,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
                 locale = Locale.forLanguageTag(tag);
             } catch (NullPointerException | IllegalArgumentException e) { }
         }
+        Locale.setDefault(locale);
         return new DataHelper(zone, locale);
     }
 
