@@ -25,9 +25,13 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
     private static final DateTimeZone ZONE = DateTimeZone.forOffsetHours(2); // Central Africa Time
     private static final Locale LOCALE = new Locale("fr");
 
+    private DataHelper getDataHelper(HttpServletRequest request) {
+        return new DataHelper(ZONE, LOCALE);
+    }
+
     @RequestMapping(method = GET, value = "/module/projectbuendia/openmrs/print")
     public void get(HttpServletRequest request, ModelMap model) {
-        DataHelper helper = new DataHelper(ZONE, LOCALE);
+        DataHelper helper = getDataHelper(request);
         List<DataHelper.PatientPlacement> placements = helper.getPresentPatients();
         List<DataHelper.ObsDisplay> admissionTimes = helper.getAdmissionTimes();
         Collections.reverse(admissionTimes);
@@ -36,7 +40,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
         Collections.reverse(discharges);
         discharges = Utils.slice(discharges, 0, 5);
 
-        model.addAttribute("zone", ZONE.toTimeZone());
         model.addAttribute("inpatients", placements);
         model.addAttribute("admissions", admissionTimes);
         model.addAttribute("discharges", discharges);
@@ -45,7 +48,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
     @RequestMapping(method = POST, value = "/module/projectbuendia/openmrs/print")
     public void post(HttpServletRequest request, HttpServletResponse response, ModelMap model)
         throws IOException {
-        DataHelper helper = new DataHelper(ZONE, LOCALE);
+        DataHelper helper = getDataHelper(request);
         response.setCharacterEncoding("utf-8");
         PatientPrinter printer = new PatientPrinter(response.getWriter(), LOCALE, helper);
         printer.printPreamble();

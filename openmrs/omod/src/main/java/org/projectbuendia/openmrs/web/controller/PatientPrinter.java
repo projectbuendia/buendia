@@ -7,6 +7,7 @@ import org.openmrs.Patient;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
+import org.projectbuendia.openmrs.web.controller.HtmlOutput.Writable;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -37,7 +38,7 @@ class PatientPrinter {
     public void printPreamble() throws IOException {
         write(html("<meta charset='UTF-8'>"));
         try {
-            InputStream stream = new FileInputStream("/Users/ping/buendia/style.css");
+            InputStream stream = new FileInputStream("/Users/ping/dev/buendia/openmrs/style.css");
             InputStreamReader reader = new InputStreamReader(stream);
             char[] buffer = new char[1024];
             write(html("<style>"));
@@ -63,11 +64,23 @@ class PatientPrinter {
                     columns(
                         column(
                             "50%",
-                            "* Nom de famille"
+                            line(field("* Nom de famille:", rest())),
+                            line(field("* Prénom:", rest()))
                         ),
                         column(
                             "50%",
-                            "* Date de naissance"
+                            line("* Date de naissance:",
+                                field("j", blanks(6)),
+                                field("m", blanks(6)),
+                                field("a", blanks(6))
+                            ),
+                            line(
+                                field("si inconnu, Âge:", blanks(10)),
+                                field("* Sexe:",
+                                    checkbox("Masculin"),
+                                    checkbox("Féminin")
+                                )
+                            )
                         )
                     )
                 ),
@@ -89,16 +102,16 @@ class PatientPrinter {
     }
 
     class PatientRenderer implements HtmlOutput.Renderer {
-        @Override public HtmlOutput.Writable render(Object obj) {
+        @Override public Writable render(Object obj) {
             if (obj instanceof Obs) return renderObs((Obs) obj);
             return null;
         }
 
-        private HtmlOutput.Writable renderObs(Obs obs) {
+        private Writable renderObs(Obs obs) {
             return div("obs", renderObsContent(obs));
         }
 
-        private HtmlOutput.Writable renderObsContent(Obs obs) {
+        private Writable renderObsContent(Obs obs) {
             switch (Utils.compressUuid(obs.getConcept().getUuid()).toString()) {
                 case DbUtils.CONCEPT_PLACEMENT_UUID:
                     DataHelper.Placement p = helper.getPlacement(obs);
@@ -108,7 +121,7 @@ class PatientPrinter {
             }
         }
 
-        private HtmlOutput.Writable renderValue(Obs obs) {
+        private Writable renderValue(Obs obs) {
             ConceptDatatype type = obs.getConcept().getDatatype();
             switch (type.getHl7Abbreviation()) {
                 case ConceptDatatype.BOOLEAN:
@@ -128,23 +141,47 @@ class PatientPrinter {
         }
     }
 
-    private HtmlOutput.Writable div(String cls, Object... objects) {
+    private Writable line(Object... objects) {
+        return el("div", objects);
+    }
+
+    private Writable div(String cls, Object... objects) {
         return el("div class='" + cls + "'", objects);
     }
 
-    private HtmlOutput.Writable section(String heading, Object... objects) {
+    private Writable section(String heading, Object... objects) {
         return div("section", el("heading", heading), objects);
     }
 
-    private HtmlOutput.Writable columns(Object... columns) {
-        return el("table class='columns'", el("tr", columns));
+    private Writable columns(Object... columns) {
+        return el("table cellspacing=0 cellpadding=0 class='columns'", el("tr", columns));
     }
 
-    private HtmlOutput.Writable column(String width, Object... objects) {
+    private Writable column(String width, Object... objects) {
         return el("td width='" + width + "'", objects);
     }
 
-    private void write(HtmlOutput.Writable writable) throws IOException {
+    private Writable blanks(int chars) {
+        String spaces = "";
+        for (int i = 0; i < chars; i++) spaces += "\u00a0";
+        return field(text(spaces));
+    }
+
+    private Writable rest() {
+        return el("span class='rest'", "\ua000");
+    }
+
+    private Writable checkbox(Object... objects) {
+        return seq("[] ", objects);
+    }
+
+    private Writable field(Object label, Object... objects) {
+        return el("span class='field'",
+            el("span class='field-label'", label),
+            el("span class='field-value'", objects));
+    }
+
+    private void write(Writable writable) throws IOException {
         writable.writeHtmlTo(writer);
     }
 }
