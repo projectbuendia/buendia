@@ -2,10 +2,12 @@ package org.projectbuendia.openmrs.web.controller;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
+import org.openmrs.Form;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
@@ -87,6 +89,12 @@ public class DataHelper {
             String ln2 = p2.placement.location.getName();
             if (!eq(ln1, ln2)) return Utils.ALPHANUMERIC_COMPARATOR.compare(ln1, ln2);
             return Utils.ALPHANUMERIC_COMPARATOR.compare(p1.placement.bed, p2.placement.bed);
+        }
+    };
+
+    private final Comparator<Form> FORM_TITLE = new Comparator<Form>() {
+        @Override public int compare(Form f1, Form f2) {
+            return Utils.ALPHANUMERIC_COMPARATOR.compare(f1.getName(), f2.getName());
         }
     };
 
@@ -226,6 +234,17 @@ public class DataHelper {
         return obs;
     }
 
+    public List<Form> getForms() {
+        List<Form> forms = new ArrayList<>();
+        for (Form form : formService.getAllForms()) {
+            if (form.getPublished()) {
+                forms.add(form);
+            }
+        }
+        Collections.sort(forms, FORM_TITLE);
+        return forms;
+    }
+
     public Intl getName(Concept concept) {
         return new Intl(DbUtils.getConceptName(concept));
     }
@@ -236,7 +255,7 @@ public class DataHelper {
         // Dates in the MySQL database are stored as their components
         // (e.g. "2019-12-05 11:39:00").  When OpenMRS loads them, it
         // unfortunately interprets the date and time in the local
-        // time zone, which means that OpenMRS databases will randomly
+        // time zone, which means that OpenMRS databaxses will randomly
         // corrupt dates and times when the server's time zone changes
         // or the database is copied to another system.
         //
@@ -263,6 +282,15 @@ public class DataHelper {
     public DateTime toLocalDateTime(Date date) {
         if (date == null) return null;
         return new DateTime(toDateTime(date).getMillis(), zone);
+    }
+
+    public Instant toInstant(Date date) {
+        if (date == null) return null;
+        return new Instant(toDateTime(date).getMillis());
+    }
+
+    public boolean inOrder(Date a, Date b) {
+        return toInstant(a).isBefore(toInstant(b));
     }
 
     public DateTime getObsLocalTime(Obs obs) {

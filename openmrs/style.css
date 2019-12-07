@@ -1,0 +1,30 @@
+body {
+  font-family: helvetica, arial;
+  font-size: 14px;
+  margin: 1em;
+}
+
+table.columns {
+  width: 100%;
+}
+
+table.columns td {
+  border-left: 1px solid black;
+}
+
+table.columns td:first-child {
+  border-left: none;
+}
+
+.section {
+  border: 1px solid black;
+  display: block;
+}
+
+.section heading {
+  display: block;
+  padding: 0.5em;
+  background: #888;
+  color: white;
+}
+

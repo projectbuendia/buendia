@@ -1,12 +1,17 @@
 package org.projectbuendia.openmrs.web.controller;
 
 import org.joda.time.DateTime;
+import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
+import org.openmrs.Field;
+import org.openmrs.Form;
+import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
+import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Writable;
 
 import java.io.FileInputStream;
@@ -14,8 +19,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.format;
@@ -91,14 +101,60 @@ class PatientPrinter {
     }
 
     public void printEncounters(Patient pat) throws IOException {
-        write(el("h1", pat.getPersonName().getFullName()));
+        Sequence encounters = seq();
+
         List<List<Obs>> groups = helper.getEncounterObs(helper.getEncounters(pat));
         for (List<Obs> group : groups) {
             if (group.isEmpty()) continue;
             DateTime start = helper.toLocalDateTime(group.get(0).getObsDatetime());
             write(el("h2", helper.formatTime(start)));
-            write(el("ul", formatItems(formatter, group)));
+            Map<String, Obs> obsByQuestion = getLatestObsByQuestion(group);
+
+            Sequence sections = seq();
+            for (List<Obs> section : arrangeObsByForm(obsByQuestion)) {
+                sections.add(div("form", formatItems(formatter, section)));
+            }
+            encounters.add(div("encounter", sections));
         }
+        write(div("patient",
+            div("name", pat.getPersonName().getFullName()),
+            div("encounters", encounters)
+        ));
+    }
+
+    private Map<String, Obs> getLatestObsByQuestion(List<Obs> group) {
+        Map<String, Obs> obsByQuestion = new HashMap<>();
+        for (Obs obs : group) {
+            String key = obs.getConcept().getUuid();
+            Obs previous = obsByQuestion.get(key);
+            if (previous == null || helper.inOrder(previous.getObsDatetime(), obs.getObsDatetime())) {
+                obsByQuestion.put(key, obs);
+            }
+        }
+        return obsByQuestion;
+    }
+
+    private List<List<Obs>> arrangeObsByForm(Map<String, Obs> obsMap) {
+        List<List<Obs>> sections = new ArrayList<>();
+        Set<String> done = new HashSet<>();
+        for (Form form : helper.getForms()) {
+            List<Obs> section = new ArrayList<>();
+            for (FormField ff : form.getOrderedFormFields()) {
+                Field field = ff.getField();
+                Concept concept = field != null ? field.getConcept() : null;
+                String uuid = concept !=  null ? concept.getUuid() : null;
+                if (uuid != null && !done.contains(uuid)) {
+                    if (obsMap.containsKey(uuid)) {
+                        section.add(obsMap.get(uuid));
+                        done.add(uuid);
+                    }
+                }
+            }
+            if (!section.isEmpty()) {
+                sections.add(section);
+            }
+        }
+        return sections;
     }
 
     class PatientRenderer implements HtmlOutput.Renderer {
