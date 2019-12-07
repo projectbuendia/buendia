@@ -8,6 +8,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.Form;
+import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
@@ -56,6 +57,7 @@ public class DataHelper {
     private static final Intl DATE_PATTERN = new Intl("MMM d [fr:d MMM]");
 
     private DateTimeZone zone;
+    private Locale locale;
     private DateTimeFormatter timeFormatter;
     private DateTimeFormatter dateFormatter;
 
@@ -98,8 +100,15 @@ public class DataHelper {
         }
     };
 
+    private final Comparator<FormField> FIELD_SORT_WEIGHT = new Comparator<FormField>() {
+        @Override public int compare(FormField f1, FormField f2) {
+            return Float.compare(f1.getSortWeight(), f2.getSortWeight());
+        }
+    };
+
     public DataHelper(DateTimeZone zone, Locale locale) {
         this.zone = zone;
+        this.locale = locale;
         timeFormatter = DateTimeFormat.forPattern(TIME_PATTERN.get(locale));
         dateFormatter = DateTimeFormat.forPattern(DATE_PATTERN.get(locale));
 
@@ -112,6 +121,10 @@ public class DataHelper {
         obsService = Context.getObsService();
         patientService = Context.getPatientService();
         providerService = Context.getProviderService();
+    }
+
+    public Locale getLocale() {
+        return locale;
     }
 
     public String formatTime(DateTime dt) {
@@ -229,11 +242,6 @@ public class DataHelper {
         return results;
     }
 
-    public List<Obs> getObs(Encounter encounter) {
-        List<Obs> obs = new ArrayList<>(encounter.getAllObs());
-        return obs;
-    }
-
     public List<Form> getForms() {
         List<Form> forms = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
@@ -245,7 +253,28 @@ public class DataHelper {
         return forms;
     }
 
-    public Intl getName(Concept concept) {
+    public List<FormSection> getFormSections(Form form) {
+        List<FormSection> sections = new ArrayList<>();
+        List<FormField> heads = new ArrayList<>();
+        for (FormField ff : form.getFormFields()) {
+            if (ff != null && ff.getParent() == null) heads.add(ff);
+        }
+        Collections.sort(heads, FIELD_SORT_WEIGHT);
+        for (FormField head : heads) {
+            List<FormField> children = new ArrayList<>();
+            for (FormField ff : form.getFormFields()) {
+                if (ff.getParent() != null && ff.getParent().getId() == head.getId()) {
+                    children.add(ff);
+                }
+            }
+            Collections.sort(children, FIELD_SORT_WEIGHT);
+            sections.add(new FormSection(head.getField().getName(), children));
+        }
+        return sections;
+    }
+
+    public Intl getConceptName(Concept concept) {
+        if (concept == null) return new Intl("");
         return new Intl(DbUtils.getConceptName(concept));
     }
 
@@ -390,6 +419,16 @@ public class DataHelper {
 
         public String getBed() {
             return bed;
+        }
+    }
+
+    public static class FormSection {
+        public final String title;
+        public final List<FormField> fields;
+
+        public FormSection(String title, List<FormField> fields) {
+            this.title = title;
+            this.fields = fields;
         }
     }
 }

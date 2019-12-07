@@ -22,11 +22,26 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller public class Print {
-    private static final DateTimeZone ZONE = DateTimeZone.forOffsetHours(2); // Central Africa Time
-    private static final Locale LOCALE = new Locale("fr");
+    private static final DateTimeZone DEFAULT_ZONE = DateTimeZone.forOffsetHours(2); // Central Africa Time
+    private static final Locale DEFAULT_LOCALE = new Locale("fr");
 
     private DataHelper getDataHelper(HttpServletRequest request) {
-        return new DataHelper(ZONE, LOCALE);
+        DateTimeZone zone = DEFAULT_ZONE;
+        String tz = request.getParameter("tz");
+        if (tz != null) {
+            try {
+                zone = DateTimeZone.forID(tz);
+            } catch (IllegalArgumentException e) { }
+        }
+
+        Locale locale = DEFAULT_LOCALE;
+        String tag = request.getParameter("lang");
+        if (tag != null) {
+            try {
+                locale = Locale.forLanguageTag(tag);
+            } catch (NullPointerException | IllegalArgumentException e) { }
+        }
+        return new DataHelper(zone, locale);
     }
 
     @RequestMapping(method = GET, value = "/module/projectbuendia/openmrs/print")
@@ -50,7 +65,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
         throws IOException {
         DataHelper helper = getDataHelper(request);
         response.setCharacterEncoding("utf-8");
-        PatientPrinter printer = new PatientPrinter(response.getWriter(), LOCALE, helper);
+        PatientPrinter printer = new PatientPrinter(response.getWriter(), helper.getLocale(), helper);
         printer.printPreamble();
         Enumeration<String> names = request.getParameterNames();
         Set<String> printedUuids = new HashSet<>();

@@ -38,6 +38,10 @@ public class HtmlOutput {
         return object instanceof Intl ? new IntlText((Intl) object) : new Text("" + object);
     }
 
+    public static Writable intl(Object object) {
+        return object instanceof Intl ? new IntlText((Intl) object) : new IntlText("" + object);
+    }
+
     public static Writable format(String intl, Object... args) {
         return new Format(new Intl(intl), args);
     }
@@ -66,6 +70,10 @@ public class HtmlOutput {
             for (Writable child : children) {
                 child.writeHtmlTo(writer);
             }
+        }
+
+        public boolean isEmpty() {
+            return children.isEmpty();
         }
     }
 

@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.openmrs.BaseOpenmrsMetadata;
 import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
@@ -20,7 +21,9 @@ import org.openmrs.ConceptNumeric;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
+import org.openmrs.Field;
 import org.openmrs.Form;
+import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.OpenmrsObject;
@@ -288,6 +291,43 @@ public class DbUtils {
 
     public static ConceptClass getConceptClass(String name) {
         return Context.getConceptService().getConceptClassByName(name);
+    }
+
+    public static String getUuid(Concept concept) {
+        if (concept == null) return null;
+        return concept.getUuid();
+    }
+
+    public static Concept getConcept(Obs obs) {
+        if (obs == null) return null;
+        return obs.getConcept();
+    }
+
+    public static String getConceptUuid(Obs obs) {
+        return getUuid(getConcept(obs));
+    }
+
+    public static Concept getConcept(Field field) {
+        if (field == null) return null;
+        return field.getConcept();
+    }
+
+    public static Field getField(FormField ff) {
+        if (ff == null) return null;
+        return ff.getField();
+    }
+
+    public static String getConceptUuid(Field field) {
+        return getUuid(getConcept(field));
+    }
+
+    public static String getConceptUuid(FormField ff) {
+        return getUuid(getConcept(getField(ff)));
+    }
+
+    public static String getName(BaseOpenmrsMetadata obj) {
+        if (obj == null) return null;
+        return Utils.toNonnull(obj.getName());
     }
 
     /** Returns the currently authenticated user. */

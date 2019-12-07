@@ -1,8 +1,9 @@
 body {
   font-family: helvetica, arial;
   font-size: 14px;
-  margin: 1em;
+  margin: 2em;
 }
+
 
 table.columns {
   width: 100%;
@@ -28,3 +29,28 @@ table.columns td:first-child {
   color: white;
 }
 
+
+.encounter {
+  margin: 2em 0;
+}
+
+.encounter .time {
+  font-size: 18px;
+}
+
+.patient {
+  margin: 4em 0 2em;
+}
+
+.patient .name {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.form {
+  margin: 1em;
+}
+
+.obs {
+  line-height: 1.4;
+}

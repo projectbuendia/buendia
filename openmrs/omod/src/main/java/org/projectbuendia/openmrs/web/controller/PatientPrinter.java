@@ -3,13 +3,13 @@ package org.projectbuendia.openmrs.web.controller;
 import org.joda.time.DateTime;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
-import org.openmrs.Field;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Patient;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
+import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Writable;
@@ -29,20 +29,18 @@ import java.util.Set;
 
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.format;
-import static org.projectbuendia.openmrs.web.controller.HtmlOutput.formatItems;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.html;
+import static org.projectbuendia.openmrs.web.controller.HtmlOutput.intl;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.seq;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.text;
 
 class PatientPrinter {
     private final LocalizedWriter writer;
     private final DataHelper helper;
-    private final PatientRenderer formatter;
 
     public PatientPrinter(PrintWriter writer, Locale locale, DataHelper helper) {
         this.writer = new LocalizedWriter(writer, locale);
         this.helper = helper;
-        this.formatter = new PatientRenderer();
     }
 
     public void printPreamble() throws IOException {
@@ -107,14 +105,15 @@ class PatientPrinter {
         for (List<Obs> group : groups) {
             if (group.isEmpty()) continue;
             DateTime start = helper.toLocalDateTime(group.get(0).getObsDatetime());
-            write(el("h2", helper.formatTime(start)));
             Map<String, Obs> obsByQuestion = getLatestObsByQuestion(group);
-
-            Sequence sections = seq();
-            for (List<Obs> section : arrangeObsByForm(obsByQuestion)) {
-                sections.add(div("form", formatItems(formatter, section)));
+            Sequence obsList = renderObsList(obsByQuestion);
+            if (!obsList.isEmpty()) {
+                encounters.add(div(
+                    "encounter",
+                    div("time", helper.formatTime(start)),
+                    div("observations", obsList)
+                ));
             }
-            encounters.add(div("encounter", sections));
         }
         write(div("patient",
             div("name", pat.getPersonName().getFullName()),
@@ -134,71 +133,131 @@ class PatientPrinter {
         return obsByQuestion;
     }
 
-    private List<List<Obs>> arrangeObsByForm(Map<String, Obs> obsMap) {
-        List<List<Obs>> sections = new ArrayList<>();
+    private Sequence renderObsList(Map<String, Obs> obsMap) {
+        Sequence results = new Sequence();
         Set<String> done = new HashSet<>();
         for (Form form : helper.getForms()) {
-            List<Obs> section = new ArrayList<>();
-            for (FormField ff : form.getOrderedFormFields()) {
-                Field field = ff.getField();
-                Concept concept = field != null ? field.getConcept() : null;
-                String uuid = concept !=  null ? concept.getUuid() : null;
-                if (uuid != null && !done.contains(uuid)) {
-                    if (obsMap.containsKey(uuid)) {
-                        section.add(obsMap.get(uuid));
-                        done.add(uuid);
+            Sequence items = new Sequence();
+            if (!isAdmissionForm(form)) {
+                for (FormSection section : helper.getFormSections(form)) {
+                    List<Obs> children = new ArrayList<>();
+                    int noCount = 0;
+                    for (FormField option : section.fields) {
+                        String uuid = DbUtils.getConceptUuid(option);
+                        if (uuid != null && obsMap.containsKey(uuid) && !done.contains(uuid)) {
+                            Obs obs = obsMap.get(uuid);
+                            if (isNo(obs)) noCount++;
+                            children.add(obs);
+                            done.add(uuid);
+                        }
+                    }
+                    Writable title = intl(section.title);
+                    if (section.title.contains("[binary]")) {
+                        if (noCount == section.fields.size()) {
+                            items.add(renderNoneSelected(title, children));
+                        }  else {
+                            items.add(renderMultipleSelect(title, children));
+                        }
+                    } else {
+                        items.add(renderFormSection(title, children));
                     }
                 }
             }
-            if (!section.isEmpty()) {
-                sections.add(section);
+            if (!items.isEmpty()) {
+                results.add(div("form", items));
             }
         }
-        return sections;
+        return results;
     }
 
-    class PatientRenderer implements HtmlOutput.Renderer {
-        @Override public Writable render(Object obj) {
-            if (obj instanceof Obs) return renderObs((Obs) obj);
-            return null;
-        }
+    private boolean isAdmissionForm(Form form) {
+        return DbUtils.getName(form).toLowerCase().contains("admiss");
+    }
 
-        private Writable renderObs(Obs obs) {
-            return div("obs", renderObsContent(obs));
-        }
+    private boolean isNo(Obs obs) {
+        if (obs == null) return false;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return !value;
+    }
 
-        private Writable renderObsContent(Obs obs) {
-            switch (Utils.compressUuid(obs.getConcept().getUuid()).toString()) {
-                case DbUtils.CONCEPT_PLACEMENT_UUID:
-                    DataHelper.Placement p = helper.getPlacement(obs);
-                    return format("Patient moved to %s", p.getLocationName());
-                default:
-                    return seq(helper.getName(obs.getConcept()), ": ", renderValue(obs));
+    private boolean isYes(Obs obs) {
+        if (obs == null) return false;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return value;
+    }
+
+    private Writable renderNoneSelected(Writable title, List<Obs> children) {
+        return div("obs", span("label", title, ": "), " ", span("value", "None"));
+    }
+
+    private Writable renderMultipleSelect(Writable title, List<Obs> children) {
+        Sequence results = seq();
+        boolean first = true;
+        for (Obs obs : children) {
+            if (isYes(obs)) {
+                if (!first) results.add(text(", "));
+                results.add(coded(obs.getConcept()));
+                first = false;
             }
         }
+        return results.isEmpty() ? seq() : div("obs",
+            span("label", title, ": "), " ", span("value", results)
+        );
+    }
 
-        private Writable renderValue(Obs obs) {
-            ConceptDatatype type = obs.getConcept().getDatatype();
-            switch (type.getHl7Abbreviation()) {
-                case ConceptDatatype.BOOLEAN:
-                    return text(Boolean.toString(obs.getValueBoolean()));
-                case ConceptDatatype.CODED:
-                    return text(helper.getName(obs.getValueCoded()));
-                case ConceptDatatype.NUMERIC:
-                    return text(Utils.format(obs.getValueNumeric(), 6));
-                case ConceptDatatype.TEXT:
-                    return text(obs.getValueText());
-                case ConceptDatatype.DATE:
-                    return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDate())));
-                case ConceptDatatype.DATETIME:
-                    return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDatetime())));
-            }
-            return text("?");
+    private Writable renderFormSection(Writable title, List<Obs> children) {
+        Sequence results = seq();
+        for (Obs obs : children) {
+            results.add(div("obs", renderObsContent(obs)));
         }
+        return results;
+    }
+
+    private Writable renderObsContent(Obs obs) {
+        switch (Utils.compressUuid(DbUtils.getConceptUuid(obs)).toString()) {
+            case DbUtils.CONCEPT_PLACEMENT_UUID:
+                DataHelper.Placement p = helper.getPlacement(obs);
+                return format("Patient moved to %s", p.getLocationName());
+            default:
+                return seq(
+                    span("label", coded(obs.getConcept()), ":"),
+                    " ",
+                    span("value", renderValue(obs))
+                );
+        }
+    }
+
+    private Writable renderValue(Obs obs) {
+        ConceptDatatype type = obs.getConcept().getDatatype();
+        switch (type.getHl7Abbreviation()) {
+            case ConceptDatatype.BOOLEAN:
+                return text(Boolean.toString(obs.getValueBoolean()));
+            case ConceptDatatype.CODED:
+                return coded(obs.getValueCoded());
+            case ConceptDatatype.NUMERIC:
+                return text(Utils.format(obs.getValueNumeric(), 6));
+            case ConceptDatatype.TEXT:
+                return text(obs.getValueText().replace("\n", "; "));
+            case ConceptDatatype.DATE:
+                return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDate())));
+            case ConceptDatatype.DATETIME:
+                return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDatetime())));
+        }
+        return text("?");
+    }
+
+    private Writable coded(Concept concept) {
+        return intl(helper.getConceptName(concept));
     }
 
     private Writable line(Object... objects) {
         return el("div", objects);
+    }
+
+    private Writable span(String cls, Object... objects) {
+        return el("span class='" + cls + "'", objects);
     }
 
     private Writable div(String cls, Object... objects) {
