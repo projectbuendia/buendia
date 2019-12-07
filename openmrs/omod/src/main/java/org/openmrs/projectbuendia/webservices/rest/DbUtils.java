@@ -60,6 +60,7 @@ import static org.openmrs.projectbuendia.Utils.eq;
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
     public static final Locale DEFAULT_LOCALE = Locale.forLanguageTag("en");
+    public static final Locale BUENDIA_LOCALE = new Locale("buendia");
 
     // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
     // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
@@ -256,6 +257,10 @@ public class DbUtils {
     public static Locale getLocaleForTag(String languageTag) {
         if (Utils.isBlank(languageTag)) return DEFAULT_LOCALE;
         return Locale.forLanguageTag(languageTag.trim());
+    }
+
+    public static String getConceptName(Concept concept) {
+        return getConceptName(concept, BUENDIA_LOCALE);
     }
 
     public static String getConceptName(Concept concept, Locale locale) {

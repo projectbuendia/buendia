@@ -14,10 +14,9 @@
 <h2>Recent Admissions</h2>
 <ul>
 <c:forEach var="obs" items="${admissions}">
-  <li><input type=checkbox name="patient" id="${obs.patient.uuid}" value="${obs.patient.uuid}"/>
-  <fmt:formatDate value="${obs.valueDatetime}" timeZone="${zone}" pattern="MMM dd, HH'h'mm" var="time"/>
-  <label for="${obs.patient.uuid}">
-    ${time}: ${fn:escapeXml(obs.patient.personName)}
+  <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="adm-${obs.patient.uuid}"/>
+  <label for="adm-${obs.patient.uuid}">
+    ${obs.formattedValueTime}: ${fn:escapeXml(obs.patient.personName)}
   </label>
 </c:forEach>
 </ul>
@@ -25,11 +24,9 @@
 <h2>Recent Discharges</h2>
 <ul>
 <c:forEach var="obs" items="${discharges}">
-  <li><input type=checkbox name="patient" id="${obs.patient.uuid}" value="${obs.patient.uuid}"/>
-  <label for="${obs.patient.uuid}">
-    <fmt:formatDate value="${obs.encounterDatetime}" timeZone="${zone}"  pattern="MMM dd, HH'h'mm" var="time"/>
-    <fmt:formatDate value="${obs.obs.encounter.encounterDatetime}" timeZone="${zone}"  pattern="MMM dd, HH'h'mm" var="time"/>
-    ${time}: ${fn:escapeXml(obs.patient.personName)}
+  <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="dis-${obs.patient.uuid}"/>
+  <label for="dis-${obs.patient.uuid}">
+    ${obs.formattedObsTime}: ${fn:escapeXml(obs.patient.personName)}
   </label>
 </c:forEach>
 </ul>
@@ -41,10 +38,10 @@
 
 <ul>
 <c:forEach var="pp" items="${inpatients}">
-  <li><input type=checkbox name="patient" id="${pp.patient.uuid}" value="${pp.patient.uuid}"/>
-  <label for="${pp.patient.uuid}">
-    ${fn:escapeXml(pp.locationName)}
-    ${pp.bed} -
+  <li><input type=checkbox onchange="update(this)" name="patient" value="${pp.patient.uuid}" id="inp-${pp.patient.uuid}"/>
+  <label for="inp-${pp.patient.uuid}">
+    ${fn:escapeXml(pp.placement.locationName)}&nbsp;
+    ${fn:escapeXml(pp.placement.bed)} -
     ${fn:escapeXml(pp.patient.personName)}
   </label>
 </c:forEach>
@@ -56,3 +53,15 @@
 <input type="submit" value="Print selected patients">
 
 </form>
+
+<script>
+  var checkboxes = document.getElementsByTagName("input");
+
+  function update(checkbox) {
+    for (var i = 0; i < checkboxes.length; i++) {
+      if (checkboxes[i].value == checkbox.value) {
+        checkboxes[i].checked = checkbox.checked;
+      }
+    }
+  }
+</script>
