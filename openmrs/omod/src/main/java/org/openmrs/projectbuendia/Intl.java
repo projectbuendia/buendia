@@ -6,15 +6,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** A localized string, made from a string of the form "cat [fr:chat] [es:gato]". */
-public class Loc {
+/** A localizable string, made from a string of the form "cat [fr:chat] [es:gato]". */
+public class Intl {
     private static final Pattern BRACKETED_PATTERN = Pattern.compile("\\[(.*?)\\]");
     private static final Pattern EXTRA_SPACES = Pattern.compile("^ *| *$");
 
     protected final String base;
     protected final Map<String, String> options;
 
-    public Loc(String packed) {
+    public Intl(String packed) {
         if (packed == null) packed = "";
         String unpacked = BRACKETED_PATTERN.matcher(packed).replaceAll("");
         base = EXTRA_SPACES.matcher(unpacked).replaceAll("");
@@ -26,7 +26,7 @@ public class Loc {
         }
     }
 
-    public Loc(String base, Map<String, String> options) {
+    public Intl(String base, Map<String, String> options) {
         this.base = base;
         this.options = options;
     }
@@ -58,11 +58,15 @@ public class Loc {
         return results;
     }
 
-    public static Loc[] newArray(String... strings) {
-        Loc[] locs = new Loc[strings.length];
-        for (int i = 0; i < locs.length; i++) {
-            locs[i] = new Loc(strings[i]);
+    public static Intl[] newArray(String... strings) {
+        Intl[] intls = new Intl[strings.length];
+        for (int i = 0; i < intls.length; i++) {
+            intls[i] = new Intl(strings[i]);
         }
-        return locs;
+        return intls;
+    }
+
+    public String toString() {
+        return "Intl(" + base + ")";
     }
 }

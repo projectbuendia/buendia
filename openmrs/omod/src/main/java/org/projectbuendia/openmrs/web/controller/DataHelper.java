@@ -19,7 +19,7 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
-import org.openmrs.projectbuendia.Loc;
+import org.openmrs.projectbuendia.Intl;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
@@ -50,11 +50,10 @@ public class DataHelper {
     private static final String DISCHARGED_LOCATION_UUID = "73010980-d3e7-404a-95bf-180966f04fb8";
     private static final String ADMISSION_TIME_UUID = Utils.toUuid(8001640);
 
-    private static final Loc TIME_PATTERN = new Loc("MMM d, HH:mm [fr:d MMM, HH'h'mm]");
-    private static final Loc DATE_PATTERN = new Loc("MMM d [fr:d MMM]");
+    private static final Intl TIME_PATTERN = new Intl("MMM d, HH:mm [fr:d MMM, HH'h'mm]");
+    private static final Intl DATE_PATTERN = new Intl("MMM d [fr:d MMM]");
 
     private DateTimeZone zone;
-    private Locale locale;
     private DateTimeFormatter timeFormatter;
     private DateTimeFormatter dateFormatter;
 
@@ -91,11 +90,10 @@ public class DataHelper {
         }
     };
 
-    public DataHelper(Locale locale, DateTimeZone zone) {
-        this.locale = locale;
+    public DataHelper(DateTimeZone zone, Locale locale) {
         this.zone = zone;
-        timeFormatter = DateTimeFormat.forPattern(Utils.localize(TIME_PATTERN));
-        dateFormatter = DateTimeFormat.forPattern(Utils.localize(DATE_PATTERN));
+        timeFormatter = DateTimeFormat.forPattern(TIME_PATTERN.get(locale));
+        dateFormatter = DateTimeFormat.forPattern(DATE_PATTERN.get(locale));
 
         buendiaService = Context.getService(ProjectBuendiaService.class);
         conceptService = Context.getConceptService();
@@ -228,8 +226,8 @@ public class DataHelper {
         return obs;
     }
 
-    public String getLocalizedName(Concept concept) {
-        return Utils.localize(DbUtils.getConceptName(concept));
+    public Intl getName(Concept concept) {
+        return new Intl(DbUtils.getConceptName(concept));
     }
 
     public static DateTime toDateTime(Date date) {

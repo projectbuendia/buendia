@@ -301,15 +301,15 @@ public class Utils {
     // ==== Localization ====
 
     public static String localize(String loc, Object... args) {
-        String text = new Loc(loc).get(Locale.getDefault());
+        String text = new Intl(loc).get(Locale.getDefault());
         if (args.length > 0) {
             return format(text, args);
         }
         return text;
     }
 
-    public static String localize(Loc loc, Object... args) {
-        String text = loc.get(Locale.getDefault());
+    public static String localize(Intl intl, Object... args) {
+        String text = intl.get(Locale.getDefault());
         if (args.length > 0) {
             return format(text, args);
         }
