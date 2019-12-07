@@ -11,6 +11,7 @@ import java.util.Locale;
 public class HtmlOutput {
     public interface Writable {
         void writeHtmlTo(LocalizedWriter writer) throws IOException;
+        boolean isEmpty();
     }
 
     public static Sequence seq(Object... objects) {
@@ -73,7 +74,10 @@ public class HtmlOutput {
         }
 
         public boolean isEmpty() {
-            return children.isEmpty();
+            for (Writable child : children) {
+                if (!child.isEmpty()) return false;
+            }
+            return true;
         }
     }
 
@@ -91,6 +95,10 @@ public class HtmlOutput {
             content.writeHtmlTo(writer);
             writer.write("\n</" + tag.split(" ")[0] + ">");
         }
+
+        public boolean isEmpty() {
+            return false;
+        }
     }
 
     public static class Html implements Writable {
@@ -102,6 +110,10 @@ public class HtmlOutput {
 
         public void writeHtmlTo(LocalizedWriter writer) throws IOException {
             writer.write(html);
+        }
+
+        public boolean isEmpty() {
+            return html.isEmpty();
         }
     }
 
@@ -119,6 +131,10 @@ public class HtmlOutput {
         public void writeHtmlTo(LocalizedWriter writer) throws IOException {
             writer.writeEscaped(intl);
         }
+
+        public boolean isEmpty() {
+            return intl.isEmpty();
+        }
     }
 
     public static class Text implements Writable {
@@ -130,6 +146,10 @@ public class HtmlOutput {
 
         public void writeHtmlTo(LocalizedWriter writer) throws IOException {
             writer.writeEscaped(text);
+        }
+
+        public boolean isEmpty() {
+            return text.isEmpty();
         }
     }
 
@@ -144,6 +164,10 @@ public class HtmlOutput {
 
         public void writeHtmlTo(LocalizedWriter writer) throws IOException {
             writer.writeEscaped(intl, args);
+        }
+
+        public boolean isEmpty() {
+            return intl.isEmpty();
         }
     }
 

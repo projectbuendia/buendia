@@ -394,15 +394,15 @@ public class DataHelper {
         private String placement;
         private String locationUuid;
         private Location location;
-        private String locationName;
+        private Intl locationName;
         private String bed;
 
         public Placement(String placement) {
             this.placement = placement;
             locationUuid = getLocationUuidFromPlacement(placement);
             location = locationService.getLocationByUuid(locationUuid);
-            locationName = Utils.localize(location.getName());
-            bed = Utils.splitFields(placement, "/", 2)[1];
+            locationName = new Intl(location.getName());
+            bed = Utils.splitFields(placement, "/", 2)[1].trim();
         }
 
         public Placement(Obs obs) {
@@ -413,7 +413,7 @@ public class DataHelper {
             return location;
         }
 
-        public String getLocationName() {
+        public Intl getLocationName() {
             return locationName;
         }
 

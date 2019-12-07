@@ -54,3 +54,7 @@ table.columns td:first-child {
 .obs {
   line-height: 1.4;
 }
+
+.label {
+  color: #699;
+}

@@ -6,7 +6,9 @@ import org.openmrs.ConceptDatatype;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.projectbuendia.Intl;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
@@ -151,21 +153,33 @@ class PatientPrinter {
                             done.add(uuid);
                         }
                     }
-                    Writable title = intl(section.title);
-                    if (section.title.contains("[binary]")) {
-                        if (noCount == section.fields.size()) {
-                            items.add(renderNoneSelected(title, children));
-                        }  else {
-                            items.add(renderMultipleSelect(title, children));
+                    if (!children.isEmpty()) {
+                        Writable title = intl(section.title);
+                        if (section.title.contains("[binary]")) {
+                            if (noCount == section.fields.size()) {
+                                items.add(renderNoneSelected(title, children));
+                            } else {
+                                items.add(renderMultipleSelect(title, children));
+                            }
+                        } else {
+                            items.add(renderFormSection(title, children));
                         }
-                    } else {
-                        items.add(renderFormSection(title, children));
                     }
                 }
             }
             if (!items.isEmpty()) {
                 results.add(div("form", items));
             }
+        }
+        Sequence extras = new Sequence();
+        for (String uuid : obsMap.keySet()) {
+            if (!done.contains(uuid)) {
+                Obs obs = obsMap.get(uuid);
+                extras.add(renderObsContent(obs));
+            }
+        }
+        if (!extras.isEmpty()) {
+            results.add(div("form extras", extras));
         }
         return results;
     }
@@ -189,7 +203,7 @@ class PatientPrinter {
     }
 
     private Writable renderNoneSelected(Writable title, List<Obs> children) {
-        return div("obs", span("label", title, ": "), " ", span("value", "None"));
+        return div("obs", span("label", title, ": "), " ", span("value", intl("None [fr:Aucun]")));
     }
 
     private Writable renderMultipleSelect(Writable title, List<Obs> children) {
@@ -210,7 +224,7 @@ class PatientPrinter {
     private Writable renderFormSection(Writable title, List<Obs> children) {
         Sequence results = seq();
         for (Obs obs : children) {
-            results.add(div("obs", renderObsContent(obs)));
+            results.add(renderObsContent(obs));
         }
         return results;
     }
@@ -219,14 +233,45 @@ class PatientPrinter {
         switch (Utils.compressUuid(DbUtils.getConceptUuid(obs)).toString()) {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
-                return format("Patient moved to %s", p.getLocationName());
+                return div("obs placement",
+                    span("label", intl("New placement[fr:Nouveau emplacement]"), ": "),
+                    span("value", renderPlacement(p))
+                );
+
+            case DbUtils.CONCEPT_ORDER_EXECUTED_UUID:
+                Order order = obs.getOrder();
+                return div("execution",
+                    span("label", intl("Treatment given[fr:Traitement donné]"), ": "),
+                    span("value", renderOrderTreatment(order))
+                );
+
             default:
-                return seq(
+                return div("obs",
                     span("label", coded(obs.getConcept()), ":"),
                     " ",
                     span("value", renderValue(obs))
                 );
         }
+    }
+
+    private Writable renderPlacement(DataHelper.Placement p) {
+        Sequence result = seq(p.getLocationName());
+        if (!p.getBed().isEmpty()) {
+            result.add(seq(", ", intl("Bed[fr:Lit]"), " ", p.getBed()));
+        }
+        return result;
+    }
+
+    private Writable renderOrderTreatment(Order order) {
+        Sequence result = seq(order.getInstructions());
+        return result;
+    }
+
+    private Writable renderOrderSchedule(Order order) {
+        Sequence result = seq(helper.formatTime(
+            helper.toLocalDateTime(order.getScheduledDate())
+        ));
+        return result;
     }
 
     private Writable renderValue(Obs obs) {
@@ -241,7 +286,7 @@ class PatientPrinter {
             case ConceptDatatype.TEXT:
                 return text(obs.getValueText().replace("\n", "; "));
             case ConceptDatatype.DATE:
-                return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDate())));
+                return text(helper.formatDate(helper.toLocalDateTime(obs.getValueDate())));
             case ConceptDatatype.DATETIME:
                 return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDatetime())));
         }

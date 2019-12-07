@@ -31,6 +31,10 @@ public class Intl {
         this.options = options;
     }
 
+    public boolean isEmpty() {
+        return base.isEmpty() && options.isEmpty();
+    }
+
     public String get(Locale locale) {
         if (options == null || options.isEmpty()) return base;
 
