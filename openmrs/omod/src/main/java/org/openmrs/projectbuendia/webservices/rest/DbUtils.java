@@ -330,6 +330,20 @@ public class DbUtils {
         return Utils.toNonnull(obj.getName());
     }
 
+    public static boolean isNo(Obs obs) {
+        if (obs == null) return false;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return !value;
+    }
+
+    public static boolean isYes(Obs obs) {
+        if (obs == null) return false;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return value;
+    }
+
     /** Returns the currently authenticated user. */
     public static User getAuthenticatedUser() {
         return Context.getUserContext().getAuthenticatedUser();

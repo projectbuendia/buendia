@@ -39,6 +39,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
+import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.format;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.intl;
@@ -128,38 +130,98 @@ class PatientPrinter {
     }
 
     public Doc renderAdmission(Patient pat) {
-        return div(
-            "admission",
+        return div("admission",
             el("h1", "Admission - Enregistrement CTE"),
             el("div class='patient-id'", "* Nr. Identification (ID) Patient:", div("field")),
-            section(
+            section("patient-info",
                 "Patient Information",
                 columns(
-                    column(
-                        "50%",
-                        line(field("* Nom de famille:", rest())),
-                        line(field("* Prénom:", rest()))
+                    column("50%",
+                        line(field("* Nom de famille", pat.getFamilyName())),
+                        line(field("* Prénom", pat.getGivenName())),
+                        subhead("* Information contact Patient:"),
+                        line(field("Numéro de téléphone Patient", getValue(pat, TELEPHONE_UUID))),
+                        line(field("Propriétaire du téléphone", getValue(pat, PHONE_OWNER_UUID)))
                     ),
-                    column(
-                        "50%",
-                        line("* Date de naissance:",
-                            field("j", blanks(6)),
-                            field("m", blanks(6)),
-                            field("a", blanks(6))
-                        ),
+                    column("50%",
+                        line(field("* Date de naissance")),
                         line(
-                            field("si inconnu, Âge:", blanks(10)),
-                            field("* Sexe:",
-                                checkbox("Masculin"),
-                                checkbox("Féminin")
+                            field("si inconnu, Âge", renderAge(pat)),
+                            field("* Sexe",
+                                checkbox("Masculin", eq(pat.getGender().toUpperCase(), "M")),
+                                checkbox("Féminin", eq(pat.getGender().toUpperCase(), "F"))
                             )
+                        ),
+                        subhead("* Information contact additionnelle (famille/amis):"),
+                        line(field("Numéro de téléphone additionnel")),
+                        line(field("Propriétaire du téléphone"))
+                    )
+                ),
+                subhead("* Lieu de résidence:"),
+                line(
+                    field("Aire de Santé", getValue(pat, AIRE_SANTE_UUID)),
+                    field("Village", getValue(pat, VILLAGE_UUID))
+                )
+            ),
+            section("admission-info",
+                "Admission Information",
+                columns(
+                    column("50%",
+                        line(field("* Date d'admission", renderDate(getValue(pat, ADMISSION_TIME_UUID)))),
+                        line(field("Heure d'admission", renderTime(getValue(pat, ADMISSION_TIME_UUID)))),
+                        line(field("* Date de début des symptômes", renderDate(getValue(pat, SYMPTOM_START_UUID))))
+                    ),
+                    column("50%",
+                        line("* État du Patient à l'admission:"),
+                        div("etat", checkbox("Suspect"), checkbox("Probable"), checkbox("Confirmé"))
+                    )
+                ),
+                div("pregnancy",
+                    columns(
+                        column("33%",
+                            subhead("Si la patiente est âge e procréer:"),
+                            line("* Enceinte actuellement:",
+                                stack(
+                                    checkbox("Oui", isYes(getObs(pat, PREGNANCY_UUID))),
+                                    checkbox("Non", isNo(getObs(pat, PREGNANCY_UUID))),
+                                    checkbox("Inconnu", !isYes(getObs(pat, PREGNANCY_UUID)) && !isNo(getObs(pat, PREGNANCY_UUID)))
+                                ),
+                                line("* Allaitante:",
+                                    checkbox("Oui"),
+                                    checkbox("Non")
+                                )
+                            )
+                        ),
+                        column("33%",
+                            line("* Test de grossesse:",
+                                stack(
+                                    checkbox("Oui", isYes(getValue(pat, PREGNANCY_TEST_UUID))),
+                                    checkbox("Non", isNo(getValue(pat, PREGNANCY_TEST_UUID)))
+                                )
+                            ),
+                            line(field("* Date", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
+                        ),
+                        column("33%",
+                            line(field("Nr de semaines de gestation estimé")),
+                            line(field("Trimestre de grossesse")),
+                            line(field("Fetus vivant",
+                                checkbox("Oui"),
+                                checkbox("Non")
+                            ))
                         )
                     )
                 )
             ),
-            section("Admission Information"),
-            section("Resultat du Patient à la Sortie")
+            section("discharge-result", "Resultat du Patient à la Sortie")
         );
+    }
+
+    public String getValue(Patient pat, String uuid) {
+        return null;
+    }
+
+    public Obs getObs(Patient pat, String uuid) {
+        return null;
     }
 
     public Doc renderEvents(Patient pat) {
@@ -226,7 +288,7 @@ class PatientPrinter {
                     String uuid = DbUtils.getConceptUuid(option);
                     if (uuid != null && obsMap.containsKey(uuid) && !done.contains(uuid)) {
                         Obs obs = obsMap.get(uuid);
-                        if (helper.isNo(obs)) noCount++;
+                        if (isNo(obs)) noCount++;
                         children.add(obs);
                         done.add(uuid);
                     }
@@ -296,7 +358,7 @@ class PatientPrinter {
         Sequence results = seq();
         boolean first = true;
         for (Obs obs : children) {
-            if (helper.isYes(obs)) {
+            if (isYes(obs)) {
                 if (!first) results.add(text(", "));
                 results.add(coded(obs.getConcept()));
                 first = false;
@@ -457,6 +519,18 @@ class PatientPrinter {
         return el("div", objects);
     }
 
+    private Doc subhead(Object... objects) {
+        return el("div class='subhead'", objects);
+    }
+
+    private Doc stack(Object... objects) {
+        Sequence rows = seq();
+        for (Object obj : objects) {
+            rows.add(div("stack", obj));
+        }
+        return div("stack", rows);
+    }
+
     private Doc span(String cls, Object... objects) {
         return el("span class='" + cls + "'", objects);
     }
@@ -465,8 +539,8 @@ class PatientPrinter {
         return el("div class='" + cls + "'", objects);
     }
 
-    private Doc section(String heading, Object... objects) {
-        return div("section", el("heading", heading), objects);
+    private Doc section(String cls, String heading, Object... objects) {
+        return div("section " + cls, el("heading", heading), objects);
     }
 
     private Doc columns(Object... columns) {

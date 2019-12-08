@@ -147,20 +147,6 @@ public class DataHelper {
         return dateFormatter.print(dt);
     }
 
-    public boolean isNo(Obs obs) {
-        if (obs == null) return false;
-        Boolean value = obs.getValueAsBoolean();
-        if (value == null) return false;
-        return !value;
-    }
-
-    public boolean isYes(Obs obs) {
-        if (obs == null) return false;
-        Boolean value = obs.getValueAsBoolean();
-        if (value == null) return false;
-        return value;
-    }
-
     private List<ObsDisplay> wrapObs(List<Obs> list) {
         List<ObsDisplay> wrapped = new ArrayList<>();
         for (Obs obs : list) {
