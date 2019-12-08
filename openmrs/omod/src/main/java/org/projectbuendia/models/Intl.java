@@ -1,7 +1,11 @@
 package org.projectbuendia.models;
 
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.web.controller.HtmlOutput;
+import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -9,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** A localizable string, made from a string of the form "cat [fr:chat] [es:gato]". */
-public class Intl {
+public class Intl implements Doc {
     private static final Pattern BRACKETED_PATTERN = Pattern.compile("\\[(.*?)\\]");
     private static final Pattern EXTRA_SPACES = Pattern.compile("^ *| *$");
 
@@ -70,6 +74,10 @@ public class Intl {
             intls[i] = new Intl(strings[i]);
         }
         return intls;
+    }
+
+    public void writeTo(Writer writer, Locale locale) throws IOException {
+        writer.write(loc(locale));
     }
 
     public String toString() {

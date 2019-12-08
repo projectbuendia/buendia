@@ -341,19 +341,15 @@ public class DataHelper {
         List<Event> sorted = new ArrayList<>(events);
         Collections.sort(sorted, EVENT_TIME);
 
-        Utils.log("\n\nmergeEvents");
         List<Event> merged = new ArrayList<>();
         DateTime lastGroupStart = null;
         DateTime lastGroupEnd = null;
         for (Event event : sorted) {
-            Utils.log("event time %s", event.time);
             if (lastGroupEnd == null || !event.time.isBefore(lastGroupEnd.plus(maxGap)) ||
                 lastGroupStart == null || !event.time.isBefore(lastGroupStart.plus(maxDuration))) {
-                Utils.log("  start new group (last start = %s)", event.time);
                 merged.add(event);
                 lastGroupStart = lastGroupEnd = event.time;
             } else {
-                Utils.log("  merge with last group (last end = %s)", event.time);
                 merged.set(merged.size() - 1, Utils.last(merged).mergeWith(event));
                 lastGroupEnd = event.time;
             }

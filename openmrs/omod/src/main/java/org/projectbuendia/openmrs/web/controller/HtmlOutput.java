@@ -1,17 +1,25 @@
 package org.projectbuendia.openmrs.web.controller;
 
+import org.openmrs.projectbuendia.Utils;
 import org.projectbuendia.models.Intl;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class HtmlOutput {
-    public interface Writable {
-        void writeHtmlTo(LocalizedWriter writer) throws IOException;
+    public interface Doc {
+        void writeTo(Writer writer, Locale locale) throws IOException;
         boolean isEmpty();
+    }
+
+    public static String render(Doc doc, Locale locale) throws IOException {
+        StringWriter buffer = new StringWriter();
+        doc.writeTo(buffer, locale);
+        return buffer.toString();
     }
 
     public static Sequence seq(Object... objects) {
@@ -20,7 +28,7 @@ public class HtmlOutput {
             Object obj = objects[i];
             sequence.add(
                 obj instanceof Object[] ? seq((Object[]) obj)
-                    : obj instanceof Writable ? (Writable) obj
+                    : obj instanceof Doc ? (Doc) obj
                         : text(obj)
             );
         }
@@ -35,53 +43,53 @@ public class HtmlOutput {
         return new Html(html);
     }
 
-    public static Writable text(Object object) {
-        return object instanceof Intl ? new IntlText((Intl) object) : new Text("" + object);
+    public static Doc text(Object object) {
+        return object instanceof Intl ? (Intl) object : new Text("" + object);
     }
 
-    public static Writable intl(Object object) {
-        return object instanceof Intl ? new IntlText((Intl) object) : new IntlText("" + object);
+    public static Doc intl(Object object) {
+        return object instanceof Intl ? (Intl) object : new Intl("" + object);
     }
 
-    public static Writable format(String intl, Object... args) {
+    public static Doc format(String intl, Object... args) {
         return new Format(new Intl(intl), args);
     }
 
-    public static Writable format(Intl intl, Object... args) {
+    public static Doc format(Intl intl, Object... args) {
         return new Format(intl, args);
     }
 
-    public static class Sequence implements Writable {
-        private final List<Writable> children = new ArrayList<>();
+    public static class Sequence implements Doc {
+        private final List<Doc> children = new ArrayList<>();
 
-        public Sequence(Writable... children) {
-            for (Writable child : children) {
+        public Sequence(Doc... children) {
+            for (Doc child : children) {
                 this.children.add(child);
             }
         }
 
-        public Sequence add(Writable... children) {
-            for (Writable child : children) {
+        public Sequence add(Doc... children) {
+            for (Doc child : children) {
                 this.children.add(child);
             }
             return this;
         }
 
-        public void writeHtmlTo(LocalizedWriter writer) throws IOException {
-            for (Writable child : children) {
-                child.writeHtmlTo(writer);
+        public void writeTo(Writer writer, Locale locale) throws IOException {
+            for (Doc child : children) {
+                child.writeTo(writer, locale);
             }
         }
 
         public boolean isEmpty() {
-            for (Writable child : children) {
+            for (Doc child : children) {
                 if (!child.isEmpty()) return false;
             }
             return true;
         }
     }
 
-    public static class Element implements Writable {
+    public static class Element implements Doc {
         private final String tag;
         private final Sequence content;
 
@@ -90,9 +98,9 @@ public class HtmlOutput {
             this.content = content;
         }
 
-        public void writeHtmlTo(LocalizedWriter writer) throws IOException {
+        public void writeTo(Writer writer, Locale locale) throws IOException {
             writer.write("<" + tag + "\n>");
-            content.writeHtmlTo(writer);
+            content.writeTo(writer, locale);
             writer.write("\n</" + tag.split(" ")[0] + ">");
         }
 
@@ -101,14 +109,30 @@ public class HtmlOutput {
         }
     }
 
-    public static class Html implements Writable {
-        private final String html;
+    public static class Text implements Doc {
+        private String text;
+
+        public Text(String text) {
+            this.text = text;
+        }
+
+        public void writeTo(Writer writer, Locale locale) throws IOException {
+            writer.write(esc(text));
+        }
+
+        public boolean isEmpty() {
+            return text.isEmpty();
+        }
+    }
+
+    public static class Html implements Doc {
+        private String html;
 
         public Html(String html) {
             this.html = html;
         }
 
-        public void writeHtmlTo(LocalizedWriter writer) throws IOException {
+        public void writeTo(Writer writer, Locale locale) throws IOException {
             writer.write(html);
         }
 
@@ -117,62 +141,33 @@ public class HtmlOutput {
         }
     }
 
-    public static class IntlText implements Writable {
-        private Intl intl;
-
-        public IntlText(String text) {
-            this(new Intl(text));
-        }
-
-        public IntlText(Intl intl) {
-            this.intl = intl;
-        }
-
-        public void writeHtmlTo(LocalizedWriter writer) throws IOException {
-            writer.writeEscaped(intl);
-        }
-
-        public boolean isEmpty() {
-            return intl.isEmpty();
-        }
-    }
-
-    public static class Text implements Writable {
-        private String text;
-
-        public Text(String text) {
-            this.text = text;
-        }
-
-        public void writeHtmlTo(LocalizedWriter writer) throws IOException {
-            writer.writeEscaped(text);
-        }
-
-        public boolean isEmpty() {
-            return text.isEmpty();
-        }
-    }
-
-    public static class Format implements Writable {
-        private Intl intl;
+    public static class Format implements Doc {
+        private Intl template;
         private Object[] args;
 
-        public Format(Intl intl, Object... args) {
-            this.intl = intl;
+        public Format(Intl template, Object... args) {
+            this.template = template;
             this.args = args;
         }
 
-        public void writeHtmlTo(LocalizedWriter writer) throws IOException {
-            writer.writeEscaped(intl, args);
+        public void writeTo(Writer writer, Locale locale) throws IOException {
+            String locTemplate = template.loc(locale);
+            Object[] locArgs = new Object[args.length];
+            int i = 0;
+            for (Object arg : args) {
+                locArgs[i++] = arg instanceof Doc ? render((Doc) arg, locale) : arg;
+            }
+            writer.write(String.format(
+                Utils.orDefault(locale, Locale.US), locTemplate, locArgs));
         }
 
         public boolean isEmpty() {
-            return intl.isEmpty();
+            return template.isEmpty();
         }
     }
 
     interface Renderer {
-        Writable render(Object obj);
+        Doc render(Object obj);
     }
 
     public static Sequence formatItems(Renderer renderer, List<?> objects) {

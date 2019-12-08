@@ -1,13 +1,11 @@
 package org.projectbuendia.openmrs.web.controller;
 
-import org.apache.velocity.util.ArrayListWrapper;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Duration;
 import org.joda.time.Period;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
-import org.openmrs.Encounter;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
@@ -15,7 +13,6 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
-import org.projectbuendia.models.Catalog;
 import org.projectbuendia.models.Catalog.Drug;
 import org.projectbuendia.models.Catalog.Format;
 import org.projectbuendia.models.Catalog.Route;
@@ -27,16 +24,16 @@ import org.projectbuendia.models.Unit;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
-import org.projectbuendia.openmrs.web.controller.HtmlOutput.Writable;
+import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -52,7 +49,8 @@ import static org.projectbuendia.openmrs.web.controller.HtmlOutput.seq;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.text;
 
 class PatientPrinter {
-    private final LocalizedWriter writer;
+    private final Writer writer;
+    private final Locale locale;
     private final DataHelper helper;
     private final CatalogIndex index = MsfCatalog.INDEX;
 
@@ -67,53 +65,54 @@ class PatientPrinter {
         SECOND_SAMPLE_TAKEN_UUID
     );
 
-    public PatientPrinter(PrintWriter writer, Locale locale, DataHelper helper) {
-        this.writer = new LocalizedWriter(writer, locale);
+    public PatientPrinter(Writer writer, Locale locale, DataHelper helper) {
+        this.writer = writer;
+        this.locale = locale;
         this.helper = helper;
     }
 
     public void printPreamble() throws IOException {
-        write(html("<meta charset='UTF-8'>"));
+        writer.write("<meta charset='UTF-8'>");
         try {
             InputStream stream = new FileInputStream("/Users/ping/dev/buendia/openmrs/style.css");
             InputStreamReader reader = new InputStreamReader(stream);
             char[] buffer = new char[1024];
-            write(html("<style>"));
+            writer.write("<style>");
             while (reader.ready()) {
                 int count = reader.read(buffer);
                 if (count < 0) break;
                 writer.write(new String(buffer, 0, count));
             }
-            write(html("</style>"));
+            writer.write("</style>");
         } catch (IOException e) {
             writer.write("<link rel='stylesheet' href='style.css'>");
         }
     }
 
     public void printIntro(Patient pat) throws IOException {
-        renderIntro(pat).writeHtmlTo(writer);
+        renderIntro(pat).writeTo(writer, locale);
     }
 
     public void printAdmission(Patient pat) throws IOException {
-        renderAdmission(pat).writeHtmlTo(writer);
+        renderAdmission(pat).writeTo(writer, locale);
     }
 
     public void printEncounters(Patient pat) throws IOException {
-        renderEncounters(pat).writeHtmlTo(writer);
+        renderEncounters(pat).writeTo(writer, locale);
     }
 
     public void printEvents(Patient pat) throws IOException {
-        renderEvents(pat).writeHtmlTo(writer);
+        renderEvents(pat).writeTo(writer, locale);
     }
 
-    public Writable renderIntro(Patient pat) {
+    public Doc renderIntro(Patient pat) {
         return div("intro",
             el("h1 class='name'", pat.getPersonName().getFullName()),
             div("agesex", renderAge(pat), ", ", renderSex(pat))
         );
     }
 
-    public Writable renderAge(Patient pat) {
+    public Doc renderAge(Patient pat) {
         Period age = new Period(
             helper.toLocalDateTime(pat.getBirthdate()),
             helper.toLocalDateTime(pat.getDateCreated()));
@@ -125,13 +124,13 @@ class PatientPrinter {
         ));
     }
 
-    public Writable renderSex(Patient pat) {
+    public Doc renderSex(Patient pat) {
         Sequence pregnancy = seq();
         if (helper.isPregnant(pat)) pregnancy.add(text(", "), intl("pregnant[fr:enceinte]"));
         return span("sex", pat.getGender(), pregnancy);
     }
 
-    public Writable renderAdmission(Patient pat) {
+    public Doc renderAdmission(Patient pat) {
         return div(
             "admission",
             el("h1", "Admission - Enregistrement CTE"),
@@ -166,7 +165,7 @@ class PatientPrinter {
         );
     }
 
-    public Writable renderEvents(Patient pat) {
+    public Doc renderEvents(Patient pat) {
         Sequence results = seq();
         List<DataHelper.Event> events = helper.mergeEvents(
             helper.getEvents(pat),
@@ -189,7 +188,7 @@ class PatientPrinter {
         return results;
     }
 
-    public Writable renderEncounters(Patient pat) {
+    public Doc renderEncounters(Patient pat) {
         Sequence encounters = seq();
 
         List<List<Obs>> groups = helper.getEncounterObs(helper.getEncounters(pat));
@@ -233,7 +232,7 @@ class PatientPrinter {
                     }
                 }
                 if (!children.isEmpty()) {
-                    Writable title = intl(section.title);
+                    Doc title = intl(section.title);
                     if (section.title.contains("[binary]")) {
                         if (noCount == section.fields.size()) {
                             items.add(renderNoneSelected(title, children));
@@ -281,11 +280,11 @@ class PatientPrinter {
         return DbUtils.getName(form).toLowerCase().contains("admiss");
     }
 
-    private Writable renderNoneSelected(Writable title, List<Obs> children) {
+    private Doc renderNoneSelected(Doc title, List<Obs> children) {
         return div("obs", span("label", title, ": "), " ", span("value", intl("None [fr:Aucun]")));
     }
 
-    private Writable renderMultipleSelect(Writable title, List<Obs> children) {
+    private Doc renderMultipleSelect(Doc title, List<Obs> children) {
         Sequence results = seq();
         boolean first = true;
         for (Obs obs : children) {
@@ -300,7 +299,7 @@ class PatientPrinter {
         );
     }
 
-    private Writable renderFormSection(Writable title, List<Obs> children) {
+    private Doc renderFormSection(Doc title, List<Obs> children) {
         Sequence results = seq();
         for (Obs obs : children) {
             results.add(renderObsContent(obs));
@@ -308,7 +307,7 @@ class PatientPrinter {
         return results;
     }
 
-    private Writable renderObsContent(Obs obs) {
+    private Doc renderObsContent(Obs obs) {
         switch (DbUtils.getConceptUuid(obs)) {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
@@ -334,7 +333,7 @@ class PatientPrinter {
         }
     }
 
-    private Writable renderPlacement(DataHelper.Placement p) {
+    private Doc renderPlacement(DataHelper.Placement p) {
         Sequence result = seq(p.getLocationName());
         if (!p.getBed().isEmpty()) {
             result.add(seq(", ", intl("Bed [fr:Lit]"), " ", p.getBed()));
@@ -342,7 +341,7 @@ class PatientPrinter {
         return result;
     }
 
-    private Writable renderOrderAction(Order order) {
+    private Doc renderOrderAction(Order order) {
         String prev = order.getPreviousOrder() != null ?
             order.getPreviousOrder().getInstructions() : "<null>";
         switch (order.getAction()) {
@@ -358,11 +357,11 @@ class PatientPrinter {
         return seq();
     }
 
-    private Writable renderOrderTreatment(Order order) {
+    private Doc renderOrderTreatment(Order order) {
         Instructions instr = new Instructions(order.getInstructions());
         Drug drug = index.getDrug(instr.code);
         Format format = index.getFormat(instr.code);
-        Writable dosage = instr.isContinuous() ?
+        Doc dosage = instr.isContinuous() ?
             span("dosage", format("%s in %s [fr:%s dans %s]",
                 renderQuantity(instr.amount),
                 renderQuantity(instr.duration)
@@ -373,7 +372,7 @@ class PatientPrinter {
             drug.name, format.description, dosage, route.name));
     }
 
-    private Writable renderQuantity(Quantity quantity) {
+    private Doc renderQuantity(Quantity quantity) {
         return span("quantity",
             span("mag", Utils.format(quantity.mag, 6)),
             " ",
@@ -381,7 +380,7 @@ class PatientPrinter {
         );
     }
 
-    private Writable renderOrderSchedule(Order order) {
+    private Doc renderOrderSchedule(Order order) {
         DateTime start = helper.toLocalDateTime(order.getScheduledDate());
         DateTime stop = helper.toLocalDateTime(order.getAutoExpireDate());
         Instructions instr = new Instructions(order.getInstructions());
@@ -408,7 +407,7 @@ class PatientPrinter {
         );
     }
 
-    private Writable renderValue(Obs obs) {
+    private Doc renderValue(Obs obs) {
         ConceptDatatype type = obs.getConcept().getDatatype();
         switch (type.getHl7Abbreviation()) {
             case ConceptDatatype.BOOLEAN:
@@ -427,55 +426,55 @@ class PatientPrinter {
         return text("?");
     }
 
-    private Writable coded(Concept concept) {
+    private Doc coded(Concept concept) {
         return intl(helper.getConceptName(concept));
     }
 
-    private Writable line(Object... objects) {
+    private Doc line(Object... objects) {
         return el("div", objects);
     }
 
-    private Writable span(String cls, Object... objects) {
+    private Doc span(String cls, Object... objects) {
         return el("span class='" + cls + "'", objects);
     }
 
-    private Writable div(String cls, Object... objects) {
+    private Doc div(String cls, Object... objects) {
         return el("div class='" + cls + "'", objects);
     }
 
-    private Writable section(String heading, Object... objects) {
+    private Doc section(String heading, Object... objects) {
         return div("section", el("heading", heading), objects);
     }
 
-    private Writable columns(Object... columns) {
+    private Doc columns(Object... columns) {
         return el("table cellspacing=0 cellpadding=0 class='columns'", el("tr", columns));
     }
 
-    private Writable column(String width, Object... objects) {
+    private Doc column(String width, Object... objects) {
         return el("td width='" + width + "'", objects);
     }
 
-    private Writable blanks(int chars) {
+    private Doc blanks(int chars) {
         String spaces = "";
         for (int i = 0; i < chars; i++) spaces += "\u00a0";
         return field(text(spaces));
     }
 
-    private Writable rest() {
+    private Doc rest() {
         return el("span class='rest'", "\ua000");
     }
 
-    private Writable checkbox(Object... objects) {
+    private Doc checkbox(Object... objects) {
         return seq("[] ", objects);
     }
 
-    private Writable field(Object label, Object... objects) {
+    private Doc field(Object label, Object... objects) {
         return el("span class='field'",
             el("span class='field-label'", label),
             el("span class='field-value'", objects));
     }
 
-    private void write(Writable writable) throws IOException {
-        writable.writeHtmlTo(writer);
+    private void write(Doc doc) throws IOException {
+        doc.writeTo(writer, locale);
     }
 }
