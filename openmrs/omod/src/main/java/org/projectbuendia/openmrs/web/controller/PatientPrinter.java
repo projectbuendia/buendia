@@ -682,7 +682,7 @@ class PatientPrinter {
     }
 
     private Doc line(Object... objects) {
-        return el("div", objects);
+        return div("line", objects);
     }
 
     private Doc block(String cls, Object... objects) {
@@ -690,7 +690,7 @@ class PatientPrinter {
     }
 
     private Doc subhead(Object... objects) {
-        return el("div class='subhead'", objects);
+        return div("subhead", objects);
     }
 
     private Doc stack(Object... objects) {
