@@ -209,16 +209,26 @@ public class DataHelper {
         Concept concept = conceptService.getConceptByUuid(conceptUuid);
         if (concept != null) {
             for (Patient patient : patientService.getAllPatients()) {
-                // getObservations promises to sort chronologically by default.
-                for (Obs obs : obsService.getObservations(
-                    Arrays.asList((Person) patient), null,
-                    Arrays.asList(concept), null, null, null, null,
-                    1, null, null, null, false)) {
-                    results.put(obs.getPerson().getUuid(), obs);
-                }
+                results.put(patient.getUuid(), getLatestObs(patient, concept));
             }
         }
         return results;
+    }
+
+    public Obs getLatestObs(Patient pat, String conceptUuid) {
+        return getLatestObs(pat, conceptService.getConceptByUuid(conceptUuid));
+    }
+
+    public Obs getLatestObs(Patient pat, Concept concept) {
+        if (concept == null) return null;
+        for (Obs obs : obsService.getObservations(
+            Arrays.asList((Person) pat), null,
+            Arrays.asList(concept), null, null, null, null,
+            1, null, null, null, false
+        )) {
+            return obs;
+        }
+        return null;
     }
 
     public Map<String, Obs> getLatestObsByQuestion(List<Obs> group) {

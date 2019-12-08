@@ -7,6 +7,7 @@ import org.joda.time.LocalDate;
 import org.joda.time.Period;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
+import org.openmrs.Encounter;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
@@ -23,8 +24,8 @@ import org.projectbuendia.models.MsfCatalog;
 import org.projectbuendia.models.Quantity;
 import org.projectbuendia.models.Unit;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
-import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
+import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -41,6 +42,7 @@ import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.toUuid;
+import static org.openmrs.projectbuendia.webservices.rest.DbUtils.getConceptUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
@@ -90,21 +92,18 @@ class PatientPrinter {
         }
     }
 
-    public void printIntro(Patient pat) throws IOException {
-        renderIntro(pat).writeTo(writer, locale);
-    }
-
     public void printAdmission(Patient pat) throws IOException {
         renderAdmission(pat).writeTo(writer, locale);
     }
 
-    public void printEvents(Patient pat) throws IOException {
-        renderEvents(pat).writeTo(writer, locale);
+    public void printHistory(Patient pat) throws IOException {
+        div("history", renderIntro(pat), renderEvents(pat))
+            .writeTo(writer, locale);
     }
 
     public Doc renderIntro(Patient pat) {
         return div("intro",
-            el("heading class='name'", pat.getPersonName().getFullName()),
+            div("name", pat.getPersonName().getFullName()),
             div("agesex", renderAge(pat), ", ", renderSex(pat))
         );
     }
@@ -132,42 +131,62 @@ class PatientPrinter {
     }
 
     public Doc yesNo(Obs obs) {
-        return seq(checkbox("Oui", isYes(obs)), checkbox("Non", isNo(obs)));
+        return seq(checkitem("Oui", isYes(obs)), checkitem("Non", isNo(obs)));
     }
 
-    public Doc yesNoUnknown(Obs obs) {
-        return seq(checkbox("Oui", isYes(obs)), checkbox("Non", isNo(obs)),
-            checkbox("Inconnu", !isYes(obs) && !isNo(obs)));
-    }
+    public static String UNKNOWN = "[unknown]";
 
     public static String TELEPHONE_UUID = toUuid(3159635);
     public static String PHONE_OWNER_UUID = toUuid(3900001);
     public static String AIRE_SANTE_UUID = toUuid(3900004);
     public static String VILLAGE_UUID = toUuid(3001354);
-    public static String ADMISSION_TIME_UUID = toUuid(8000000);
+
+    public static String ADMISSION_TIME_UUID = toUuid(8001640);
     public static String SYMPTOM_START_UUID = toUuid(6001730);
+    public static String STATUS_UUID = toUuid(2900005);
+    public static String STATUS_SUSPECT_UUID = toUuid(4142177);
+    public static String STATUS_PROBABLE_UUID = UNKNOWN;
+    public static String STATUS_CONFIRMED_UUID = toUuid(4159392);
+    public static String STATUS_DISCHARGED_NONCASE_UUID = toUuid(4900025);
+    public static String STATUS_DISCHARGED_CURED_UUID = toUuid(4159791);
+    public static String STATUS_DEATH_NONCASE_UUID = toUuid(4900026);
+    public static String STATUS_DEATH_CONFIRMED_UUID = toUuid(4900027);
+    public static String DISCHARGE_DATE_UUID = toUuid(6001641);
+    public static String DISCHARGE_TO_UUID = toUuid(2001695);
+    public static String HOME_UUID = toUuid(2001692);
+    public static String HOSPITAL_UUID = toUuid(2001693);
+
     public static String PREGNANCY_UUID = toUuid(2005272);
     public static String PREGNANCY_TEST_UUID = toUuid(2000045);
+    public static String WEIGHT_KG_UUID = toUuid(1005089);
 
     public static String HYPERTENSION_UUID = toUuid(2117399);
     public static String DIABETES_UUID = toUuid(2119481);
     public static String CHRONIC_LUNG_UUID = toUuid(2155569);
     public static String CHRONIC_HEART_UUID = toUuid(2145349);
-    public static String HIV_UUID = toUuid(0);
-    public static String TB_UUID = toUuid(0);
-    public static String RENAL_DISEASE_UUID = toUuid(0);
-
-    public static String WEIGHT_KG_UUID = toUuid(1005089);
-    public static String DISCHARGE_DATE_UUID = toUuid(6001641);
+    public static String HIV_UUID = UNKNOWN;
+    public static String TB_UUID = UNKNOWN;
+    public static String RENAL_DISEASE_UUID = UNKNOWN;
 
     public Doc renderAdmission(Patient pat) {
+        Obs pregnancy = getAdmitObs(pat, PREGNANCY_UUID);
+        Obs pregnancyTest = getAdmitObs(pat, PREGNANCY_TEST_UUID);
+        String admitStatus = getAdmitCodedValue(pat, STATUS_UUID);
+        String status = getCodedValue(pat, STATUS_UUID);
+
         return div("admission",
-            columns(
-                column("50%",
-                    el("heading", "Admission - Enregistrement CTE")
-                ),
-                column("50%",
-                    el("div class='patient-id'", field("* Nr. Identification (ID) Patient", blank(4)))
+            div("title",
+                columns(
+                    column("50%",
+                        div("heading", "Admission - Enregistrement CTE")
+                    ),
+                    column("50%",
+                        div("patient-id",
+                            field("* Nr. Identification (ID) Patient:",
+                                blank(4, pat.getPatientIdentifier("MSF"))
+                            )
+                        )
+                    )
                 )
             ),
             section("patient-info",
@@ -175,38 +194,40 @@ class PatientPrinter {
                 columns(
                     column("50%",
                         block("name",
-                            line(field("* Nom de famille", blank(6, pat.getFamilyName()))),
-                            line(field("* Prénom", blank(7, pat.getGivenName())))
+                            line(field("* Nom de famille:", blank(9, pat.getFamilyName()))),
+                            line(field("* Prénom:", blank(10, pat.getGivenName())))
                         ),
                         block("contact",
                             subhead("* Information contact Patient:"),
-                            line(field("Numéro de téléphone Patient", blank(4, getTextValue(pat, TELEPHONE_UUID)))),
-                            line(field("Propriétaire du téléphone", blank(4, getTextValue(pat, PHONE_OWNER_UUID))))
+                            line(field("Numéro de téléphone Patient:", blank(6, getTextValue(pat, TELEPHONE_UUID)))),
+                            line(field("Propriétaire du téléphone:", blank(7, getTextValue(pat, PHONE_OWNER_UUID))))
                         )
                     ),
                     column("50%",
                         block("agesex",
-                            line(field("* Date de naissance", renderEmptyDate())),
+                            line(field("* Date de naissance:", renderEmptyDate())),
                             line(
-                                field("si inconnu, âge", blank(1, renderAge(pat))),
-                                field("* Sexe",
-                                    checkbox("Masculin", eq(pat.getGender().toUpperCase(), "M")),
-                                    checkbox("Féminin", eq(pat.getGender().toUpperCase(), "F"))
+                                field("si inconnu, âge:", blank(2, renderAge(pat))),
+                                hspace(),
+                                field("* Sexe:",
+                                    checkitem("Masculin", eq(pat.getGender().toUpperCase(), "M")),
+                                    checkitem("Féminin", eq(pat.getGender().toUpperCase(), "F"))
                                 )
                             )
                         ),
                         block("additional-contact",
                             subhead("* Information contact additionnelle (famille/amis):"),
-                            line(field("Numéro de téléphone additionnel", blank(4))),
-                            line(field("Propriétaire du téléphone", blank(4)))
+                            line(field("Numéro de téléphone additionnel:", blank(5))),
+                            line(field("Propriétaire du téléphone:", blank(7)))
                         )
                     )
                 ),
                 block("residence",
                     subhead("* Lieu de résidence:"),
                     line(
-                        field("Aire de Santé", blank(7, getTextValue(pat, AIRE_SANTE_UUID))),
-                        field("Village", blank(7, getTextValue(pat, VILLAGE_UUID)))
+                        field("Aire de Santé:", blank(10, getTextValue(pat, AIRE_SANTE_UUID))),
+                        hspace(),
+                        field("Village:", blank(10, getTextValue(pat, VILLAGE_UUID)))
                     )
                 )
             ),
@@ -215,68 +236,80 @@ class PatientPrinter {
                 columns(
                     column("50%",
                         block("dates",
-                            line(field("* Date d'admission", renderDate(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
-                            line(field("Heure d'admission", renderTime(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
-                            line(field("* Date de début des symptômes", renderDate(getDateValue(pat, SYMPTOM_START_UUID))))
+                            line(field("* Date d'admission:", renderDate(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
+                            line(field("Heure d'admission:", renderTime(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
+                            line(field("* Date de début des symptômes:", renderDate(getDateValue(pat, SYMPTOM_START_UUID))))
                         )
                     ),
                     column("50%",
                         block("status",
-                            line("* État du Patient à l'admission:"),
-                            line(hspace(2), checkbox("Suspect"), checkbox("Probable"), checkbox("Confirmé"))
+                            line(field("* État du Patient à l'admission:")),
+                            line(hspace(2),
+                                checkitem("Suspect", eq(admitStatus, STATUS_SUSPECT_UUID)),
+                                checkitem("Probable", eq(admitStatus, STATUS_PROBABLE_UUID)),
+                                checkitem("Confirmé", eq(admitStatus, STATUS_CONFIRMED_UUID))
+                            )
                         )
                     )
                 ),
                 block("pregnancy",
                     columns(
                         column("33%",
-                            subhead("Si la patiente est âge e procréer:"),
-                            line("* Enceinte actuellement:",
-                                stack(yesNoUnknown(getObs(pat, PREGNANCY_UUID))),
-                                line("* Allaitante:", yesNo())
-                            )
+                            subhead("Si la patiente est âge de procréer:"),
+                            line(field(
+                                "* Enceinte actuellement:",
+                                stack(
+                                    checkitem("Oui", isYes(pregnancy)),
+                                    checkitem("Non", isNo(pregnancy)),
+                                    checkitem("Inconnu", !isYes(pregnancy) && !isNo(pregnancy))
+                                )
+                            )),
+                            line(field("* Allaitante:", yesNo()))
                         ),
                         column("33%",
                             vspace(),
-                            line("* Test de grossesse:",
-                                stack(yesNo(getObs(pat, PREGNANCY_TEST_UUID)))
-                            ),
-                            line(field("* Date", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
+                            line(field("* Test de grossesse:",
+                                stack(
+                                    checkitem("Positif", isYes(pregnancyTest)),
+                                    checkitem("Negatif", isNo(pregnancyTest))
+                                )
+                            )),
+                            line(field("* Date:", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
                         ),
                         column("33%",
-                            line(field("Nr de semaines de gestation estimé", blank(1))),
-                            line(field("Trimestre de grossesse", blank(3))),
-                            line(field("Fetus vivant", yesNo()))
+                            line(field("Nr de semaines de gestation estimé:", blank(1))),
+                            line(field("Trimestre de grossesse:", blank(3))),
+                            line(field("Fetus vivant:", yesNo()))
                         )
                     )
                 ),
                 columns(
-                    column("66%",
+                    column("60%",
                         block("comorbidities",
-                            subhead(field("Comorbidités"), field("Traitement")),
-                            line(checkbox("Hypertension", isYes(getObs(pat, HYPERTENSION_UUID)))),
-                            line(checkbox("VIH/SIDA", isYes(getObs(pat, HIV_UUID)))),
-                            line(checkbox("TB", isYes(getObs(pat, TB_UUID)))),
-                            line(checkbox("Maladie pulmonaire chronique", isYes(getObs(pat, CHRONIC_LUNG_UUID)))),
-                            line(checkbox("Maladie cardiaque chronique", isYes(getObs(pat, CHRONIC_HEART_UUID)))),
-                            line(checkbox("Maladie rénale", isYes(getObs(pat, RENAL_DISEASE_UUID)))),
-                            line(checkbox("Diabètes", isYes(getObs(pat, DIABETES_UUID)))),
-                            line(checkbox("Autre"))
+                            subhead(columns(column("50%", "Comorbidités"), column("50%", "Traitement"))),
+                            line(checkitem("Hypertension", isYes(getAdmitObs(pat, HYPERTENSION_UUID)))),
+                            line(checkitem("VIH/SIDA", isYes(getAdmitObs(pat, HIV_UUID)))),
+                            line(checkitem("TB", isYes(getAdmitObs(pat, TB_UUID)))),
+                            line(checkitem("Maladie pulmonaire chronique", isYes(getAdmitObs(pat, CHRONIC_LUNG_UUID)))),
+                            line(checkitem("Maladie cardiaque chronique", isYes(getAdmitObs(pat, CHRONIC_HEART_UUID)))),
+                            line(checkitem("Maladie rénale", isYes(getAdmitObs(pat, RENAL_DISEASE_UUID)))),
+                            line(checkitem("Diabètes", isYes(getAdmitObs(pat, DIABETES_UUID)))),
+                            line(checkitem("Autre"))
                         )
                     ),
-                    column("33%",
+                    column("40%",
                         block("physical",
-                            line(field("Allergies", checkbox("Oui"), checkbox("Non"))),
-                            line(field("Si oui, spécifiez", blank(3))),
-                            line(field("", blank(5))),
+                            line(field("Allergies:", yesNo())),
+                            line(field("Si oui, spécifiez:", blank(6))),
+                            line(field("", blank(8))),
                             vspace(),
-                            line(field("Poids", renderNumber(getNumericValue(pat, WEIGHT_KG_UUID))), "kg"),
+                            line(field("Poids:", blank(2, renderNumber(getNumericValue(pat, WEIGHT_KG_UUID))), " kg")),
                             vspace(),
-                            line(field("Vacciné avec rVSV ZEBOV",
-                                checkbox("Oui"),
-                                checkbox("Non")
+                            line(field("Vacciné avec rVSV ZEBOV:",
+                                checkitem("Oui"),
+                                checkitem("Non")
                             )),
-                            line(field("Si oui, date", renderEmptyDate()))
+                            line(field("Si oui, date:", renderEmptyDate()))
                         )
                     )
                 )
@@ -285,32 +318,60 @@ class PatientPrinter {
                 "Resultat du Patient à la Sortie",
                 block("result",
                     line(
-                        field("* Statut final", checkbox("Confirmé"), checkbox("Pas un cas"), checkbox("Inconnu")),
+                        field("* Statut final:",
+                            checkitem("Confirmé", eq(status, STATUS_CONFIRMED_UUID)),
+                            checkitem("Pas un cas",
+                                eq(status, STATUS_DISCHARGED_NONCASE_UUID) ||
+                                eq(status, STATUS_DEATH_NONCASE_UUID)
+                            ),
+                            checkitem("Inconnu",
+                                !eq(status, STATUS_CONFIRMED_UUID) &&
+                                !eq(status, STATUS_DISCHARGED_NONCASE_UUID) &&
+                                !eq(status, STATUS_DISCHARGED_CURED_UUID) &&
+                                !eq(status, STATUS_DEATH_NONCASE_UUID) &&
+                                !eq(status, STATUS_DEATH_CONFIRMED_UUID)
+                            )
+                        ),
                         hspace(),
-                        field("* Date de sortie", renderDate(getDateValue(pat, DISCHARGE_DATE_UUID)))
+                        field("* Date de sortie:", renderDate(getDateValue(pat, DISCHARGE_DATE_UUID)))
                     ),
-                    line(field("* Résultat final",
-                        checkbox("Sortie en revalidation"),
-                        checkbox("Décédé"),
-                        checkbox("Transferé"),
-                        checkbox(field("Autre, spécifiez", blank(6)))
+                    line(field("* Résultat final:",
+                        checkitem("Sortie en revalidation"),
+                        checkitem("Décédé",
+                            eq(status, STATUS_DEATH_NONCASE_UUID) ||
+                            eq(status, STATUS_DEATH_CONFIRMED_UUID)
+                        ),
+                        checkitem("Transferé",
+                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOSPITAL_UUID)
+                        ),
+                        checkitem(
+                            field("Autre, spécifiez:", blank(6,
+                                eq(status, STATUS_DISCHARGED_CURED_UUID) ? "Guéri" :
+                                eq(status, STATUS_DISCHARGED_NONCASE_UUID) ? "Sortie non-cas" :
+                                eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID) ? "Sortie à la maison" : ""
+                            )),
+                            eq(status, STATUS_DISCHARGED_CURED_UUID) ||
+                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID) ||
+                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID)
+                        )
                     )),
                     line(
-                        field("Si sortie, session d'information donnée", checkbox("Oui"), checkbox("Non")),
-                        field("Kit d'hygiène donnée", checkbox("Oui"), checkbox("Non"))
+                        field("Si sortie, session d'information donnée:", checkitem("Oui"), checkitem("Non")),
+                        hspace(),
+                        field("Kit d'hygiène donnée:", checkitem("Oui"), checkitem("Non"))
                     ),
-                    line("Si transferé, lieu", blank(10))
+                    line(field("Si transferé, lieu", blank(10)))
                 ),
                 block("experimental",
                     subhead("Traitement expérimental"),
                     columns(
                         column("50%",
-                            line(field("Patient a reçu un traitement expérimental ?", checkbox("Oui"), checkbox("Non"))),
-                            line(field("Combien de dose", blank(5)))
+                            line(field("Patient a reçu un traitement expérimental ?", yesNo())),
+                            line(field("Combien de dose:", blank(5)))
                         ),
                         column("50%",
                             line(field("Lequel ?", blank(5))),
-                            line(field("Date de la dernière dose", renderEmptyDate()))
+                            line(field("Date de la dernière dose:", renderEmptyDate()))
                         )
                     )
                 ),
@@ -318,15 +379,15 @@ class PatientPrinter {
                     subhead("Si grossesse:"),
                     columns(
                         column("33%",
-                            line(field("Grossesse préservée", yesNo())),
-                            line(field("Fausse couche", yesNo()))
+                            line(field("Grossesse préservée:", yesNo())),
+                            line(field("Fausse couche:", yesNo()))
                         ),
                         column("33%",
-                            line(field("Accouchement", yesNo())),
-                            line(field("Interruption de grossesse", yesNo()))
+                            line(field("Accouchement:", yesNo())),
+                            line(field("Interruption de grossesse:", yesNo()))
                         ),
                         column("33%",
-                            line(field("Nouveau-né vivant", yesNo()))
+                            line(field("Nouveau-né vivant:", yesNo()))
                         )
                     )
                 ),
@@ -334,20 +395,19 @@ class PatientPrinter {
                     columns(
                         column("40%",
                             line(field("Visite de suivi prévue ?", yesNo())),
-                            line(field("Date", renderEmptyDate()))
+                            line(field("Date:", renderEmptyDate()))
                         ),
-                        column("20%",
-                            line("Si Oui pourquoi?")
-                        ),
-                        column("40%",
-                            line(
-                                checkbox("Symptômes persistants"),
-                                checkbox("traitement expérimental")
-                            ),
-                            line(
-                                checkbox("Grossesse"), hspace(2),
-                                checkbox(field("Autre, précise", blank(2)))
-                            )
+                        column("60%",
+                            line(field("Si Oui pourquoi?",
+                                stack(
+                                    checkitem("Symptômes persistants"),
+                                    checkitem("Grossesse")
+                                ),
+                                stack(
+                                    checkitem("traitement expérimental"),
+                                    checkitem(field("Autre, précise:", blank(2)))
+                                )
+                            ))
                         )
                     )
                 )
@@ -355,28 +415,59 @@ class PatientPrinter {
         );
     }
 
-    public String getTextValue(Patient pat, String uuid) {
-        Obs obs = getObs(pat, uuid);
+    public String getTextValue(Patient pat, String conceptUuid) {
+        Obs obs = getObs(pat, conceptUuid);
         return obs != null ? obs.getValueText() : "";
     }
 
-    public Double getNumericValue(Patient pat, String uuid) {
-        Obs obs = getObs(pat, uuid);
+    public Double getNumericValue(Patient pat, String conceptUuid) {
+        Obs obs = getObs(pat, conceptUuid);
         return obs != null ? obs.getValueNumeric() : null;
     }
 
-    public LocalDate getDateValue(Patient pat, String uuid) {
-        Obs obs = getObs(pat, uuid);
+    public String getCodedValue(Patient pat, String conceptUuid) {
+        Obs obs = getObs(pat, conceptUuid);
+        return obs != null ? DbUtils.getUuid(obs.getValueCoded()) : null;
+    }
+
+    public String getAdmitCodedValue(Patient pat, String conceptUuid) {
+        Obs obs = getAdmitObs(pat, conceptUuid);
+        return obs != null ? DbUtils.getUuid(obs.getValueCoded()) : null;
+    }
+
+    public LocalDate getDateValue(Patient pat, String conceptUuid) {
+        Obs obs = getObs(pat, conceptUuid);
         return obs != null ? helper.toLocalDateTime(obs.getValueDate()).toLocalDate() : null;
     }
 
-    public DateTime getDateTimeValue(Patient pat, String uuid) {
-        Obs obs = getObs(pat, uuid);
+    public DateTime getDateTimeValue(Patient pat, String conceptUuid) {
+        Obs obs = getObs(pat, conceptUuid);
         return obs != null ? helper.toLocalDateTime(obs.getValueDate()) : null;
     }
 
-    public Obs getObs(Patient pat, String uuid) {
-        return null;
+    public Obs getObs(Patient pat, String conceptUuid) {
+        return helper.getLatestObs(pat, conceptUuid);
+    }
+
+    /** Returns the latest observation (of a particular concept) that was submitted with the Admission form. */
+    public Obs getAdmitObs(Patient pat, String conceptUuid) {
+        Obs lastAdmitObs = null;
+        for (Encounter enc : helper.getEncounters(pat)) {
+            boolean isAdmissionEncounter = false;
+            Obs matchedObs = null;
+            for (Obs obs : enc.getAllObs()) {
+                if (eq(getConceptUuid(obs), ADMISSION_TIME_UUID)) {
+                    isAdmissionEncounter = true;
+                }
+                if (eq(getConceptUuid(obs), conceptUuid)) {
+                    matchedObs = obs;
+                }
+            }
+            if (isAdmissionEncounter) {
+                lastAdmitObs = matchedObs;
+            }
+        }
+        return lastAdmitObs;
     }
 
     public Doc renderEvents(Patient pat) {
@@ -676,7 +767,10 @@ class PatientPrinter {
 
     private Doc renderTime(DateTime value) {
         if (value == null) return renderHoursMinutes("", "");
-        return renderHoursMinutes(value.getHourOfDay(), value.getMinuteOfHour());
+        return renderHoursMinutes(
+            Utils.format("%02d", value.getHourOfDay()),
+            Utils.format("%02d", value.getMinuteOfHour())
+        );
     }
 
     private Doc renderHoursMinutes(Object hours, Object minutes) {
@@ -702,7 +796,7 @@ class PatientPrinter {
     private Doc stack(Object... objects) {
         Sequence rows = seq();
         for (Object obj : objects) {
-            rows.add(div("stack", obj));
+            rows.add(div("row", obj));
         }
         return div("stack", rows);
     }
@@ -716,7 +810,7 @@ class PatientPrinter {
     }
 
     private Doc section(String cls, String heading, Object... objects) {
-        return div("section " + cls, el("heading", heading), objects);
+        return div("section " + cls, div("heading", heading), objects);
     }
 
     private Doc columns(Object... columns) {
@@ -732,7 +826,7 @@ class PatientPrinter {
         for (int i = 0; i < size; i++) {
             spaces.add(span("unit"));
         }
-        return span("blank size=" + size, span("spaces", spaces), span("contents", contents));
+        return span("blank size" + size, span("spaces", spaces), span("contents", contents));
     }
 
     private Doc vspace() {
@@ -744,26 +838,23 @@ class PatientPrinter {
         for (int i = 0; i < size; i++) {
             spaces.add(span("unit"));
         }
-        return span("hspace size=" + size, spaces);
+        return span("hspace size" + size, spaces);
     }
 
     private Doc hspace() {
         return span("hspace", span("unit"));
     }
 
-    private Doc checkbox(Object label) {
-        return checkbox(label, false);
+    private Doc checkitem(Object label) {
+        return checkitem(label, false);
     }
 
-    private Doc checkbox(Object label, boolean state) {
+    private Doc checkitem(Object label, boolean state) {
         String checked = state ? "checked" : "";
-        return seq(span("checkbox " + checked, el("input type='checkbox' " + checked)), label);
+        return span("checkitem " + checked, el("input type='checkbox' " + checked), label);
     }
 
     private Doc field(String label, Object... objects) {
-        if (!label.matches("[.!?:]$")) label += " : ";
-        return el("span class='field'",
-            el("span class='label'", label),
-            el("span class='value'", objects));
+        return span("field", span("label", label), span("value", objects));
     }
 }

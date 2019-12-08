@@ -76,9 +76,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
                 for (String uuid : request.getParameterValues("patient")) {
                     if (!printedUuids.contains(uuid)) {
                         Patient patient = helper.getPatient(uuid);
-                        printer.printIntro(patient);
                         printer.printAdmission(patient);
-                        printer.printEvents(patient);
+                        printer.printHistory(patient);
                         printedUuids.add(uuid);
                     }
                 }
