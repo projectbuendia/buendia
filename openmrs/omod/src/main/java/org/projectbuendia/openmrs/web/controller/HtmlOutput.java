@@ -101,7 +101,7 @@ public class HtmlOutput {
         public void writeTo(Writer writer, Locale locale) throws IOException {
             writer.write("<" + tag + "\n>");
             content.writeTo(writer, locale);
-            writer.write("\n</" + tag.split(" ")[0] + ">");
+            writer.write("</" + tag.split(" ")[0] + "\n>");
         }
 
         public boolean isEmpty() {
