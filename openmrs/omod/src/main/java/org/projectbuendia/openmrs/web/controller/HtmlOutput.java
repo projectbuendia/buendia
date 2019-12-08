@@ -208,9 +208,14 @@ public class HtmlOutput {
             writer.write(esc(text));
         }
 
-        public void writeEscaped(Intl intl, Object... args) throws IOException {
-            String localized = intl.loc(locale);
-            writer.write(esc(String.format(Locale.US, localized, args)));
+        public void writeEscaped(Intl template, Object... args) throws IOException {
+            String locTemplate = template.loc(locale);
+            Object[] locArgs = new Object[args.length];
+            int i = 0;
+            for (Object arg : args) {
+                locArgs[i++] = arg instanceof Intl ? ((Intl) arg).loc(locale) : arg;
+            }
+            writer.write(esc(String.format(Locale.US, locTemplate, locArgs)));
         }
     }
 

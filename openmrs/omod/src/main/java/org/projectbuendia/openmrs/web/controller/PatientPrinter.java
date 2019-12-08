@@ -96,8 +96,8 @@ class PatientPrinter {
 
     public Writable renderIntro(Patient pat) {
         return div("intro",
-            div("name", pat.getPersonName().getFullName()),
-            div("agesex", renderAge(pat), renderSex(pat))
+            el("h1 class='name'", pat.getPersonName().getFullName()),
+            div("agesex", renderAge(pat), ", ", renderSex(pat))
         );
     }
 
@@ -108,7 +108,7 @@ class PatientPrinter {
         int years = age.getYears();
         int months = age.getMonths();
         return span("age", format(
-            months > 0 ? "%d y, %d mo[fr:%d a, %d mo]" : "%d y[fr:%d a]",
+            months > 0 ? "%d y, %d mo [fr:%d a, %d mo]" : "%d y [fr:%d a]",
             years, months
         ));
     }
@@ -263,14 +263,14 @@ class PatientPrinter {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
                 return div("obs placement",
-                    span("label", intl("New placement[fr:Nouveau emplacement]"), ": "),
+                    span("label", intl("New placement [fr:Nouveau emplacement]"), ": "),
                     span("value", renderPlacement(p))
                 );
 
             case DbUtils.CONCEPT_ORDER_EXECUTED_UUID:
                 Order order = obs.getOrder();
                 return div("execution",
-                    span("label", intl("Treatment given[fr:Traitement donné]"), ": "),
+                    span("label", intl("Treatment given [fr:Traitement donné]"), ": "),
                     span("value", renderOrderTreatment(order))
                 );
 
@@ -287,7 +287,7 @@ class PatientPrinter {
     private Writable renderPlacement(DataHelper.Placement p) {
         Sequence result = seq(p.getLocationName());
         if (!p.getBed().isEmpty()) {
-            result.add(seq(", ", intl("Bed[fr:Lit]"), " ", p.getBed()));
+            result.add(seq(", ", intl("Bed [fr:Lit]"), " ", p.getBed()));
         }
         return result;
     }
@@ -297,17 +297,12 @@ class PatientPrinter {
         Drug drug = index.getDrug(instr.code);
         Format format = index.getFormat(instr.code);
         Writable dosage = instr.isContinuous() ?
-            span("dosage",
+            span("dosage", format("%s in %s [fr:%s dans %s]",
                 renderQuantity(instr.amount),
-                " ", intl("in[fr:dans]"), " ",
                 renderQuantity(instr.duration)
-            ) :
+            )) :
             span("dosage", renderQuantity(instr.amount));
-        return div("order",
-            span("drug", drug.name),
-            span("format", format.description),
-            dosage
-        );
+        return span("order", format("%s, %s — %s", drug.name, format.description, dosage));
     }
 
     private Writable renderQuantity(Quantity quantity) {
