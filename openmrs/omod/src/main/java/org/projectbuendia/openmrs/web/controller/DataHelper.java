@@ -369,7 +369,7 @@ public class DataHelper {
                 dedupedObs.add(obs);
                 lastValues.put(uuid, value);
             }
-            Event newEvent = new Event(event.time, dedupedObs, event.orders);
+            Event newEvent = new Event(event.time, dedupedObs, event.orders, event.execs);
             if (!newEvent.obs.isEmpty() || !newEvent.orders.isEmpty()) {
                 results.add(newEvent);
             }
@@ -552,11 +552,29 @@ public class DataHelper {
         public final DateTime time;
         public final List<Obs> obs;
         public final List<Order> orders;
+        public final List<Obs> execs;
 
-        public Event(DateTime time, List<Obs> obs, List<Order> orders) {
+        public Event(DateTime time, List<Obs> obs, List<Order> orders, List<Obs> execs) {
             this.time = time;
             this.obs = obs;
             this.orders = orders;
+            this.execs = execs;
+        }
+
+        public Event(DateTime time, List<Obs> obs, List<Order> orders) {
+            List<Obs> points = new ArrayList<>();
+            List<Obs> execs = new ArrayList<>();
+            for (Obs o : obs) {
+                if (eq(DbUtils.getConceptUuid(o), ConceptUuids.ORDER_EXECUTED_UUID)) {
+                    execs.add(o);
+                } else {
+                    points.add(o);
+                }
+            }
+            this.time = time;
+            this.obs = points;
+            this.orders = orders;
+            this.execs = execs;
         }
 
         public Event mergeWith(Event other) {
@@ -564,7 +582,9 @@ public class DataHelper {
             allObs.addAll(other.obs);
             List<Order> allOrders = new ArrayList<>(orders);
             allOrders.addAll(other.orders);
-            return new Event(Utils.min(time, other.time), allObs, allOrders);
+            List<Obs> allExecs = new ArrayList<>(execs);
+            allExecs.addAll(other.execs);
+            return new Event(Utils.min(time, other.time), allObs, allOrders, allExecs);
         }
     }
 }

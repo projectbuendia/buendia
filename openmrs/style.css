@@ -58,3 +58,11 @@ table.columns td:first-child {
 .label {
   color: #699;
 }
+
+.order {
+  margin: 1em;
+}
+
+.drug, .format {
+  display: block;
+}

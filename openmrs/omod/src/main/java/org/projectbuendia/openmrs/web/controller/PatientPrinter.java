@@ -172,12 +172,16 @@ class PatientPrinter {
             Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(event.obs);
             Sequence obsList = renderObsList(obsByQuestion);
             Sequence orderList = renderOrderList(event.orders);
-            if (!obsList.isEmpty() || !orderList.isEmpty()) {
+            Sequence execList = renderExecList(event.execs);
+            if (!obsList.isEmpty() || !orderList.isEmpty() || !execList.isEmpty()) {
                 results.add(div(
                     "event",
                     el("h2 class='time'", helper.formatTime(event.time)),
                     obsList.isEmpty() ? seq() : div("observations", obsList),
-                    orderList.isEmpty() ? seq() : div("orders", orderList)
+                    orderList.isEmpty() ? seq() : div("orders",
+                        span("label", intl("Treatments ordered [fr:Traitements commandés]")), orderList),
+                    execList.isEmpty() ? seq() : div("executions",
+                        span("label", intl("Treatments given [fr:Traitements donnés]")), execList)
                 ));
             }
         }
@@ -255,6 +259,14 @@ class PatientPrinter {
             results.add(div("form extras", extras));
         }
         return results;
+    }
+
+    private Sequence renderExecList(List<Obs> execs) {
+        Sequence items = seq();
+        for (Obs exec : execs) {
+            items.add(renderObsContent(exec));
+        }
+        return items;
     }
 
     private Sequence renderOrderList(List<Order> orders) {
@@ -375,8 +387,12 @@ class PatientPrinter {
             )) :
             span("dosage", renderQuantity(instr.amount));
         Route route = index.getRoute(instr.route);
-        return span("treatment", format("%s, %s — %s %s",
-            drug.name, format.description, dosage, route.name));
+        return div("treatment",
+            div("drug", span("label", intl("Drug [fr:Méd.]")), ": ", drug.name),
+            div("format", span("label", intl("Format")), ": ", format.description),
+            div("dosageroute", span("label", intl("Dosage")), ": ", dosage, span("route", route.name)),
+            div("notes", span("label", intl("Notes [fr:Remarques]")), ": ", instr.notes)
+        );
     }
 
     private Doc renderQuantity(Quantity quantity) {
@@ -396,7 +412,7 @@ class PatientPrinter {
             int days = Days.daysBetween(start.toLocalDate(), stop.toLocalDate()).getDays();
             doses = days * (int) instr.frequency.mag;
         }
-        return span("schedule", instr.isSeries() && instr.frequency.mag > 0 ?
+        return div("schedule", span("label", intl("Schedule [fr:Horaire]")), ": ", instr.isSeries() && instr.frequency.mag > 0 ?
             (stop != null ?
                 (doses > 0 ?
                     seq(renderQuantity(instr.frequency), ", ",
