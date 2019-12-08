@@ -1,9 +1,13 @@
 package org.projectbuendia.openmrs.web.controller;
 
+import org.apache.velocity.util.ArrayListWrapper;
 import org.joda.time.DateTime;
+import org.joda.time.Days;
+import org.joda.time.Duration;
 import org.joda.time.Period;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
+import org.openmrs.Encounter;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Obs;
@@ -14,10 +18,12 @@ import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.models.Catalog;
 import org.projectbuendia.models.Catalog.Drug;
 import org.projectbuendia.models.Catalog.Format;
+import org.projectbuendia.models.Catalog.Route;
 import org.projectbuendia.models.CatalogIndex;
 import org.projectbuendia.models.Instructions;
 import org.projectbuendia.models.MsfCatalog;
 import org.projectbuendia.models.Quantity;
+import org.projectbuendia.models.Unit;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
@@ -30,12 +36,14 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static org.openmrs.projectbuendia.Utils.eq;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.format;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.html;
@@ -92,6 +100,10 @@ class PatientPrinter {
 
     public void printEncounters(Patient pat) throws IOException {
         renderEncounters(pat).writeHtmlTo(writer);
+    }
+
+    public void printEvents(Patient pat) throws IOException {
+        renderEvents(pat).writeHtmlTo(writer);
     }
 
     public Writable renderIntro(Patient pat) {
@@ -154,6 +166,29 @@ class PatientPrinter {
         );
     }
 
+    public Writable renderEvents(Patient pat) {
+        Sequence results = seq();
+        List<DataHelper.Event> events = helper.mergeEvents(
+            helper.getEvents(pat),
+            Duration.standardMinutes(10),
+            Duration.standardMinutes(20)
+        );
+        for (DataHelper.Event event : events) {
+            Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(event.obs);
+            Sequence obsList = renderObsList(obsByQuestion);
+            Sequence orderList = renderOrderList(event.orders);
+            if (!obsList.isEmpty() || !orderList.isEmpty()) {
+                results.add(div(
+                    "event",
+                    el("h2 class='time'", helper.formatTime(event.time)),
+                    obsList.isEmpty() ? seq() : div("observations", obsList),
+                    orderList.isEmpty() ? seq() : div("orders", orderList)
+                ));
+            }
+        }
+        return results;
+    }
+
     public Writable renderEncounters(Patient pat) {
         Sequence encounters = seq();
 
@@ -161,12 +196,12 @@ class PatientPrinter {
         for (List<Obs> group : groups) {
             if (group.isEmpty()) continue;
             DateTime start = helper.toLocalDateTime(group.get(0).getObsDatetime());
-            Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(group, this);
+            Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(group);
             Sequence obsList = renderObsList(obsByQuestion);
             if (!obsList.isEmpty()) {
                 encounters.add(div(
                     "encounter",
-                    div("time", helper.formatTime(start)),
+                    el("h2 class='time'", helper.formatTime(start)),
                     div("observations", obsList)
                 ));
             }
@@ -223,6 +258,21 @@ class PatientPrinter {
         }
         if (!extras.isEmpty()) {
             results.add(div("form extras", extras));
+        }
+        return results;
+    }
+
+    private Sequence renderOrderList(List<Order> orders) {
+        Sequence results = seq();
+        for (Order order : orders) {
+            results.add(
+                div("order",
+                    span("label", intl("Treatment ordered [fr:Traitement commandé]"), ": "),
+                    renderOrderAction(order),
+                    renderOrderTreatment(order),
+                    renderOrderSchedule(order)
+                )
+            );
         }
         return results;
     }
@@ -292,6 +342,22 @@ class PatientPrinter {
         return result;
     }
 
+    private Writable renderOrderAction(Order order) {
+        String prev = order.getPreviousOrder() != null ?
+            order.getPreviousOrder().getInstructions() : "<null>";
+        switch (order.getAction()) {
+            case NEW:
+                return span("action", "[new]");
+            case RENEW:
+                return span("action", "[renew ", prev, "]");
+            case DISCONTINUE:
+                return span("action", "[discontinue ", prev, "]");
+            case REVISE:
+                return span("action", "[revise ", prev, "]");
+        }
+        return seq();
+    }
+
     private Writable renderOrderTreatment(Order order) {
         Instructions instr = new Instructions(order.getInstructions());
         Drug drug = index.getDrug(instr.code);
@@ -302,7 +368,9 @@ class PatientPrinter {
                 renderQuantity(instr.duration)
             )) :
             span("dosage", renderQuantity(instr.amount));
-        return span("order", format("%s, %s — %s", drug.name, format.description, dosage));
+        Route route = index.getRoute(instr.route);
+        return span("treatment", format("%s, %s — %s %s",
+            drug.name, format.description, dosage, route.name));
     }
 
     private Writable renderQuantity(Quantity quantity) {
@@ -316,7 +384,28 @@ class PatientPrinter {
     private Writable renderOrderSchedule(Order order) {
         DateTime start = helper.toLocalDateTime(order.getScheduledDate());
         DateTime stop = helper.toLocalDateTime(order.getAutoExpireDate());
-        return div("schedule");
+        Instructions instr = new Instructions(order.getInstructions());
+        int doses = 0;
+        if (instr.isSeries() && eq(instr.frequency.unit, Unit.PER_DAY)) {
+            int days = Days.daysBetween(start.toLocalDate(), stop.toLocalDate()).getDays();
+            doses = days * (int) instr.frequency.mag;
+        }
+        return span("schedule", instr.isSeries() && instr.frequency.mag > 0 ?
+            (stop != null ?
+                (doses > 0 ?
+                    seq(renderQuantity(instr.frequency), ", ",
+                        format("starting %s, stopping %s after %d doses [fr:commencer %s, arreter %s après %d doses]",
+                            helper.formatTime(start), helper.formatTime(stop), doses)) :
+                    seq(renderQuantity(instr.frequency), ", ",
+                        format("starting %s, stopping %s [fr:commencer %s, arreter %s]",
+                            helper.formatTime(start), helper.formatTime(stop)))
+                ) :
+                seq(renderQuantity(instr.frequency), ", ",
+                    format("starting %s, continuing indefinitely [fr:commencer %s, continuer indéfiniment]"))
+            ) :
+            format("one dose only, ordered %s [fr:dose unique, commandé %s]",
+                helper.formatTime(start))
+        );
     }
 
     private Writable renderValue(Obs obs) {

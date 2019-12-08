@@ -78,7 +78,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
                         Patient patient = helper.getPatient(uuid);
                         printer.printIntro(patient);
                         printer.printAdmission(patient);
-                        printer.printEncounters(patient);
+                        printer.printEvents(patient);
                         printedUuids.add(uuid);
                     }
                 }

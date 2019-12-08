@@ -2,6 +2,7 @@ package org.projectbuendia.openmrs.web.controller;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
+import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -11,6 +12,7 @@ import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Obs;
+import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Person;
 import org.openmrs.api.ConceptService;
@@ -107,6 +109,12 @@ public class DataHelper {
             float w2 = f2.getSortWeight();
             if (w1 != w2) return Float.compare(w1, w2);
             return Integer.compare(f1.getFieldNumber(), f2.getFieldNumber());
+        }
+    };
+    
+    private static final Comparator<Event> EVENT_TIME = new Comparator<Event>() {
+        @Override public int compare(Event e1, Event e2) {
+            return e1.time.compareTo(e2.time);
         }
     };
 
@@ -226,7 +234,7 @@ public class DataHelper {
         return results;
     }
 
-    public Map<String, Obs> getLatestObsByQuestion(List<Obs> group, PatientPrinter printer) {
+    public Map<String, Obs> getLatestObsByQuestion(List<Obs> group) {
         Map<String, Obs> obsByQuestion = new HashMap<>();
         for (Obs obs : group) {
             String key = obs.getConcept().getUuid();
@@ -251,8 +259,9 @@ public class DataHelper {
         return encounters;
     }
 
-    private static int MAX_GAP = 5 * 60 * 1000;
-    private static int MAX_DURATION = 15 * 60 * 1000;
+    public List<Order> getOrders(Patient patient) {
+        return orderService.getAllOrdersByPatient(patient);
+    }
 
     public List<List<Obs>> getEncounterObs(List<Encounter> encounters) {
         List<List<Obs>> results = new ArrayList<>();
@@ -261,7 +270,7 @@ public class DataHelper {
         long lastTime = 0;
         for (Encounter encounter : encounters) {
             long time = encounter.getEncounterDatetime().getTime();
-            if (time > lastTime + MAX_GAP || time > groupStartTime + MAX_DURATION) {
+            if (time > lastTime + 5 * 60 * 1000 || time > groupStartTime + 10 * 60 * 1000) {
                 if (group.size() > 0) results.add(group);
                 group = new ArrayList<>();
             }
@@ -308,6 +317,50 @@ public class DataHelper {
         return sections;
     }
 
+    public List<Event> getEvents(Patient pat) {
+        List<Event> events = new ArrayList<>();
+        for (Encounter enc : getEncounters(pat)) {
+            events.add(new Event(
+                toLocalDateTime(enc.getEncounterDatetime()),
+                new ArrayList<>(enc.getObs()),
+                Arrays.<Order>asList()
+            ));
+        }
+        for (Order order : getOrders(pat)) {
+            events.add(new Event(
+                toLocalDateTime(order.getDateCreated()),
+                Arrays.<Obs>asList(),
+                Arrays.asList(order)
+            ));
+        }
+        Collections.sort(events, EVENT_TIME);
+        return events;
+    }
+
+    public List<Event> mergeEvents(List<Event> events, Duration maxGap, Duration maxDuration) {
+        List<Event> sorted = new ArrayList<>(events);
+        Collections.sort(sorted, EVENT_TIME);
+
+        Utils.log("\n\nmergeEvents");
+        List<Event> merged = new ArrayList<>();
+        DateTime lastGroupStart = null;
+        DateTime lastGroupEnd = null;
+        for (Event event : sorted) {
+            Utils.log("event time %s", event.time);
+            if (lastGroupEnd == null || !event.time.isBefore(lastGroupEnd.plus(maxGap)) ||
+                lastGroupStart == null || !event.time.isBefore(lastGroupStart.plus(maxDuration))) {
+                Utils.log("  start new group (last start = %s)", event.time);
+                merged.add(event);
+                lastGroupStart = lastGroupEnd = event.time;
+            } else {
+                Utils.log("  merge with last group (last end = %s)", event.time);
+                merged.set(merged.size() - 1, Utils.last(merged).mergeWith(event));
+                lastGroupEnd = event.time;
+            }
+        }
+        return merged;
+    }
+
     public Intl getConceptName(Concept concept) {
         if (concept == null) return new Intl("");
         return new Intl(DbUtils.getConceptName(concept));
@@ -333,7 +386,7 @@ public class DataHelper {
         // Buendia should be completely firewalled from Date objects
         // using this function.
         return new DateTime(
-            date.getYear(),
+            1900 + date.getYear(),
             date.getMonth() + 1,  // Java insanely represents months as 0-11
             date.getDate(),  // a terrible name for "day of the month"
             date.getHours(),
@@ -472,6 +525,26 @@ public class DataHelper {
         public FormSection(String title, List<FormField> fields) {
             this.title = title;
             this.fields = fields;
+        }
+    }
+
+    public class Event {
+        public final DateTime time;
+        public final List<Obs> obs;
+        public final List<Order> orders;
+
+        public Event(DateTime time, List<Obs> obs, List<Order> orders) {
+            this.time = time;
+            this.obs = obs;
+            this.orders = orders;
+        }
+
+        public Event mergeWith(Event other) {
+            List<Obs> allObs = new ArrayList<>(obs);
+            allObs.addAll(other.obs);
+            List<Order> allOrders = new ArrayList<>(orders);
+            allOrders.addAll(other.orders);
+            return new Event(Utils.min(time, other.time), allObs, allOrders);
         }
     }
 }
