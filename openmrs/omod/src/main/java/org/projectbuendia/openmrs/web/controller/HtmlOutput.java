@@ -1,6 +1,6 @@
 package org.projectbuendia.openmrs.web.controller;
 
-import org.openmrs.projectbuendia.Intl;
+import org.projectbuendia.models.Intl;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -209,7 +209,7 @@ public class HtmlOutput {
         }
 
         public void writeEscaped(Intl intl, Object... args) throws IOException {
-            String localized = intl.get(locale);
+            String localized = intl.loc(locale);
             writer.write(esc(String.format(Locale.US, localized, args)));
         }
     }

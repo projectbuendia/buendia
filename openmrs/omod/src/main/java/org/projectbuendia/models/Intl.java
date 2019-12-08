@@ -1,4 +1,6 @@
-package org.openmrs.projectbuendia;
+package org.projectbuendia.models;
+
+import org.openmrs.projectbuendia.Utils;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -11,8 +13,8 @@ public class Intl {
     private static final Pattern BRACKETED_PATTERN = Pattern.compile("\\[(.*?)\\]");
     private static final Pattern EXTRA_SPACES = Pattern.compile("^ *| *$");
 
-    protected final String base;
-    protected final Map<String, String> options;
+    public final String base;
+    public final Map<String, String> options;
 
     public Intl(String packed) {
         if (packed == null) packed = "";
@@ -35,8 +37,8 @@ public class Intl {
         return base.isEmpty() && options.isEmpty();
     }
 
-    public String get(Locale locale) {
-        if (options == null || options.isEmpty()) return base;
+    public String loc(Locale locale) {
+        if (options == null || options.isEmpty() || locale == null) return base;
 
         String tag = Utils.toLanguageTag(locale);
         if (options.containsKey(tag)) return options.get(tag);

@@ -22,7 +22,7 @@ import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
-import org.openmrs.projectbuendia.Intl;
+import org.projectbuendia.models.Intl;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.openmrs.api.ProjectBuendiaService;
@@ -52,6 +52,7 @@ public class DataHelper {
 
     private static final String DISCHARGED_LOCATION_UUID = "73010980-d3e7-404a-95bf-180966f04fb8";
     private static final String ADMISSION_TIME_UUID = Utils.toUuid(8001640);
+    private static final String PREGNANCY_UUID = Utils.toUuid(2005272);
 
     private static final Intl TIME_PATTERN = new Intl("MMM d, HH:mm [fr:d MMM, HH'h'mm]");
     private static final Intl DATE_PATTERN = new Intl("MMM d [fr:d MMM]");
@@ -112,8 +113,8 @@ public class DataHelper {
     public DataHelper(DateTimeZone zone, Locale locale) {
         this.zone = zone;
         this.locale = locale;
-        timeFormatter = DateTimeFormat.forPattern(TIME_PATTERN.get(locale));
-        dateFormatter = DateTimeFormat.forPattern(DATE_PATTERN.get(locale));
+        timeFormatter = DateTimeFormat.forPattern(TIME_PATTERN.loc(locale));
+        dateFormatter = DateTimeFormat.forPattern(DATE_PATTERN.loc(locale));
 
         buendiaService = Context.getService(ProjectBuendiaService.class);
         conceptService = Context.getConceptService();
@@ -136,6 +137,20 @@ public class DataHelper {
 
     public String formatDate(DateTime dt) {
         return dateFormatter.print(dt);
+    }
+
+    public boolean isNo(Obs obs) {
+        if (obs == null) return false;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return !value;
+    }
+
+    public boolean isYes(Obs obs) {
+        if (obs == null) return false;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return value;
     }
 
     private List<ObsDisplay> wrapObs(List<Obs> list) {
@@ -189,6 +204,11 @@ public class DataHelper {
         return results;
     }
 
+    public boolean isPregnant(Patient patient) {
+        Obs latest = getLatestObsByPatient(PREGNANCY_UUID).get(patient.getUuid());
+        return (latest != null && isYes(latest));
+    }
+
     public Map<String, Obs> getLatestObsByPatient(String conceptUuid) {
         Map<String, Obs> results = new HashMap<>();
         Concept concept = conceptService.getConceptByUuid(conceptUuid);
@@ -204,6 +224,18 @@ public class DataHelper {
             }
         }
         return results;
+    }
+
+    public Map<String, Obs> getLatestObsByQuestion(List<Obs> group, PatientPrinter printer) {
+        Map<String, Obs> obsByQuestion = new HashMap<>();
+        for (Obs obs : group) {
+            String key = obs.getConcept().getUuid();
+            Obs previous = obsByQuestion.get(key);
+            if (previous == null || inOrder(previous.getObsDatetime(), obs.getObsDatetime())) {
+                obsByQuestion.put(key, obs);
+            }
+        }
+        return obsByQuestion;
     }
 
     public Patient getPatient(String uuid) {

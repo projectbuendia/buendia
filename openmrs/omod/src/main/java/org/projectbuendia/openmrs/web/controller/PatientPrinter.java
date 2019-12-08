@@ -1,6 +1,7 @@
 package org.projectbuendia.openmrs.web.controller;
 
 import org.joda.time.DateTime;
+import org.joda.time.Period;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
 import org.openmrs.Form;
@@ -8,9 +9,15 @@ import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
-import org.openmrs.projectbuendia.Intl;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
+import org.projectbuendia.models.Catalog;
+import org.projectbuendia.models.Catalog.Drug;
+import org.projectbuendia.models.Catalog.Format;
+import org.projectbuendia.models.CatalogIndex;
+import org.projectbuendia.models.Instructions;
+import org.projectbuendia.models.MsfCatalog;
+import org.projectbuendia.models.Quantity;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
@@ -23,7 +30,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +46,7 @@ import static org.projectbuendia.openmrs.web.controller.HtmlOutput.text;
 class PatientPrinter {
     private final LocalizedWriter writer;
     private final DataHelper helper;
+    private final CatalogIndex index = MsfCatalog.INDEX;
 
     private static final String IV_ACCESS_UUID = Utils.toUuid(2900012);
     private static final String OXYGEN_MASK_UUID = Utils.toUuid(2162738);
@@ -75,51 +82,86 @@ class PatientPrinter {
         }
     }
 
+    public void printIntro(Patient pat) throws IOException {
+        renderIntro(pat).writeHtmlTo(writer);
+    }
+
     public void printAdmission(Patient pat) throws IOException {
-        write(
-            el(
-                "div class='admission'",
-                el("h1", "Admission - Enregistrement CTE"),
-                el("div class='patient-id'", "* Nr. Identification (ID) Patient:", div("field")),
-                section(
-                    "Patient Information",
-                    columns(
-                        column(
-                            "50%",
-                            line(field("* Nom de famille:", rest())),
-                            line(field("* Prénom:", rest()))
-                        ),
-                        column(
-                            "50%",
-                            line("* Date de naissance:",
-                                field("j", blanks(6)),
-                                field("m", blanks(6)),
-                                field("a", blanks(6))
-                            ),
-                            line(
-                                field("si inconnu, Âge:", blanks(10)),
-                                field("* Sexe:",
-                                    checkbox("Masculin"),
-                                    checkbox("Féminin")
-                                )
-                            )
-                        )
-                    )
-                ),
-                section("Admission Information"),
-                section("Resultat du Patient à la Sortie")
-            )
-        );
+        renderAdmission(pat).writeHtmlTo(writer);
     }
 
     public void printEncounters(Patient pat) throws IOException {
+        renderEncounters(pat).writeHtmlTo(writer);
+    }
+
+    public Writable renderIntro(Patient pat) {
+        return div("intro",
+            div("name", pat.getPersonName().getFullName()),
+            div("agesex", renderAge(pat), renderSex(pat))
+        );
+    }
+
+    public Writable renderAge(Patient pat) {
+        Period age = new Period(
+            helper.toLocalDateTime(pat.getBirthdate()),
+            helper.toLocalDateTime(pat.getDateCreated()));
+        int years = age.getYears();
+        int months = age.getMonths();
+        return span("age", format(
+            months > 0 ? "%d y, %d mo[fr:%d a, %d mo]" : "%d y[fr:%d a]",
+            years, months
+        ));
+    }
+
+    public Writable renderSex(Patient pat) {
+        Sequence pregnancy = seq();
+        if (helper.isPregnant(pat)) pregnancy.add(text(", "), intl("pregnant[fr:enceinte]"));
+        return span("sex", pat.getGender(), pregnancy);
+    }
+
+    public Writable renderAdmission(Patient pat) {
+        return div(
+            "admission",
+            el("h1", "Admission - Enregistrement CTE"),
+            el("div class='patient-id'", "* Nr. Identification (ID) Patient:", div("field")),
+            section(
+                "Patient Information",
+                columns(
+                    column(
+                        "50%",
+                        line(field("* Nom de famille:", rest())),
+                        line(field("* Prénom:", rest()))
+                    ),
+                    column(
+                        "50%",
+                        line("* Date de naissance:",
+                            field("j", blanks(6)),
+                            field("m", blanks(6)),
+                            field("a", blanks(6))
+                        ),
+                        line(
+                            field("si inconnu, Âge:", blanks(10)),
+                            field("* Sexe:",
+                                checkbox("Masculin"),
+                                checkbox("Féminin")
+                            )
+                        )
+                    )
+                )
+            ),
+            section("Admission Information"),
+            section("Resultat du Patient à la Sortie")
+        );
+    }
+
+    public Writable renderEncounters(Patient pat) {
         Sequence encounters = seq();
 
         List<List<Obs>> groups = helper.getEncounterObs(helper.getEncounters(pat));
         for (List<Obs> group : groups) {
             if (group.isEmpty()) continue;
             DateTime start = helper.toLocalDateTime(group.get(0).getObsDatetime());
-            Map<String, Obs> obsByQuestion = getLatestObsByQuestion(group);
+            Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(group, this);
             Sequence obsList = renderObsList(obsByQuestion);
             if (!obsList.isEmpty()) {
                 encounters.add(div(
@@ -129,22 +171,7 @@ class PatientPrinter {
                 ));
             }
         }
-        write(div("patient",
-            div("name", pat.getPersonName().getFullName()),
-            div("encounters", encounters)
-        ));
-    }
-
-    private Map<String, Obs> getLatestObsByQuestion(List<Obs> group) {
-        Map<String, Obs> obsByQuestion = new HashMap<>();
-        for (Obs obs : group) {
-            String key = obs.getConcept().getUuid();
-            Obs previous = obsByQuestion.get(key);
-            if (previous == null || helper.inOrder(previous.getObsDatetime(), obs.getObsDatetime())) {
-                obsByQuestion.put(key, obs);
-            }
-        }
-        return obsByQuestion;
+        return div("encounters", encounters);
     }
 
     private Sequence renderObsList(Map<String, Obs> obsMap) {
@@ -165,7 +192,7 @@ class PatientPrinter {
                     String uuid = DbUtils.getConceptUuid(option);
                     if (uuid != null && obsMap.containsKey(uuid) && !done.contains(uuid)) {
                         Obs obs = obsMap.get(uuid);
-                        if (isNo(obs)) noCount++;
+                        if (helper.isNo(obs)) noCount++;
                         children.add(obs);
                         done.add(uuid);
                     }
@@ -204,20 +231,6 @@ class PatientPrinter {
         return DbUtils.getName(form).toLowerCase().contains("admiss");
     }
 
-    private boolean isNo(Obs obs) {
-        if (obs == null) return false;
-        Boolean value = obs.getValueAsBoolean();
-        if (value == null) return false;
-        return !value;
-    }
-
-    private boolean isYes(Obs obs) {
-        if (obs == null) return false;
-        Boolean value = obs.getValueAsBoolean();
-        if (value == null) return false;
-        return value;
-    }
-
     private Writable renderNoneSelected(Writable title, List<Obs> children) {
         return div("obs", span("label", title, ": "), " ", span("value", intl("None [fr:Aucun]")));
     }
@@ -226,7 +239,7 @@ class PatientPrinter {
         Sequence results = seq();
         boolean first = true;
         for (Obs obs : children) {
-            if (isYes(obs)) {
+            if (helper.isYes(obs)) {
                 if (!first) results.add(text(", "));
                 results.add(coded(obs.getConcept()));
                 first = false;
@@ -280,15 +293,35 @@ class PatientPrinter {
     }
 
     private Writable renderOrderTreatment(Order order) {
-        Sequence result = seq(order.getInstructions());
-        return result;
+        Instructions instr = new Instructions(order.getInstructions());
+        Drug drug = index.getDrug(instr.code);
+        Format format = index.getFormat(instr.code);
+        Writable dosage = instr.isContinuous() ?
+            span("dosage",
+                renderQuantity(instr.amount),
+                " ", intl("in[fr:dans]"), " ",
+                renderQuantity(instr.duration)
+            ) :
+            span("dosage", renderQuantity(instr.amount));
+        return div("order",
+            span("drug", drug.name),
+            span("format", format.description),
+            dosage
+        );
+    }
+
+    private Writable renderQuantity(Quantity quantity) {
+        return span("quantity",
+            span("mag", Utils.format(quantity.mag, 6)),
+            " ",
+            span("unit", quantity.unit.abbr)
+        );
     }
 
     private Writable renderOrderSchedule(Order order) {
-        Sequence result = seq(helper.formatTime(
-            helper.toLocalDateTime(order.getScheduledDate())
-        ));
-        return result;
+        DateTime start = helper.toLocalDateTime(order.getScheduledDate());
+        DateTime stop = helper.toLocalDateTime(order.getAutoExpireDate());
+        return div("schedule");
     }
 
     private Writable renderValue(Obs obs) {

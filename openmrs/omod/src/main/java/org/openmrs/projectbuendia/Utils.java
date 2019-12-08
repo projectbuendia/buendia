@@ -23,6 +23,7 @@ import org.joda.time.base.AbstractInstant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.openmrs.projectbuendia.webservices.rest.InvalidObjectDataException;
+import org.projectbuendia.models.Intl;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -301,7 +302,7 @@ public class Utils {
     // ==== Localization ====
 
     public static String localize(String loc, Object... args) {
-        String text = new Intl(loc).get(Locale.getDefault());
+        String text = new Intl(loc).loc(Locale.getDefault());
         if (args.length > 0) {
             return format(text, args);
         }
@@ -309,7 +310,7 @@ public class Utils {
     }
 
     public static String localize(Intl intl, Object... args) {
-        String text = intl.get(Locale.getDefault());
+        String text = intl.loc(Locale.getDefault());
         if (args.length > 0) {
             return format(text, args);
         }
