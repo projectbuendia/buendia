@@ -98,10 +98,6 @@ class PatientPrinter {
         renderAdmission(pat).writeTo(writer, locale);
     }
 
-    public void printEncounters(Patient pat) throws IOException {
-        renderEncounters(pat).writeTo(writer, locale);
-    }
-
     public void printEvents(Patient pat) throws IOException {
         renderEvents(pat).writeTo(writer, locale);
     }
@@ -401,26 +397,6 @@ class PatientPrinter {
             }
         }
         return div("events", results);
-    }
-
-    public Doc renderEncounters(Patient pat) {
-        Sequence encounters = seq();
-
-        List<List<Obs>> groups = helper.getEncounterObs(helper.getEncounters(pat));
-        for (List<Obs> group : groups) {
-            if (group.isEmpty()) continue;
-            DateTime start = helper.toLocalDateTime(group.get(0).getObsDatetime());
-            Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(group);
-            Sequence obsList = renderObsList(obsByQuestion);
-            if (!obsList.isEmpty()) {
-                encounters.add(div(
-                    "encounter",
-                    el("h2 class='time'", helper.formatTime(start)),
-                    div("observations", obsList)
-                ));
-            }
-        }
-        return div("encounters", encounters);
     }
 
     private Sequence renderObsList(Map<String, Obs> obsMap) {
