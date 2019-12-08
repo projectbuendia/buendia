@@ -357,6 +357,30 @@ public class DataHelper {
         return merged;
     }
 
+    public List<Event> deduplicateObs(List<Event> events, List<String> conceptUuids) {
+        Map<String, Object> lastValues = new HashMap<>();
+        List<Event> results = new ArrayList<>();
+        for (Event event : events) {
+            List<Obs> dedupedObs = new ArrayList<>();
+            for (Obs obs : event.obs) {
+                String uuid = DbUtils.getConceptUuid(obs);
+                Object value = getValue(obs);
+                if (conceptUuids.contains(uuid) && eq(value, lastValues.get(uuid))) continue;
+                dedupedObs.add(obs);
+                lastValues.put(uuid, value);
+            }
+            Event newEvent = new Event(event.time, dedupedObs, event.orders);
+            if (!newEvent.obs.isEmpty() || !newEvent.orders.isEmpty()) {
+                results.add(newEvent);
+            }
+        }
+        return results;
+    }
+
+    public Object getValue(Obs obs) {
+        return obs.getValueAsString(Locale.US);
+    }
+
     public Intl getConceptName(Concept concept) {
         if (concept == null) return new Intl("");
         return new Intl(DbUtils.getConceptName(concept));

@@ -22,7 +22,6 @@ import org.projectbuendia.models.MsfCatalog;
 import org.projectbuendia.models.Quantity;
 import org.projectbuendia.models.Unit;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
-import org.projectbuendia.openmrs.web.controller.HtmlOutput.LocalizedWriter;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
 
@@ -30,7 +29,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +41,6 @@ import java.util.Set;
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.format;
-import static org.projectbuendia.openmrs.web.controller.HtmlOutput.html;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.intl;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.seq;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.text;
@@ -54,15 +51,15 @@ class PatientPrinter {
     private final DataHelper helper;
     private final CatalogIndex index = MsfCatalog.INDEX;
 
-    private static final String IV_ACCESS_UUID = Utils.toUuid(2900012);
-    private static final String OXYGEN_MASK_UUID = Utils.toUuid(2162738);
-    private static final String FIRST_SAMPLE_TAKEN_UUID = Utils.toUuid(2900020);
-    private static final String SECOND_SAMPLE_TAKEN_UUID = Utils.toUuid(2900021);
-    private static final List<String> CONCEPTS_TO_IGNORE_NO = Arrays.asList(
-        IV_ACCESS_UUID,
-        OXYGEN_MASK_UUID,
-        FIRST_SAMPLE_TAKEN_UUID,
-        SECOND_SAMPLE_TAKEN_UUID
+    private static final List<String> CONCEPTS_OMIT_NO = Arrays.asList(
+        Utils.toUuid(2900012),  // IV access
+        Utils.toUuid(2162738),  // oxygen mask
+        Utils.toUuid(2900020),  // first sample taken
+        Utils.toUuid(2900021)  // second sample taken
+    );
+
+    private static final List<String> CONCEPTS_OMIT_DUPLICATE_VALUES = Arrays.asList(
+        ConceptUuids.PLACEMENT_UUID
     );
 
     public PatientPrinter(Writer writer, Locale locale, DataHelper helper) {
@@ -167,11 +164,10 @@ class PatientPrinter {
 
     public Doc renderEvents(Patient pat) {
         Sequence results = seq();
-        List<DataHelper.Event> events = helper.mergeEvents(
-            helper.getEvents(pat),
-            Duration.standardMinutes(10),
-            Duration.standardMinutes(20)
-        );
+        List<DataHelper.Event> events = helper.getEvents(pat);
+        events = helper.mergeEvents(events, Duration.standardMinutes(10), Duration.standardMinutes(20));
+        events = helper.deduplicateObs(events, CONCEPTS_OMIT_DUPLICATE_VALUES);
+
         for (DataHelper.Event event : events) {
             Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(event.obs);
             Sequence obsList = renderObsList(obsByQuestion);
@@ -324,12 +320,23 @@ class PatientPrinter {
                 );
 
             default:
-                if (CONCEPTS_TO_IGNORE_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
-                return div("obs",
+                if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
+                return div("obs " + getConceptCssClass(obs.getConcept()),
                     span("label", coded(obs.getConcept()), ":"),
                     " ",
                     span("value", renderValue(obs))
                 );
+        }
+    }
+
+    private String getConceptCssClass(Concept concept) {
+        if (concept == null) return "";
+        String uuid = concept.getUuid();
+        Object comp = Utils.compressUuid(uuid);
+        if (comp instanceof Integer) {
+            return "c-" + (((int) comp) % 1000000);
+        } else {
+            return "c-" + comp;
         }
     }
 
