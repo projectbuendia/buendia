@@ -108,7 +108,7 @@ class PatientPrinter {
 
     public Doc renderIntro(Patient pat) {
         return div("intro",
-            el("h1 class='name'", pat.getPersonName().getFullName()),
+            el("heading class='name'", pat.getPersonName().getFullName()),
             div("agesex", renderAge(pat), ", ", renderSex(pat))
         );
     }
@@ -166,7 +166,7 @@ class PatientPrinter {
 
     public Doc renderAdmission(Patient pat) {
         return div("admission",
-            el("h1", "Admission - Enregistrement CTE"),
+            el("heading", "Admission - Enregistrement CTE"),
             el("div class='patient-id'", "* Nr. Identification (ID) Patient:", div("field")),
             section("patient-info",
                 "Patient Information",
@@ -394,13 +394,13 @@ class PatientPrinter {
                     el("h2 class='time'", helper.formatTime(event.time)),
                     obsList.isEmpty() ? seq() : div("observations", obsList),
                     orderList.isEmpty() ? seq() : div("orders",
-                        span("label", intl("Treatments ordered [fr:Traitements commandés]")), orderList),
+                        span("label", el("h3", intl("Treatments ordered [fr:Traitements commandés]"))), orderList),
                     execList.isEmpty() ? seq() : div("executions",
-                        span("label", intl("Treatments given [fr:Traitements donnés]")), execList)
+                        span("label", el("h3", intl("Treatments given [fr:Traitements donnés]"))), execList)
                 ));
             }
         }
-        return results;
+        return div("events", results);
     }
 
     public Doc renderEncounters(Patient pat) {
@@ -709,8 +709,8 @@ class PatientPrinter {
         return el("div", objects);
     }
 
-    private Doc block(Object... objects) {
-        return div("block", objects);
+    private Doc block(String cls, Object... objects) {
+        return div("block " + cls, objects);
     }
 
     private Doc subhead(Object... objects) {
@@ -746,19 +746,11 @@ class PatientPrinter {
     }
 
     private Doc blank(int size, Object... contents) {
-        String spaces = "";
+        Sequence spaces = seq();
         for (int i = 0; i < size; i++) {
-            spaces += "\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0\u00a0";
+            spaces.add(span("unit"));
         }
-        return span("blank size=" + size, contents);
-    }
-
-    private Doc rest() {
-        return el("span class='rest'");
-    }
-
-    private Doc vspace(int size) {
-        return div("vspace size=" + size);
+        return span("blank size=" + size, span("spaces", spaces), span("contents", contents));
     }
 
     private Doc vspace() {
@@ -766,11 +758,15 @@ class PatientPrinter {
     }
 
     private Doc hspace(int size) {
-        return span("hspace size=" + size);
+        Sequence spaces = seq();
+        for (int i = 0; i < size; i++) {
+            spaces.add(span("unit"));
+        }
+        return span("hspace size=" + size, spaces);
     }
 
     private Doc hspace() {
-        return span("hspace");
+        return span("hspace", span("unit"));
     }
 
     private Doc checkbox(Object label) {
@@ -782,13 +778,10 @@ class PatientPrinter {
         return seq(span("checkbox " + checked, el("input type='checkbox' " + checked)), label);
     }
 
-    private Doc field(Object label, Object... objects) {
+    private Doc field(String label, Object... objects) {
+        if (!label.matches("[.!?:]$")) label += " : ";
         return el("span class='field'",
-            el("span class='field-label'", label),
-            el("span class='field-value'", objects));
-    }
-
-    private void write(Doc doc) throws IOException {
-        doc.writeTo(writer, locale);
+            el("span class='label'", label),
+            el("span class='value'", objects));
     }
 }
