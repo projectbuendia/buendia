@@ -162,8 +162,14 @@ class PatientPrinter {
 
     public Doc renderAdmission(Patient pat) {
         return div("admission",
-            el("heading", "Admission - Enregistrement CTE"),
-            el("div class='patient-id'", "* Nr. Identification (ID) Patient:", div("field")),
+            columns(
+                column("50%",
+                    el("heading", "Admission - Enregistrement CTE")
+                ),
+                column("50%",
+                    el("div class='patient-id'", field("* Nr. Identification (ID) Patient", blank(4)))
+                )
+            ),
             section("patient-info",
                 "Patient Information",
                 columns(
@@ -182,7 +188,7 @@ class PatientPrinter {
                         block("agesex",
                             line(field("* Date de naissance", renderEmptyDate())),
                             line(
-                                field("si inconnu, Âge", blank(2, renderAge(pat))),
+                                field("si inconnu, âge", blank(1, renderAge(pat))),
                                 field("* Sexe",
                                     checkbox("Masculin", eq(pat.getGender().toUpperCase(), "M")),
                                     checkbox("Féminin", eq(pat.getGender().toUpperCase(), "F"))
@@ -199,7 +205,7 @@ class PatientPrinter {
                 block("residence",
                     subhead("* Lieu de résidence:"),
                     line(
-                        field("Aire de Santé", blank(7, getTextValue(pat, AIRE_SANTE_UUID)),
+                        field("Aire de Santé", blank(7, getTextValue(pat, AIRE_SANTE_UUID))),
                         field("Village", blank(7, getTextValue(pat, VILLAGE_UUID)))
                     )
                 )
@@ -238,7 +244,7 @@ class PatientPrinter {
                             line(field("* Date", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
                         ),
                         column("33%",
-                            line(field("Nr de semaines de gestation estimé", blank(1)))),
+                            line(field("Nr de semaines de gestation estimé", blank(1))),
                             line(field("Trimestre de grossesse", blank(3))),
                             line(field("Fetus vivant", yesNo()))
                         )
@@ -247,7 +253,7 @@ class PatientPrinter {
                 columns(
                     column("66%",
                         block("comorbidities",
-                            subhead(span("Comorbidités"), span("Traitement")),
+                            subhead(field("Comorbidités"), field("Traitement")),
                             line(checkbox("Hypertension", isYes(getObs(pat, HYPERTENSION_UUID)))),
                             line(checkbox("VIH/SIDA", isYes(getObs(pat, HIV_UUID)))),
                             line(checkbox("TB", isYes(getObs(pat, TB_UUID)))),
