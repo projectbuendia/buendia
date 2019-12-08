@@ -59,6 +59,7 @@ import javax.annotation.Nullable;
 
 import static org.openmrs.projectbuendia.Utils.ALPHANUMERIC_COMPARATOR;
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.toUuid;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
@@ -330,18 +331,22 @@ public class DbUtils {
         return Utils.toNonnull(obj.getName());
     }
 
-    public static boolean isNo(Obs obs) {
-        if (obs == null) return false;
-        Boolean value = obs.getValueAsBoolean();
-        if (value == null) return false;
-        return !value;
-    }
-
     public static boolean isYes(Obs obs) {
         if (obs == null) return false;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4001065))) return true;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4000703))) return true;
         Boolean value = obs.getValueAsBoolean();
         if (value == null) return false;
         return value;
+    }
+
+    public static boolean isNo(Obs obs) {
+        if (obs == null) return false;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4001066))) return true;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4000664))) return true;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return !value;
     }
 
     /** Returns the currently authenticated user. */

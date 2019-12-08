@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 
 public class DataHelper {
     protected final ProjectBuendiaService buendiaService;

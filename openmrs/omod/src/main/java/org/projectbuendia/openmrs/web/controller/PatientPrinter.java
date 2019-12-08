@@ -3,6 +3,7 @@ package org.projectbuendia.openmrs.web.controller;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Duration;
+import org.joda.time.LocalDate;
 import org.joda.time.Period;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.toUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
@@ -54,10 +56,10 @@ class PatientPrinter {
     private final CatalogIndex index = MsfCatalog.INDEX;
 
     private static final List<String> CONCEPTS_OMIT_NO = Arrays.asList(
-        Utils.toUuid(2900012),  // IV access
-        Utils.toUuid(2162738),  // oxygen mask
-        Utils.toUuid(2900020),  // first sample taken
-        Utils.toUuid(2900021)  // second sample taken
+        toUuid(2900012),  // IV access
+        toUuid(2162738),  // oxygen mask
+        toUuid(2900020),  // first sample taken
+        toUuid(2900021)  // second sample taken
     );
 
     private static final List<String> CONCEPTS_OMIT_DUPLICATE_VALUES = Arrays.asList(
@@ -125,9 +127,18 @@ class PatientPrinter {
 
     public Doc renderSex(Patient pat) {
         Sequence pregnancy = seq();
-        if (helper.isPregnant(pat)) pregnancy.add(text(", "), intl("pregnant[fr:enceinte]"));
+        if (helper.isPregnant(pat)) pregnancy.add(text(", "), intl("pregnant [fr:enceinte]"));
         return span("sex", pat.getGender(), pregnancy);
     }
+
+    public static String TELEPHONE_UUID = toUuid(3159635);
+    public static String PHONE_OWNER_UUID = toUuid(3900001);
+    public static String AIRE_SANTE_UUID = toUuid(3900004);
+    public static String VILLAGE_UUID = toUuid(3001354);
+    public static String ADMISSION_TIME_UUID = toUuid(8000000);
+    public static String SYMPTOM_START_UUID = toUuid(6001730);
+    public static String PREGNANCY_UUID = toUuid(2005272);
+    public static String PREGNANCY_TEST_UUID = toUuid(2000045);
 
     public Doc renderAdmission(Patient pat) {
         return div("admission",
@@ -140,8 +151,8 @@ class PatientPrinter {
                         line(field("* Nom de famille", pat.getFamilyName())),
                         line(field("* Prénom", pat.getGivenName())),
                         subhead("* Information contact Patient:"),
-                        line(field("Numéro de téléphone Patient", getValue(pat, TELEPHONE_UUID))),
-                        line(field("Propriétaire du téléphone", getValue(pat, PHONE_OWNER_UUID)))
+                        line(field("Numéro de téléphone Patient", getTextValue(pat, TELEPHONE_UUID))),
+                        line(field("Propriétaire du téléphone", getTextValue(pat, PHONE_OWNER_UUID)))
                     ),
                     column("50%",
                         line(field("* Date de naissance")),
@@ -159,17 +170,17 @@ class PatientPrinter {
                 ),
                 subhead("* Lieu de résidence:"),
                 line(
-                    field("Aire de Santé", getValue(pat, AIRE_SANTE_UUID)),
-                    field("Village", getValue(pat, VILLAGE_UUID))
+                    field("Aire de Santé", getTextValue(pat, AIRE_SANTE_UUID)),
+                    field("Village", getTextValue(pat, VILLAGE_UUID))
                 )
             ),
             section("admission-info",
                 "Admission Information",
                 columns(
                     column("50%",
-                        line(field("* Date d'admission", renderDate(getValue(pat, ADMISSION_TIME_UUID)))),
-                        line(field("Heure d'admission", renderTime(getValue(pat, ADMISSION_TIME_UUID)))),
-                        line(field("* Date de début des symptômes", renderDate(getValue(pat, SYMPTOM_START_UUID))))
+                        line(field("* Date d'admission", renderDate(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
+                        line(field("Heure d'admission", renderTime(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
+                        line(field("* Date de début des symptômes", renderDate(getDateValue(pat, SYMPTOM_START_UUID))))
                     ),
                     column("50%",
                         line("* État du Patient à l'admission:"),
@@ -195,8 +206,8 @@ class PatientPrinter {
                         column("33%",
                             line("* Test de grossesse:",
                                 stack(
-                                    checkbox("Oui", isYes(getValue(pat, PREGNANCY_TEST_UUID))),
-                                    checkbox("Non", isNo(getValue(pat, PREGNANCY_TEST_UUID)))
+                                    checkbox("Oui", isYes(getObs(pat, PREGNANCY_TEST_UUID))),
+                                    checkbox("Non", isNo(getObs(pat, PREGNANCY_TEST_UUID)))
                                 )
                             ),
                             line(field("* Date", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
@@ -216,8 +227,19 @@ class PatientPrinter {
         );
     }
 
-    public String getValue(Patient pat, String uuid) {
-        return null;
+    public String getTextValue(Patient pat, String uuid) {
+        Obs obs = getObs(pat, uuid);
+        return obs != null ? obs.getValueText() : "";
+    }
+
+    public LocalDate getDateValue(Patient pat, String uuid) {
+        Obs obs = getObs(pat, uuid);
+        return obs != null ? helper.toLocalDateTime(obs.getValueDate()).toLocalDate() : null;
+    }
+
+    public DateTime getDateTimeValue(Patient pat, String uuid) {
+        Obs obs = getObs(pat, uuid);
+        return obs != null ? helper.toLocalDateTime(obs.getValueDate()) : null;
     }
 
     public Obs getObs(Patient pat, String uuid) {
@@ -509,6 +531,22 @@ class PatientPrinter {
                 return text(helper.formatTime(helper.toLocalDateTime(obs.getValueDatetime())));
         }
         return text("?");
+    }
+
+    private Doc renderDate(DateTime value) {
+        return renderDate(value.toLocalDate());
+    }
+
+    private Doc renderDate(LocalDate value) {
+        return seq(value.getDayOfMonth(), " / ", value.getMonthOfYear(), " / ", value.getYear());
+    }
+
+    private Doc renderDate(Obs obs) {
+        return renderDate(helper.toLocalDateTime(obs.getObsDatetime()));
+    }
+
+    private Doc renderTime(DateTime value) {
+        return seq(value.getHourOfDay(), " : ", value.getMinuteOfHour());
     }
 
     private Doc coded(Concept concept) {
