@@ -300,6 +300,7 @@ class PatientPrinter {
                             line(field("* Date:", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
                         ),
                         column("33%",
+                            vspace(),
                             line(field("Nr de semaines de gestation estimé:", blank(1))),
                             line(field("Trimestre de grossesse:", blank(3))),
                             line(field("Fetus vivant:", yesNo()))
@@ -718,14 +719,14 @@ class PatientPrinter {
 
         Route route = index.getRoute(instr.route);
         return div("treatment",
-            div("drug", span("label", intl("Drug [fr:Médicament]")), ": ", drug.name),
-            div("format", span("label", intl("Format")), ": ", format.description),
+            div("drug", span("label", intl("Drug [fr:Médicament]"), ": "), drug.name),
+            div("format", span("label", intl("Format"), ": "), format.description),
             div("dosageroute",
-                span("label", intl("Dosage")), ": ", dosage, " ",
+                span("label", intl("Dosage"), ": "), dosage, " ",
                 span("route", format("%s (%s)", route.abbr, route.name))
             ),
             Utils.hasChars(instr.notes) ?
-                div("notes", span("label", intl("Notes [fr:Remarques]")), ": ", instr.notes) : seq()
+                div("notes", span("label", intl("Notes [fr:Remarques]"), ": "), instr.notes) : seq()
         );
     }
 
@@ -746,7 +747,7 @@ class PatientPrinter {
             int days = Days.daysBetween(start.toLocalDate(), stop.toLocalDate()).getDays();
             doses = days * (int) instr.frequency.mag;
         }
-        return div("schedule", span("label", intl("Schedule [fr:Horaire]")), ": ", instr.isSeries() && instr.frequency.mag > 0 ?
+        return div("schedule", span("label", intl("Schedule [fr:Horaire]"), ": "), instr.isSeries() && instr.frequency.mag > 0 ?
             (stop != null ?
                 (doses > 0 ?
                     seq(renderQuantity(instr.frequency), ", ",

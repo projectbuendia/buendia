@@ -38,7 +38,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".line, .subhead, .vspace {\n" +
-        "  min-height: 1rem;\n" +
+        "  min-height: 1.1rem;\n" +
         "  white-space: nowrap;\n" +
         "}\n" +
         "\n" +
@@ -84,7 +84,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".blank {\n" +
-        "  margin: 0 0.2rem 0 0;\n" +
+        "  margin: 0 0.2rem;\n" +
         "  padding: 0.04rem;\n" +
         "  border-bottom: 0.1rem solid black;\n" +
         "  display: inline-block;\n" +
@@ -275,6 +275,10 @@ public class PrintCss {
         "\n" +
         ".observations .form {\n" +
         "  margin: 1em;\n" +
+        "}\n" +
+        "\n" +
+        ".orders + .executions {\n" +
+        "  margin-top: 2rem;\n" +
         "}\n" +
         "\n" +
         ".orders h3, .executions h3 {\n" +
