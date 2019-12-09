@@ -52,7 +52,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
         List<DataHelper.ObsDisplay> admissionTimes = helper.getAdmissionTimes();
         Collections.reverse(admissionTimes);
         admissionTimes = Utils.slice(admissionTimes, 0, 5);
-        List<DataHelper.ObsDisplay> discharges = helper.getDischarges();
+        List<DataHelper.ObsDisplay> discharges = helper.getDischargeTimes();
         Collections.reverse(discharges);
         discharges = Utils.slice(discharges, 0, 5);
 
@@ -76,7 +76,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
                 for (String uuid : request.getParameterValues("patient")) {
                     if (!printedUuids.contains(uuid)) {
                         Patient patient = helper.getPatient(uuid);
-                        printer.printAdmission(patient);
+                        printer.printAdmissionForm(patient);
                         printer.printHistory(patient);
                         printedUuids.add(uuid);
                     }

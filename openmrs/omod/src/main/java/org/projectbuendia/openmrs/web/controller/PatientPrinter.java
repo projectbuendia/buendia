@@ -92,8 +92,8 @@ class PatientPrinter {
         }
     }
 
-    public void printAdmission(Patient pat) throws IOException {
-        renderAdmission(pat).writeTo(writer, locale);
+    public void printAdmissionForm(Patient pat) throws IOException {
+        renderAdmissionForm(pat).writeTo(writer, locale);
     }
 
     public void printHistory(Patient pat) throws IOException {
@@ -102,14 +102,17 @@ class PatientPrinter {
     }
 
     public Doc renderIntro(Patient pat) {
+        Doc age = renderAge(pat);
+        Doc sex = renderSex(pat);
         return div("intro",
             div("ident", pat.getPatientIdentifier("MSF")),
             div("name", pat.getPersonName().getFullName()),
-            div("agesex", renderAge(pat), ", ", renderSex(pat))
+            div("agesex", sex, sex.isEmpty() ? "" : ", ", age)
         );
     }
 
     public Doc renderAge(Patient pat) {
+        if (pat.getBirthdate() == null) return intl("age unknown [fr:âge inconnu]");
         Period age = new Period(
             helper.toLocalDateTime(pat.getBirthdate()),
             helper.toLocalDateTime(pat.getDateCreated()));
@@ -124,6 +127,7 @@ class PatientPrinter {
     }
 
     public Doc renderSex(Patient pat) {
+        if (!Utils.hasChars(pat.getGender())) return seq();
         Sequence pregnancy = seq();
         if (helper.isPregnant(pat)) pregnancy.add(text(", "), intl("pregnant [fr:enceinte]"));
         return span("sex", pat.getGender(), pregnancy);
@@ -171,7 +175,7 @@ class PatientPrinter {
     public static String TB_UUID = UNKNOWN;
     public static String RENAL_DISEASE_UUID = UNKNOWN;
 
-    public Doc renderAdmission(Patient pat) {
+    public Doc renderAdmissionForm(Patient pat) {
         Obs pregnancy = getAdmitObs(pat, PREGNANCY_UUID);
         Obs pregnancyTest = getAdmitObs(pat, PREGNANCY_TEST_UUID);
         String admitStatus = getAdmitCodedValue(pat, STATUS_UUID);

@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.toUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 
 public class DataHelper {
@@ -54,7 +55,8 @@ public class DataHelper {
     protected final ProviderService providerService;
 
     private static final String DISCHARGED_LOCATION_UUID = "73010980-d3e7-404a-95bf-180966f04fb8";
-    private static final String ADMISSION_TIME_UUID = Utils.toUuid(8001640);
+    private static final String ADMISSION_DATETIME_UUID = Utils.toUuid(8001640);
+    private static final String DISCHARGE_DATETIME_UUID = toUuid(8001641);
     private static final String PREGNANCY_UUID = Utils.toUuid(2005272);
 
     private static final Intl TIME_PATTERN = new Intl("MMM d, HH:mm [fr:d MMM, HH'h'mm]");
@@ -157,25 +159,15 @@ public class DataHelper {
     }
 
     public List<ObsDisplay> getAdmissionTimes() {
-        List<Obs> admissionTimes = new ArrayList<>(getLatestObsByPatient(ADMISSION_TIME_UUID).values());
+        List<Obs> admissionTimes = new ArrayList<>(getLatestObsByPatient(ADMISSION_DATETIME_UUID).values());
         Collections.sort(admissionTimes, OBS_VALUE_TIME);
         return wrapObs(admissionTimes);
     }
 
-    public List<ObsDisplay> getDischarges() {
-        List<Obs> discharges = new ArrayList<>();
-        Map<String, Obs> placements = getLatestObsByPatient(
-            DbUtils.CONCEPT_PLACEMENT_UUID);
-        for (String patientUuid : placements.keySet()) {
-            Obs obs = placements.get(patientUuid);
-            String placement = obs.getValueText();
-            String locationUuid = getLocationUuidFromPlacement(placement);
-            if (eq(locationUuid, DISCHARGED_LOCATION_UUID)) {
-                discharges.add(obs);
-            }
-        }
-        Collections.sort(discharges, OBS_TIME);
-        return wrapObs(discharges);
+    public List<ObsDisplay> getDischargeTimes() {
+        List<Obs> dischargeTimes = new ArrayList<>(getLatestObsByPatient(DISCHARGE_DATETIME_UUID).values());
+        Collections.sort(dischargeTimes, OBS_VALUE_TIME);
+        return wrapObs(dischargeTimes);
     }
 
     public static String getLocationUuidFromPlacement(String placement) {
