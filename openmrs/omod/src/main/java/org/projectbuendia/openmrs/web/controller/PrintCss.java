@@ -216,7 +216,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history .heading {\n" +
-        "  margin: 1rem 0 0 0;\n" +
+        "  margin: 2rem 0 0 -0.5rem;\n" +
         "  font-size: 1.2rem;\n" +
         "  font-weight: bold;\n" +
         "}\n" +
@@ -247,6 +247,9 @@ public class PrintCss {
         "  font-weight: 400;\n" +
         "  line-height: 1.4;\n" +
         "}\n" +
+        ".observations {\n" +
+        "  margin: 0 2rem;\n" +
+        "}\n" +
         "\n" +
         ".event {\n" +
         "  margin: 2em 0;\n" +
@@ -254,9 +257,10 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history .time {\n" +
+        "  font-weight: bold;\n" +
         "  font-size: 1rem;\n" +
         "  margin: 1rem 0 1rem 2rem;\n" +
-        "  padding-top: 0.7rem;\n" +
+        "  padding-top: 1rem;\n" +
         "}\n" +
         "\n" +
         ".event .time:first-of-type {\n" +
@@ -273,6 +277,10 @@ public class PrintCss {
         "\n" +
         ".observations .form {\n" +
         "  margin: 1em 0;\n" +
+        "}\n" +
+        "\n" +
+        ".observations .form:first-child {\n" +
+        "  margin: 0;\n" +
         "}\n" +
         "\n" +
         ".orders + .executions {\n" +
