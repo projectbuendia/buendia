@@ -41,6 +41,7 @@ import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.toUuid;
+import static org.openmrs.projectbuendia.webservices.rest.DbUtils.getConceptUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 
 public class DataHelper {
@@ -239,40 +240,50 @@ public class DataHelper {
         return patientService.getPatientByUuid(uuid);
     }
 
-    public List<Encounter> getEncounters(Patient patient) {
+    public static class History {
+        public final List<Encounter> admission = new ArrayList<>();
+        public final List<Encounter> evolution = new ArrayList<>();
+        public final List<Encounter> discharge = new ArrayList<>();
+
+        public History(List<Encounter> encounters) {
+            nextEncounter:
+            for (Encounter enc : encounters) {
+                for (Obs obs : enc.getAllObs()) {
+                    String uuid = getConceptUuid(obs);
+                    if (eq(uuid, ADMISSION_DATETIME_UUID)) {
+                        admission.add(enc);
+                        continue nextEncounter;
+                    }
+                    if (eq(uuid, DISCHARGE_DATETIME_UUID)) {
+                        discharge.add(enc);
+                        continue nextEncounter;
+                    }
+                }
+                evolution.add(enc);
+            }
+        }
+    }
+
+    public History getHistory(Patient patient) {
         // getEncounters promises to sort its results chronologically.
         List<Encounter> encounters = encounterService.getEncounters(
             patient, null, null, null,
             null, null, null, null, null, false);
-        Collections.sort(encounters, ENCOUNTER_TIME);
-        return encounters;
+        return new History(encounters);
+    }
+
+    public static Map<String, Obs> getLastObsByConcept(List<Encounter> encounters) {
+        Map<String, Obs> results = new HashMap<>();
+        for (Encounter enc : encounters) {
+            for (Obs obs : enc.getAllObs()) {
+                results.put(getConceptUuid(obs), obs);
+            }
+        }
+        return results;
     }
 
     public List<Order> getOrders(Patient patient) {
         return orderService.getAllOrdersByPatient(patient);
-    }
-
-    public List<List<Obs>> getEncounterObs(List<Encounter> encounters) {
-        List<List<Obs>> results = new ArrayList<>();
-        List<Obs> group = new ArrayList<>();
-        long groupStartTime = 0;
-        long lastTime = 0;
-        for (Encounter encounter : encounters) {
-            long time = encounter.getEncounterDatetime().getTime();
-            if (time > lastTime + 5 * 60 * 1000 || time > groupStartTime + 10 * 60 * 1000) {
-                if (group.size() > 0) results.add(group);
-                group = new ArrayList<>();
-            }
-            if (group.size() == 0) {
-                groupStartTime = time;
-            }
-            for (Obs obs : encounter.getObs()) {
-                group.add(obs);
-            }
-            lastTime = time;
-        }
-        if (group.size() > 0) results.add(group);
-        return results;
     }
 
     public List<Form> getForms() {
@@ -306,9 +317,9 @@ public class DataHelper {
         return sections;
     }
 
-    public List<Event> getEvents(Patient pat) {
+    public List<Event> getEvolution(Patient pat, List<Encounter> evolution) {
         List<Event> events = new ArrayList<>();
-        for (Encounter enc : getEncounters(pat)) {
+        for (Encounter enc : evolution) {
             events.add(new Event(
                 toLocalDateTime(enc.getEncounterDatetime()),
                 new ArrayList<>(enc.getObs()),

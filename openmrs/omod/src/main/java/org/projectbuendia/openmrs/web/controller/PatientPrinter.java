@@ -24,6 +24,7 @@ import org.projectbuendia.models.MsfCatalog;
 import org.projectbuendia.models.Quantity;
 import org.projectbuendia.models.Unit;
 import org.projectbuendia.openmrs.web.controller.DataHelper.FormSection;
+import org.projectbuendia.openmrs.web.controller.DataHelper.History;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 
@@ -97,8 +98,13 @@ class PatientPrinter {
     }
 
     public void printHistory(Patient pat) throws IOException {
-        div("history", renderIntro(pat), renderEvents(pat))
-            .writeTo(writer, locale);
+        History history = helper.getHistory(pat);
+        div("history",
+            renderIntro(pat),
+            !history.admission.isEmpty() ? renderAdmission(history.admission) : seq(),
+            !history.evolution.isEmpty() ? renderEvents(pat, history.evolution) : seq(),
+            !history.discharge.isEmpty() ? renderDischarge(history.discharge) : seq()
+        ).writeTo(writer, locale);
     }
 
     public Doc renderIntro(Patient pat) {
@@ -176,10 +182,14 @@ class PatientPrinter {
     public static String RENAL_DISEASE_UUID = UNKNOWN;
 
     public Doc renderAdmissionForm(Patient pat) {
-        Obs pregnancy = getAdmitObs(pat, PREGNANCY_UUID);
-        Obs pregnancyTest = getAdmitObs(pat, PREGNANCY_TEST_UUID);
-        String admitStatus = getAdmitCodedValue(pat, STATUS_UUID);
-        String status = getCodedValue(pat, STATUS_UUID);
+        History history = helper.getHistory(pat);
+        Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
+        Map<String, Obs> dischargeObs = helper.getLastObsByConcept(history.discharge);
+
+        Obs pregnancy = admissionObs.get(PREGNANCY_UUID);
+        Obs pregnancyTest = admissionObs.get(PREGNANCY_TEST_UUID);
+        String admStat = getCodedValue(admissionObs.get(STATUS_UUID));
+        String disStat = getCodedValue(dischargeObs.get(STATUS_UUID));
 
         return div("admission",
             div("title",
@@ -252,9 +262,9 @@ class PatientPrinter {
                         block("status",
                             line(field("* État du Patient à l'admission:")),
                             line(hspace(2),
-                                checkitem("Suspect", eq(admitStatus, STATUS_SUSPECT_UUID)),
-                                checkitem("Probable", eq(admitStatus, STATUS_PROBABLE_UUID)),
-                                checkitem("Confirmé", eq(admitStatus, STATUS_CONFIRMED_UUID))
+                                checkitem("Suspect", eq(admStat, STATUS_SUSPECT_UUID)),
+                                checkitem("Probable", eq(admStat, STATUS_PROBABLE_UUID)),
+                                checkitem("Confirmé", eq(admStat, STATUS_CONFIRMED_UUID))
                             )
                         )
                     )
@@ -294,13 +304,13 @@ class PatientPrinter {
                     column("60%",
                         block("comorbidities",
                             subhead(columns(column("50%", "Comorbidités"), column("50%", "Traitement"))),
-                            line(checkitem("Hypertension", isYes(getAdmitObs(pat, HYPERTENSION_UUID)))),
-                            line(checkitem("VIH/SIDA", isYes(getAdmitObs(pat, HIV_UUID)))),
-                            line(checkitem("TB", isYes(getAdmitObs(pat, TB_UUID)))),
-                            line(checkitem("Maladie pulmonaire chronique", isYes(getAdmitObs(pat, CHRONIC_LUNG_UUID)))),
-                            line(checkitem("Maladie cardiaque chronique", isYes(getAdmitObs(pat, CHRONIC_HEART_UUID)))),
-                            line(checkitem("Maladie rénale", isYes(getAdmitObs(pat, RENAL_DISEASE_UUID)))),
-                            line(checkitem("Diabètes", isYes(getAdmitObs(pat, DIABETES_UUID)))),
+                            line(checkitem("Hypertension", isYes(admissionObs.get(HYPERTENSION_UUID)))),
+                            line(checkitem("VIH/SIDA", isYes(admissionObs.get(HIV_UUID)))),
+                            line(checkitem("TB", isYes(admissionObs.get(TB_UUID)))),
+                            line(checkitem("Maladie pulmonaire chronique", isYes(admissionObs.get(CHRONIC_LUNG_UUID)))),
+                            line(checkitem("Maladie cardiaque chronique", isYes(admissionObs.get(CHRONIC_HEART_UUID)))),
+                            line(checkitem("Maladie rénale", isYes(admissionObs.get(RENAL_DISEASE_UUID)))),
+                            line(checkitem("Diabètes", isYes(admissionObs.get(DIABETES_UUID)))),
                             line(checkitem("Autre"))
                         )
                     ),
@@ -327,18 +337,18 @@ class PatientPrinter {
                     line(
                         field("* Statut final:",
                             checkitem("Confirmé",
-                                eq(status, STATUS_CONFIRMED_UUID) ||
-                                eq(status, STATUS_DEATH_CONFIRMED_UUID)),
+                                eq(disStat, STATUS_CONFIRMED_UUID) ||
+                                eq(disStat, STATUS_DEATH_CONFIRMED_UUID)),
                             checkitem("Pas un cas",
-                                eq(status, STATUS_DISCHARGED_NONCASE_UUID) ||
-                                eq(status, STATUS_DEATH_NONCASE_UUID)
+                                eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ||
+                                eq(disStat, STATUS_DEATH_NONCASE_UUID)
                             ),
                             checkitem("Inconnu",
-                                !eq(status, STATUS_CONFIRMED_UUID) &&
-                                !eq(status, STATUS_DISCHARGED_NONCASE_UUID) &&
-                                !eq(status, STATUS_DISCHARGED_CURED_UUID) &&
-                                !eq(status, STATUS_DEATH_NONCASE_UUID) &&
-                                !eq(status, STATUS_DEATH_CONFIRMED_UUID)
+                                !eq(disStat, STATUS_CONFIRMED_UUID) &&
+                                !eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) &&
+                                !eq(disStat, STATUS_DISCHARGED_CURED_UUID) &&
+                                !eq(disStat, STATUS_DEATH_NONCASE_UUID) &&
+                                !eq(disStat, STATUS_DEATH_CONFIRMED_UUID)
                             )
                         ),
                         hspace(),
@@ -347,20 +357,20 @@ class PatientPrinter {
                     line(field("* Résultat final:",
                         checkitem("Sortie en revalidation"),
                         checkitem("Décédé",
-                            eq(status, STATUS_DEATH_NONCASE_UUID) ||
-                            eq(status, STATUS_DEATH_CONFIRMED_UUID)
+                            eq(disStat, STATUS_DEATH_NONCASE_UUID) ||
+                            eq(disStat, STATUS_DEATH_CONFIRMED_UUID)
                         ),
                         checkitem("Transferé",
                             eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOSPITAL_UUID)
                         ),
                         checkitem(
                             field("Autre, spécifiez:", blank(6,
-                                eq(status, STATUS_DISCHARGED_CURED_UUID) ? "Guéri" :
-                                eq(status, STATUS_DISCHARGED_NONCASE_UUID) ? "Sortie non-cas" :
-                                eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID) ? "Sortie à la maison" : ""
+                                eq(disStat, STATUS_DISCHARGED_CURED_UUID) ? "Guéri" :
+                                eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ? "Sortie non-cas" :
+                                eq(getCodedValue(dischargeObs.get(DISCHARGE_TO_UUID)), HOME_UUID) ? "Sortie à la maison" : ""
                             )),
-                            eq(status, STATUS_DISCHARGED_CURED_UUID) ||
-                            eq(status, STATUS_DISCHARGED_NONCASE_UUID) ||
+                            eq(disStat, STATUS_DISCHARGED_CURED_UUID) ||
+                            eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ||
                             eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID)
                         )
                     )),
@@ -435,12 +445,10 @@ class PatientPrinter {
     }
 
     public String getCodedValue(Patient pat, String conceptUuid) {
-        Obs obs = getObs(pat, conceptUuid);
-        return obs != null ? DbUtils.getUuid(obs.getValueCoded()) : null;
+        return getCodedValue(getObs(pat, conceptUuid));
     }
 
-    public String getAdmitCodedValue(Patient pat, String conceptUuid) {
-        Obs obs = getAdmitObs(pat, conceptUuid);
+    public String getCodedValue(Obs obs) {
         return obs != null ? DbUtils.getUuid(obs.getValueCoded()) : null;
     }
 
@@ -458,33 +466,27 @@ class PatientPrinter {
         return helper.getLatestObs(pat, conceptUuid);
     }
 
-    /** Returns the latest observation (of a particular concept) that was submitted with the Admission form. */
-    public Obs getAdmitObs(Patient pat, String conceptUuid) {
-        Utils.log("looking for %s for patiend %s", conceptUuid, pat.getPatientIdentifier("MSF"));
-        Obs lastAdmitObs = null;
-        for (Encounter enc : helper.getEncounters(pat)) {
-            boolean isAdmissionEncounter = false;
-            Obs matchedObs = null;
-            for (Obs obs : enc.getAllObs()) {
-                if (eq(getConceptUuid(obs), ADMISSION_DATETIME_UUID)) {
-                    isAdmissionEncounter = true;
-                }
-                if (eq(getConceptUuid(obs), conceptUuid)) {
-                    matchedObs = obs;
-                }
-            }
-            if (isAdmissionEncounter && matchedObs != null) {
-                Utils.log("enc at %s was an admission enc; save obs %s",
-                    enc.getEncounterDatetime(), matchedObs.getValueAsString(Locale.US));
-                lastAdmitObs = matchedObs;
-            }
-        }
-        return lastAdmitObs;
+    public Doc renderAdmission(List<Encounter> encounters) {
+        return div("admission",
+            div("heading", "Admission [fr:Admission]"),
+            div("observations",
+                renderObsList(helper.getLastObsByConcept(encounters))
+            )
+        );
     }
 
-    public Doc renderEvents(Patient pat) {
+    public Doc renderDischarge(List<Encounter> encounters) {
+        return div("discharge",
+            div("heading", "Discharge [fr:Sorti]"),
+            div("observations",
+                renderObsList(helper.getLastObsByConcept(encounters))
+            )
+        );
+    }
+
+    public Doc renderEvents(Patient pat, List<Encounter> evolution) {
         Sequence results = seq();
-        List<DataHelper.Event> events = helper.getEvents(pat);
+        List<DataHelper.Event> events = helper.getEvolution(pat, evolution);
         events = helper.mergeEvents(events, Duration.standardMinutes(10), Duration.standardMinutes(20));
         events = helper.deduplicateObs(events, CONCEPTS_OMIT_DUPLICATE_VALUES);
 
