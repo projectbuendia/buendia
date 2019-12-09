@@ -212,7 +212,8 @@ table.columns {
 }
 
 .history .heading {
-  font-size: 1rem;
+  margin: 2rem 0 1rem;
+  font-size: 1.6rem;
   font-weight: bold;
 }
 
@@ -230,6 +231,7 @@ table.columns {
 
 .intro .ident {
   float: right;
+  font-size: 3rem;
 }
 
 .intro .name {
@@ -247,11 +249,15 @@ table.columns {
   clear: both;
 }
 
-.event .time {
+.history .time {
   font-size: 1.4rem;
-  margin: 0;
-  padding-top: 1.4rem;
+  margin: 0 1rem;
+  padding-top: 0.7rem;
   padding-bottom: 0.7rem;
+}
+
+.event .time:first-of-type {
+  padding-top: 0;
 }
 
 .c-159393, .c-1642 {  /* diagnosis, final diagnosis */
