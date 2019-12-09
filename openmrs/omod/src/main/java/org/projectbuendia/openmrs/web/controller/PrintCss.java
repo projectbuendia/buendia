@@ -216,8 +216,8 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history .heading {\n" +
-        "  margin: 2rem 0 1rem;\n" +
-        "  font-size: 1.6rem;\n" +
+        "  margin: 1rem 0 0 0;\n" +
+        "  font-size: 1.2rem;\n" +
         "  font-weight: bold;\n" +
         "}\n" +
         "\n" +
@@ -243,7 +243,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history, .history td {\n" +
-        "  font-size: 0.9rem;\n" +
+        "  font-size: 0.8rem;\n" +
         "  font-weight: 400;\n" +
         "  line-height: 1.4;\n" +
         "}\n" +
@@ -254,11 +254,9 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history .time {\n" +
-        "  font-weight: bold;\n" +
-        "  font-size: 1.4rem;\n" +
-        "  margin: 0 1rem;\n" +
+        "  font-size: 1rem;\n" +
+        "  margin: 1rem 0 1rem 2rem;\n" +
         "  padding-top: 0.7rem;\n" +
-        "  padding-bottom: 0.7rem;\n" +
         "}\n" +
         "\n" +
         ".event .time:first-of-type {\n" +
@@ -274,7 +272,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".observations .form {\n" +
-        "  margin: 1em;\n" +
+        "  margin: 1em 0;\n" +
         "}\n" +
         "\n" +
         ".orders + .executions {\n" +
@@ -282,8 +280,9 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".orders h3, .executions h3 {\n" +
+        "margin: 0;\n" +
         "  font-weight: bold;\n" +
-        "  font-size: 0.9rem;\n" +
+        "  font-size: 0.8rem;\n" +
         "  color: #000;\n" +
         "}\n" +
         "\n" +
