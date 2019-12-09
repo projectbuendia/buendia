@@ -485,11 +485,17 @@ class PatientPrinter {
                 results.add(div(
                     "event",
                     el("h2 class='time'", helper.formatTime(event.time)),
-                    obsList.isEmpty() ? seq() : div("observations", obsList),
-                    orderList.isEmpty() ? seq() : div("orders",
-                        span("label", el("h3", intl("Treatments ordered [fr:Traitements commandés]"))), orderList),
-                    execList.isEmpty() ? seq() : div("executions",
-                        span("label", el("h3", intl("Treatments given [fr:Traitements donnés]"))), execList)
+                    columns(
+                        column("50%",
+                            obsList.isEmpty() ? seq() : div("observations", obsList)
+                        ),
+                        column("50%", div("treatments",
+                            orderList.isEmpty() ? seq() : div("orders",
+                                span("label", el("h3", intl("Treatments ordered [fr:Traitements commandés]"))), orderList),
+                            execList.isEmpty() ? seq() : div("executions",
+                                span("label", el("h3", intl("Treatments given [fr:Traitements donnés]"))), execList)
+                        ))
+                    )
                 ));
             }
         }
@@ -676,10 +682,14 @@ class PatientPrinter {
             span("dosage", renderQuantity(instr.amount));
         Route route = index.getRoute(instr.route);
         return div("treatment",
-            div("drug", span("label", intl("Drug [fr:Méd.]")), ": ", drug.name),
+            div("drug", span("label", intl("Drug [fr:Médicament]")), ": ", drug.name),
             div("format", span("label", intl("Format")), ": ", format.description),
-            div("dosageroute", span("label", intl("Dosage")), ": ", dosage, span("route", route.name)),
-            div("notes", span("label", intl("Notes [fr:Remarques]")), ": ", instr.notes)
+            div("dosageroute",
+                span("label", intl("Dosage")), ": ", dosage, " ",
+                span("route", format("%s (%s)", route.abbr, route.name))
+            ),
+            Utils.hasChars(instr.notes) ?
+                div("notes", span("label", intl("Notes [fr:Remarques]")), ": ", instr.notes) : seq()
         );
     }
 
@@ -704,10 +714,10 @@ class PatientPrinter {
             (stop != null ?
                 (doses > 0 ?
                     seq(renderQuantity(instr.frequency), ", ",
-                        format("starting %s, stopping %s after %d doses [fr:commencer %s, arreter %s après %d doses]",
+                        format("starting %s, stopping %s after %d doses [fr:commencer %s, arrêter %s après %d doses]",
                             helper.formatTime(start), helper.formatTime(stop), doses)) :
                     seq(renderQuantity(instr.frequency), ", ",
-                        format("starting %s, stopping %s [fr:commencer %s, arreter %s]",
+                        format("starting %s, stopping %s [fr:commencer %s, arrêter %s]",
                             helper.formatTime(start), helper.formatTime(stop)))
                 ) :
                 seq(renderQuantity(instr.frequency), ", ",
@@ -824,7 +834,7 @@ class PatientPrinter {
     private Doc blank(int size, Object... contents) {
         Sequence spaces = seq();
         for (int i = 0; i < size; i++) {
-            spaces.add(span("unit"));
+            spaces.add(span("space"));
         }
         return span("blank size" + size, span("spaces", spaces), span("contents", contents));
     }
@@ -836,13 +846,13 @@ class PatientPrinter {
     private Doc hspace(int size) {
         Sequence spaces = seq();
         for (int i = 0; i < size; i++) {
-            spaces.add(span("unit"));
+            spaces.add(span("space"));
         }
         return span("hspace size" + size, spaces);
     }
 
     private Doc hspace() {
-        return span("hspace", span("unit"));
+        return span("hspace", span("space"));
     }
 
     private Doc checkitem(Object label) {
