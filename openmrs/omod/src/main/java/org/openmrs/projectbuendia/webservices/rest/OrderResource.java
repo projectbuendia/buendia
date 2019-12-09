@@ -5,8 +5,6 @@ import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
-import org.openmrs.api.OrderService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -20,9 +18,7 @@ import org.projectbuendia.openmrs.webservices.rest.RestController;
 
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 
@@ -94,7 +90,7 @@ public class OrderResource extends BaseResource<Order> {
         Provider provider = DbUtils.providersByUuid.get(Utils.getRequiredString(data, "provider_uuid"));
         Date dateUpdated = new Date();
 
-        Order lastOrder = getLastRevision(order);
+        Order lastOrder = DbUtils.getLastRevision(order);
         Order newOrder = lastOrder.cloneForRevision();
         newOrder.setCreator(DbUtils.getAuthenticatedUser());
         newOrder.setDateCreated(dateUpdated);
@@ -124,7 +120,7 @@ public class OrderResource extends BaseResource<Order> {
     }
 
     @Override protected void deleteItem(Order order, String reason, RequestContext context) {
-        for (order = getLastRevision(order); order != null; order = order.getPreviousOrder()) {
+        for (order = DbUtils.getLastRevision(order); order != null; order = order.getPreviousOrder()) {
             orderService.voidOrder(order, reason + " (from Buendia client)");
         }
     }
@@ -133,7 +129,7 @@ public class OrderResource extends BaseResource<Order> {
         // The UUID on the client is for the order at the head of the revision chain...
         Order rootOrder = DbUtils.getRootOrder(order);
         // ...but the data we return should come from the last revision in the chain.
-        order = getLastRevision(rootOrder);
+        order = DbUtils.getLastRevision(rootOrder);
 
         json.add("uuid", rootOrder.getUuid());
         if (order.getPatient() != null) {
@@ -151,30 +147,6 @@ public class OrderResource extends BaseResource<Order> {
         if (stop != null) {
             json.add("stop_time", Utils.formatUtc8601(stop));
         }
-    }
-
-    /**
-     * Finds the last order in the chain containing the given order. We need to do this instead of
-     * using {@link OrderService#getRevisionOrder(Order)} because {@code getRevisionOrder(Order)}
-     * only gets orders that have an action of {@link org.openmrs.Order.Action#REVISE}. To use
-     * {@code REVISE}, the previous order needs to have not expired, which we can't guarantee.
-     */
-    public static Order getLastRevision(Order order) {
-        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
-        Map<String, String> nextOrderUuids = new HashMap<>();
-        for (Order o : Context.getOrderService().getAllOrdersByPatient(order.getPatient())) {
-            Order prev = o.getPreviousOrder();
-            if (prev != null) {
-                nextOrderUuids.put(prev.getUuid(), o.getUuid());
-            }
-        }
-
-        // Walk forward until the end of the chain.
-        String uuid = order.getUuid();
-        while (nextOrderUuids.containsKey(uuid)) {
-            uuid = nextOrderUuids.get(uuid);
-        }
-        return Context.getOrderService().getOrderByUuid(uuid);
     }
 
     private static boolean orderHasExpired(Order order) {

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+css="$1"
+java=${css%.css}.java
+
+sed -e 's/^/        "/' -e 's/$/\\n" +/' < "$css" > "$java"
+
+
