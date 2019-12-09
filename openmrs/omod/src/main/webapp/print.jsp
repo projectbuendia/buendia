@@ -21,7 +21,7 @@ input[type="submit"], button {
 }
 
 #content form td {
-  padding-right: 1rem;
+  padding-right: 2rem;
 }
 
 #content form ul {
@@ -31,7 +31,7 @@ input[type="submit"], button {
 #content form li {
   list-style: none;
   transition: none;
-  padding: 0.3rem;
+  padding: 0.2rem;
   border-radius: 0.5rem;
   border: 1px solid transparent;
   white-space: nowrap;
@@ -68,6 +68,16 @@ h2 {
   border: 1px solid #cde;
 }
 
+.ident {
+  font-weight: bold;
+  padding: 0 0.1rem;
+  color: #099;
+}
+
+.ident::after {
+  content: ".";
+}
+
 </style>
 
 <h1>Print</h1>
@@ -89,9 +99,11 @@ h2 {
 <h2>All Patient Records</h2>
 <ul>
 <c:forEach var="obs" items="${allAdmissions}">
-  <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="adm-${obs.patient.uuid}"/>
   <label for="adm-${obs.patient.uuid}">
-    Admitted ${obs.formattedValueTime}: ${fn:escapeXml(obs.patient.personName)}
+    <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="adm-${obs.patient.uuid}"/>
+    Admitted ${obs.formattedValueTime} &#x2014;
+    <span class="ident">${fn:escapeXml(obs.patientId)}</span>
+    ${fn:escapeXml(obs.patient.personName)}</li>: ${fn:escapeXml(obs.patient.personName)}</li>
   </label>
 </c:forEach>
 </ul>
@@ -109,7 +121,9 @@ h2 {
 <c:forEach var="obs" items="${admissions}">
   <label for="adm-${obs.patient.uuid}">
     <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="adm-${obs.patient.uuid}"/>
-    ${obs.formattedValueTime}: ${fn:escapeXml(obs.patient.personName)}
+    ${obs.formattedValueTime} &#x2014;
+    <span class="ident">${fn:escapeXml(obs.patientId)}</span>
+    ${fn:escapeXml(obs.patient.personName)}</li>
   </label>
 </c:forEach>
 </ul>
@@ -119,7 +133,9 @@ h2 {
 <c:forEach var="obs" items="${discharges}">
   <label for="dis-${obs.patient.uuid}">
     <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="dis-${obs.patient.uuid}"/>
-    ${obs.formattedObsTime}: ${fn:escapeXml(obs.patient.personName)}
+    ${obs.formattedObsTime} &#x2014;
+    <span class="ident">${fn:escapeXml(obs.patientId)}</span>
+    ${fn:escapeXml(obs.patient.personName)}</li>
   </label>
 </c:forEach>
 </ul>
@@ -133,8 +149,9 @@ h2 {
 <c:forEach var="pp" items="${inpatients}">
   <label for="inp-${pp.patient.uuid}">
     <li><input type=checkbox onchange="update(this)" name="patient" value="${pp.patient.uuid}" id="inp-${pp.patient.uuid}"/>
-    ${fn:escapeXml(pp.placement.description)} -
-    ${fn:escapeXml(pp.patient.personName)}
+    ${fn:escapeXml(pp.placement.description)} &#x2014;
+    <span class="ident">${fn:escapeXml(pp.patientId)}</span>
+    ${fn:escapeXml(pp.patient.personName)}</li>
   </label>
 </c:forEach>
 </ul>
