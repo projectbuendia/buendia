@@ -182,6 +182,9 @@ class PatientPrinter {
     public static String TB_UUID = UNKNOWN;
     public static String RENAL_DISEASE_UUID = UNKNOWN;
 
+    public static String NO_KNOWN_ALLERGIES_UUID = toUuid(10160557);
+    public static String ALLERGY_DESCRIPTION_UUID = toUuid(3160647);
+
     public Doc renderAdmissionForm(Patient pat) {
         History history = helper.getHistory(pat);
 
@@ -189,6 +192,7 @@ class PatientPrinter {
         Obs pregnancy = admissionObs.get(PREGNANCY_UUID);
         Obs pregnancyTest = admissionObs.get(PREGNANCY_TEST_UUID);
         String admStat = getCodedValue(admissionObs.get(STATUS_UUID));
+        String allergyDesc = getTextValue(admissionObs.get(ALLERGY_DESCRIPTION_UUID));
 
         String disStat = getCodedValue(pat, STATUS_UUID);
         String disDest = getCodedValue(pat, DISCHARGE_DESTINATION_UUID);
@@ -318,9 +322,14 @@ class PatientPrinter {
                     ),
                     column("40%",
                         block("physical",
-                            line(field("Allergies:", yesNo())),
+                            div("multiline",
+                                line(field("Allergies:",
+                                    checkitem("Oui", isNo(admissionObs.get(NO_KNOWN_ALLERGIES_UUID)) || !allergyDesc.isEmpty()),
+                                    checkitem("Non", isYes(admissionObs.get(NO_KNOWN_ALLERGIES_UUID)) && allergyDesc.isEmpty())
+                                ))
+                            ),
                             line(field("Si oui, spécifiez:", blank(6))),
-                            line(field("", blank(8))),
+                            line(field(allergyDesc, blank(8))),
                             vspace(),
                             line(field("Poids:", blank(2, renderNumber(getNumericValue(pat, WEIGHT_KG_UUID))), " kg")),
                             vspace(),
@@ -437,7 +446,10 @@ class PatientPrinter {
     }
 
     public String getTextValue(Patient pat, String conceptUuid) {
-        Obs obs = getObs(pat, conceptUuid);
+        return getTextValue(getObs(pat, conceptUuid));
+    }
+
+    public String getTextValue(Obs obs) {
         return obs != null ? obs.getValueText() : "";
     }
 

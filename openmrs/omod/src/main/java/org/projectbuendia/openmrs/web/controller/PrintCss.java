@@ -270,7 +270,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".label {\n" +
-        "  color: #699;\n" +
+        "  color: #099;\n" +
         "}\n" +
         "\n" +
         ".observations .form {\n" +
