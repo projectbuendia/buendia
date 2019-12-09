@@ -14,14 +14,14 @@ body {
 
 /* Admission */
 
-.admission {
+.admission-form {
   font-family: verdana;
   font-size: 0.6rem;
   margin: 0;
   page-break-after: always;
 }
 
-.admission td {
+.admission-form td {
   font-size: 0.6rem;
 }
 
@@ -38,25 +38,25 @@ body {
   white-space: nowrap;
 }
 
-.admission .title .heading {
+.admission-form .title .heading {
   padding-left: 0.5rem;
   font-weight: bold;
   font-size: 0.8rem;
 }
 
-.admission .title .heading, .admission .title .patient-id {
+.admission-form .title .heading, .admission-form .title .patient-id {
   margin-bottom: 0.5rem;
 }
 
-.admission .patient-id {
+.admission-form .patient-id {
   float: right;
 }
 
-.admission .section {
+.admission-form .section {
   clear: both;
 }
 
-.admission .section .heading {
+.admission-form .section .heading {
   display: block;
   font-size: 0.8rem;
   font-weight: normal;

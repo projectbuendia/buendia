@@ -190,7 +190,7 @@ class PatientPrinter {
         String admStat = getCodedValue(admissionObs.get(STATUS_UUID));
         String disStat = getCodedValue(dischargeObs.get(STATUS_UUID));
 
-        return div("admission",
+        return div("admission-form",
             div("title",
                 columns(
                     column("50%",
@@ -467,7 +467,7 @@ class PatientPrinter {
 
     public Doc renderAdmission(List<Encounter> encounters) {
         return div("admission",
-            div("heading", "Admission [fr:Admission]"),
+            div("heading", intl("Admission [fr:Admission]")),
             div("observations",
                 renderObsList(helper.getLastObsByConcept(encounters))
             )
@@ -476,7 +476,7 @@ class PatientPrinter {
 
     public Doc renderDischarge(List<Encounter> encounters) {
         return div("discharge",
-            div("heading", "Discharge [fr:Sorti]"),
+            div("heading", intl("Discharge [fr:Sorti]")),
             div("observations",
                 renderObsList(helper.getLastObsByConcept(encounters))
             )
@@ -512,7 +512,10 @@ class PatientPrinter {
                 ));
             }
         }
-        return div("events", results);
+        return div("evolution",
+            div("heading", intl("Evolution [fr:Evolution]")),
+            div("events", results)
+        );
     }
 
     private Sequence renderObsList(Map<String, Obs> obsMap) {
