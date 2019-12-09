@@ -71,27 +71,17 @@ class PatientPrinter {
         this.helper = helper;
     }
 
-    public void printPreamble() throws IOException {
+    public void printPrologue() throws IOException {
         writer.write("<meta charset='UTF-8'>");
         writer.write("<style>");
         writer.write(PrintCss.CSS);
         writer.write("</style>");
-        /*
-        try {
-            InputStream stream = new FileInputStream("/Users/ping/dev/buendia/openmrs/style.css");
-            InputStreamReader reader = new InputStreamReader(stream);
-            char[] buffer = new char[1024];
-            writer.write("<style>");
-            while (reader.ready()) {
-                int count = reader.read(buffer);
-                if (count < 0) break;
-                writer.write(new String(buffer, 0, count));
-            }
-            writer.write("</style>");
-        } catch (IOException e) {
-            writer.write("<link rel='stylesheet' href='style.css'>");
-        }
-        */
+    }
+
+    public void printEpilogue() throws IOException {
+        writer.write("<script>");
+        writer.write("window.onload = print;");
+        writer.write("</script>");
     }
 
     public void printAdmissionForm(Patient pat) throws IOException {

@@ -74,7 +74,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
         DataHelper helper = getDataHelper(request);
         response.setCharacterEncoding("utf-8");
         PatientPrinter printer = new PatientPrinter(response.getWriter(), helper.getLocale(), helper);
-        printer.printPreamble();
+        printer.printPrologue();
         Enumeration<String> names = request.getParameterNames();
         Set<String> printedUuids = new HashSet<>();
         while (names.hasMoreElements()) {
@@ -90,5 +90,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
                 }
             }
         }
+        printer.printEpilogue();
     }
 }

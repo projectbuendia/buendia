@@ -69,7 +69,6 @@ h2 {
 }
 
 .ident {
-  font-weight: bold;
   padding: 0 0.1rem;
   color: #099;
 }
@@ -103,7 +102,7 @@ h2 {
     <li><input type=checkbox onchange="update(this)" name="patient" value="${obs.patient.uuid}" id="adm-${obs.patient.uuid}"/>
     Admitted ${obs.formattedValueTime} &#x2014;
     <span class="ident">${fn:escapeXml(obs.patientId)}</span>
-    ${fn:escapeXml(obs.patient.personName)}</li>: ${fn:escapeXml(obs.patient.personName)}</li>
+    ${fn:escapeXml(obs.patient.personName)}</li>
   </label>
 </c:forEach>
 </ul>
