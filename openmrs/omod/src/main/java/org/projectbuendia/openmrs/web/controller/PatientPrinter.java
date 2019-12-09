@@ -28,10 +28,7 @@ import org.projectbuendia.openmrs.web.controller.DataHelper.History;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
-import static org.openmrs.projectbuendia.Utils.toLocalDateTime;
 import static org.openmrs.projectbuendia.Utils.toUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
@@ -170,7 +166,7 @@ class PatientPrinter {
     public static String STATUS_DEATH_NONCASE_UUID = toUuid(4900026);
     public static String STATUS_DEATH_CONFIRMED_UUID = toUuid(4900027);
     public static String DISCHARGE_DATETIME_UUID = toUuid(8001641);
-    public static String DISCHARGE_TO_UUID = toUuid(2001695);
+    public static String DISCHARGE_DESTINATION_UUID = toUuid(2001695);
     public static String HOME_UUID = toUuid(2001692);
     public static String HOSPITAL_UUID = toUuid(2001693);
 
@@ -188,13 +184,14 @@ class PatientPrinter {
 
     public Doc renderAdmissionForm(Patient pat) {
         History history = helper.getHistory(pat);
-        Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
-        Map<String, Obs> dischargeObs = helper.getLastObsByConcept(history.discharge);
 
+        Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
         Obs pregnancy = admissionObs.get(PREGNANCY_UUID);
         Obs pregnancyTest = admissionObs.get(PREGNANCY_TEST_UUID);
         String admStat = getCodedValue(admissionObs.get(STATUS_UUID));
-        String disStat = getCodedValue(dischargeObs.get(STATUS_UUID));
+
+        String disStat = getCodedValue(pat, STATUS_UUID);
+        String disDest = getCodedValue(pat, DISCHARGE_DESTINATION_UUID);
 
         return div("admission-form",
             div("title",
@@ -366,17 +363,17 @@ class PatientPrinter {
                             eq(disStat, STATUS_DEATH_CONFIRMED_UUID)
                         ),
                         checkitem("Transferé",
-                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOSPITAL_UUID)
+                            eq(getCodedValue(pat, DISCHARGE_DESTINATION_UUID), HOSPITAL_UUID)
                         ),
                         checkitem(
                             field("Autre, spécifiez:", blank(6,
                                 eq(disStat, STATUS_DISCHARGED_CURED_UUID) ? "Guéri" :
                                 eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ? "Sortie non-cas" :
-                                eq(getCodedValue(dischargeObs.get(DISCHARGE_TO_UUID)), HOME_UUID) ? "Sortie à la maison" : ""
+                                eq(disDest, HOME_UUID) ? "Sortie à la maison" : ""
                             )),
                             eq(disStat, STATUS_DISCHARGED_CURED_UUID) ||
                             eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ||
-                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID)
+                            eq(getCodedValue(pat, DISCHARGE_DESTINATION_UUID), HOME_UUID)
                         )
                     )),
                     line(
