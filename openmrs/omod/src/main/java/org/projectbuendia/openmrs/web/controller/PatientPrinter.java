@@ -103,6 +103,7 @@ class PatientPrinter {
 
     public Doc renderIntro(Patient pat) {
         return div("intro",
+            div("ident", pat.getPatientIdentifier("MSF")),
             div("name", pat.getPersonName().getFullName()),
             div("agesex", renderAge(pat), ", ", renderSex(pat))
         );
@@ -115,7 +116,9 @@ class PatientPrinter {
         int years = age.getYears();
         int months = age.getMonths();
         return span("age", format(
-            months > 0 ? "%d y, %d mo [fr:%d a, %d mo]" : "%d y [fr:%d a]",
+            years == 0 ? "%2$d mo [fr:%2$d mo]" :
+                months == 0 ? "%1$d y [fr:%1$d a]" :
+                    "%d y %d mo [fr:%d a %d mo]",
             years, months
         ));
     }
@@ -141,7 +144,7 @@ class PatientPrinter {
     public static String AIRE_SANTE_UUID = toUuid(3900004);
     public static String VILLAGE_UUID = toUuid(3001354);
 
-    public static String ADMISSION_TIME_UUID = toUuid(8001640);
+    public static String ADMISSION_DATETIME_UUID = toUuid(8001640);
     public static String SYMPTOM_START_UUID = toUuid(6001730);
     public static String STATUS_UUID = toUuid(2900005);
     public static String STATUS_SUSPECT_UUID = toUuid(4142177);
@@ -151,7 +154,7 @@ class PatientPrinter {
     public static String STATUS_DISCHARGED_CURED_UUID = toUuid(4159791);
     public static String STATUS_DEATH_NONCASE_UUID = toUuid(4900026);
     public static String STATUS_DEATH_CONFIRMED_UUID = toUuid(4900027);
-    public static String DISCHARGE_DATE_UUID = toUuid(6001641);
+    public static String DISCHARGE_DATETIME_UUID = toUuid(8001641);
     public static String DISCHARGE_TO_UUID = toUuid(2001695);
     public static String HOME_UUID = toUuid(2001692);
     public static String HOSPITAL_UUID = toUuid(2001693);
@@ -236,8 +239,8 @@ class PatientPrinter {
                 columns(
                     column("50%",
                         block("dates",
-                            line(field("* Date d'admission:", renderDate(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
-                            line(field("Heure d'admission:", renderTime(getDateTimeValue(pat, ADMISSION_TIME_UUID)))),
+                            line(field("* Date d'admission:", renderDate(getDateTimeValue(pat, ADMISSION_DATETIME_UUID)))),
+                            line(field("Heure d'admission:", renderTime(getDateTimeValue(pat, ADMISSION_DATETIME_UUID)))),
                             line(field("* Date de début des symptômes:", renderDate(getDateValue(pat, SYMPTOM_START_UUID))))
                         )
                     ),
@@ -319,7 +322,9 @@ class PatientPrinter {
                 block("result",
                     line(
                         field("* Statut final:",
-                            checkitem("Confirmé", eq(status, STATUS_CONFIRMED_UUID)),
+                            checkitem("Confirmé",
+                                eq(status, STATUS_CONFIRMED_UUID) ||
+                                eq(status, STATUS_DEATH_CONFIRMED_UUID)),
                             checkitem("Pas un cas",
                                 eq(status, STATUS_DISCHARGED_NONCASE_UUID) ||
                                 eq(status, STATUS_DEATH_NONCASE_UUID)
@@ -333,7 +338,7 @@ class PatientPrinter {
                             )
                         ),
                         hspace(),
-                        field("* Date de sortie:", renderDate(getDateValue(pat, DISCHARGE_DATE_UUID)))
+                        field("* Date de sortie:", renderDate(getDateValue(pat, DISCHARGE_DATETIME_UUID)))
                     ),
                     line(field("* Résultat final:",
                         checkitem("Sortie en revalidation"),
@@ -351,7 +356,7 @@ class PatientPrinter {
                                 eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID) ? "Sortie à la maison" : ""
                             )),
                             eq(status, STATUS_DISCHARGED_CURED_UUID) ||
-                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID) ||
+                            eq(status, STATUS_DISCHARGED_NONCASE_UUID) ||
                             eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID)
                         )
                     )),
@@ -451,19 +456,22 @@ class PatientPrinter {
 
     /** Returns the latest observation (of a particular concept) that was submitted with the Admission form. */
     public Obs getAdmitObs(Patient pat, String conceptUuid) {
+        Utils.log("looking for %s for patiend %s", conceptUuid, pat.getPatientIdentifier("MSF"));
         Obs lastAdmitObs = null;
         for (Encounter enc : helper.getEncounters(pat)) {
             boolean isAdmissionEncounter = false;
             Obs matchedObs = null;
             for (Obs obs : enc.getAllObs()) {
-                if (eq(getConceptUuid(obs), ADMISSION_TIME_UUID)) {
+                if (eq(getConceptUuid(obs), ADMISSION_DATETIME_UUID)) {
                     isAdmissionEncounter = true;
                 }
                 if (eq(getConceptUuid(obs), conceptUuid)) {
                     matchedObs = obs;
                 }
             }
-            if (isAdmissionEncounter) {
+            if (isAdmissionEncounter && matchedObs != null) {
+                Utils.log("enc at %s was an admission enc; save obs %s",
+                    enc.getEncounterDatetime(), matchedObs.getValueAsString(Locale.US));
                 lastAdmitObs = matchedObs;
             }
         }
@@ -679,7 +687,9 @@ class PatientPrinter {
                 renderQuantity(instr.amount),
                 renderQuantity(instr.duration)
             )) :
-            span("dosage", renderQuantity(instr.amount));
+            instr.amount != null ?
+                span("dosage", renderQuantity(instr.amount)) : seq();
+
         Route route = index.getRoute(instr.route);
         return div("treatment",
             div("drug", span("label", intl("Drug [fr:Médicament]")), ": ", drug.name),
@@ -714,14 +724,14 @@ class PatientPrinter {
             (stop != null ?
                 (doses > 0 ?
                     seq(renderQuantity(instr.frequency), ", ",
-                        format("starting %s, stopping %s after %d doses [fr:commencer %s, arrêter %s après %d doses]",
+                        format("starting %s; stopping %s after %d doses [fr:commencer %s; arrêter %s après %d doses]",
                             helper.formatTime(start), helper.formatTime(stop), doses)) :
                     seq(renderQuantity(instr.frequency), ", ",
-                        format("starting %s, stopping %s [fr:commencer %s, arrêter %s]",
+                        format("starting %s; stopping %s [fr:commencer %s; arrêter %s]",
                             helper.formatTime(start), helper.formatTime(stop)))
                 ) :
                 seq(renderQuantity(instr.frequency), ", ",
-                    format("starting %s, continuing indefinitely [fr:commencer %s, continuer indéfiniment]"))
+                    format("starting %s, continuing indefinitely [fr:commencer %s; continuer indéfiniment]"))
             ) :
             format("one dose only, ordered %s [fr:dose unique, commandé %s]",
                 helper.formatTime(start))
