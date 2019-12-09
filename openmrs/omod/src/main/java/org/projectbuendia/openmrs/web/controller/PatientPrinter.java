@@ -77,6 +77,10 @@ class PatientPrinter {
 
     public void printPreamble() throws IOException {
         writer.write("<meta charset='UTF-8'>");
+        writer.write("<style>");
+        writer.write(PrintCss.CSS);
+        writer.write("</style>");
+        /*
         try {
             InputStream stream = new FileInputStream("/Users/ping/dev/buendia/openmrs/style.css");
             InputStreamReader reader = new InputStreamReader(stream);
@@ -91,6 +95,7 @@ class PatientPrinter {
         } catch (IOException e) {
             writer.write("<link rel='stylesheet' href='style.css'>");
         }
+        */
     }
 
     public void printAdmissionForm(Patient pat) throws IOException {
