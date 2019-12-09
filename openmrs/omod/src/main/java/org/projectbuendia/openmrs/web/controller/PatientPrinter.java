@@ -43,7 +43,6 @@ import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.toUuid;
-import static org.openmrs.projectbuendia.webservices.rest.DbUtils.getConceptUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;

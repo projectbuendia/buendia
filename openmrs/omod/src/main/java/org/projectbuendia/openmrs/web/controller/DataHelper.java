@@ -202,7 +202,8 @@ public class DataHelper {
         Concept concept = conceptService.getConceptByUuid(conceptUuid);
         if (concept != null) {
             for (Patient patient : patientService.getAllPatients()) {
-                results.put(patient.getUuid(), getLatestObs(patient, concept));
+                Obs obs = getLatestObs(patient, concept);
+                if (obs != null) results.put(patient.getUuid(), obs);
             }
         }
         return results;
