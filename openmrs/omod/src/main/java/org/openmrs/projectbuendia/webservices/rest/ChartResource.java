@@ -40,11 +40,11 @@ public class ChartResource extends BaseResource<Form> {
         super("charts", Representation.DEFAULT, Representation.FULL);
     }
 
-    @Override protected Collection<Form> listItems(RequestContext context) {
+    @Override protected List<Form> listItems(RequestContext context) {
         return getChartForms(formService);
     }
 
-    public static Collection<Form> getChartForms(FormService formService) {
+    public static List<Form> getChartForms(FormService formService) {
         List<Form> charts = new ArrayList<>();
         for (Form form : formService.getAllForms()) {
             if (DbUtils.isChartForm(form)) {

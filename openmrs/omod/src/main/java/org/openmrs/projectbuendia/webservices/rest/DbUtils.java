@@ -11,6 +11,7 @@
 
 package org.openmrs.projectbuendia.webservices.rest;
 
+import org.openmrs.BaseOpenmrsMetadata;
 import org.openmrs.CareSetting;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
@@ -20,7 +21,9 @@ import org.openmrs.ConceptNumeric;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterRole;
 import org.openmrs.EncounterType;
+import org.openmrs.Field;
 import org.openmrs.Form;
+import org.openmrs.FormField;
 import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.OpenmrsObject;
@@ -56,10 +59,12 @@ import javax.annotation.Nullable;
 
 import static org.openmrs.projectbuendia.Utils.ALPHANUMERIC_COMPARATOR;
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.toUuid;
 
 /** Static helper methods for handling OpenMRS database entities and UUIDs. */
 public class DbUtils {
     public static final Locale DEFAULT_LOCALE = Locale.forLanguageTag("en");
+    public static final Locale BUENDIA_LOCALE = new Locale("buendia");
 
     // The OpenMRS "uuid" field is misnamed; OpenMRS uses the field for arbitrary
     // string IDs unrelated to RFC 4122.  Therefore, to prevent collisions and
@@ -258,6 +263,10 @@ public class DbUtils {
         return Locale.forLanguageTag(languageTag.trim());
     }
 
+    public static String getConceptName(Concept concept) {
+        return getConceptName(concept, BUENDIA_LOCALE);
+    }
+
     public static String getConceptName(Concept concept, Locale locale) {
         ConceptName name = concept.getName(locale, true);
         if (name != null) return name.getName();
@@ -283,6 +292,61 @@ public class DbUtils {
 
     public static ConceptClass getConceptClass(String name) {
         return Context.getConceptService().getConceptClassByName(name);
+    }
+
+    public static String getUuid(Concept concept) {
+        if (concept == null) return null;
+        return concept.getUuid();
+    }
+
+    public static Concept getConcept(Obs obs) {
+        if (obs == null) return null;
+        return obs.getConcept();
+    }
+
+    public static String getConceptUuid(Obs obs) {
+        return getUuid(getConcept(obs));
+    }
+
+    public static Concept getConcept(Field field) {
+        if (field == null) return null;
+        return field.getConcept();
+    }
+
+    public static Field getField(FormField ff) {
+        if (ff == null) return null;
+        return ff.getField();
+    }
+
+    public static String getConceptUuid(Field field) {
+        return getUuid(getConcept(field));
+    }
+
+    public static String getConceptUuid(FormField ff) {
+        return getUuid(getConcept(getField(ff)));
+    }
+
+    public static String getName(BaseOpenmrsMetadata obj) {
+        if (obj == null) return null;
+        return Utils.toNonnull(obj.getName());
+    }
+
+    public static boolean isYes(Obs obs) {
+        if (obs == null) return false;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4001065))) return true;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4000703))) return true;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return value;
+    }
+
+    public static boolean isNo(Obs obs) {
+        if (obs == null) return false;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4001066))) return true;
+        if (eq(getUuid(obs.getValueCoded()), toUuid(4000664))) return true;
+        Boolean value = obs.getValueAsBoolean();
+        if (value == null) return false;
+        return !value;
     }
 
     /** Returns the currently authenticated user. */
@@ -324,6 +388,30 @@ public class DbUtils {
             order = order.getPreviousOrder();
         }
         return order;
+    }
+
+    /**
+     * Finds the last order in the chain containing the given order. We need to do this instead of
+     * using {@link OrderService#getRevisionOrder(Order)} because {@code getRevisionOrder(Order)}
+     * only gets orders that have an action of {@link Order.Action#REVISE}. To use
+     * {@code REVISE}, the previous order needs to have not expired, which we can't guarantee.
+     */
+    public static Order getLastRevision(Order order) {
+        // Construct a map of forward pointers using the backward pointers from getPreviousOrder().
+        Map<String, String> nextOrderUuids = new HashMap<>();
+        for (Order o : Context.getOrderService().getAllOrdersByPatient(order.getPatient())) {
+            Order prev = o.getPreviousOrder();
+            if (prev != null) {
+                nextOrderUuids.put(prev.getUuid(), o.getUuid());
+            }
+        }
+
+        // Walk forward until the end of the chain.
+        String uuid = order.getUuid();
+        while (nextOrderUuids.containsKey(uuid)) {
+            uuid = nextOrderUuids.get(uuid);
+        }
+        return Context.getOrderService().getOrderByUuid(uuid);
     }
 
     /** Gets or creates a PersonAttributeType with a given UUID and name. */

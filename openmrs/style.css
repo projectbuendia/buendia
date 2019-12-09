@@ -1,0 +1,294 @@
+/* Global */
+
+html {
+  font-size: 15px;
+}
+
+body {
+  margin: 0;
+}
+
+.columns tr {
+  vertical-align: top;
+}
+
+/* Admission */
+
+.admission-form {
+  font-family: verdana;
+  font-size: 0.6rem;
+  margin: 0;
+  page-break-after: always;
+}
+
+.admission-form td {
+  font-size: 0.6rem;
+}
+
+.line {
+  padding-top: 0.2rem;
+}
+
+.followup .row:first-of-type {
+  padding-bottom: 0.2rem;
+}
+
+.line, .subhead, .vspace {
+  min-height: 1rem;
+  white-space: nowrap;
+}
+
+.admission-form .title .heading {
+  padding-left: 0.5rem;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.admission-form .title .heading, .admission-form .title .patient-id {
+  margin-bottom: 0.5rem;
+}
+
+.admission-form .patient-id {
+  float: right;
+}
+
+.admission-form .section {
+  clear: both;
+}
+
+.admission-form .section .heading {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: normal;
+  text-align: center;
+  padding: 0.4rem 0.6rem;
+  background: #666;
+  color: white;
+}
+
+td .block {
+  border-right: 0.1rem solid black;
+}
+
+.block {
+  border-top: 0.1rem solid black;
+  padding: 0.5rem;
+}
+
+td:last-of-type .block {
+  border-right: none;
+}
+
+.blank {
+  margin: 0 0.2rem 0 0;
+  padding: 0.04rem;
+  border-bottom: 0.1rem solid black;
+  display: inline-block;
+}
+
+.spaces {
+  display: block;
+}
+
+.blank .contents {
+  display: block;
+  font-family: arial;
+  font-size: 0.8rem;
+  text-align: center;
+  margin: -0.1rem 0;
+}
+
+.space {
+  width: 1.5rem;
+  display: inline-block;
+}
+
+table.columns {
+  width: 100%;
+}
+
+.field .label {
+  margin-left: 1rem;
+  margin-right: 0.2rem;
+}
+
+.field:first-of-type .label {
+  margin-left: 0;
+}
+
+.section {
+  border-left: 1px solid black;
+  border-right: 1px solid black;
+  display: block;
+}
+
+.section:last-of-type {
+  border-bottom: 1px solid black;
+}
+
+.ox:first-of-type {
+  margin-left: 0;
+}
+
+.checkitem:first-of-type{
+  margin-left: 0.2rem;
+}
+
+.checkitem {
+  margin-left: 0.6rem;
+}
+
+.checkitem input {
+  height: 0.8rem;
+  margin: 0 0.2rem 0.2rem 0; 
+}
+
+.checkitem .label {
+  margin-left: 0.4rem;
+}
+
+.stack {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.stack .row {
+  display: block;
+}
+
+.subhead {
+  font-weight: bold;
+}
+
+.agesex .hspace .unit {
+  width: 0.5rem;
+}
+
+.residence .hspace .unit {
+  width: 3rem;
+}
+
+.pregnancy .subhead {
+  font-style: italic;
+}
+
+.pregnancy + .columns td:first-of-type {  
+  width: 60%;
+}
+
+.comorbidities td {
+  width: 50% !important;
+}
+
+.comorbidities {
+  padding: 0;
+}
+
+.comorbidities .subhead {
+  background: #ddd;
+  padding: 0.3rem 0.5rem 0;
+}
+
+.comorbidities .subhead td {
+  font-weight: bold;
+}
+
+.comorbidities .line {
+  padding: 0.2rem 0.5rem 0;
+  border-top: 0.1rem solid #999;
+}
+
+.followup .stack {
+  margin-left: 0.3rem;
+}
+
+
+/* History */
+
+.history {
+  font-family: helvetica, arial, sans-serif;
+  margin: 1rem;
+  page-break-after: always;
+}
+
+.history .heading {
+  margin: 2rem 0 1rem;
+  font-size: 1.6rem;
+  font-weight: bold;
+}
+
+.history .obs,
+.history .treatment > div,
+.history .schedule,
+.history .execution > div {
+  padding-left: 2em;
+  text-indent: -2em;
+}
+
+.intro {
+  font-size: 2rem;
+}
+
+.intro .ident {
+  float: right;
+  font-size: 3rem;
+}
+
+.intro .name {
+  font-weight: bold;
+}
+
+.history, .history td {
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.event {
+  margin: 2em 0;
+  clear: both;
+}
+
+.history .time {
+  font-weight: bold;
+  font-size: 1.4rem;
+  margin: 0 1rem;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+.event .time:first-of-type {
+  padding-top: 0;
+}
+
+.c-159393, .c-1642 {  /* diagnosis, final diagnosis */
+  font-weight: bold;
+}
+
+.label {
+  color: #699;
+}
+
+.observations .form {
+  margin: 1em;
+}
+
+.orders h3, .executions h3 {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #000;
+}
+
+.order, .execution {
+  margin: 1rem 0;
+}
+
+.order > .label, .order .action, .execution > .label {
+  display: none;
+}
+
+.drug, .format {
+  display: block;
+}
+
+

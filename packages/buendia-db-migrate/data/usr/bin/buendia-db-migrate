@@ -56,9 +56,9 @@ if [[ $current_minor =~ ^(0.9|0.10|0.11|0.12)$ ]]; then
     fi
 fi
 
-if [[ $current_minor =~ ^(0.13|0.14|0.15|0.16|0.17|0.18|0.19)$ ]]; then
-    if [[ $target_minor =~ ^(0.13|0.14|0.15|0.16|0.17|0.18|0.19)$ ]]; then
-        echo "$0: Migrated from $current to $target (no-op: no schema changes from 0.13 through 0.19)."
+if [[ $current_minor =~ ^(0.13|0.14|0.15|0.16|0.17|0.18|0.19|0.20)$ ]]; then
+    if [[ $target_minor =~ ^(0.13|0.14|0.15|0.16|0.17|0.18|0.19|0.20)$ ]]; then
+        echo "$0: Migrated from $current to $target (no-op: no schema changes from 0.13 through 0.20)."
         exit 0
     fi
 fi
