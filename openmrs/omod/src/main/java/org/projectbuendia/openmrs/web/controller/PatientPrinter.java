@@ -733,7 +733,7 @@ class PatientPrinter {
         DateTime stop = helper.toLocalDateTime(order.getAutoExpireDate());
         Instructions instr = new Instructions(order.getInstructions());
         int doses = 0;
-        if (instr.isSeries() && eq(instr.frequency.unit, Unit.PER_DAY)) {
+        if (stop != null && instr.isSeries() && eq(instr.frequency.unit, Unit.PER_DAY)) {
             int days = Days.daysBetween(start.toLocalDate(), stop.toLocalDate()).getDays();
             doses = days * (int) instr.frequency.mag;
         }
