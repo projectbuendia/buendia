@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.toLocalDateTime;
 import static org.openmrs.projectbuendia.Utils.toUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
@@ -457,29 +458,35 @@ class PatientPrinter {
     }
 
     public DateTime getDateTimeValue(Patient pat, String conceptUuid) {
-        Obs obs = getObs(pat, conceptUuid);
-        return obs != null ? helper.toLocalDateTime(obs.getValueDate()) : null;
+        return getDateTimeValue(getObs(pat, conceptUuid));
     }
+
+    public DateTime getDateTimeValue(Obs obs) {
+        return obs != null ? helper.toLocalDateTime(obs.getValueDatetime()) : null;
+    }
+
 
     public Obs getObs(Patient pat, String conceptUuid) {
         return helper.getLatestObs(pat, conceptUuid);
     }
 
     public Doc renderAdmission(List<Encounter> encounters) {
+        Map<String, Obs> map = helper.getLastObsByConcept(encounters);
+        DateTime admissionTime = getDateTimeValue(map.get(ADMISSION_DATETIME_UUID));
         return div("admission",
             div("heading", intl("Admission [fr:Admission]")),
-            div("observations",
-                renderObsList(helper.getLastObsByConcept(encounters))
-            )
+            div("time", helper.formatTime(admissionTime)),
+            div("observations", renderObsList(map))
         );
     }
 
     public Doc renderDischarge(List<Encounter> encounters) {
+        Map<String, Obs> map = helper.getLastObsByConcept(encounters);
+        DateTime dischargeTime = getDateTimeValue(map.get(DISCHARGE_DATETIME_UUID));
         return div("discharge",
             div("heading", intl("Discharge [fr:Sorti]")),
-            div("observations",
-                renderObsList(helper.getLastObsByConcept(encounters))
-            )
+            div("time", helper.formatTime(dischargeTime)),
+            div("observations", renderObsList(map))
         );
     }
 
@@ -523,9 +530,6 @@ class PatientPrinter {
         Set<String> done = new HashSet<>();
         boolean admissionFormSubmitted = obsMap.containsKey(
             ConceptUuids.ADMISSION_DATETIME_UUID);
-        if (admissionFormSubmitted) {
-            results.add(el("h3", "Admission"));
-        }
         for (Form form : helper.getForms()) {
             Sequence items = new Sequence();
             if (!admissionFormSubmitted && isAdmissionForm(form)) continue;

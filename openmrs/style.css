@@ -211,6 +211,11 @@ table.columns {
   page-break-after: always;
 }
 
+.history .heading {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
 .history .obs,
 .history .treatment > div,
 .history .schedule,
@@ -223,11 +228,15 @@ table.columns {
   font-size: 2rem;
 }
 
+.intro .ident {
+  float: right;
+}
+
 .intro .name {
   font-weight: bold;
 }
 
-.events, .events td {
+.history, .history td {
   font-size: 0.9rem;
   font-weight: 400;
   line-height: 1.4;
