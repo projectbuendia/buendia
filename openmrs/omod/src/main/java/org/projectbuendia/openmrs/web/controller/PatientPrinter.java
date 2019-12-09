@@ -28,10 +28,7 @@ import org.projectbuendia.openmrs.web.controller.DataHelper.History;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Doc;
 import org.projectbuendia.openmrs.web.controller.HtmlOutput.Sequence;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
-import static org.openmrs.projectbuendia.Utils.toLocalDateTime;
 import static org.openmrs.projectbuendia.Utils.toUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
@@ -75,27 +71,17 @@ class PatientPrinter {
         this.helper = helper;
     }
 
-    public void printPreamble() throws IOException {
+    public void printPrologue() throws IOException {
         writer.write("<meta charset='UTF-8'>");
         writer.write("<style>");
         writer.write(PrintCss.CSS);
         writer.write("</style>");
-        /*
-        try {
-            InputStream stream = new FileInputStream("/Users/ping/dev/buendia/openmrs/style.css");
-            InputStreamReader reader = new InputStreamReader(stream);
-            char[] buffer = new char[1024];
-            writer.write("<style>");
-            while (reader.ready()) {
-                int count = reader.read(buffer);
-                if (count < 0) break;
-                writer.write(new String(buffer, 0, count));
-            }
-            writer.write("</style>");
-        } catch (IOException e) {
-            writer.write("<link rel='stylesheet' href='style.css'>");
-        }
-        */
+    }
+
+    public void printEpilogue() throws IOException {
+        writer.write("<script>");
+        writer.write("window.onload = print;");
+        writer.write("</script>");
     }
 
     public void printAdmissionForm(Patient pat) throws IOException {
@@ -170,7 +156,7 @@ class PatientPrinter {
     public static String STATUS_DEATH_NONCASE_UUID = toUuid(4900026);
     public static String STATUS_DEATH_CONFIRMED_UUID = toUuid(4900027);
     public static String DISCHARGE_DATETIME_UUID = toUuid(8001641);
-    public static String DISCHARGE_TO_UUID = toUuid(2001695);
+    public static String DISCHARGE_DESTINATION_UUID = toUuid(2001695);
     public static String HOME_UUID = toUuid(2001692);
     public static String HOSPITAL_UUID = toUuid(2001693);
 
@@ -186,15 +172,20 @@ class PatientPrinter {
     public static String TB_UUID = UNKNOWN;
     public static String RENAL_DISEASE_UUID = UNKNOWN;
 
+    public static String NO_KNOWN_ALLERGIES_UUID = toUuid(10160557);
+    public static String ALLERGY_DESCRIPTION_UUID = toUuid(3160647);
+
     public Doc renderAdmissionForm(Patient pat) {
         History history = helper.getHistory(pat);
-        Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
-        Map<String, Obs> dischargeObs = helper.getLastObsByConcept(history.discharge);
 
+        Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
         Obs pregnancy = admissionObs.get(PREGNANCY_UUID);
         Obs pregnancyTest = admissionObs.get(PREGNANCY_TEST_UUID);
         String admStat = getCodedValue(admissionObs.get(STATUS_UUID));
-        String disStat = getCodedValue(dischargeObs.get(STATUS_UUID));
+        String allergyDesc = getTextValue(admissionObs.get(ALLERGY_DESCRIPTION_UUID));
+
+        String disStat = getCodedValue(pat, STATUS_UUID);
+        String disDest = getCodedValue(pat, DISCHARGE_DESTINATION_UUID);
 
         return div("admission-form",
             div("title",
@@ -299,6 +290,7 @@ class PatientPrinter {
                             line(field("* Date:", renderDate(getObs(pat, PREGNANCY_TEST_UUID))))
                         ),
                         column("33%",
+                            vspace(),
                             line(field("Nr de semaines de gestation estimé:", blank(1))),
                             line(field("Trimestre de grossesse:", blank(3))),
                             line(field("Fetus vivant:", yesNo()))
@@ -321,9 +313,14 @@ class PatientPrinter {
                     ),
                     column("40%",
                         block("physical",
-                            line(field("Allergies:", yesNo())),
+                            div("multiline",
+                                line(field("Allergies:",
+                                    checkitem("Oui", isNo(admissionObs.get(NO_KNOWN_ALLERGIES_UUID)) || !allergyDesc.isEmpty()),
+                                    checkitem("Non", isYes(admissionObs.get(NO_KNOWN_ALLERGIES_UUID)) && allergyDesc.isEmpty())
+                                ))
+                            ),
                             line(field("Si oui, spécifiez:", blank(6))),
-                            line(field("", blank(8))),
+                            line(field(allergyDesc, blank(8))),
                             vspace(),
                             line(field("Poids:", blank(2, renderNumber(getNumericValue(pat, WEIGHT_KG_UUID))), " kg")),
                             vspace(),
@@ -366,17 +363,17 @@ class PatientPrinter {
                             eq(disStat, STATUS_DEATH_CONFIRMED_UUID)
                         ),
                         checkitem("Transferé",
-                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOSPITAL_UUID)
+                            eq(getCodedValue(pat, DISCHARGE_DESTINATION_UUID), HOSPITAL_UUID)
                         ),
                         checkitem(
                             field("Autre, spécifiez:", blank(6,
                                 eq(disStat, STATUS_DISCHARGED_CURED_UUID) ? "Guéri" :
                                 eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ? "Sortie non-cas" :
-                                eq(getCodedValue(dischargeObs.get(DISCHARGE_TO_UUID)), HOME_UUID) ? "Sortie à la maison" : ""
+                                eq(disDest, HOME_UUID) ? "Sortie à la maison" : ""
                             )),
                             eq(disStat, STATUS_DISCHARGED_CURED_UUID) ||
                             eq(disStat, STATUS_DISCHARGED_NONCASE_UUID) ||
-                            eq(getCodedValue(pat, DISCHARGE_TO_UUID), HOME_UUID)
+                            eq(getCodedValue(pat, DISCHARGE_DESTINATION_UUID), HOME_UUID)
                         )
                     )),
                     line(
@@ -440,7 +437,10 @@ class PatientPrinter {
     }
 
     public String getTextValue(Patient pat, String conceptUuid) {
-        Obs obs = getObs(pat, conceptUuid);
+        return getTextValue(getObs(pat, conceptUuid));
+    }
+
+    public String getTextValue(Obs obs) {
         return obs != null ? obs.getValueText() : "";
     }
 
@@ -709,14 +709,14 @@ class PatientPrinter {
 
         Route route = index.getRoute(instr.route);
         return div("treatment",
-            div("drug", span("label", intl("Drug [fr:Médicament]")), ": ", drug.name),
-            div("format", span("label", intl("Format")), ": ", format.description),
+            div("drug", span("label", intl("Drug [fr:Médicament]"), ": "), drug.name),
+            div("format", span("label", intl("Format"), ": "), format.description),
             div("dosageroute",
-                span("label", intl("Dosage")), ": ", dosage, " ",
+                span("label", intl("Dosage"), ": "), dosage, " ",
                 span("route", format("%s (%s)", route.abbr, route.name))
             ),
             Utils.hasChars(instr.notes) ?
-                div("notes", span("label", intl("Notes [fr:Remarques]")), ": ", instr.notes) : seq()
+                div("notes", span("label", intl("Notes [fr:Remarques]"), ": "), instr.notes) : seq()
         );
     }
 
@@ -733,11 +733,11 @@ class PatientPrinter {
         DateTime stop = helper.toLocalDateTime(order.getAutoExpireDate());
         Instructions instr = new Instructions(order.getInstructions());
         int doses = 0;
-        if (instr.isSeries() && eq(instr.frequency.unit, Unit.PER_DAY)) {
+        if (stop != null && instr.isSeries() && eq(instr.frequency.unit, Unit.PER_DAY)) {
             int days = Days.daysBetween(start.toLocalDate(), stop.toLocalDate()).getDays();
             doses = days * (int) instr.frequency.mag;
         }
-        return div("schedule", span("label", intl("Schedule [fr:Horaire]")), ": ", instr.isSeries() && instr.frequency.mag > 0 ?
+        return div("schedule", span("label", intl("Schedule [fr:Horaire]"), ": "), instr.isSeries() && instr.frequency.mag > 0 ?
             (stop != null ?
                 (doses > 0 ?
                     seq(renderQuantity(instr.frequency), ", ",

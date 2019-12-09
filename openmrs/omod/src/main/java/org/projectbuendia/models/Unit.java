@@ -29,7 +29,8 @@ public class Unit {
     public static final Unit HOUR = new Unit("HOUR", "hour [fr:heure]", "hours [fr:heures]", "hr", "h");
     public static final Unit MINUTE = new Unit("MINUTE", "minute", "minutes", "min");
     public static final Unit SECOND = new Unit("SECOND", "second", "seconds", "sec", "s");
-    public static final Unit PER_DAY = new Unit("PER_DAY", "time per day [fr:fois par jour]", "times per day [fr:fois par jour]", "\bx per day [fr:\bx par jour]", "\bx/day [fr:\bx/jour]");
+    public static final Unit PER_DAY = new Unit("PER_DAY", "time per day [fr:fois par jour]",
+        "times per day [fr:fois par jour]", "\bx per day [fr:fois par jour]", "\bx/day [fr:\bx/jour]");
 
     public final String code;  // identifier code, e.g. "SECOND"
     public final Intl singular;  // singular prose, e.g. "second"

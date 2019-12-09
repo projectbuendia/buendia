@@ -14,6 +14,7 @@ import org.openmrs.Location;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.PatientIdentifier;
 import org.openmrs.Person;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
@@ -460,6 +461,12 @@ public class DataHelper {
             return obs.getPatient();
         }
 
+        public String getPatientId() {
+            Patient p = obs.getPatient();
+            PatientIdentifier pi = p != null ? p.getPatientIdentifier("MSF") : null;
+            return pi != null ? pi.getIdentifier() : "";
+        }
+
         public DateTime getObsTime() {
             return obsTime;
         }
@@ -488,6 +495,12 @@ public class DataHelper {
 
         public Patient getPatient() {
             return patient;
+        }
+
+        public String getPatientId() {
+            Patient p = getPatient();
+            PatientIdentifier pi = p != null ? p.getPatientIdentifier("MSF") : null;
+            return pi != null ? pi.getIdentifier() : "";
         }
 
         public Placement getPlacement() {

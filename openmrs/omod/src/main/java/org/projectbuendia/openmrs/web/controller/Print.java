@@ -8,6 +8,7 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -49,16 +50,22 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
     public void get(HttpServletRequest request, ModelMap model) {
         DataHelper helper = getDataHelper(request);
         List<DataHelper.PatientPlacement> placements = helper.getPresentPatients();
-        List<DataHelper.ObsDisplay> admissionTimes = helper.getAdmissionTimes();
-        Collections.reverse(admissionTimes);
-        admissionTimes = Utils.slice(admissionTimes, 0, 5);
-        List<DataHelper.ObsDisplay> discharges = helper.getDischargeTimes();
-        Collections.reverse(discharges);
-        discharges = Utils.slice(discharges, 0, 5);
+        List<DataHelper.ObsDisplay> admissions = helper.getAdmissionTimes();
 
+        List<DataHelper.ObsDisplay> recentAdmissions = new ArrayList<>(admissions);
+        Collections.reverse(recentAdmissions);
+        recentAdmissions = Utils.slice(recentAdmissions, 0, 6);
+
+        List<DataHelper.ObsDisplay> discharges = helper.getDischargeTimes();
+        List<DataHelper.ObsDisplay> recentDischarges = new ArrayList<>(discharges);
+        Collections.reverse(recentDischarges);
+        recentDischarges = Utils.slice(recentDischarges, 0, 6);
+
+        model.addAttribute("showAll", request.getParameter("all") != null);
+        model.addAttribute("allAdmissions", admissions);
         model.addAttribute("inpatients", placements);
-        model.addAttribute("admissions", admissionTimes);
-        model.addAttribute("discharges", discharges);
+        model.addAttribute("admissions", recentAdmissions);
+        model.addAttribute("discharges", recentDischarges);
     }
 
     @RequestMapping(method = POST, value = "/module/projectbuendia/openmrs/print")
@@ -67,7 +74,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
         DataHelper helper = getDataHelper(request);
         response.setCharacterEncoding("utf-8");
         PatientPrinter printer = new PatientPrinter(response.getWriter(), helper.getLocale(), helper);
-        printer.printPreamble();
+        printer.printPrologue();
         Enumeration<String> names = request.getParameterNames();
         Set<String> printedUuids = new HashSet<>();
         while (names.hasMoreElements()) {
@@ -83,5 +90,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
                 }
             }
         }
+        printer.printEpilogue();
     }
 }

@@ -46,6 +46,7 @@ import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
 import org.openmrs.hl7.HL7Constants;
 import org.openmrs.projectbuendia.Utils;
+import org.projectbuendia.openmrs.web.controller.ConceptUuids;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -333,6 +334,7 @@ public class DbUtils {
 
     public static boolean isYes(Obs obs) {
         if (obs == null) return false;
+        if (eq(getUuid(obs.getValueCoded()), ConceptUuids.YES_UUID)) return true;
         if (eq(getUuid(obs.getValueCoded()), toUuid(4001065))) return true;
         if (eq(getUuid(obs.getValueCoded()), toUuid(4000703))) return true;
         Boolean value = obs.getValueAsBoolean();
@@ -342,6 +344,7 @@ public class DbUtils {
 
     public static boolean isNo(Obs obs) {
         if (obs == null) return false;
+        if (eq(getUuid(obs.getValueCoded()), ConceptUuids.NO_UUID)) return true;
         if (eq(getUuid(obs.getValueCoded()), toUuid(4001066))) return true;
         if (eq(getUuid(obs.getValueCoded()), toUuid(4000664))) return true;
         Boolean value = obs.getValueAsBoolean();
