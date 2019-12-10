@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.openmrs.projectbuendia.Utils.eq;
+import static org.openmrs.projectbuendia.Utils.eqAny;
 import static org.openmrs.projectbuendia.Utils.toUuid;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
@@ -85,7 +86,8 @@ class PatientPrinter {
     }
 
     public void printAdmissionForm(Patient pat) throws IOException {
-        renderAdmissionForm(pat).writeTo(writer, locale);
+        renderAdmissionFormFront(pat).writeTo(writer, locale);
+        renderAdmissionFormBack(pat).writeTo(writer, locale);
     }
 
     public void printHistory(Patient pat) throws IOException {
@@ -175,8 +177,149 @@ class PatientPrinter {
     public static String NO_KNOWN_ALLERGIES_UUID = toUuid(10160557);
     public static String ALLERGY_DESCRIPTION_UUID = toUuid(3160647);
 
-    public Doc renderAdmissionForm(Patient pat) {
+    public static String TRANSPORT_MODE_UUID = toUuid(2900903);
+    public static String TAXI_CAR_UUID = toUuid(4162711);
+    public static String TAXI_MOTO_UUID = toUuid(4900008);
+    public static String ON_FOOT_UUID = toUuid(4001613);
+    public static String PRIVATE_CAR_UUID = toUuid(4001615);
+    public static String PRIVATE_MOTO_UUID = toUuid(4001614);
+    public static String MSP_AMBULANCE_UUID = toUuid(4900009);
+    public static String MSF_AMBULANCE_UUID = toUuid(4900010);
+    public static String RED_CROSS_AMBULANCE_UUID = toUuid(4900011);
+    public static String OTHER_AMBULANCE_UUID = toUuid(4901377);
+    public static String OTHER_UUID = toUuid(4005622);
+    public static String OTHER_TRANSPORT_MODE_UUID = toUuid(3001378);
+
+    public static String ACCOMPANYING_NAME_UUID = toUuid(3900044);
+    public static String ACCOMPANYING_AGE_UUID = toUuid(3900013);
+    public static String ACCOMPANYING_RELATION_UUID = toUuid(3900014);
+    public static String ACCOMPANYING_SUSPECTED_UUID = toUuid(2162743);
+
+    public Doc renderAdmissionFormBack(Patient pat) {
         History history = helper.getHistory(pat);
+        Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
+
+        String admStat = getCodedValue(admissionObs.get(STATUS_UUID));
+        DateTime admDateTime = getDateTimeValue(pat, ADMISSION_DATETIME_UUID);
+        String facilityName = "Bunia";
+        String providerName = helper.getProvider(helper.getFirstObs(pat, ADMISSION_DATETIME_UUID)).getName();
+        String mode = getCodedValue(admissionObs.get(TRANSPORT_MODE_UUID));
+        String aireSante = getTextValue(pat, AIRE_SANTE_UUID);
+        String village = getTextValue(pat, VILLAGE_UUID);
+        String aireSanteVillage = aireSante + (!aireSante.isEmpty() && !village.isEmpty() ? " / " : "") + village;
+
+        Sequence accompanyingRows = seq();
+        for (Encounter enc : helper.getEncountersWithConcept(pat, ACCOMPANYING_NAME_UUID)) {
+            Map<String, Obs> encObs = helper.getLastObsByConcept(enc);
+            String name = getTextValue(encObs.get(ACCOMPANYING_NAME_UUID));
+            String age = getTextValue(encObs.get(ACCOMPANYING_AGE_UUID));
+            String relation = getTextValue(encObs.get(ACCOMPANYING_RELATION_UUID));
+            Obs suspectedObs = encObs.get(ACCOMPANYING_SUSPECTED_UUID);
+            accompanyingRows.add(
+                el("tr",
+                    el("td", name),
+                    el("td", age),
+                    el("td", relation),
+                    el("td",
+                        isYes(suspectedObs) ? "Oui" :
+                            isNo(suspectedObs) ? "Non" : "")
+                )
+            );
+        }
+
+        return div("admission-form",
+            div("title",
+                columns(
+                    column("50%",
+                        div("heading", "ENREGISTREMENT CTE")
+                    ),
+                    column("50%",
+                        div("patient-id",
+                            field("* Nr. Identification Patient ID:",
+                                blank(4, pat.getPatientIdentifier("MSF"))
+                            )
+                        )
+                    )
+                )
+            ),
+            section("status-pcr",
+                null,
+                div("shaded",
+                    columns(
+                        column("50%",
+                            line(field("Date d'admission:", renderDate(admDateTime)))
+                        ),
+                        column("50%",
+                            line(field("Heure d'admission:", renderTime(admDateTime)))
+                        )
+                    )
+                ),
+                columns(
+                    column("50%", line(field("Nom du CTE:", blank(8, facilityName)))),
+                    column("50%", line(field("Nom de l'enregistreur:", blank(8, providerName))))
+                ),
+                line(
+                    field("* Statut du patient à l'admission:",
+                        checkitem("Suspect", eq(admStat, STATUS_SUSPECT_UUID)),
+                        hspace(2),
+                        checkitem("Probable", eq(admStat, STATUS_PROBABLE_UUID)),
+                        hspace(2),
+                        checkitem("Confirmé", eq(admStat, STATUS_CONFIRMED_UUID))
+                    )
+                ),
+                line("Date du dernier PCR:", renderEmptyDate())
+            ),
+            section("arrival",
+                "Arrivée patient à CTE",
+                block("origin",
+                    columns(
+                        column("50%", subhead("* D'où le patient a-t-il/elle été transporté(e)?")),
+                        column("50%", line(field("Aire de Santé / Village:", blank(10, aireSanteVillage))))
+                    )
+                ),
+                block("transport",
+                    line(subhead("* Comment le patient est-il/elle arrivé(e) au CTE:")),
+                    line(
+                        checkitem("Taxi car", eq(mode, TAXI_CAR_UUID)),
+                        checkitem("Taxi moto", eq(mode, TAXI_CAR_UUID)),
+                        checkitem("A pied", eq(mode, TAXI_CAR_UUID)),
+                        checkitem("Voiture privée", eq(mode, TAXI_CAR_UUID)),
+                        checkitem("Moto privée", eq(mode, TAXI_CAR_UUID))
+                    ),
+                    line(
+                        checkitem("Ambulance: Si oui avec", eqAny(mode,
+                            MSP_AMBULANCE_UUID, MSF_AMBULANCE_UUID,
+                            RED_CROSS_AMBULANCE_UUID, OTHER_AMBULANCE_UUID
+                        )),
+                        checkitem("Min.San", eq(mode, MSP_AMBULANCE_UUID)),
+                        checkitem("MSF", eq(mode, MSF_AMBULANCE_UUID)),
+                        checkitem("Croix Rouge", eq(mode, RED_CROSS_AMBULANCE_UUID)),
+                        checkitem("Autre", eq(mode, OTHER_AMBULANCE_UUID))
+                    ),
+                    line(
+                        checkitem("Par d'autres moyens, spécifiez"), blank(8)
+                    ),
+                    vspace()
+                ),
+                block("accompanying",
+                    subhead("* Le patient est accompagné par:"),
+                    el("table",
+                        el("row",
+                            el("th width='40%'", "Name"),
+                            el("th width='10%'", "Age"),
+                            el("th width='35%'", "Lien avec le patient"),
+                            el("th width='15%'", "Cas suspect O/N")
+                        ),
+                        accompanyingRows
+                    )
+                )
+            )
+        );
+    }
+
+    public Doc renderAdmissionFormFront(Patient pat) {
+        History history = helper.getHistory(pat);
+        DateTime admDateTime = getDateTimeValue(pat, ADMISSION_DATETIME_UUID);
 
         Map<String, Obs> admissionObs = helper.getLastObsByConcept(history.admission);
         Obs pregnancy = admissionObs.get(PREGNANCY_UUID);
@@ -249,8 +392,8 @@ class PatientPrinter {
                 columns(
                     column("50%",
                         block("dates",
-                            line(field("* Date d'admission:", renderDate(getDateTimeValue(pat, ADMISSION_DATETIME_UUID)))),
-                            line(field("Heure d'admission:", renderTime(getDateTimeValue(pat, ADMISSION_DATETIME_UUID)))),
+                            line(field("* Date d'admission:", renderDate(admDateTime))),
+                            line(field("Heure d'admission:", renderTime(admDateTime))),
                             line(field("* Date de début des symptômes:", renderDate(getDateValue(pat, SYMPTOM_START_UUID))))
                         )
                     ),
@@ -469,7 +612,6 @@ class PatientPrinter {
     public DateTime getDateTimeValue(Obs obs) {
         return obs != null ? helper.toLocalDateTime(obs.getValueDatetime()) : null;
     }
-
 
     public Obs getObs(Patient pat, String conceptUuid) {
         return helper.getLatestObs(pat, conceptUuid);

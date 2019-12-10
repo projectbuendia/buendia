@@ -8,6 +8,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
+import org.openmrs.EncounterProvider;
 import org.openmrs.Form;
 import org.openmrs.FormField;
 import org.openmrs.Location;
@@ -16,6 +17,7 @@ import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
 import org.openmrs.Person;
+import org.openmrs.Provider;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.FormService;
@@ -210,6 +212,23 @@ public class DataHelper {
         return results;
     }
 
+    public Obs getFirstObs(Patient pat, String conceptUuid) {
+        return getFirstObs(pat, conceptService.getConceptByUuid(conceptUuid));
+    }
+
+    public Obs getFirstObs(Patient pat, Concept concept) {
+        List<Obs> allObs = obsService.getObservations(
+            Arrays.asList((Person) pat), null,
+            Arrays.asList(concept), null, null, null, null,
+            null, null, null, null, false
+        );
+        Collections.sort(allObs, OBS_TIME);
+        for (Obs obs : allObs) {
+            return obs;
+        }
+        return null;
+    }
+
     public Obs getLatestObs(Patient pat, String conceptUuid) {
         return getLatestObs(pat, conceptService.getConceptByUuid(conceptUuid));
     }
@@ -242,6 +261,21 @@ public class DataHelper {
         return patientService.getPatientByUuid(uuid);
     }
 
+    public List<Encounter> getEncountersWithConcept(Patient patient, String conceptUuid) {
+        List<Encounter> results = new ArrayList<>();
+        nextEncounter:
+        for (Encounter enc : getEncounters(patient)) {
+            for (Obs obs : enc.getAllObs()) {
+                String uuid = getConceptUuid(obs);
+                if (eq(uuid, conceptUuid)) {
+                    results.add(enc);
+                    continue nextEncounter;
+                }
+            }
+        }
+        return results;
+    }
+
     public static class History {
         public final List<Encounter> admission = new ArrayList<>();
         public final List<Encounter> evolution = new ArrayList<>();
@@ -268,10 +302,27 @@ public class DataHelper {
 
     public History getHistory(Patient patient) {
         // getEncounters promises to sort its results chronologically.
-        List<Encounter> encounters = encounterService.getEncounters(
+        return new History(getEncounters(patient));
+    }
+
+    public List<Encounter> getEncounters(Patient patient) {
+        return encounterService.getEncounters(
             patient, null, null, null,
-            null, null, null, null, null, false);
-        return new History(encounters);
+            null, null, null, null, null, false
+        );
+    }
+
+    public static Provider getProvider(Obs obs) {
+        Encounter enc = obs.getEncounter();
+        if (enc == null) return null;
+        for (EncounterProvider ep : enc.getEncounterProviders()) {
+            return ep.getProvider();
+        }
+        return null;
+    }
+
+    public static Map<String, Obs> getLastObsByConcept(Encounter encounter) {
+        return getLastObsByConcept(Arrays.asList(encounter));
     }
 
     public static Map<String, Obs> getLastObsByConcept(List<Encounter> encounters) {
