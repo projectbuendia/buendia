@@ -94,8 +94,10 @@ Refresh: 10
 <section id="database">
     <div id="openmrs">OpenMRS:
         <ul class="inline">
-            <li id="dictionary"
-                ><a href="/openmrs/dictionary">concept dictionary</a></li
+            <li id="print"
+                ><a href="/openmrs/module/projectbuendia/openmrs/print.form">print</a></li
+            ><li id="dictionary"
+                ><a href="/openmrs/dictionary">dictionary</a></li
             ><li id="admin"
                 ><a href="/openmrs/admin">administration</a></li
             ><li id="profiles"

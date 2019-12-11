@@ -74,8 +74,8 @@ except URLError as e:
 content = response.read()
 artifacts = json.loads(content.decode())
 to_fetch = [a for a in artifacts if
-    any(fnmatch.fnmatch(a['path'], glob) for glob in globs)
-    and not any(fnmatch.fnmatch(a['path'], glob) for glob in exclude)]
+    any(fnmatch.fnmatch(a['path'], glob) for glob in globs or [])
+    and not any(fnmatch.fnmatch(a['path'], glob) for glob in exclude or [])]
 
 print('')
 print('Found %d artifact%s, of which %d match %s%s%s' % (
