@@ -13,6 +13,7 @@ import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.models.Catalog.Drug;
@@ -32,6 +33,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -219,7 +222,7 @@ class PatientPrinter {
             accompanyingRows.add(
                 el("tr",
                     el("td", line(name)),
-                    el("td", age),
+                    el("td", line(age)),
                     el("td", relation),
                     el("td",
                         isYes(suspectedObs) ? "Oui" :
@@ -635,7 +638,7 @@ class PatientPrinter {
         return div("admission",
             div("heading", intl("Admission [fr:Admission]")),
             div("time", helper.formatTime(admissionTime)),
-            div("observations", renderObsList(map))
+            div("observations", renderObsList(map, null))
         );
     }
 
@@ -645,7 +648,7 @@ class PatientPrinter {
         return div("discharge",
             div("heading", intl("Discharge [fr:Sorti]")),
             div("time", helper.formatTime(dischargeTime)),
-            div("observations", renderObsList(map))
+            div("observations", renderObsList(map, null))
         );
     }
 
@@ -657,13 +660,16 @@ class PatientPrinter {
 
         for (DataHelper.Event event : events) {
             Map<String, Obs> obsByQuestion = helper.getLatestObsByQuestion(event.obs);
-            Sequence obsList = renderObsList(obsByQuestion);
+            Provider provider = getPluralityProvider(obsByQuestion);
+            Sequence obsList = renderObsList(obsByQuestion, helper.getUuid(provider));
             Sequence orderList = renderOrderList(event.orders);
             Sequence execList = renderExecList(event.execs);
             if (!obsList.isEmpty() || !orderList.isEmpty() || !execList.isEmpty()) {
                 results.add(div(
                     "event",
-                    el("h2 class='time'", helper.formatTime(event.time)),
+                    el("h2 class='time'", helper.formatTime(event.time),
+                        provider != null ? Utils.EM_DASH : "",
+                        span("provider", renderProvider(provider))),
                     columns(
                         column("50%",
                             obsList.isEmpty() ? seq() : div("observations", obsList)
@@ -684,7 +690,40 @@ class PatientPrinter {
         );
     }
 
-    private Sequence renderObsList(Map<String, Obs> obsMap) {
+    private Doc renderProvider(Provider provider) {
+        return provider != null ? span("provider", provider.getName()) : seq();
+    }
+
+    private Provider getPluralityProvider(Map<String, Obs> obsByQuestion) {
+        Map<String, Integer> countsByUuid = new HashMap<>();
+        for (String conceptUuid : obsByQuestion.keySet()) {
+            if (eqAny(conceptUuid,
+                ConceptUuids.ORDER_EXECUTED_UUID,
+                ConceptUuids.PLACEMENT_UUID,
+                ConceptUuids.PREGNANCY_UUID
+            )) continue;
+            Obs obs = obsByQuestion.get(conceptUuid);
+            Provider provider = helper.getProvider(obs);
+            if (provider != null) {
+                String providerUuid = provider.getUuid();
+                int count = 0;
+                if (countsByUuid.containsKey(providerUuid)) count = countsByUuid.get(providerUuid);
+                countsByUuid.put(providerUuid, count + 1);
+            }
+        }
+        Provider result = null;
+        int maxCount = 0;
+        for (String uuid : countsByUuid.keySet()) {
+            int count = countsByUuid.get(uuid);
+            if (count > maxCount) {
+                result = helper.getProvider(uuid);
+                maxCount = count;
+            }
+        }
+        return result;
+    }
+
+    private Sequence renderObsList(Map<String, Obs> obsMap, String providerUuid) {
         Sequence results = new Sequence();
         Set<String> done = new HashSet<>();
         boolean admissionFormSubmitted = obsMap.containsKey(
@@ -710,10 +749,10 @@ class PatientPrinter {
                         if (noCount == section.fields.size()) {
                             items.add(renderNoneSelected(title, children));
                         } else {
-                            items.add(renderMultipleSelect(title, children));
+                            items.add(renderMultipleSelect(title, children, providerUuid));
                         }
                     } else {
-                        items.add(renderFormSection(title, children));
+                        items.add(renderFormSection(title, children, providerUuid));
                     }
                 }
             }
@@ -725,7 +764,7 @@ class PatientPrinter {
         for (String uuid : obsMap.keySet()) {
             if (!done.contains(uuid)) {
                 Obs obs = obsMap.get(uuid);
-                extras.add(renderObsContent(obs));
+                extras.add(renderObsContent(obs, providerUuid));
             }
         }
         if (!extras.isEmpty()) {
@@ -737,7 +776,7 @@ class PatientPrinter {
     private Sequence renderExecList(List<Obs> execs) {
         Sequence items = seq();
         for (Obs exec : execs) {
-            items.add(renderObsContent(exec));
+            items.add(renderObsContent(exec, null));
         }
         return items;
     }
@@ -747,7 +786,10 @@ class PatientPrinter {
         for (Order order : orders) {
             results.add(
                 div("order",
-                    span("label", intl("Treatment ordered [fr:Traitement commandé]"), ": "),
+                    span("label", format(
+                        "Ordered by %s [fr:Commandé par %s]",
+                        renderProvider(helper.getProvider(order))
+                    ), ": "),
                     renderOrderAction(order),
                     renderOrderTreatment(order),
                     renderOrderSchedule(order)
@@ -765,14 +807,21 @@ class PatientPrinter {
         return div("obs", span("label", title, ": "), " ", span("value", intl("None [fr:Aucun]")));
     }
 
-    private Doc renderMultipleSelect(Doc title, List<Obs> children) {
+    private Doc renderMultipleSelect(Doc title, List<Obs> children, String defaultProviderUuid) {
         Sequence results = seq();
         boolean first = true;
+        Provider provider = null;
         for (Obs obs : children) {
             if (isYes(obs)) {
                 if (!first) results.add(text(", "));
                 results.add(coded(obs.getConcept()));
                 first = false;
+            }
+            if (!eq(helper.getProviderUuid(obs), defaultProviderUuid)) {
+                provider = helper.getProvider(obs);
+                if (provider != null) {
+                    results.add(span("provider", " (", provider.getName(), ")"));
+                }
             }
         }
         return results.isEmpty() ? seq() : div("obs",
@@ -780,36 +829,53 @@ class PatientPrinter {
         );
     }
 
-    private Doc renderFormSection(Doc title, List<Obs> children) {
+    private Doc renderFormSection(Doc title, List<Obs> children, String defaultProviderUuid) {
         Sequence results = seq();
         for (Obs obs : children) {
-            results.add(renderObsContent(obs));
+            results.add(renderObsContent(obs, defaultProviderUuid));
         }
         return results;
     }
 
-    private Doc renderObsContent(Obs obs) {
+    private Doc renderObsContent(Obs obs, String defaultProviderUuid) {
+        Provider provider = null;
+        if (!eq(helper.getProviderUuid(obs), defaultProviderUuid)) {
+            provider = helper.getProvider(obs);
+        }
+        Sequence value = seq();
+
         switch (DbUtils.getConceptUuid(obs)) {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
+                value.add(renderPlacement(p));
+                if (provider != null) {
+                    value.add(span("provider", " (", provider.getName(), ")"));
+                }
                 return div("obs placement",
                     span("label", intl("New placement [fr:Nouveau emplacement]"), ": "),
-                    span("value", renderPlacement(p))
+                    span("value", value)
                 );
 
             case DbUtils.CONCEPT_ORDER_EXECUTED_UUID:
                 Order order = obs.getOrder();
                 return div("execution",
-                    span("label", intl("Treatment given [fr:Traitement donné]"), ": "),
+                    span("label", format(
+                        "Given by %s [fr:Donné par %s]",
+                        renderProvider(helper.getProvider(obs))
+                    ), ": "),
                     span("value", renderOrderTreatment(order))
                 );
 
             default:
                 if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
+                value.add(renderValue(obs));
+                if (provider != null) {
+                    value.add(span("provider", " (", provider.getName(), ")"));
+                }
                 return div("obs " + getConceptCssClass(obs.getConcept()),
                     span("label", coded(obs.getConcept()), ":"),
                     " ",
-                    span("value", renderValue(obs))
+                    span("value", value)
                 );
         }
     }
