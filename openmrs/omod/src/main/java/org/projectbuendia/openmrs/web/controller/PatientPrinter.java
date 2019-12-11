@@ -177,7 +177,7 @@ class PatientPrinter {
     public static String NO_KNOWN_ALLERGIES_UUID = toUuid(10160557);
     public static String ALLERGY_DESCRIPTION_UUID = toUuid(3160647);
 
-    public static String TRANSPORT_MODE_UUID = toUuid(2900903);
+    public static String TRANSPORT_MODE_UUID = toUuid(2001375);
     public static String TAXI_CAR_UUID = toUuid(4162711);
     public static String TAXI_MOTO_UUID = toUuid(4900008);
     public static String ON_FOOT_UUID = toUuid(4001613);
@@ -209,6 +209,7 @@ class PatientPrinter {
         String aireSanteVillage = aireSante + (!aireSante.isEmpty() && !village.isEmpty() ? " / " : "") + village;
 
         Sequence accompanyingRows = seq();
+        int rows = 0;
         for (Encounter enc : helper.getEncountersWithConcept(pat, ACCOMPANYING_NAME_UUID)) {
             Map<String, Obs> encObs = helper.getLastObsByConcept(enc);
             String name = getTextValue(encObs.get(ACCOMPANYING_NAME_UUID));
@@ -223,6 +224,17 @@ class PatientPrinter {
                     el("td",
                         isYes(suspectedObs) ? "Oui" :
                             isNo(suspectedObs) ? "Non" : "")
+                )
+            );
+            rows++;
+        }
+        while (rows++ < 5) {
+            accompanyingRows.add(
+                el("tr",
+                    el("td"),
+                    el("td"),
+                    el("td"),
+                    el("td")
                 )
             );
         }
@@ -281,10 +293,10 @@ class PatientPrinter {
                     line(subhead("* Comment le patient est-il/elle arrivé(e) au CTE:")),
                     line(
                         checkitem("Taxi car", eq(mode, TAXI_CAR_UUID)),
-                        checkitem("Taxi moto", eq(mode, TAXI_CAR_UUID)),
-                        checkitem("A pied", eq(mode, TAXI_CAR_UUID)),
-                        checkitem("Voiture privée", eq(mode, TAXI_CAR_UUID)),
-                        checkitem("Moto privée", eq(mode, TAXI_CAR_UUID))
+                        checkitem("Taxi moto", eq(mode, TAXI_MOTO_UUID)),
+                        checkitem("A pied", eq(mode, ON_FOOT_UUID)),
+                        checkitem("Voiture privée", eq(mode, PRIVATE_CAR_UUID)),
+                        checkitem("Moto privée", eq(mode, PRIVATE_MOTO_UUID))
                     ),
                     line(
                         checkitem("Ambulance: Si oui avec", eqAny(mode,

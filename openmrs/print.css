@@ -33,7 +33,7 @@ body {
   padding-bottom: 0.2rem;
 }
 
-.line, .subhead, .vspace {
+.line, .subhead, .vspace, .accompanying th {
   min-height: 1.1rem;
   white-space: nowrap;
 }
@@ -64,14 +64,15 @@ body {
   padding: 0.4rem 0.6rem;
   background: #666;
   color: white;
+  border-top: 0.05rem solid black;
 }
 
 td .block {
-  border-right: 0.1rem solid black;
+  border-right: 0.05rem solid black;
 }
 
 .block {
-  border-top: 0.1rem solid black;
+  border-top: 0.05rem solid black;
   padding: 0.5rem;
 }
 
@@ -82,7 +83,7 @@ td:last-of-type .block {
 .blank {
   margin: 0 0.2rem;
   padding: 0.04rem;
-  border-bottom: 0.1rem solid black;
+  border-bottom: 0.05rem solid black;
   display: inline-block;
 }
 
@@ -103,7 +104,7 @@ td:last-of-type .block {
   display: inline-block;
 }
 
-table.columns {
+table.columns, .accompanying table {
   width: 100%;
 }
 
@@ -117,13 +118,13 @@ table.columns {
 }
 
 .section {
-  border-left: 1px solid black;
-  border-right: 1px solid black;
+  border-left: 0.05rem solid black;
+  border-right: 0.05rem solid black;
   display: block;
 }
 
 .section:last-of-type {
-  border-bottom: 1px solid black;
+  border-bottom: 0.05rem solid black;
 }
 
 .ox:first-of-type {
@@ -195,13 +196,30 @@ table.columns {
 
 .comorbidities .line {
   padding: 0.2rem 0.5rem 0;
-  border-top: 0.1rem solid #999;
+  border-top: 0.05rem solid #999;
 }
 
 .followup .stack {
   margin-left: 0.3rem;
 }
 
+.accompanying table {
+  margin-top: 1rem;
+  border-left: 0.05rem solid black;
+}
+
+.accompanying th, .accompanying td {
+  border-right: 0.05rem solid black;
+  border-bottom: 0.05rem solid black;
+  padding: 0 1rem;
+}
+.accompanying th {
+  text-align: left;
+  background: #ddd;
+}
+.accompanying td {
+  text-align: center;
+}
 
 /* History */
 
