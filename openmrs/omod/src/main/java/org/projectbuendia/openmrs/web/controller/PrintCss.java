@@ -1,5 +1,8 @@
 package org.projectbuendia.openmrs.web.controller;
 
+// ==== GENERATED OUTPUT ====
+// Produced by executing: csstojava print.css
+
 public class PrintCss {
     public static final String CSS =
         "/* Global */\n" +
@@ -29,15 +32,12 @@ public class PrintCss {
         "  font-size: 0.6rem;\n" +
         "}\n" +
         "\n" +
-        ".line {\n" +
-        "  padding-top: 0.2rem;\n" +
-        "}\n" +
-        "\n" +
         ".followup .row:first-of-type {\n" +
         "  padding-bottom: 0.2rem;\n" +
         "}\n" +
         "\n" +
         ".line, .subhead, .vspace {\n" +
+        "  padding-top: 0.2rem;\n" +
         "  min-height: 1.1rem;\n" +
         "  white-space: nowrap;\n" +
         "}\n" +
@@ -68,14 +68,15 @@ public class PrintCss {
         "  padding: 0.4rem 0.6rem;\n" +
         "  background: #666;\n" +
         "  color: white;\n" +
+        "  border-top: 0.05rem solid black;\n" +
         "}\n" +
         "\n" +
         "td .block {\n" +
-        "  border-right: 0.1rem solid black;\n" +
+        "  border-right: 0.05rem solid black;\n" +
         "}\n" +
         "\n" +
         ".block {\n" +
-        "  border-top: 0.1rem solid black;\n" +
+        "  border-top: 0.05rem solid black;\n" +
         "  padding: 0.5rem;\n" +
         "}\n" +
         "\n" +
@@ -86,7 +87,7 @@ public class PrintCss {
         ".blank {\n" +
         "  margin: 0 0.2rem;\n" +
         "  padding: 0.04rem;\n" +
-        "  border-bottom: 0.1rem solid black;\n" +
+        "  border-bottom: 0.05rem solid black;\n" +
         "  display: inline-block;\n" +
         "}\n" +
         "\n" +
@@ -121,13 +122,13 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".section {\n" +
-        "  border-left: 1px solid black;\n" +
-        "  border-right: 1px solid black;\n" +
+        "  border-left: 0.05rem solid black;\n" +
+        "  border-right: 0.05rem solid black;\n" +
         "  display: block;\n" +
         "}\n" +
         "\n" +
         ".section:last-of-type {\n" +
-        "  border-bottom: 1px solid black;\n" +
+        "  border-bottom: 0.05rem solid black;\n" +
         "}\n" +
         "\n" +
         ".ox:first-of-type {\n" +
@@ -199,13 +200,37 @@ public class PrintCss {
         "\n" +
         ".comorbidities .line {\n" +
         "  padding: 0.2rem 0.5rem 0;\n" +
-        "  border-top: 0.1rem solid #999;\n" +
+        "  border-top: 0.05rem solid #999;\n" +
         "}\n" +
         "\n" +
         ".followup .stack {\n" +
         "  margin-left: 0.3rem;\n" +
         "}\n" +
         "\n" +
+        ".accompanying table {\n" +
+        "  width: 100%;\n" +
+        "  margin-top: 1rem;\n" +
+        "  border-top: 0.05rem solid black;\n" +
+        "  border-left: 0.05rem solid black;\n" +
+        "}\n" +
+        "\n" +
+        ".accompanying th, .accompanying td {\n" +
+        "  border-right: 0.05rem solid black;\n" +
+        "  border-bottom: 0.05rem solid black;\n" +
+        "  padding: 0 1rem;\n" +
+        "}\n" +
+        ".accompanying th {\n" +
+        "  white-space: nowrap;\n" +
+        "  text-align: left;\n" +
+        "  background: #ddd;\n" +
+        "  font-family: verdana;\n" +
+        "  font-size: 0.6rem;\n" +
+        "}\n" +
+        ".accompanying td {\n" +
+        "  font-family: arial;\n" +
+        "  font-size: 0.8rem;\n" +
+        "  text-align: center;\n" +
+        "}\n" +
         "\n" +
         "/* History */\n" +
         "\n" +
@@ -305,5 +330,5 @@ public class PrintCss {
         ".drug, .format {\n" +
         "  display: block;\n" +
         "}\n" +
-        "\n";
+        "";
 }
