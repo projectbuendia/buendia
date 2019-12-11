@@ -218,7 +218,7 @@ class PatientPrinter {
             Obs suspectedObs = encObs.get(ACCOMPANYING_SUSPECTED_UUID);
             accompanyingRows.add(
                 el("tr",
-                    el("td", name),
+                    el("td", line(name)),
                     el("td", age),
                     el("td", relation),
                     el("td",
@@ -231,7 +231,7 @@ class PatientPrinter {
         while (rows++ < 5) {
             accompanyingRows.add(
                 el("tr",
-                    el("td"),
+                    el("td", line("")),
                     el("td"),
                     el("td"),
                     el("td")
@@ -315,12 +315,12 @@ class PatientPrinter {
                 ),
                 block("accompanying",
                     subhead("* Le patient est accompagné par:"),
-                    el("table",
+                    el("table cellpadding=0 cellspacing=0",
                         el("row",
-                            el("th width='40%'", "Name"),
-                            el("th width='10%'", "Age"),
-                            el("th width='35%'", "Lien avec le patient"),
-                            el("th width='15%'", "Cas suspect O/N")
+                            el("th width='40%'", line("Name")),
+                            el("th width='10%'", line("Age")),
+                            el("th width='35%'", line("Lien avec le patient")),
+                            el("th width='15%'", line("Cas suspect O/N"))
                         ),
                         accompanyingRows
                     )

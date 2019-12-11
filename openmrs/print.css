@@ -25,15 +25,12 @@ body {
   font-size: 0.6rem;
 }
 
-.line {
-  padding-top: 0.2rem;
-}
-
 .followup .row:first-of-type {
   padding-bottom: 0.2rem;
 }
 
-.line, .subhead, .vspace, .accompanying th {
+.line, .subhead, .vspace {
+  padding-top: 0.2rem;
   min-height: 1.1rem;
   white-space: nowrap;
 }
@@ -104,7 +101,7 @@ td:last-of-type .block {
   display: inline-block;
 }
 
-table.columns, .accompanying table {
+table.columns {
   width: 100%;
 }
 
@@ -204,7 +201,9 @@ table.columns, .accompanying table {
 }
 
 .accompanying table {
+  width: 100%;
   margin-top: 1rem;
+  border-top: 0.05rem solid black;
   border-left: 0.05rem solid black;
 }
 
@@ -214,10 +213,15 @@ table.columns, .accompanying table {
   padding: 0 1rem;
 }
 .accompanying th {
+  white-space: nowrap;
   text-align: left;
   background: #ddd;
+  font-family: verdana;
+  font-size: 0.6rem;
 }
 .accompanying td {
+  font-family: arial;
+  font-size: 0.8rem;
   text-align: center;
 }
 
