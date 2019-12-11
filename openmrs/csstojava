@@ -3,6 +3,14 @@
 css="$1"
 java=${css%.css}.java
 
-sed -e 's/^/        "/' -e 's/$/\\n" +/' < "$css" > "$java"
-
+echo 'package org.projectbuendia.openmrs.web.controller;'
+echo
+echo '// ==== GENERATED OUTPUT ===='
+echo '// Produced by executing: csstojava '"$1"
+echo
+echo 'public class PrintCss {'
+echo '    public static final String CSS ='
+sed -e 's/^/        "/' -e 's/$/\\n" +/' < "$css"
+echo '        "";'
+echo '}'
 

@@ -25,16 +25,13 @@ body {
   font-size: 0.6rem;
 }
 
-.line {
-  padding-top: 0.2rem;
-}
-
 .followup .row:first-of-type {
   padding-bottom: 0.2rem;
 }
 
 .line, .subhead, .vspace {
-  min-height: 1rem;
+  padding-top: 0.2rem;
+  min-height: 1.1rem;
   white-space: nowrap;
 }
 
@@ -64,14 +61,15 @@ body {
   padding: 0.4rem 0.6rem;
   background: #666;
   color: white;
+  border-top: 0.05rem solid black;
 }
 
 td .block {
-  border-right: 0.1rem solid black;
+  border-right: 0.05rem solid black;
 }
 
 .block {
-  border-top: 0.1rem solid black;
+  border-top: 0.05rem solid black;
   padding: 0.5rem;
 }
 
@@ -80,9 +78,9 @@ td:last-of-type .block {
 }
 
 .blank {
-  margin: 0 0.2rem 0 0;
+  margin: 0 0.2rem;
   padding: 0.04rem;
-  border-bottom: 0.1rem solid black;
+  border-bottom: 0.05rem solid black;
   display: inline-block;
 }
 
@@ -117,13 +115,13 @@ table.columns {
 }
 
 .section {
-  border-left: 1px solid black;
-  border-right: 1px solid black;
+  border-left: 0.05rem solid black;
+  border-right: 0.05rem solid black;
   display: block;
 }
 
 .section:last-of-type {
-  border-bottom: 1px solid black;
+  border-bottom: 0.05rem solid black;
 }
 
 .ox:first-of-type {
@@ -195,13 +193,37 @@ table.columns {
 
 .comorbidities .line {
   padding: 0.2rem 0.5rem 0;
-  border-top: 0.1rem solid #999;
+  border-top: 0.05rem solid #999;
 }
 
 .followup .stack {
   margin-left: 0.3rem;
 }
 
+.accompanying table {
+  width: 100%;
+  margin-top: 1rem;
+  border-top: 0.05rem solid black;
+  border-left: 0.05rem solid black;
+}
+
+.accompanying th, .accompanying td {
+  border-right: 0.05rem solid black;
+  border-bottom: 0.05rem solid black;
+  padding: 0 1rem;
+}
+.accompanying th {
+  white-space: nowrap;
+  text-align: left;
+  background: #ddd;
+  font-family: verdana;
+  font-size: 0.6rem;
+}
+.accompanying td {
+  font-family: arial;
+  font-size: 0.8rem;
+  text-align: center;
+}
 
 /* History */
 
@@ -212,8 +234,8 @@ table.columns {
 }
 
 .history .heading {
-  margin: 2rem 0 1rem;
-  font-size: 1.6rem;
+  margin: 2rem 0 0 -0.5rem;
+  font-size: 1.2rem;
   font-weight: bold;
 }
 
@@ -239,9 +261,12 @@ table.columns {
 }
 
 .history, .history td {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 400;
   line-height: 1.4;
+}
+.observations {
+  margin: 0 2rem;
 }
 
 .event {
@@ -251,10 +276,9 @@ table.columns {
 
 .history .time {
   font-weight: bold;
-  font-size: 1.4rem;
-  margin: 0 1rem;
-  padding-top: 0.7rem;
-  padding-bottom: 0.7rem;
+  font-size: 1rem;
+  margin: 1rem 0 1rem 2rem;
+  padding-top: 1rem;
 }
 
 .event .time:first-of-type {
@@ -266,16 +290,25 @@ table.columns {
 }
 
 .label {
-  color: #699;
+  color: #099;
 }
 
 .observations .form {
-  margin: 1em;
+  margin: 1em 0;
+}
+
+.observations .form:first-child {
+  margin: 0;
+}
+
+.orders + .executions {
+  margin-top: 2rem;
 }
 
 .orders h3, .executions h3 {
+margin: 0;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #000;
 }
 
@@ -290,5 +323,3 @@ table.columns {
 .drug, .format {
   display: block;
 }
-
-

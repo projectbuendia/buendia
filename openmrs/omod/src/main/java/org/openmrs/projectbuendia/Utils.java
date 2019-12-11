@@ -79,6 +79,13 @@ public class Utils {
         return (a == b) || (a != null && a.equals(b));
     }
 
+    public static boolean eqAny(Object x, Object... values) {
+        for (Object value : values) {
+            if (eq(x, value)) return true;
+        }
+        return false;
+    }
+
     /** Returns a value if that value is not null, or a specified default value otherwise. */
     public static @Nonnull <T> T orDefault(@Nullable T value, @Nonnull T defaultValue) {
         return value != null ? value : defaultValue;

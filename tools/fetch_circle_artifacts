@@ -12,9 +12,11 @@
 
 import sys, json, os, os.path, fnmatch, argparse
 try:
-    from urllib.request import Request, urlopen, urlretrieve  # Python 3
+    # Python 3
+    from urllib.request import Request, urlopen, urlretrieve, URLError
 except ImportError:
-    from urllib2 import Request, urlopen  # Python 2
+    # Python 2
+    from urllib2 import Request, urlopen, URLError
     from urllib import urlretrieve
 
 parser = argparse.ArgumentParser(description="""Fetches all artifacts matching
@@ -24,9 +26,11 @@ branch to the current directory.  You must specify exactly one of -b or -j; the 
 parser.add_argument("-b", "--branch",
     help="if present, the artifacts for the latest successful build on BRANCH are fetched")
 parser.add_argument("-j", "--job",
-    help="if present, the artifacts from JOB are fetched")
+    help="if present, the artifacts from job number JOB are fetched")
 parser.add_argument("-t", "--token",
     help="if present, sets the API token (which otherwise comes from the $CIRCLE_API_TOKEN environment variable)")
+parser.add_argument("-x", "--exclude", metavar='glob', action='append',
+    help="if present, exclude artifacts with paths matching this pattern")
 
 parser.add_argument("project",
     help="<project> should be of the form '<username>/<repo>'")
@@ -35,7 +39,8 @@ parser.add_argument("globs", metavar='glob', default=['*'], nargs='*',
 
 args = parser.parse_args()
 
-project, branch, job, globs = args.project, args.branch, args.job, args.globs
+project, branch, job = args.project, args.branch, args.job
+exclude, globs = args.exclude, args.globs
 token = args.token or os.environ.get("CIRCLE_API_TOKEN")
 
 if (branch and job) or (not branch and not job):
@@ -60,16 +65,24 @@ print('Getting list of artifacts for %s, %s...' % (
 request = Request(query)
 request.add_header("Accept", "application/json")
 
-response = urlopen(request)
+try:
+    response = urlopen(request)
+except URLError as e:
+    sys.stderr.write(str(e) + '\n')
+    sys.exit(1)
+
 content = response.read()
 artifacts = json.loads(content.decode())
 to_fetch = [a for a in artifacts if
-    any(fnmatch.fnmatch(a['path'], glob) for glob in globs)]
+    any(fnmatch.fnmatch(a['path'], glob) for glob in globs)
+    and not any(fnmatch.fnmatch(a['path'], glob) for glob in exclude)]
 
 print('')
-print('Found %d artifact%s, of which %d match %s%s' % (
+print('Found %d artifact%s, of which %d match %s%s%s' % (
     len(artifacts), '' if len(artifacts) == 1 else 's',
-    len(to_fetch), ' or '.join(globs), ':' if to_fetch else '.'
+    len(to_fetch), ' or '.join(globs),
+    (" and don't match " + ' or '.join(exclude)) if exclude else '',
+    ':' if to_fetch else '.'
 ))
 for artifact in to_fetch:
     print(artifact['path'])
@@ -82,5 +95,9 @@ if to_fetch:
         filename = os.path.basename(artifact["path"])
         sys.stderr.write('Fetching ' + filename + '... ')
         sys.stderr.flush()
-        urlretrieve(artifact["url"], filename)
+        try:
+            urlretrieve(artifact["url"], filename)
+        except URLError as e:
+            sys.stderr.write(str(e) + '\n')
+            sys.exit(1)
         sys.stderr.write('done.\n')
