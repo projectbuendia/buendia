@@ -778,7 +778,7 @@ class PatientPrinter {
         while (execs.size() > 0) {
             Provider provider = helper.getProvider(execs.get(0));
             Sequence group = seq(
-                span("h3", format(
+                span("heading", format(
                     "Treatments given by %s [fr:Traitements donnés par %s]",
                     renderProvider(provider)
                 ))
@@ -819,7 +819,7 @@ class PatientPrinter {
         while (remaining.size() > 0) {
             Provider provider = helper.getProvider(remaining.get(0));
             Sequence group = seq(
-                span("h3", format(
+                span("heading", format(
                     "Treatments ordered by %s [fr:Traitements commandés par %s]",
                     renderProvider(provider)
                 ))

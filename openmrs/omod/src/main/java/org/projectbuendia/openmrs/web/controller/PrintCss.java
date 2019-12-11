@@ -281,7 +281,8 @@ public class PrintCss {
         "  clear: both;\n" +
         "}\n" +
         "\n" +
-        ".event:first-child, .treatments *:first-child .h3:first-child {\n" +
+        ".event:first-child, .treatments .group:first-child {\n" +
+        "  color: #000;\n" +
         "  margin-top: 0;\n" +
         "  padding-top: 0;\n" +
         "}\n" +
@@ -302,6 +303,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".c-159393, .c-1642 {  /* diagnosis, final diagnosis */\n" +
+        "  margin: 0.8rem 0;\n" +
         "  font-weight: bold;\n" +
         "}\n" +
         "\n" +
@@ -317,8 +319,9 @@ public class PrintCss {
         "  margin: 0;\n" +
         "}\n" +
         "\n" +
-        ".treatments .h3 {\n" +
+        ".treatments .group {\n" +
         "  font-size: 0.8rem;\n" +
+        "  font-weight: bold;\n" +
         "}\n" +
         "\n" +
         ".order, .execution {\n" +
@@ -333,8 +336,16 @@ public class PrintCss {
         "  display: block;\n" +
         "}\n" +
         "\n" +
+        ".drug {\n" +
+        "  font-weight: bold;\n" +
+        "}\n" +
+        "\n" +
         ".drug::before {\n" +
         "  •\n" +
+        "}\n" +
+        "\n" +
+        ".provider {\n" +
+        "  font-style: italic;\n" +
         "}\n" +
         "";
 }

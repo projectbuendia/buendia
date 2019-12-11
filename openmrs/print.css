@@ -274,7 +274,8 @@ table.columns {
   clear: both;
 }
 
-.event:first-child, .treatments *:first-child .h3:first-child {
+.event:first-child, .treatments .group:first-child {
+  color: #000;
   margin-top: 0;
   padding-top: 0;
 }
@@ -295,6 +296,7 @@ table.columns {
 }
 
 .c-159393, .c-1642 {  /* diagnosis, final diagnosis */
+  margin: 0.8rem 0;
   font-weight: bold;
 }
 
@@ -310,8 +312,9 @@ table.columns {
   margin: 0;
 }
 
-.treatments .h3 {
+.treatments .group {
   font-size: 0.8rem;
+  font-weight: bold;
 }
 
 .order, .execution {
@@ -326,6 +329,14 @@ table.columns {
   display: block;
 }
 
+.drug {
+  font-weight: bold;
+}
+
 .drug::before {
   •
+}
+
+.provider {
+  font-style: italic;
 }
