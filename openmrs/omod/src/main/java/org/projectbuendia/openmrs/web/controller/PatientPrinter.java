@@ -902,7 +902,8 @@ class PatientPrinter {
                             helper.formatTime(start), helper.formatTime(stop)))
                 ) :
                 seq(renderQuantity(instr.frequency), ", ",
-                    format("starting %s, continuing indefinitely [fr:commencer %s; continuer indéfiniment]"))
+                    format("starting %s, continuing indefinitely [fr:commencer %s; continuer indéfiniment]",
+                        helper.formatTime(start)))
             ) :
             format("one dose only, ordered %s [fr:dose unique, commandé %s]",
                 helper.formatTime(start))
