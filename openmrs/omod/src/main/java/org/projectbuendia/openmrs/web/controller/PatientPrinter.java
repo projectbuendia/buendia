@@ -5,6 +5,8 @@ import org.joda.time.Days;
 import org.joda.time.Duration;
 import org.joda.time.LocalDate;
 import org.joda.time.Period;
+import org.openmrs.BaseOpenmrsMetadata;
+import org.openmrs.BaseOpenmrsObject;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
@@ -14,6 +16,7 @@ import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.Provider;
+import org.openmrs.api.ProviderService;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.models.Catalog.Drug;
@@ -668,17 +671,14 @@ class PatientPrinter {
                 results.add(div(
                     "event",
                     el("h2 class='time'", helper.formatTime(event.time),
-                        provider != null ? Utils.EM_DASH : "",
-                        span("provider", renderProvider(provider))),
+                        provider != null ? span("provider", renderProvider(provider)) : seq()),
                     columns(
                         column("50%",
                             obsList.isEmpty() ? seq() : div("observations", obsList)
                         ),
                         column("50%", div("treatments",
-                            orderList.isEmpty() ? seq() : div("orders",
-                                span("label", el("h3", intl("Treatments ordered [fr:Traitements commandés]"))), orderList),
-                            execList.isEmpty() ? seq() : div("executions",
-                                span("label", el("h3", intl("Treatments given [fr:Traitements donnés]"))), execList)
+                            orderList.isEmpty() ? seq() : div("orders", orderList),
+                            execList.isEmpty() ? seq() : div("executions", execList)
                         ))
                     )
                 ));
@@ -775,27 +775,70 @@ class PatientPrinter {
 
     private Sequence renderExecList(List<Obs> execs) {
         Sequence items = seq();
-        for (Obs exec : execs) {
-            items.add(renderObsContent(exec, null));
+        while (execs.size() > 0) {
+            Provider provider = helper.getProvider(execs.get(0));
+            Sequence group = seq(
+                span("h3", format(
+                    "Treatments given by %s [fr:Traitements donnés par %s]",
+                    renderProvider(provider)
+                ))
+            );
+            Set<String> displayed = new HashSet<>();
+            for (Obs exec : execs) {
+                if (eq(helper.getProviderUuid(exec), provider.getUuid())) {
+                    group.add(renderObsContent(exec, null));
+                    displayed.add(exec.getUuid());
+                }
+            }
+            execs = filterOut(execs, displayed);
+            items.add(group);
         }
         return items;
     }
 
-    private Sequence renderOrderList(List<Order> orders) {
-        Sequence results = seq();
-        for (Order order : orders) {
-            results.add(
-                div("order",
-                    span("label", format(
-                        "Ordered by %s [fr:Commandé par %s]",
-                        renderProvider(helper.getProvider(order))
-                    ), ": "),
-                    renderOrderAction(order),
-                    renderOrderTreatment(order),
-                    renderOrderSchedule(order)
-                )
-            );
+    private <T extends BaseOpenmrsObject> List<T> filterOut(List<T> items, Collection<String> uuidsToOmit) {
+        List<T> result = new ArrayList<>();
+        for (T item : items) {
+            if (!uuidsToOmit.contains(item.getUuid())) result.add(item);
         }
+        return result;
+    }
+
+    private Sequence renderOrderList(List<Order> orders) {
+        Set<String> revised = new HashSet<>();
+        for (Order order : orders) {
+            Order previous = order.getPreviousOrder();
+            if (previous != null) {
+                revised.add(previous.getUuid());
+            }
+        }
+
+        List<Order> remaining = filterOut(orders, revised);
+
+        Sequence results = seq();
+        while (remaining.size() > 0) {
+            Provider provider = helper.getProvider(remaining.get(0));
+            Sequence group = seq(
+                span("h3", format(
+                    "Treatments ordered by %s [fr:Traitements commandés par %s]",
+                    renderProvider(provider)
+                ))
+            );
+            Set<String> displayed = new HashSet<>();
+            for (Order order : remaining) {
+                if (eq(helper.getProviderUuid(order), provider.getUuid())) {
+                    displayed.add(order.getUuid());
+                    group.add(div("order",
+                        renderOrderAction(order),
+                        renderOrderTreatment(order),
+                        renderOrderSchedule(order)
+                    ));
+                }
+            }
+            results.add(group);
+            remaining = filterOut(remaining, displayed);
+        }
+
         return results;
     }
 
@@ -848,23 +891,14 @@ class PatientPrinter {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
                 value.add(renderPlacement(p));
-                if (provider != null) {
-                    value.add(span("provider", " (", provider.getName(), ")"));
-                }
                 return div("obs placement",
-                    span("label", intl("New placement [fr:Nouveau emplacement]"), ": "),
+                    span("label", intl("Placement [fr:Emplacement]"), ": "),
                     span("value", value)
                 );
 
             case DbUtils.CONCEPT_ORDER_EXECUTED_UUID:
                 Order order = obs.getOrder();
-                return div("execution",
-                    span("label", format(
-                        "Given by %s [fr:Donné par %s]",
-                        renderProvider(helper.getProvider(obs))
-                    ), ": "),
-                    span("value", renderOrderTreatment(order))
-                );
+                return div("execution", renderOrderTreatment(order));
 
             default:
                 if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
@@ -929,7 +963,7 @@ class PatientPrinter {
 
         Route route = index.getRoute(instr.route);
         return div("treatment",
-            div("drug", span("label", intl("Drug [fr:Médicament]"), ": "), drug.name),
+            div("drug", drug.name),
             div("format", span("label", intl("Format"), ": "), format.description),
             div("dosageroute",
                 span("label", intl("Dosage"), ": "), dosage, " ",

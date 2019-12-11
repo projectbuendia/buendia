@@ -248,19 +248,19 @@ public class PrintCss {
         "\n" +
         ".history .obs,\n" +
         ".history .treatment > div,\n" +
-        ".history .schedule,\n" +
-        ".history .execution > div {\n" +
-        "  padding-left: 2em;\n" +
-        "  text-indent: -2em;\n" +
+        ".history .schedule {\n" +
+        "  padding-left: 2rem;\n" +
+        "  text-indent: -2rem;\n" +
         "}\n" +
         "\n" +
         ".intro {\n" +
-        "  font-size: 2rem;\n" +
+        "  font-size: 1.5rem;\n" +
         "}\n" +
         "\n" +
         ".intro .ident {\n" +
         "  float: right;\n" +
         "  font-size: 3rem;\n" +
+        "  font-family: monospace;\n" +
         "}\n" +
         "\n" +
         ".intro .name {\n" +
@@ -268,7 +268,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history, .history td {\n" +
-        "  font-size: 0.8rem;\n" +
+        "  font-size: 0.7rem;\n" +
         "  font-weight: 400;\n" +
         "  line-height: 1.4;\n" +
         "}\n" +
@@ -277,8 +277,13 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".event {\n" +
-        "  margin: 2em 0;\n" +
+        "  margin: 2rem 0;\n" +
         "  clear: both;\n" +
+        "}\n" +
+        "\n" +
+        ".event:first-child, .treatments *:first-child .h3:first-child {\n" +
+        "  margin-top: 0;\n" +
+        "  padding-top: 0;\n" +
         "}\n" +
         "\n" +
         ".history .time {\n" +
@@ -289,6 +294,10 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".event .time:first-of-type {\n" +
+        "  padding-top: 0;\n" +
+        "}\n" +
+        "\n" +
+        ".heading + .time {\n" +
         "  padding-top: 0;\n" +
         "}\n" +
         "\n" +
@@ -308,15 +317,8 @@ public class PrintCss {
         "  margin: 0;\n" +
         "}\n" +
         "\n" +
-        ".orders + .executions {\n" +
-        "  margin-top: 2rem;\n" +
-        "}\n" +
-        "\n" +
-        ".orders h3, .executions h3 {\n" +
-        "margin: 0;\n" +
-        "  font-weight: bold;\n" +
+        ".treatments .h3 {\n" +
         "  font-size: 0.8rem;\n" +
-        "  color: #000;\n" +
         "}\n" +
         "\n" +
         ".order, .execution {\n" +
@@ -329,6 +331,10 @@ public class PrintCss {
         "\n" +
         ".drug, .format {\n" +
         "  display: block;\n" +
+        "}\n" +
+        "\n" +
+        ".drug::before {\n" +
+        "  •\n" +
         "}\n" +
         "";
 }

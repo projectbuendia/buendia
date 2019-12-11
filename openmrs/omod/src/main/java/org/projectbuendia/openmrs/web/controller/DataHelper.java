@@ -8,6 +8,7 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.openmrs.BaseOpenmrsData;
 import org.openmrs.BaseOpenmrsMetadata;
+import org.openmrs.BaseOpenmrsObject;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterProvider;
@@ -323,8 +324,11 @@ public class DataHelper {
     }
 
     public static String getProviderUuid(Obs obs) {
-        Provider provider = getProvider(obs);
-        return provider != null ? provider.getUuid() : null;
+        return getUuid(getProvider(obs));
+    }
+
+    public static String getProviderUuid(Order order) {
+        return getUuid(getProvider(order));
     }
 
     public static Provider getProvider(Order order) {
@@ -339,7 +343,7 @@ public class DataHelper {
         return null;
     }
 
-    public static String getUuid(BaseOpenmrsMetadata obj) {
+    public static String getUuid(BaseOpenmrsObject obj) {
         return obj != null ? obj.getUuid() : null;
     }
 

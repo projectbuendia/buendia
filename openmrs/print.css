@@ -241,19 +241,19 @@ table.columns {
 
 .history .obs,
 .history .treatment > div,
-.history .schedule,
-.history .execution > div {
-  padding-left: 2em;
-  text-indent: -2em;
+.history .schedule {
+  padding-left: 2rem;
+  text-indent: -2rem;
 }
 
 .intro {
-  font-size: 2rem;
+  font-size: 1.5rem;
 }
 
 .intro .ident {
   float: right;
   font-size: 3rem;
+  font-family: monospace;
 }
 
 .intro .name {
@@ -261,7 +261,7 @@ table.columns {
 }
 
 .history, .history td {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -270,8 +270,13 @@ table.columns {
 }
 
 .event {
-  margin: 2em 0;
+  margin: 2rem 0;
   clear: both;
+}
+
+.event:first-child, .treatments *:first-child .h3:first-child {
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .history .time {
@@ -282,6 +287,10 @@ table.columns {
 }
 
 .event .time:first-of-type {
+  padding-top: 0;
+}
+
+.heading + .time {
   padding-top: 0;
 }
 
@@ -301,15 +310,8 @@ table.columns {
   margin: 0;
 }
 
-.orders + .executions {
-  margin-top: 2rem;
-}
-
-.orders h3, .executions h3 {
-margin: 0;
-  font-weight: bold;
+.treatments .h3 {
   font-size: 0.8rem;
-  color: #000;
 }
 
 .order, .execution {
@@ -322,4 +324,8 @@ margin: 0;
 
 .drug, .format {
   display: block;
+}
+
+.drug::before {
+  •
 }
