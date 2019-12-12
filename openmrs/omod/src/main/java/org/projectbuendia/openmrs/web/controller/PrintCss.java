@@ -71,6 +71,17 @@ public class PrintCss {
         "  border-top: 0.05rem solid black;\n" +
         "}\n" +
         "\n" +
+        ".admission-form .shaded {\n" +
+        "  display: block;\n" +
+        "  font-size: 0.8rem;\n" +
+        "  font-weight: normal;\n" +
+        "  text-align: center;\n" +
+        "  padding: 0.4rem 0.6rem;\n" +
+        "  background: #ddd;\n" +
+        "  border-top: 0.05rem solid black;\n" +
+        "}\n" +
+        "\n" +
+        "\n" +
         "td .block {\n" +
         "  border-right: 0.05rem solid black;\n" +
         "}\n" +
@@ -237,7 +248,6 @@ public class PrintCss {
         ".history {\n" +
         "  font-family: helvetica, arial, sans-serif;\n" +
         "  margin: 1rem;\n" +
-        "  page-break-after: always;\n" +
         "}\n" +
         "\n" +
         ".history .heading {\n" +
@@ -248,19 +258,19 @@ public class PrintCss {
         "\n" +
         ".history .obs,\n" +
         ".history .treatment > div,\n" +
-        ".history .schedule,\n" +
-        ".history .execution > div {\n" +
-        "  padding-left: 2em;\n" +
-        "  text-indent: -2em;\n" +
+        ".history .schedule {\n" +
+        "  padding-left: 2rem;\n" +
+        "  text-indent: -2rem;\n" +
         "}\n" +
         "\n" +
         ".intro {\n" +
-        "  font-size: 2rem;\n" +
+        "  font-size: 1.5rem;\n" +
         "}\n" +
         "\n" +
         ".intro .ident {\n" +
         "  float: right;\n" +
         "  font-size: 3rem;\n" +
+        "  font-family: monospace;\n" +
         "}\n" +
         "\n" +
         ".intro .name {\n" +
@@ -268,7 +278,7 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".history, .history td {\n" +
-        "  font-size: 0.8rem;\n" +
+        "  font-size: 0.7rem;\n" +
         "  font-weight: 400;\n" +
         "  line-height: 1.4;\n" +
         "}\n" +
@@ -277,8 +287,14 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".event {\n" +
-        "  margin: 2em 0;\n" +
+        "  margin: 2rem 0;\n" +
         "  clear: both;\n" +
+        "}\n" +
+        "\n" +
+        ".event:first-child, :first-child > .group:first-child {\n" +
+        "  color: #000;\n" +
+        "  margin-top: 0;\n" +
+        "  padding-top: 0;\n" +
         "}\n" +
         "\n" +
         ".history .time {\n" +
@@ -292,7 +308,12 @@ public class PrintCss {
         "  padding-top: 0;\n" +
         "}\n" +
         "\n" +
+        ".heading + .time {\n" +
+        "  padding-top: 0;\n" +
+        "}\n" +
+        "\n" +
         ".c-159393, .c-1642 {  /* diagnosis, final diagnosis */\n" +
+        "  margin: 0.8rem 0;\n" +
         "  font-weight: bold;\n" +
         "}\n" +
         "\n" +
@@ -301,22 +322,17 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".observations .form {\n" +
-        "  margin: 1em 0;\n" +
+        "  margin: 0.8rem 0;\n" +
         "}\n" +
         "\n" +
         ".observations .form:first-child {\n" +
         "  margin: 0;\n" +
         "}\n" +
         "\n" +
-        ".orders + .executions {\n" +
-        "  margin-top: 2rem;\n" +
-        "}\n" +
-        "\n" +
-        ".orders h3, .executions h3 {\n" +
-        "margin: 0;\n" +
-        "  font-weight: bold;\n" +
+        ".observations .group, .treatments .group {\n" +
         "  font-size: 0.8rem;\n" +
-        "  color: #000;\n" +
+        "  font-weight: bold;\n" +
+        "  margin-top: 1.5rem;\n" +
         "}\n" +
         "\n" +
         ".order, .execution {\n" +
@@ -329,6 +345,36 @@ public class PrintCss {
         "\n" +
         ".drug, .format {\n" +
         "  display: block;\n" +
+        "}\n" +
+        "\n" +
+        ".drug {\n" +
+        "  font-weight: bold;\n" +
+        "}\n" +
+        "\n" +
+        ".drug::before {\n" +
+        "  •\n" +
+        "}\n" +
+        "\n" +
+        ".provider {\n" +
+        "  font-style: italic;\n" +
+        "}\n" +
+        "\n" +
+        "table.pages {\n" +
+        "  width: 100%;\n" +
+        "  page-break-after: always;\n" +
+        "}\n" +
+        "\n" +
+        "table.pages thead td {\n" +
+        "  text-align: right;\n" +
+        "  padding-bottom: 0.2rem;\n" +
+        "}\n" +
+        "\n" +
+        "table.pages thead .ident {\n" +
+        "  display: inline-block;\n" +
+        "  font-family: monospace;\n" +
+        "  font-size: 1.5rem;\n" +
+        "  padding: 0.1rem 0.1rem 0;\n" +
+        "  border: 0.05rem solid black;\n" +
         "}\n" +
         "";
 }

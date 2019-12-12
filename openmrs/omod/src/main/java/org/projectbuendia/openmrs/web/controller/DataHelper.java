@@ -6,6 +6,9 @@ import org.joda.time.Duration;
 import org.joda.time.Instant;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
+import org.openmrs.BaseOpenmrsData;
+import org.openmrs.BaseOpenmrsMetadata;
+import org.openmrs.BaseOpenmrsObject;
 import org.openmrs.Concept;
 import org.openmrs.Encounter;
 import org.openmrs.EncounterProvider;
@@ -312,13 +315,36 @@ public class DataHelper {
         );
     }
 
+    public Provider getProvider(String uuid) {
+        return providerService.getProviderByUuid(uuid);
+    }
+
     public static Provider getProvider(Obs obs) {
-        Encounter enc = obs.getEncounter();
+        return getProvider(obs.getEncounter());
+    }
+
+    public static String getProviderUuid(Obs obs) {
+        return getUuid(getProvider(obs));
+    }
+
+    public static String getProviderUuid(Order order) {
+        return getUuid(getProvider(order));
+    }
+
+    public static Provider getProvider(Order order) {
+        return getProvider(order.getEncounter());
+    }
+
+    public static Provider getProvider(Encounter enc) {
         if (enc == null) return null;
         for (EncounterProvider ep : enc.getEncounterProviders()) {
             return ep.getProvider();
         }
         return null;
+    }
+
+    public static String getUuid(BaseOpenmrsObject obj) {
+        return obj != null ? obj.getUuid() : null;
     }
 
     public static Map<String, Obs> getLastObsByConcept(Encounter encounter) {

@@ -64,6 +64,17 @@ body {
   border-top: 0.05rem solid black;
 }
 
+.admission-form .shaded {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: normal;
+  text-align: center;
+  padding: 0.4rem 0.6rem;
+  background: #ddd;
+  border-top: 0.05rem solid black;
+}
+
+
 td .block {
   border-right: 0.05rem solid black;
 }
@@ -230,7 +241,6 @@ table.columns {
 .history {
   font-family: helvetica, arial, sans-serif;
   margin: 1rem;
-  page-break-after: always;
 }
 
 .history .heading {
@@ -241,19 +251,19 @@ table.columns {
 
 .history .obs,
 .history .treatment > div,
-.history .schedule,
-.history .execution > div {
-  padding-left: 2em;
-  text-indent: -2em;
+.history .schedule {
+  padding-left: 2rem;
+  text-indent: -2rem;
 }
 
 .intro {
-  font-size: 2rem;
+  font-size: 1.5rem;
 }
 
 .intro .ident {
   float: right;
   font-size: 3rem;
+  font-family: monospace;
 }
 
 .intro .name {
@@ -261,7 +271,7 @@ table.columns {
 }
 
 .history, .history td {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 400;
   line-height: 1.4;
 }
@@ -270,8 +280,14 @@ table.columns {
 }
 
 .event {
-  margin: 2em 0;
+  margin: 2rem 0;
   clear: both;
+}
+
+.event:first-child, :first-child > .group:first-child {
+  color: #000;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .history .time {
@@ -285,7 +301,12 @@ table.columns {
   padding-top: 0;
 }
 
+.heading + .time {
+  padding-top: 0;
+}
+
 .c-159393, .c-1642 {  /* diagnosis, final diagnosis */
+  margin: 0.8rem 0;
   font-weight: bold;
 }
 
@@ -294,22 +315,17 @@ table.columns {
 }
 
 .observations .form {
-  margin: 1em 0;
+  margin: 0.8rem 0;
 }
 
 .observations .form:first-child {
   margin: 0;
 }
 
-.orders + .executions {
-  margin-top: 2rem;
-}
-
-.orders h3, .executions h3 {
-margin: 0;
-  font-weight: bold;
+.observations .group, .treatments .group {
   font-size: 0.8rem;
-  color: #000;
+  font-weight: bold;
+  margin-top: 1.5rem;
 }
 
 .order, .execution {
@@ -322,4 +338,34 @@ margin: 0;
 
 .drug, .format {
   display: block;
+}
+
+.drug {
+  font-weight: bold;
+}
+
+.drug::before {
+  •
+}
+
+.provider {
+  font-style: italic;
+}
+
+table.pages {
+  width: 100%;
+  page-break-after: always;
+}
+
+table.pages thead td {
+  text-align: right;
+  padding-bottom: 0.2rem;
+}
+
+table.pages thead .ident {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 1.5rem;
+  padding: 0.1rem 0.1rem 0;
+  border: 0.05rem solid black;
 }

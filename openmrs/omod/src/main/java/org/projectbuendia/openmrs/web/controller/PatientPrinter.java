@@ -5,6 +5,8 @@ import org.joda.time.Days;
 import org.joda.time.Duration;
 import org.joda.time.LocalDate;
 import org.joda.time.Period;
+import org.openmrs.BaseOpenmrsMetadata;
+import org.openmrs.BaseOpenmrsObject;
 import org.openmrs.Concept;
 import org.openmrs.ConceptDatatype;
 import org.openmrs.Encounter;
@@ -13,6 +15,8 @@ import org.openmrs.FormField;
 import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
+import org.openmrs.Provider;
+import org.openmrs.api.ProviderService;
 import org.openmrs.projectbuendia.Utils;
 import org.openmrs.projectbuendia.webservices.rest.DbUtils;
 import org.projectbuendia.models.Catalog.Drug;
@@ -32,6 +36,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -41,6 +47,7 @@ import java.util.Set;
 import static org.openmrs.projectbuendia.Utils.eq;
 import static org.openmrs.projectbuendia.Utils.eqAny;
 import static org.openmrs.projectbuendia.Utils.toUuid;
+import static org.openmrs.projectbuendia.webservices.rest.DbUtils.CONCEPT_PLACEMENT_UUID;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isNo;
 import static org.openmrs.projectbuendia.webservices.rest.DbUtils.isYes;
 import static org.projectbuendia.openmrs.web.controller.HtmlOutput.el;
@@ -92,11 +99,23 @@ class PatientPrinter {
 
     public void printHistory(Patient pat) throws IOException {
         History history = helper.getHistory(pat);
-        div("history",
-            renderIntro(pat),
-            !history.admission.isEmpty() ? renderAdmission(history.admission) : seq(),
-            !history.evolution.isEmpty() ? renderEvents(pat, history.evolution) : seq(),
-            !history.discharge.isEmpty() ? renderDischarge(history.discharge) : seq()
+        table("pages",
+            el("thead",
+                el("tr",
+                    el("td",
+                        div("ident", pat.getPatientIdentifier("MSF").getIdentifier())))),
+            el("tbody",
+                el("tr",
+                    el("td",
+                        div("history",
+                            renderIntro(pat),
+                            !history.admission.isEmpty() ? renderAdmission(history.admission) : seq(),
+                            !history.evolution.isEmpty() ? renderEvents(pat, history.evolution) : seq(),
+                            !history.discharge.isEmpty() ? renderDischarge(history.discharge) : seq()
+                        )
+                    )
+                )
+            )
         ).writeTo(writer, locale);
     }
 
@@ -219,7 +238,7 @@ class PatientPrinter {
             accompanyingRows.add(
                 el("tr",
                     el("td", line(name)),
-                    el("td", age),
+                    el("td", line(age)),
                     el("td", relation),
                     el("td",
                         isYes(suspectedObs) ? "Oui" :
@@ -266,20 +285,22 @@ class PatientPrinter {
                         )
                     )
                 ),
-                columns(
-                    column("50%", line(field("Nom du CTE:", blank(8, facilityName)))),
-                    column("50%", line(field("Nom de l'enregistreur:", blank(8, providerName))))
-                ),
-                line(
-                    field("* Statut du patient à l'admission:",
-                        checkitem("Suspect", eq(admStat, STATUS_SUSPECT_UUID)),
-                        hspace(2),
-                        checkitem("Probable", eq(admStat, STATUS_PROBABLE_UUID)),
-                        hspace(2),
-                        checkitem("Confirmé", eq(admStat, STATUS_CONFIRMED_UUID))
-                    )
-                ),
-                line("Date du dernier PCR:", renderEmptyDate())
+                block("cte-name",
+                    columns(
+                        column("50%", line(field("Nom du CTE:", blank(8, facilityName)))),
+                        column("50%", line(field("Nom de l'enregistreur:", blank(8, providerName))))
+                    ),
+                    line(
+                        field("* Statut du patient à l'admission:",
+                            checkitem("Suspect", eq(admStat, STATUS_SUSPECT_UUID)),
+                            hspace(2),
+                            checkitem("Probable", eq(admStat, STATUS_PROBABLE_UUID)),
+                            hspace(2),
+                            checkitem("Confirmé", eq(admStat, STATUS_CONFIRMED_UUID))
+                        )
+                    ),
+                    line("Date du dernier PCR:", renderEmptyDate())
+                )
             ),
             section("arrival",
                 "Arrivée patient à CTE",
@@ -315,8 +336,8 @@ class PatientPrinter {
                 ),
                 block("accompanying",
                     subhead("* Le patient est accompagné par:"),
-                    el("table cellpadding=0 cellspacing=0",
-                        el("row",
+                    table("",
+                        el("tr",
                             el("th width='40%'", line("Name")),
                             el("th width='10%'", line("Age")),
                             el("th width='35%'", line("Lien avec le patient")),
@@ -663,16 +684,14 @@ class PatientPrinter {
             if (!obsList.isEmpty() || !orderList.isEmpty() || !execList.isEmpty()) {
                 results.add(div(
                     "event",
-                    el("h2 class='time'", helper.formatTime(event.time)),
+                    div("time", helper.formatTime(event.time)),
                     columns(
                         column("50%",
                             obsList.isEmpty() ? seq() : div("observations", obsList)
                         ),
                         column("50%", div("treatments",
-                            orderList.isEmpty() ? seq() : div("orders",
-                                span("label", el("h3", intl("Treatments ordered [fr:Traitements commandés]"))), orderList),
-                            execList.isEmpty() ? seq() : div("executions",
-                                span("label", el("h3", intl("Treatments given [fr:Traitements donnés]"))), execList)
+                            orderList.isEmpty() ? seq() : div("orders", orderList),
+                            execList.isEmpty() ? seq() : div("executions", execList)
                         ))
                     )
                 ));
@@ -684,76 +703,188 @@ class PatientPrinter {
         );
     }
 
+    private Doc renderProvider(Provider provider) {
+        return provider != null ? span("provider", provider.getName()) : seq();
+    }
+
+    private Provider getPluralityProvider(Map<String, Obs> obsByQuestion) {
+        Map<String, Integer> countsByUuid = new HashMap<>();
+        for (String conceptUuid : obsByQuestion.keySet()) {
+            if (eqAny(conceptUuid,
+                ConceptUuids.ORDER_EXECUTED_UUID,
+                ConceptUuids.PLACEMENT_UUID,
+                ConceptUuids.PREGNANCY_UUID
+            )) continue;
+            Obs obs = obsByQuestion.get(conceptUuid);
+            Provider provider = helper.getProvider(obs);
+            if (provider != null) {
+                String providerUuid = provider.getUuid();
+                int count = 0;
+                if (countsByUuid.containsKey(providerUuid)) count = countsByUuid.get(providerUuid);
+                countsByUuid.put(providerUuid, count + 1);
+            }
+        }
+        Provider result = null;
+        int maxCount = 0;
+        for (String uuid : countsByUuid.keySet()) {
+            int count = countsByUuid.get(uuid);
+            if (count > maxCount) {
+                result = helper.getProvider(uuid);
+                maxCount = count;
+            }
+        }
+        return result;
+    }
+
     private Sequence renderObsList(Map<String, Obs> obsMap) {
         Sequence results = new Sequence();
-        Set<String> done = new HashSet<>();
+        Set<String> remaining = new HashSet<>(obsMap.keySet());
         boolean admissionFormSubmitted = obsMap.containsKey(
             ConceptUuids.ADMISSION_DATETIME_UUID);
-        for (Form form : helper.getForms()) {
-            Sequence items = new Sequence();
-            if (!admissionFormSubmitted && isAdmissionForm(form)) continue;
-            for (FormSection section : helper.getFormSections(form)) {
-                List<Obs> children = new ArrayList<>();
-                int noCount = 0;
-                for (FormField option : section.fields) {
-                    String uuid = DbUtils.getConceptUuid(option);
-                    if (uuid != null && obsMap.containsKey(uuid) && !done.contains(uuid)) {
-                        Obs obs = obsMap.get(uuid);
-                        if (isNo(obs)) noCount++;
-                        children.add(obs);
-                        done.add(uuid);
-                    }
-                }
-                if (!children.isEmpty()) {
-                    Doc title = intl(section.title);
-                    if (section.title.contains("[binary]")) {
-                        if (noCount == section.fields.size()) {
-                            items.add(renderNoneSelected(title, children));
-                        } else {
-                            items.add(renderMultipleSelect(title, children));
+
+        while (remaining.size() > 0) {
+            if (remaining.contains(CONCEPT_PLACEMENT_UUID)) {
+                Obs obs = obsMap.get(CONCEPT_PLACEMENT_UUID);
+                results.add(div("form", renderObsContent(obs)));
+                remaining.remove(CONCEPT_PLACEMENT_UUID);
+                continue;
+            }
+            String providerUuid = null;
+            for (Form form : helper.getForms()) {
+                Doc groupHeading = seq();
+                Sequence items = seq();
+                if (!admissionFormSubmitted && isAdmissionForm(form)) continue;
+                for (FormSection section : helper.getFormSections(form)) {
+                    List<Obs> children = new ArrayList<>();
+                    int noCount = 0;
+                    for (FormField option : section.fields) {
+                        String uuid = DbUtils.getConceptUuid(option);
+                        if (uuid != null && remaining.contains(uuid)) {
+                            Obs obs = obsMap.get(uuid);
+                            if (providerUuid == null) {
+                                Provider provider = helper.getProvider(obs);
+                                providerUuid = helper.getUuid(provider);
+                                groupHeading = div("group", format(
+                                    "Observations by %s [fr:Observations par %s]",
+                                    renderProvider(provider)
+                                ));
+                            }
+                            if (eq(helper.getProviderUuid(obs), providerUuid)) {
+                                if (isNo(obs)) noCount++;
+                                children.add(obs);
+                                remaining.remove(uuid);
+                            }
                         }
-                    } else {
-                        items.add(renderFormSection(title, children));
+                    }
+                    if (!children.isEmpty()) {
+                        Doc title = intl(section.title);
+                        if (section.title.contains("[binary]")) {
+                            if (noCount == section.fields.size()) {
+                                items.add(renderNoneSelected(title, children));
+                            } else {
+                                items.add(renderMultipleSelect(title, children));
+                            }
+                        } else {
+                            items.add(renderFormSection(title, children));
+                        }
+                    }
+                }
+                if (!items.isEmpty()) {
+                    results.add(groupHeading, div("form", items));
+                }
+            }
+            Doc groupHeading = seq();
+            Sequence extras = new Sequence();
+            for (String uuid : obsMap.keySet()) {
+                if (remaining.contains(uuid)) {
+                    Obs obs = obsMap.get(uuid);
+                    if (providerUuid == null) {
+                        Provider provider = helper.getProvider(obs);
+                        providerUuid = helper.getUuid(provider);
+                        groupHeading = div("group", format(
+                            "Observations by %s [fr:Observations par %s]",
+                            renderProvider(provider)
+                        ));
+                    }
+                    if (eq(helper.getProviderUuid(obs), providerUuid)) {
+                        extras.add(renderObsContent(obs));
+                        remaining.remove(uuid);
                     }
                 }
             }
-            if (!items.isEmpty()) {
-                results.add(div("form", items));
+            if (!extras.isEmpty()) {
+                results.add(groupHeading, div("form extras", extras));
             }
-        }
-        Sequence extras = new Sequence();
-        for (String uuid : obsMap.keySet()) {
-            if (!done.contains(uuid)) {
-                Obs obs = obsMap.get(uuid);
-                extras.add(renderObsContent(obs));
-            }
-        }
-        if (!extras.isEmpty()) {
-            results.add(div("form extras", extras));
         }
         return results;
     }
 
     private Sequence renderExecList(List<Obs> execs) {
         Sequence items = seq();
-        for (Obs exec : execs) {
-            items.add(renderObsContent(exec));
+        while (execs.size() > 0) {
+            Provider provider = helper.getProvider(execs.get(0));
+            Sequence group = seq(
+                div("group", format(
+                    "Treatments given by %s [fr:Traitements donnés par %s]",
+                    renderProvider(provider)
+                ))
+            );
+            Set<String> displayed = new HashSet<>();
+            for (Obs exec : execs) {
+                if (eq(helper.getProviderUuid(exec), provider.getUuid())) {
+                    group.add(renderObsContent(exec));
+                    displayed.add(exec.getUuid());
+                }
+            }
+            execs = filterOut(execs, displayed);
+            items.add(group);
         }
         return items;
     }
 
-    private Sequence renderOrderList(List<Order> orders) {
-        Sequence results = seq();
-        for (Order order : orders) {
-            results.add(
-                div("order",
-                    span("label", intl("Treatment ordered [fr:Traitement commandé]"), ": "),
-                    renderOrderAction(order),
-                    renderOrderTreatment(order),
-                    renderOrderSchedule(order)
-                )
-            );
+    private <T extends BaseOpenmrsObject> List<T> filterOut(List<T> items, Collection<String> uuidsToOmit) {
+        List<T> result = new ArrayList<>();
+        for (T item : items) {
+            if (!uuidsToOmit.contains(item.getUuid())) result.add(item);
         }
+        return result;
+    }
+
+    private Sequence renderOrderList(List<Order> orders) {
+        Set<String> revised = new HashSet<>();
+        for (Order order : orders) {
+            Order previous = order.getPreviousOrder();
+            if (previous != null) {
+                revised.add(previous.getUuid());
+            }
+        }
+
+        List<Order> remaining = filterOut(orders, revised);
+
+        Sequence results = seq();
+        while (remaining.size() > 0) {
+            Provider provider = helper.getProvider(remaining.get(0));
+            Sequence group = seq(
+                div("group", format(
+                    "Treatments ordered by %s [fr:Traitements commandés par %s]",
+                    renderProvider(provider)
+                ))
+            );
+            Set<String> displayed = new HashSet<>();
+            for (Order order : remaining) {
+                if (eq(helper.getProviderUuid(order), provider.getUuid())) {
+                    displayed.add(order.getUuid());
+                    group.add(div("order",
+                        renderOrderAction(order),
+                        renderOrderTreatment(order),
+                        renderOrderSchedule(order)
+                    ));
+                }
+            }
+            results.add(group);
+            remaining = filterOut(remaining, displayed);
+        }
+
         return results;
     }
 
@@ -768,6 +899,7 @@ class PatientPrinter {
     private Doc renderMultipleSelect(Doc title, List<Obs> children) {
         Sequence results = seq();
         boolean first = true;
+        Provider provider = null;
         for (Obs obs : children) {
             if (isYes(obs)) {
                 if (!first) results.add(text(", "));
@@ -789,27 +921,32 @@ class PatientPrinter {
     }
 
     private Doc renderObsContent(Obs obs) {
+        Sequence value = seq();
+
         switch (DbUtils.getConceptUuid(obs)) {
             case DbUtils.CONCEPT_PLACEMENT_UUID:
                 DataHelper.Placement p = helper.getPlacement(obs);
+                value.add(renderPlacement(p));
                 return div("obs placement",
-                    span("label", intl("New placement [fr:Nouveau emplacement]"), ": "),
-                    span("value", renderPlacement(p))
+                    span("label", intl("Placement [fr:Emplacement]"), ": "),
+                    span("value", value)
                 );
 
             case DbUtils.CONCEPT_ORDER_EXECUTED_UUID:
                 Order order = obs.getOrder();
-                return div("execution",
-                    span("label", intl("Treatment given [fr:Traitement donné]"), ": "),
-                    span("value", renderOrderTreatment(order))
-                );
+                return div("execution", renderOrderTreatment(order));
 
             default:
-                if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
+                if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) {
+                    if (eq(obs.getValueCoded().getUuid(), ConceptUuids.NO_UUID)) {
+                        return seq();
+                    }
+                }
+                value.add(renderValue(obs));
                 return div("obs " + getConceptCssClass(obs.getConcept()),
                     span("label", coded(obs.getConcept()), ":"),
                     " ",
-                    span("value", renderValue(obs))
+                    span("value", value)
                 );
         }
     }
@@ -863,11 +1000,12 @@ class PatientPrinter {
 
         Route route = index.getRoute(instr.route);
         return div("treatment",
-            div("drug", span("label", intl("Drug [fr:Médicament]"), ": "), drug.name),
+            div("drug", drug.name),
             div("format", span("label", intl("Format"), ": "), format.description),
             div("dosageroute",
                 span("label", intl("Dosage"), ": "), dosage, " ",
-                span("route", format("%s (%s)", route.abbr, route.name))
+                !route.abbr.isEmpty() ?
+                   span("route", format("%s (%s)", route.abbr, route.name)) : seq()
             ),
             Utils.hasChars(instr.notes) ?
                 div("notes", span("label", intl("Notes [fr:Remarques]"), ": "), instr.notes) : seq()
@@ -1002,7 +1140,12 @@ class PatientPrinter {
     }
 
     private Doc section(String cls, String heading, Object... objects) {
-        return div("section " + cls, div("heading", heading), objects);
+        return div("section " + cls,
+            heading != null ? div("heading", heading) : seq(), objects);
+    }
+
+    private Doc table(String cls, Object... contents) {
+        return el("table cellspacing=0 cellpadding=0 class='" + cls + "'", contents);
     }
 
     private Doc columns(Object... columns) {
