@@ -64,6 +64,17 @@ body {
   border-top: 0.05rem solid black;
 }
 
+.admission-form .shaded {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: normal;
+  text-align: center;
+  padding: 0.4rem 0.6rem;
+  background: #ddd;
+  border-top: 0.05rem solid black;
+}
+
+
 td .block {
   border-right: 0.05rem solid black;
 }
@@ -274,7 +285,7 @@ table.columns {
   clear: both;
 }
 
-.event:first-child, .treatments .group:first-child {
+.event:first-child, :first-child > .group:first-child {
   color: #000;
   margin-top: 0;
   padding-top: 0;
@@ -305,16 +316,17 @@ table.columns {
 }
 
 .observations .form {
-  margin: 1em 0;
+  margin: 0.8rem 0;
 }
 
 .observations .form:first-child {
   margin: 0;
 }
 
-.treatments .group {
+.observations .group, .treatments .group {
   font-size: 0.8rem;
   font-weight: bold;
+  margin-top: 1.5rem;
 }
 
 .order, .execution {

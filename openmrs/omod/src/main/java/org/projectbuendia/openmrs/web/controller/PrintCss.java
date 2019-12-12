@@ -71,6 +71,17 @@ public class PrintCss {
         "  border-top: 0.05rem solid black;\n" +
         "}\n" +
         "\n" +
+        ".admission-form .shaded {\n" +
+        "  display: block;\n" +
+        "  font-size: 0.8rem;\n" +
+        "  font-weight: normal;\n" +
+        "  text-align: center;\n" +
+        "  padding: 0.4rem 0.6rem;\n" +
+        "  background: #ddd;\n" +
+        "  border-top: 0.05rem solid black;\n" +
+        "}\n" +
+        "\n" +
+        "\n" +
         "td .block {\n" +
         "  border-right: 0.05rem solid black;\n" +
         "}\n" +
@@ -281,7 +292,7 @@ public class PrintCss {
         "  clear: both;\n" +
         "}\n" +
         "\n" +
-        ".event:first-child, .treatments .group:first-child {\n" +
+        ".event:first-child, .treatments *:first-child .group:first-child {\n" +
         "  color: #000;\n" +
         "  margin-top: 0;\n" +
         "  padding-top: 0;\n" +
@@ -312,16 +323,17 @@ public class PrintCss {
         "}\n" +
         "\n" +
         ".observations .form {\n" +
-        "  margin: 1em 0;\n" +
+        "  margin: 0.8rem 0;\n" +
         "}\n" +
         "\n" +
         ".observations .form:first-child {\n" +
         "  margin: 0;\n" +
         "}\n" +
         "\n" +
-        ".treatments .group {\n" +
+        ".observations .group, .treatments .group {\n" +
         "  font-size: 0.8rem;\n" +
         "  font-weight: bold;\n" +
+        "  margin-top: 1.5rem;\n" +
         "}\n" +
         "\n" +
         ".order, .execution {\n" +
