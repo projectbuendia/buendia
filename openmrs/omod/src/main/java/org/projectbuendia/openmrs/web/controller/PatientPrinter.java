@@ -751,7 +751,8 @@ class PatientPrinter {
             }
             String providerUuid = null;
             for (Form form : helper.getForms()) {
-                Sequence items = new Sequence();
+                Doc groupHeading = seq();
+                Sequence items = seq();
                 if (!admissionFormSubmitted && isAdmissionForm(form)) continue;
                 for (FormSection section : helper.getFormSections(form)) {
                     List<Obs> children = new ArrayList<>();
@@ -763,10 +764,10 @@ class PatientPrinter {
                             if (providerUuid == null) {
                                 Provider provider = helper.getProvider(obs);
                                 providerUuid = helper.getUuid(provider);
-                                results.add(div("group", format(
+                                groupHeading = div("group", format(
                                     "Observations by %s [fr:Observations par %s]",
                                     renderProvider(provider)
-                                )));
+                                ));
                             }
                             if (eq(helper.getProviderUuid(obs), providerUuid)) {
                                 if (isNo(obs)) noCount++;
@@ -789,9 +790,10 @@ class PatientPrinter {
                     }
                 }
                 if (!items.isEmpty()) {
-                    results.add(div("form", items));
+                    results.add(groupHeading, div("form", items));
                 }
             }
+            Doc groupHeading = seq();
             Sequence extras = new Sequence();
             for (String uuid : obsMap.keySet()) {
                 if (remaining.contains(uuid)) {
@@ -799,10 +801,10 @@ class PatientPrinter {
                     if (providerUuid == null) {
                         Provider provider = helper.getProvider(obs);
                         providerUuid = helper.getUuid(provider);
-                        results.add(div("group", format(
+                        groupHeading = div("group", format(
                             "Observations by %s [fr:Observations par %s]",
                             renderProvider(provider)
-                        )));
+                        ));
                     }
                     if (eq(helper.getProviderUuid(obs), providerUuid)) {
                         extras.add(renderObsContent(obs));
@@ -811,7 +813,7 @@ class PatientPrinter {
                 }
             }
             if (!extras.isEmpty()) {
-                results.add(div("form extras", extras));
+                results.add(groupHeading, div("form extras", extras));
             }
         }
         return results;
@@ -935,7 +937,11 @@ class PatientPrinter {
                 return div("execution", renderOrderTreatment(order));
 
             default:
-                if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) return seq();
+                if (CONCEPTS_OMIT_NO.contains(DbUtils.getConceptUuid(obs))) {
+                    if (eq(obs.getValueCoded().getUuid(), ConceptUuids.NO_UUID)) {
+                        return seq();
+                    }
+                }
                 value.add(renderValue(obs));
                 return div("obs " + getConceptCssClass(obs.getConcept()),
                     span("label", coded(obs.getConcept()), ":"),
@@ -998,7 +1004,8 @@ class PatientPrinter {
             div("format", span("label", intl("Format"), ": "), format.description),
             div("dosageroute",
                 span("label", intl("Dosage"), ": "), dosage, " ",
-                span("route", format("%s (%s)", route.abbr, route.name))
+                !route.abbr.isEmpty() ?
+                   span("route", format("%s (%s)", route.abbr, route.name)) : seq()
             ),
             Utils.hasChars(instr.notes) ?
                 div("notes", span("label", intl("Notes [fr:Remarques]"), ": "), instr.notes) : seq()
