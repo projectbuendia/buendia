@@ -248,7 +248,6 @@ public class PrintCss {
         ".history {\n" +
         "  font-family: helvetica, arial, sans-serif;\n" +
         "  margin: 1rem;\n" +
-        "  page-break-after: always;\n" +
         "}\n" +
         "\n" +
         ".history .heading {\n" +
@@ -292,7 +291,7 @@ public class PrintCss {
         "  clear: both;\n" +
         "}\n" +
         "\n" +
-        ".event:first-child, .treatments *:first-child .group:first-child {\n" +
+        ".event:first-child, :first-child > .group:first-child {\n" +
         "  color: #000;\n" +
         "  margin-top: 0;\n" +
         "  padding-top: 0;\n" +
@@ -358,6 +357,24 @@ public class PrintCss {
         "\n" +
         ".provider {\n" +
         "  font-style: italic;\n" +
+        "}\n" +
+        "\n" +
+        "table.pages {\n" +
+        "  width: 100%;\n" +
+        "  page-break-after: always;\n" +
+        "}\n" +
+        "\n" +
+        "table.pages thead td {\n" +
+        "  text-align: right;\n" +
+        "  padding-bottom: 0.2rem;\n" +
+        "}\n" +
+        "\n" +
+        "table.pages thead .ident {\n" +
+        "  display: inline-block;\n" +
+        "  font-family: monospace;\n" +
+        "  font-size: 1.5rem;\n" +
+        "  padding: 0.1rem 0.1rem 0;\n" +
+        "  border: 0.05rem solid black;\n" +
         "}\n" +
         "";
 }

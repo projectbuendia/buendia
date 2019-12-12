@@ -99,11 +99,23 @@ class PatientPrinter {
 
     public void printHistory(Patient pat) throws IOException {
         History history = helper.getHistory(pat);
-        div("history",
-            renderIntro(pat),
-            !history.admission.isEmpty() ? renderAdmission(history.admission) : seq(),
-            !history.evolution.isEmpty() ? renderEvents(pat, history.evolution) : seq(),
-            !history.discharge.isEmpty() ? renderDischarge(history.discharge) : seq()
+        table("pages",
+            el("thead",
+                el("tr",
+                    el("td",
+                        div("ident", pat.getPatientIdentifier("MSF").getIdentifier())))),
+            el("tbody",
+                el("tr",
+                    el("td",
+                        div("history",
+                            renderIntro(pat),
+                            !history.admission.isEmpty() ? renderAdmission(history.admission) : seq(),
+                            !history.evolution.isEmpty() ? renderEvents(pat, history.evolution) : seq(),
+                            !history.discharge.isEmpty() ? renderDischarge(history.discharge) : seq()
+                        )
+                    )
+                )
+            )
         ).writeTo(writer, locale);
     }
 
@@ -324,8 +336,8 @@ class PatientPrinter {
                 ),
                 block("accompanying",
                     subhead("* Le patient est accompagné par:"),
-                    el("table cellpadding=0 cellspacing=0",
-                        el("row",
+                    table("",
+                        el("tr",
                             el("th width='40%'", line("Name")),
                             el("th width='10%'", line("Age")),
                             el("th width='35%'", line("Lien avec le patient")),
@@ -1123,6 +1135,10 @@ class PatientPrinter {
     private Doc section(String cls, String heading, Object... objects) {
         return div("section " + cls,
             heading != null ? div("heading", heading) : seq(), objects);
+    }
+
+    private Doc table(String cls, Object... contents) {
+        return el("table cellspacing=0 cellpadding=0 class='" + cls + "'", contents);
     }
 
     private Doc columns(Object... columns) {

@@ -241,7 +241,6 @@ table.columns {
 .history {
   font-family: helvetica, arial, sans-serif;
   margin: 1rem;
-  page-break-after: always;
 }
 
 .history .heading {
@@ -351,4 +350,22 @@ table.columns {
 
 .provider {
   font-style: italic;
+}
+
+table.pages {
+  width: 100%;
+  page-break-after: always;
+}
+
+table.pages thead td {
+  text-align: right;
+  padding-bottom: 0.2rem;
+}
+
+table.pages thead .ident {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 1.5rem;
+  padding: 0.1rem 0.1rem 0;
+  border: 0.05rem solid black;
 }
