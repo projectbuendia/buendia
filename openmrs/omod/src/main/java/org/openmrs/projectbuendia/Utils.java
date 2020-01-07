@@ -49,8 +49,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import static java.util.Arrays.asList;
-
 public class Utils {
     public static final int SECOND = 1000;  // in ms
     public static final int MINUTE = 60 * SECOND;  // in ms
@@ -191,23 +189,39 @@ public class Utils {
 
     /** Concatenates two arrays. */
     public static <T> T[] concat(T[] a, T[] b) {
-        List<T> result = new ArrayList<>(asList(a));
-        result.addAll(asList(b));
+        List<T> result = new ArrayList<>(Arrays.asList(a));
+        result.addAll(Arrays.asList(b));
         return result.toArray(b);
     }
 
     /** Prepends an item to an array to yield a new array. */
     public static <T> T[] concat(T a, T[] b) {
-        List<T> result = new ArrayList<>(asList(a));
-        result.addAll(asList(b));
+        List<T> result = new ArrayList<>(Arrays.asList(a));
+        result.addAll(Arrays.asList(b));
         return result.toArray(b);
     }
 
     /** Appends an item to an array to yield a new array. */
     public static <T> T[] concat(T[] a, T b) {
-        List<T> result = new ArrayList<>(asList(a));
+        List<T> result = new ArrayList<>(Arrays.asList(a));
         result.add(b);
         return result.toArray(a);
+    }
+
+    /** Gets an item given a Pythonic list index, or null if out of bounds. */
+    public static <T> @Nullable T getitem(List<T> list, int index) {
+      int n = list.size();
+      if (index < 0) index += n;
+      if (index > n) index = n;
+      return (index >= 0 && index < n) ? list.get(index) : null;
+    }
+
+    public static <T> @Nullable T first(List<T> list) {
+        return getitem(list, 0);
+    }
+
+    public static <T> @Nullable T last(List<T> list) {
+        return getitem(list, -1);
     }
 
     public static <T> List<T> slice(List<T> list, int start, int stop) {
@@ -217,14 +231,6 @@ public class Utils {
         if (start > n) start = n;
         if (stop > n) stop = n;
         return list.subList(start, stop);
-    }
-
-    public static <T> T first(List<T> list) {
-        return list.isEmpty() ? null : list.get(0);
-    }
-
-    public static <T> T last(List<T> list) {
-        return list.isEmpty() ? null : list.get(list.size() - 1);
     }
 
 
