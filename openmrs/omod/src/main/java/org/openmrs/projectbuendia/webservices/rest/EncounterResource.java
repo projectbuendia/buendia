@@ -15,11 +15,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-/**
- * A collection where each item corresponds to one patient and contains
- * the encounter and observation data for that patient as of a particular
- * point in time (referred to as the "snapshot time").
- */
+/** A collection where each item is an encounter, with its observations. */
 @Resource(
     name = RestController.PATH + "/encounters",
     supportedClass = Location.class,
