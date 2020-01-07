@@ -33,43 +33,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElementOrThrow;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.getElements;
-import static org.openmrs.projectbuendia.webservices.rest.XmlUtil.removeNode;
-
-/**
- * Resource for submitted "form instances" (filled-in forms).  Write-only.
- * <p/>
- * <p>Accepts POST requests to [API root]/xforminstance with JSON data of the form:
- * <pre>
- * {
- *   patient_id: "123", // patient ID assigned by medical center
- *   patient_uuid: "24ae3-5", // patient UUID in OpenMRS
- *   enterer_id: "1234-5", // person ID of the provider entering the data
- *   date_entered: "2015-03-14T09:26:53.589Z", // date that the encounter was
- *           // *entered* (not necessarily when observations were taken)
- *   xml: "..." // XML contents of the form instance, as provided by ODK
- * }
- * </pre>
- * <p/>
- * <p>When creation is successful, the created XformInstance JSON is returned.
- * If an error occurs, the response will be in the form:
- * <pre>
- * {
- *   "error": {
- *     "message": "[error message]",
- *     "code": "[breakpoint]",
- *     "detail": "[stack trace]"
- *   }
- * }
- * </pre>
- */
-// TODO: Still not really sure what supportedClass to use here... can we omit it?
-@Resource(name = RestController.REST_VERSION_1_AND_NAMESPACE + "/xforminstances",
-    supportedClass = SimpleObject.class, supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*")
-public class XformInstanceResource implements Creatable {
-    static final RequestLogger logger = RequestLogger.LOGGER;
-
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.getChildren;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.removeNode;
 import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
@@ -77,7 +40,7 @@ import static org.openmrs.projectbuendia.webservices.rest.XmlUtils.requirePath;
 @Resource(
     name = RestController.PATH + "/xforminstances",
     supportedClass = Void.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class XformInstanceResource extends BaseResource<OpenmrsObject> {
     private static final Log LOG = LogFactory.getLog(XformInstanceResource.class);
