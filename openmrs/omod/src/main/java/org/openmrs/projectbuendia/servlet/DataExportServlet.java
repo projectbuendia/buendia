@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import javax.servlet.http.HttpServlet;
@@ -116,7 +115,7 @@ public class DataExportServlet extends HttpServlet {
         // using the chart forms to select the concepts to display.
         Set<Concept> questionConcepts = new HashSet<>();
         for (Form form : ChartResource.getChartForms(Context.getFormService())) {
-            TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+            Map<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
             for (FormField groupField : formStructure.get(0)) {
                 for (FormField fieldInGroup : formStructure.get(groupField.getId())) {
                     questionConcepts.add(fieldInGroup.getField().getConcept());
