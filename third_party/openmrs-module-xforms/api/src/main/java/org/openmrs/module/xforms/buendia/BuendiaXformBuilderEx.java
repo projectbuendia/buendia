@@ -362,7 +362,6 @@ public class BuendiaXformBuilderEx {
         ), concept);
 
         if (concept instanceof ConceptNumeric) {
-<<<<<<< HEAD
             ConceptNumeric numeric = (ConceptNumeric) concept;
             Double minValue = numeric.getLowAbsolute();
             Double maxValue = numeric.getHiAbsolute();
@@ -382,38 +381,6 @@ public class BuendiaXformBuilderEx {
             } else if (max != null) {
                 bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". <= " + max);
                 bindNode.setAttribute(null, msgAttr, "Value should be at most " + max);
-=======
-            ConceptNumeric numericConcept = (ConceptNumeric) concept;
-            Double minInclusive = numericConcept.getLowAbsolute();
-            Double maxInclusive = numericConcept.getHiAbsolute();
-
-            if (minInclusive != null) {
-                String lower = (minInclusive == null ? "" :
-                    FormSchemaFragment.numericToString(minInclusive, true));
-                if (maxInclusive != null) {
-                    String upper = (maxInclusive == null ? "" :
-                        FormSchemaFragment.numericToString(maxInclusive, true));
-                    bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower + " and . "
-                        + "<= " + upper);
-                    bindNode.setAttribute(null,
-                        (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" :
-                            ATTRIBUTE_MESSAGE),
-                        "value should be between " + lower + " and " + upper + " inclusive");
-                } else {
-                    bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, ". >= " + lower);
-                    bindNode.setAttribute(null,
-                        (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" :
-                            ATTRIBUTE_MESSAGE),
-                        "value should be greater than or equal to " + lower);
-                }
-            } else if (maxInclusive != null) {
-                String upper = (maxInclusive == null ? "" :
-                    FormSchemaFragment.numericToString(maxInclusive, true));
-                bindNode.setAttribute(null, ATTRIBUTE_CONSTRAINT, " . <= " + upper);
-                bindNode.setAttribute(null,
-                    (XformsUtil.isJavaRosaSaveFormat() ? "jr:constraintMsg" : ATTRIBUTE_MESSAGE),
-                    "value should be less than or equal to " + upper);
->>>>>>> Make small changes to types and columns for OpenMRS 2.
             }
         }
 
