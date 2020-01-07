@@ -15,7 +15,7 @@ import static org.openmrs.projectbuendia.Utils.getRequiredString;
 @Resource(
     name = RestController.PATH + "/providers",
     supportedClass = Provider.class,
-    supportedOpenmrsVersions = "1.10.*,1.11.*"
+    supportedOpenmrsVersions = "1.10.*,1.11.*,1.12.*,2.0.*,2.1.*,2.2.*,2.3.*"
 )
 public class ProviderResource extends BaseResource<Provider> {
     public ProviderResource() {
