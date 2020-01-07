@@ -24,7 +24,6 @@ import org.openmrs.Obs;
 import org.openmrs.Order;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifier;
-import org.openmrs.PatientIdentifierType;
 import org.openmrs.Person;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
@@ -58,7 +57,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import javax.servlet.http.HttpServletRequest;
@@ -171,7 +169,7 @@ public class PrintCharts {
         // rest of the logic in this method is parsing those.
         Form form = ChartResource.getChartForms(Context.getFormService()).get(0);
         // Get the structure for that chart.
-        TreeMap<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
+        Map<Integer, TreeSet<FormField>> formStructure = FormUtil.getFormStructure(form);
         TreeSet<FormField> rootNode = formStructure.get(0);
         for (FormField groupField : rootNode) {
             if (groupField.getField().getName().equals("[chart_divider]")) {

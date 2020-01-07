@@ -238,7 +238,7 @@ public class BuendiaXformBuilderEx {
     }
 
     private void buildUiNodes(
-        Element parentNode, TreeMap<Integer, TreeSet<FormField>> structure, Integer sectionId) {
+        Element parentNode, Map<Integer, TreeSet<FormField>> structure, Integer sectionId) {
         TreeSet<FormField> section = structure.get(sectionId);
         if (section == null) return;
 
@@ -365,7 +365,7 @@ public class BuendiaXformBuilderEx {
             ConceptNumeric numeric = (ConceptNumeric) concept;
             Double minValue = numeric.getLowAbsolute();
             Double maxValue = numeric.getHiAbsolute();
-            boolean precise = numeric.isPrecise();
+            boolean precise = numeric.getAllowDecimal();  // "allow decimal" means "allow non-integers"
             String min = minValue != null ? FormSchemaFragment.numericToString(minValue, precise) : null;
             String max = maxValue != null ? FormSchemaFragment.numericToString(maxValue, precise) : null;
             if (min != null) bindNode.setAttribute(null, "constraint-min", min);
