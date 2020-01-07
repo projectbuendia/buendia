@@ -19,7 +19,7 @@
     <patient patient_id="7" creator="1" date_created="2006-01-18 00:00:00.0" changed_by="1" date_changed="2008-08-18 12:25:57.0" voided="false" void_reason=""/>
 
     <!-- Identifiers -->
-    <patient_identifier_type patient_identifier_type_id="2" name="MSF" description="MSF" check_digit="0" required="false" retired="false" creator="1" date_created="2005-08-07" uuid="e5f7c331-fd92-45bc-b588-828069d32c02"/>
+    <patient_identifier_type patient_identifier_type_id="2" name="MSF" description="MSF" required="false" retired="false" creator="1" date_created="2005-08-07" uuid="e5f7c331-fd92-45bc-b588-828069d32c02"/>
     <person_name person_name_id="1" person_id="2" given_name="Peter" family_name="Pan" preferred="true" voided="false" creator="1" date_created="2005-08-07" uuid="4641704f-fbe9-41c4-ab07-f3ac35fffe5e"/>
     <patient_identifier patient_identifier_id="1" patient_id="2" identifier="ABC123" identifier_type="2" location_id="2" preferred="true" voided="false" creator="1" date_created="2005-08-07"/>
 </dataset>
