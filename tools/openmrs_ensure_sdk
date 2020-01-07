@@ -17,7 +17,7 @@ SERVER_ID=buendia
 SERVER_DIR=$HOME/openmrs/$SERVER_ID
 PLATFORM_VERSION=2.2.0
 WAR_URL=http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_${PLATFORM_VERSION}/openmrs.war/download
-WAR_MD5=1ab52ab8a8aeeb879161f4896d2bd415
+WAR_MD5=fbcc7fabc68f2a66977bc3fccc905a2a
 
 # go to the root of the Buendia repository
 cd $(dirname $0)/..

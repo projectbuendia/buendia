@@ -49,7 +49,7 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * @param includeVoided if {@code true}, results will include voided observations.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
-    @Authorized(PrivilegeConstants.VIEW_OBS)
+    @Authorized(PrivilegeConstants.GET_OBS)
     SyncPage<Obs> getObservationsModifiedAtOrAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults)
         throws APIException;
@@ -61,7 +61,7 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * @param includeVoided if {@code true}, results will include voided patients.
      * @param maxResults the maximum number of results to fetch. If {@code <= 0}, returns all
      */
-    @Authorized(PrivilegeConstants.VIEW_PATIENTS)
+    @Authorized(PrivilegeConstants.GET_PATIENTS)
     SyncPage<Patient> getPatientsModifiedAtOrAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults)
         throws APIException;
@@ -75,7 +75,7 @@ public interface ProjectBuendiaService extends OpenmrsService {
      * @param allowedOrderTypes only order types specified in this whitelist will be fetched. If
      *                          null, all order types are permissible.
      */
-    @Authorized(PrivilegeConstants.VIEW_ORDERS)
+    @Authorized(PrivilegeConstants.GET_ORDERS)
     SyncPage<Order> getOrdersModifiedAtOrAfter(
         @Nullable Bookmark bookmark, boolean includeVoided, int maxResults,
         @Nullable Order.Action[] allowedOrderTypes)
