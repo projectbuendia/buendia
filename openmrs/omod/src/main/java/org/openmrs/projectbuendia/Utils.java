@@ -209,18 +209,18 @@ public class Utils {
     }
 
     /** Gets an item given a Pythonic list index, or null if out of bounds. */
-    public static <T> @Nullable T getitem(List<T> list, int index) {
+    public static @Nullable <T> T getitem(List<T> list, int index) {
       int n = list.size();
       if (index < 0) index += n;
       if (index > n) index = n;
       return (index >= 0 && index < n) ? list.get(index) : null;
     }
 
-    public static <T> @Nullable T first(List<T> list) {
+    public static @Nullable <T> T first(List<T> list) {
         return getitem(list, 0);
     }
 
-    public static <T> @Nullable T last(List<T> list) {
+    public static @Nullable <T> T last(List<T> list) {
         return getitem(list, -1);
     }
 
