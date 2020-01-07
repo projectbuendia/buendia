@@ -39,13 +39,9 @@
   </modules>
 
   <properties>
-    <!-- NOTE: This version number is also replicated in [git root]/tools/openmrs_build -->
     <openMRSVersion>2.2.0</openMRSVersion>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!--
-      NOTE: you need to make sure that these modules are installed as well; see
-      [git root]/tools/openmrs_build
-    -->
+    <!-- tools/openmrs_build should install the modules mentioned here -->
     <webservicesRestVersion>2.23.0</webservicesRestVersion>
     <xformsVersion>4.3.12</xformsVersion>
   </properties>
@@ -134,6 +130,34 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>2.2.5</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+          <prefix>git</prefix>
+          <verbose>false</verbose>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties
+          </generateGitPropertiesFilename>
+          <format>json</format>
+          <gitDescribe>
+            <skip>false</skip>
+            <always>false</always>
+            <dirty>-dirty</dirty>
+          </gitDescribe>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 
   <repositories>
