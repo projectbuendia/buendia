@@ -535,11 +535,11 @@ public class DataHelper {
         }
 
         public Patient getPatient() {
-            return obs.getPatient();
+            return (Patient) obs.getPerson();
         }
 
         public String getPatientId() {
-            Patient p = obs.getPatient();
+            Patient p = (Patient) obs.getPerson();
             PatientIdentifier pi = p != null ? p.getPatientIdentifier("MSF") : null;
             return pi != null ? pi.getIdentifier() : "";
         }
