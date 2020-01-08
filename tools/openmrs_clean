@@ -26,4 +26,4 @@ rm -rf openmrs/*/target
 rm -rf openmrs/target
 
 # Clear the cache of downloaded files
-rm -rf /tmp/buendia-fetched
+# rm -rf /tmp/buendia-fetched
