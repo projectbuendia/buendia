@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # Copyright 2019 The Project Buendia Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -10,35 +10,22 @@
 # OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
 # specific language governing permissions and limitations under the License.
 
-# Ensure that the correct version of the OpenMRS platform WAR has been
-# downloaded and configured.
-
-SERVER_ID=buendia
-SERVER_DIR=$HOME/openmrs/$SERVER_ID
-PLATFORM_VERSION=2.2.0
-WAR_URL=http://sourceforge.net/projects/openmrs/files/releases/OpenMRS_Platform_${PLATFORM_VERSION}/openmrs.war/download
-WAR_MD5=fbcc7fabc68f2a66977bc3fccc905a2a
-
-# go to the root of the Buendia repository
-cd $(dirname $0)/..
-
-# Install the OpenMRS SDK configuration properties if needed.
-if [ ! -d $SERVER_DIR ]; then
-    echo "Configuring OpenMRS SDK..."
-    mkdir -p $SERVER_DIR
-    # Install the properties files so that the setup-sdk task doesn't ask
-    cp -a openmrs/properties/*.properties $SERVER_DIR/..
-    # Then run setup-sdk so that the Maven cache gets populated
-    mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk -DserverId=$SERVER_ID
+if [ "$1" = "-h" ]; then
+    echo "Usage: $0"
+    echo
+    echo "Ensures that the OpenMRS SDK is installed."
+    exit 1
 fi
 
-# Install the OpenMRS WAR if needed.
-OPENMRS_WAR_FILE=$SERVER_DIR/openmrs-$PLATFORM_VERSION.war
-if [ ! -f $OPENMRS_WAR_FILE ]; then
-    echo "Fetching OpenMRS platform WAR..."
-    tools/fetch $WAR_URL $WAR_MD5 $OPENMRS_WAR_FILE
-    echo "Installing default OpenMRS properties..."
-    cp -a openmrs/properties/$SERVER_ID/* $SERVER_DIR
-fi
+if ! [ -e $HOME/openmrs/.sdk-installed ]; then
+    # Creating this file causes the setup-sdk task to skip asking the user
+    # for consent to collect anonymous usage statistics.
+    mkdir -p $HOME/openmrs
+    touch $HOME/openmrs/sdk-stats.properties
 
-echo "OpenMRS SDK ready."
+    # Install the OpenMRS SDK plugin.
+    mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+
+    touch $HOME/openmrs/.sdk-installed
+    echo "OpenMRS SDK is ready."
+fi

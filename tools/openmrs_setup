@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 # Copyright 2015 The Project Buendia Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
@@ -12,119 +12,105 @@
 
 # Sets up a local OpenMRS server with a MySQL database, for development.
 
-set -e
-SITE_SQL_DIR=packages/buendia-db-init/data/usr/share/buendia/db
-SERVER_ID=server
-# This version numbers is duplicated in [git root]/openmrs/pom.xml
-OPENMRS_PLATFORM_VERSION=2.2.0  # TODO: db-snapshot data is only for 1.10.x
+SERVER_ID=buendia
+OPENMRS_DIR=$HOME/openmrs
+# This version number is duplicated in [git root]/openmrs/pom.xml
+PLATFORM_VERSION=2.2.0  # TODO: db-snapshot data is only for 1.10.x
+
 if [ "$1" = "-f" ]; then
     force_flag="-f"
-    shift
 fi
-site="$1"
-site_sql="$SITE_SQL_DIR/site-$site.sql"
-cd $(dirname $0)
-cd ..  # go to the root of the Buendia repository
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
 
-if [ "$1" = "-h" -o -z "$site" ]; then
-    echo "Usage: $0 [-f] <site-id>"
+if [ "$1" = "-h" ]; then
+    echo "Usage: $0 [-f]"
     echo
     echo 'Installs the OpenMRS platform, configures it to use MySQL, sets up'
-    echo 'the MySQL user openmrs_user with the password "openmrs", and'
+    echo 'the MySQL user "openmrs" with the password "openmrs", and'
     echo 'initializes the MySQL database from the contents of the db-snapshot'
     echo 'directory.  By default, this will refuse to overwrite the MySQL'
     echo 'database named "openmrs" if it already exists; specify -f to wipe'
     echo 'and replace the existing database.'
     echo
-    echo 'You must specify a site ID corresponding to a SQL file in:'
-    echo "    $SITE_SQL_DIR"
-    echo 'For example, use "openmrs_setup dev" to load site-dev.sql.'
-    echo
     exit 1
 fi
 
-if [ ! -f "$site_sql" ]; then
-    echo "$site_sql not found."
-    echo
-    echo 'You must specify a site ID corresponding to a SQL file in:'
-    echo "    $SITE_SQL_DIR"
-    echo 'For example, use "openmrs_setup dev" to load site-dev.sql.'
-    echo
-    exit 1
+# Make a fresh, empty "openmrs" database.
+if mysql -uopenmrs -popenmrs -e '' openmrs 2>/dev/null; then
+    if ! [ "$force_flag" = "-f" ]; then
+        echo "A database named "\"openmrs\"" already exists!  To wipe and replace it, use -f."
+        exit 1
+    fi
+    echo "Deleting the existing "\"openmrs\"" database."
 fi
+echo "If prompted, please enter your sudo password:"
+sudo mysql -uroot -p 2>/dev/null <<< "
+    drop database if exists openmrs;
+    create database if not exists openmrs;
+    grant all on openmrs.* to openmrs@localhost identified by 'openmrs';
+    grant file on *.* to openmrs@localhost;
+    flush privileges;
+"
+echo "Created an empty "\"openmrs\"" database."
 
-# Ensure that the openmrs database exists.
-if ! mysql -uopenmrs_user -popenmrs -e '' openmrs; then
-    echo "Enter the MySQL root password, or just hit Enter if no password."
-    sudo mysql -uroot -p <<< "
-      create database if not exists openmrs;
-      grant all on openmrs.* to openmrs_user@localhost identified by 'openmrs';
-      grant file on *.* to openmrs_user@localhost;
-      flush privileges;
-    "
-    echo "Created empty openmrs database."
-    force_flag=-f
-fi
+tools/openmrs_ensure_sdk
 
-# Set up the OpenMRS platform if needed.
-server_dir=$HOME/openmrs/$SERVER_ID
-if [ ! -f $server_dir/openmrs-$OPENMRS_PLATFORM_VERSION.war ]; then
-    mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
+# Ensure that an OpenMRS server named "buendia" exists.
+if [ ! -f $OPENMRS_DIR/$SERVER_ID/openmrs-$PLATFORM_VERSION.war ]; then
     echo
-    echo 'At the following prompts:'
-    echo '  - Select "2" for platform'
-    echo '  - Choose platform version "'$OPENMRS_PLATFORM_VERSION'"'
-    echo '  - Accept the default port number'
-    echo '  - Accept "no debugging" by default'
-    echo '  - Choose MySQL 5.6'
+    echo 'Get ready to answer the following prompts:'
+    echo '  - For the port number, press Enter to accept the default'
+    echo '  - For debugging, press Enter to accept "no debugging" by default'
+    echo '  - For MySQL, choose MySQL 5.6 (option 1)'
+    echo '  - For the JDK, choose an option with version 1.8 or newer'
     echo
     echo -n 'Please make a note of the above.  Ready? '
     read
-    mvn openmrs-sdk:setup -DserverId=$SERVER_ID -Dversion=$OPENMRS_PLATFORM_VERSION -DdbUri=jdbc:mysql://localhost:3306/openmrs -DdbUser=openmrs_user -DdbPassword=openmrs
+    # Set up a new OpenMRS server with the legacy UI
+    mvn openmrs-sdk:setup -DserverId=$SERVER_ID -Dplatform=$PLATFORM_VERSION -DdbUri=jdbc:mysql://localhost:3306/openmrs -DdbUser=openmrs -DdbPassword=openmrs
+    mvn openmrs-sdk:deploy -DserverId=$SERVER_ID -DgroupId=org.openmrs.module -DartifactId=legacyui -Dversion=1.5.0
 fi
 
 # Running from Linux or Mac? Set the appropriate path.
-buendia_dir='/usr/share/buendia'
-bin_dir='/usr/bin'
+BUENDIA_DIR='/usr/share/buendia'
+BIN_DIR='/usr/bin'
 OS=`uname`
 if [[ "$OS" == 'Darwin' ]]; then
-    buendia_dir='/usr/local/opt/buendia'
-    bin_dir='/usr/local/bin'
+    BUENDIA_DIR='/usr/local/opt/buendia'
+    BIN_DIR='/usr/local/bin'
 fi
-profiles_dir="$buendia_dir/profiles"
+PROFILE_DIR="$BUENDIA_DIR/profiles"
 
 # TODO: remove the need for sudo
 # Create directories and copy scripts
 echo "If prompted, please enter your sudo password:"
-sudo mkdir -p $profiles_dir
-sudo cp -p tools/profile_validate "$bin_dir/buendia-profile-validate"
-sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$buendia_dir/utils.sh"
+sudo mkdir -p $PROFILE_DIR
+sudo cp -p tools/profile_validate "$BIN_DIR/buendia-profile-validate"
+sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$BUENDIA_DIR/utils.sh"
 
 # In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this by a mac friendly path.
 # We then have to chmod this file to ensure that buendia-profile-apply can be executed.
 # TODO: review this after system wide path related changes.
 if [[ "$OS" == 'Darwin' ]]; then
-    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply | sudo tee "$bin_dir/buendia-profile-apply" > /dev/null
-    sudo chmod a+x "$bin_dir/buendia-profile-apply"
+    sed 's/\/usr\/share/\/usr\/local\/opt/g' tools/profile_apply | sudo tee "$BIN_DIR/buendia-profile-apply" > /dev/null
+    sudo chmod a+x "$BIN_DIR/buendia-profile-apply"
 else
-    sudo cp -p tools/profile_apply "$bin_dir/buendia-profile-apply"
+    sudo cp -p tools/profile_apply "$BIN_DIR/buendia-profile-apply"
 fi
 
 # Set permissions
 current_user=`whoami`
-sudo chown -R "$current_user" "$buendia_dir"
-sudo chmod -R 755 $buendia_dir
+sudo chown -R "$current_user" "$BUENDIA_DIR"
+sudo chmod -R 755 $BUENDIA_DIR
 
-# Configure OpenMRS to use the openmrs_user MySQL account.
-cat <<EOF >$server_dir/openmrs-runtime.properties
-connection.url=jdbc\:mysql\://localhost\:3306/openmrs?autoReconnect\=true&sessionVariables\=storage_engine\=InnoDB&useUnicode\=true&characterEncoding\=UTF-8
-connection.username=openmrs_user
+# Configure OpenMRS to use the openmrs MySQL account.
+cat <<EOF >$OPENMRS_DIR/$SERVER_ID/openmrs-runtime.properties
+connection.username=openmrs
 connection.password=openmrs
-auto_update_database=true
-module.allow_web_admin=true
-profile_manager.profile_dir=$profiles_dir
+auto_update_database=false
+profile_manager.profile_dir=$PROFILE_DIR
 EOF
-echo 'Configured OpenMRS to use the MySQL user openmrs_user@localhost.'
+echo 'Configured OpenMRS to use the MySQL user openmrs@localhost.'
 
 # Get the latest database snapshot.
 git submodule update --init db-snapshot
@@ -132,19 +118,13 @@ zip -qj /tmp/init.$$.zip db-snapshot/*
 trap 'rm -f /tmp/init.$$.zip' EXIT
 
 # Load the snapshot into the MySQL database.
-export MYSQL_USER=openmrs_user
+export MYSQL_USER=openmrs
 export MYSQL_PASSWORD=openmrs
 echo
 tools/openmrs_load $force_flag openmrs /tmp/init.$$.zip
-
-# Apply the selected site configuration.
-echo
-echo "Loading $site_sql..."
-mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" openmrs < $site_sql
-echo
 
 # Set up the OpenMRS account for Buendia.
 tools/openmrs_account_setup buendia buendia
 
 echo
-echo "Database initialization complete (site ID: $site)."
+echo 'Database initialization completed.'

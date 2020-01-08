@@ -59,14 +59,14 @@ if $mysql -e '' $db 2>/dev/null; then
         echo "Wiping existing database $db..."
         $mysql -s -e "drop database $db"
     else
-        echo "Database $db already exists!  To wipe and replace it, use -f."
+        echo "A database named "\"$db\"" already exists!  To wipe and replace it, use -f."
         exit 1
     fi
 fi
 if $mysql -s -e "create database $db charset utf8" 2>/dev/null; then
-    echo 'Created a new empty database.'
+    echo "Created a new empty database named "\"$db\""."
 else
-    echo "Failed to create database $db."
+    echo "Failed to create a new "\"$db\"" database."
     exit 1
 fi
 
