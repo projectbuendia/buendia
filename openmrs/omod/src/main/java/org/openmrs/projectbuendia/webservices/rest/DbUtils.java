@@ -34,6 +34,7 @@ import org.openmrs.PatientIdentifierType;
 import org.openmrs.Person;
 import org.openmrs.PersonAttribute;
 import org.openmrs.PersonAttributeType;
+import org.openmrs.PersonName;
 import org.openmrs.Provider;
 import org.openmrs.User;
 import org.openmrs.api.ConceptService;
@@ -244,9 +245,14 @@ public class DbUtils {
     /** Gets or creates a Provider with the given UUID and name. */
     private static Provider getProvider(String uuid, String name) {
         ProviderService providerService = Context.getProviderService();
+        PersonService personService = Context.getPersonService();
         Provider provider = providerService.getProviderByUuid(uuid);
         if (provider == null) {
+            Person person = new Person();
+            person.addName(new PersonName(name, "", ""));  // givenName is required, others are not
+            personService.savePerson(person);
             provider = new Provider();
+            provider.setPerson(person);
             provider.setCreator(DbUtils.getAuthenticatedUser());
             provider.setUuid(uuid);
             provider.setName(name);

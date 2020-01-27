@@ -1,6 +1,7 @@
 package org.openmrs.projectbuendia.webservices.rest;
 
 import org.openmrs.Person;
+import org.openmrs.PersonName;
 import org.openmrs.Provider;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -35,7 +36,11 @@ public class ProviderResource extends BaseResource<Provider> {
             throw new InvalidObjectDataException("Both name fields are empty");
         }
 
+        Person person = new Person();
+        person.addName(new PersonName(givenName, "", familyName));
+        personService.savePerson(person);
         Provider provider = new Provider();
+        provider.setPerson(person);
         provider.setCreator(DbUtils.getAuthenticatedUser());
         provider.setName(name);
         return providerService.saveProvider(provider);

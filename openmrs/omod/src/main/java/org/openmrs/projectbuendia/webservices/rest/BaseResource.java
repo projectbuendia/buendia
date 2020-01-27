@@ -8,6 +8,7 @@ import org.openmrs.api.LocationService;
 import org.openmrs.api.ObsService;
 import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
+import org.openmrs.api.PersonService;
 import org.openmrs.api.ProviderService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.webservices.rest.SimpleObject;
@@ -55,6 +56,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
     protected final ObsService obsService;
     protected final OrderService orderService;
     protected final PatientService patientService;
+    protected final PersonService personService;
     protected final ProviderService providerService;
 
     protected BaseResource(String pluralCollectionName, Representation... representations) {
@@ -68,6 +70,7 @@ public abstract class BaseResource<T extends OpenmrsObject>
         orderService = Context.getOrderService();
         obsService = Context.getObsService();
         patientService = Context.getPatientService();
+        personService = Context.getPersonService();
         providerService = Context.getProviderService();
     }
 
