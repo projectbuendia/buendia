@@ -60,12 +60,19 @@ echo 'set character_set_database = utf8;' >> $tmpsql
 echo '/*!40014 SET SESSION FOREIGN_KEY_CHECKS=0 */;' >> $tmpsql
 echo "select 'Creating tables...' as ' ';" >> $tmpsql
 shopt -s nullglob
+export LC_ALL=C  # ensure that files are listed in a consistent order
 for i in *.sql; do
     echo "source $i;" >> $tmpsql
 done
 for i in *.txt; do
+    # Remove the DEFINER= clause, which requires the SUPER privilege to load.
+    sed -e 's#/\*![0-9]* DEFINER=[^ ]*\*/ *##' < $i > $i.fixed
+    mv $i.fixed $i
+    table=${i%.txt}
     echo "select 'Loading $i...' as ' ';" >> $tmpsql
-    echo "load data local infile '$i' into table ${i%.txt} character set utf8;" >> $tmpsql
+    echo "lock tables $table write;" >> $tmpsql
+    echo "load data local infile '$i' into table $table character set utf8;" >> $tmpsql
+    echo "unlock tables;" >> $tmpsql
 done
 echo "select 'Done.' as ' ';" >> $tmpsql
 mv $tmpsql 000_load.sql
