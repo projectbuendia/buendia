@@ -76,9 +76,9 @@ if [ -z "$USER_UUID" ]; then
             values (1, 'Buendia', 'Client',
                     now(), @admin_id, @person_id, '$PERSON_NAME_UUID');
 
-        insert into users (username, password,
+        insert into users (system_id, username, password,
                            salt, date_created, creator, person_id, uuid)
-            values ('$openmrs_user',
+            values ('$openmrs_user', '$openmrs_user',
                     sha2('$openmrs_password$salt', 512),
                     '$salt', now(), @admin_id, @person_id, '$USER_UUID');
 
@@ -86,12 +86,9 @@ if [ -z "$USER_UUID" ]; then
 
         insert into user_role (user_id, role)
         values (@user_id, 'Authenticated'),
-               (@user_id, 'Clinician'),
-               (@user_id, 'Data Assistant'),
                (@user_id, 'Data Manager'),
-               (@user_id, 'Provider'),
-               (@user_id, 'System Developer');
-    " 2>/dev/null
+               (@user_id, 'Provider');
+    "
     echo "Added new user $openmrs_user [$USER_UUID]."
 else
     echo "Found existing user $openmrs_user [$USER_UUID]."
@@ -107,10 +104,12 @@ else
         salt=$(randhex 128)
         $MYSQL <<< "
             update users set
-                salt='$salt', username='$openmrs_user',
+                salt='$salt',
+                system_id='$openmrs_user',
+                username='$openmrs_user',
                 password=sha2(concat('$openmrs_password', salt), 512)
                 where uuid='$USER_UUID';
-        " 2>/dev/null
+        "
         echo "Changed password."
     fi
 fi
