@@ -59,10 +59,10 @@ tools/openmrs_ensure_sdk
 if [ ! -f $OPENMRS_DIR/$SERVER_ID/openmrs-$PLATFORM_VERSION.war ]; then
     echo
     echo 'Get ready to answer the following prompts:'
-    echo '  - For the port number, press Enter to accept the default'
-    echo '  - For debugging, press Enter to accept "no debugging" by default'
-    echo '  - For MySQL, choose MySQL 5.6 (option 1)'
-    echo '  - For the JDK, choose an option with version 1.8 or newer'
+    echo '    1. For the port number, press Enter to accept the default'
+    echo '    2. For debugging, press Enter to accept "no debugging" by default'
+    echo '    3. For MySQL, choose MySQL 5.6 (option 1)'
+    echo '    4. For the JDK, choose an option with version 1.8 or newer'
     echo
     echo -n 'Please make a note of the above.  Ready? '
     read
