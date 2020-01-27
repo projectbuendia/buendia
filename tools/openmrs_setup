@@ -36,7 +36,7 @@ if [ "$1" = "-h" ]; then
 fi
 
 # Make a fresh, empty "openmrs" database.
-if mysql -uopenmrs -popenmrs -e '' openmrs 2>/dev/null; then
+if mysql -uopenmrs -popenmrs -e '' openmrs; then
     if ! [ "$force_flag" = "-f" ]; then
         echo "A database named "\"openmrs\"" already exists!  To wipe and replace it, use -f."
         exit 1
@@ -44,7 +44,7 @@ if mysql -uopenmrs -popenmrs -e '' openmrs 2>/dev/null; then
     echo "Deleting the existing "\"openmrs\"" database."
 fi
 echo "If prompted, please enter your sudo password:"
-sudo mysql -uroot -p 2>/dev/null <<< "
+sudo mysql -uroot -p <<< "
     drop database if exists openmrs;
     create database if not exists openmrs;
     grant all on openmrs.* to openmrs@localhost identified by 'openmrs';
