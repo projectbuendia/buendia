@@ -86,6 +86,7 @@ PROFILE_DIR="$BUENDIA_DIR/profiles"
 echo "If prompted, please enter your sudo password:"
 sudo mkdir -p $PROFILE_DIR
 sudo cp -p tools/profile_validate "$BIN_DIR/buendia-profile-validate"
+sudo cp -p tools/server_clear_cache "$BIN_DIR/buendia-server-clear-cache"
 sudo cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh "$BUENDIA_DIR/utils.sh"
 
 # In the profile_apply script there is a hardcoded reference to utils.sh. sed will replace this by a mac friendly path.
