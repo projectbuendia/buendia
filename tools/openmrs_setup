@@ -123,6 +123,9 @@ export MYSQL_PASSWORD=openmrs
 echo
 tools/openmrs_load $force_flag openmrs /tmp/init.$$.zip
 
+# Set up the admin user (used as the creator ID for Buendia system concepts).
+tools/openmrs_account_setup buendia_admin NULL
+
 # Set up the OpenMRS account for Buendia.
 tools/openmrs_account_setup buendia buendia
 

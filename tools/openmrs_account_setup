@@ -21,6 +21,7 @@ if [ -z "$openmrs_password" ]; then
     echo "Sets up an OpenMRS user with the given username and password"
     echo "as the account to be used for Buendia API requests.  If the"
     echo "OpenMRS user account already exists, changes its password."
+    echo "To disable login for the account, enter NULL as the password."
     echo
     echo 'Requires a MySQL user that has been granted database access with'
     echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
@@ -55,6 +56,30 @@ USER_UUID=$($MYSQL <<< "
 " 2>/dev/null)
 USER_UUID=$(echo $USER_UUID | tr A-Z a-z)
 
+if [ $openmrs_password = NULL ]; then
+    if [ -z "$USER_UUID" ]; then
+        USER_UUID=$(uuidgen)
+        $MYSQL <<< "
+            set @admin_id :=
+                (select user_id from users where system_id = 'admin');
+            set @person_id :=
+                (select person_id from users where system_id = 'admin');
+
+            insert into users (system_id, username, password, salt,
+                               date_created, creator, person_id, uuid)
+                values ('$openmrs_user', '$openmrs_user', NULL, NULL,
+                        now(), @admin_id, @person_id, '$USER_UUID');
+        "
+    else
+        $MYSQL <<< "
+            update users set password = NULL, salt = NULL
+                where uuid = '$USER_UUID';
+        "
+    fi
+    echo "OpenMRS account '$openmrs_user' now exists with login disabled."
+    exit 0
+fi
+
 # If there is no user account with the given username, add one.
 if [ -z "$USER_UUID" ]; then
     USER_UUID=$(uuidgen)
@@ -64,7 +89,7 @@ if [ -z "$USER_UUID" ]; then
     # "System Developer" is a magic role name that grants superuser privileges
     salt=$(randhex 128)
     $MYSQL <<< "
-        set @admin_id = (select user_id from users where system_id = 'admin');
+        set @admin_id := (select user_id from users where system_id = 'admin');
 
         insert ignore into person (date_created, creator, uuid)
             values (now(), @admin_id, '$PERSON_UUID');
@@ -95,7 +120,7 @@ else
     # Check if the username and password are already correctly set.
     if $MYSQL <<< "
         select count(*) from users
-            where uuid='$USER_UUID' and username='$openmrs_user' and
+            where uuid = '$USER_UUID' and username = '$openmrs_user' and
             password = sha2(concat('$openmrs_password', salt), 512);
     " 2>/dev/null | grep -q 1; then
         echo "Password unchanged."
@@ -104,11 +129,11 @@ else
         salt=$(randhex 128)
         $MYSQL <<< "
             update users set
-                salt='$salt',
-                system_id='$openmrs_user',
-                username='$openmrs_user',
-                password=sha2(concat('$openmrs_password', salt), 512)
-                where uuid='$USER_UUID';
+                salt = '$salt',
+                system_id = '$openmrs_user',
+                username = '$openmrs_user',
+                password = sha2(concat('$openmrs_password', salt), 512)
+                where uuid = '$USER_UUID';
         "
         echo "Changed password."
     fi
