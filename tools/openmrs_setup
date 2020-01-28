@@ -107,7 +107,7 @@ sudo chmod -R 755 $BUENDIA_DIR
 cat <<EOF >$OPENMRS_DIR/$SERVER_ID/openmrs-runtime.properties
 connection.username=openmrs
 connection.password=openmrs
-auto_update_database=false
+auto_update_database=true
 profile_manager.profile_dir=$PROFILE_DIR
 EOF
 echo 'Configured OpenMRS to use the MySQL user openmrs@localhost.'
