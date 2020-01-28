@@ -1,6 +1,6 @@
 include ../Makefile.inc
 
-SERVER_ID=server
+SERVER_ID=buendia
 
 $(EXTRA_DATA): $(EXTRA_DATA)/var/lib/tomcat7/webapps/openmrs.war
 
