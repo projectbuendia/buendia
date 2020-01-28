@@ -119,6 +119,9 @@ public class BuendiaXformBuilderEx {
     }
 
     private BuendiaXformBuilderEx(Locale locale) {
+        // Ensure that the encounter_datetime field contains a datetime, not just a date.
+        Context.getAdministrationService().setGlobalProperty(
+            "xforms.encounterDateIncludesTime", "true");
         useConceptIdAsHint = "true".equalsIgnoreCase(
             Context.getAdministrationService().getGlobalProperty("xforms.useConceptIdAsHint"));
         this.locale = locale;
