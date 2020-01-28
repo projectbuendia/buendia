@@ -61,6 +61,7 @@ if [ -z "$USER_UUID" ]; then
     PERSON_UUID=$(uuidgen)
     PERSON_NAME_UUID=$(uuidgen)
 
+    # "System Developer" is a magic role name that grants superuser privileges
     salt=$(randhex 128)
     $MYSQL <<< "
         set @admin_id = (select user_id from users where system_id = 'admin');
@@ -85,9 +86,8 @@ if [ -z "$USER_UUID" ]; then
         set @user_id := last_insert_id();
 
         insert into user_role (user_id, role)
-        values (@user_id, 'Authenticated'),
-               (@user_id, 'Data Manager'),
-               (@user_id, 'Provider');
+        values (@user_id, 'Provider'),
+               (@user_id, 'System Developer');
     "
     echo "Added new user $openmrs_user [$USER_UUID]."
 else

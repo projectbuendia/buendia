@@ -62,12 +62,12 @@ echo "select 'Creating tables...' as ' ';" >> $tmpsql
 shopt -s nullglob
 export LC_ALL=C  # ensure that files are listed in a consistent order
 for i in *.sql; do
-    echo "source $i;" >> $tmpsql
-done
-for i in *.txt; do
     # Remove the DEFINER= clause, which requires the SUPER privilege to load.
     sed -e 's#/\*![0-9]* DEFINER=[^ ]*\*/ *##' < $i > $i.fixed
     mv $i.fixed $i
+    echo "source $i;" >> $tmpsql
+done
+for i in *.txt; do
     table=${i%.txt}
     echo "select 'Loading $i...' as ' ';" >> $tmpsql
     echo "lock tables $table write;" >> $tmpsql
