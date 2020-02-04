@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
+
+if [[ $1 = -h ]]; then
+    echo "Usage: $0 [-f]"
+    echo
+    echo 'Installs local scripts, then builds and tests the OpenMRS module.'
+    echo 'Specify -f for a fast build (skip the tests).'
+    exit 1
+fi
+
+skip_tests=
+if [[ $1 = -f ]]; then
+    skip_tests='-DskipTests'
+fi
+
+tools/env_build
+tools/openmrs_build $skip_tests buendia openmrs openmrs openmrs

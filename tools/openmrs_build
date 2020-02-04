@@ -13,45 +13,54 @@
 # Builds the Buendia module and installs it in an OpenMRS development server.
 
 set -e
-SERVER_ID=buendia
-SERVER_DIR=$HOME/openmrs/$SERVER_ID
-MODULE_DIR=$SERVER_DIR/modules
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
 
-cd $(dirname $0)
-cd ..  # go to the root of the Buendia repository
+options=()
+while [[ $1 = -* ]]; do
+    [[ $1 = '-h' ]] && help=yes
+    options+=$1
+    shift
+done
+server_id="$1"
+mysql_database="$2"
+mysql_user="$3"
+mysql_password="$4"
+if [[ $help = yes || -z $1 || -z $2 || -z $3 || -z $4 ]]; then
+    echo "Usage: $0 [<options>] <server_id> <mysql_database> <mysql_user> <mysql_password>"
+    echo
+    echo 'Sets up an OpenMRS server with the given server ID, configured to'
+    echo 'connect to a local MySQL database using the given MySQL credentials.'
+    echo 'Any options specified before the first argument are passed along to'
+    echo 'the Maven build command.'
+    exit 1
+fi
+server_dir=$HOME/openmrs/$server_id
+module_dir=$server_dir/modules
 
-# Ensure that the OpenMRS SDK is installed and configured.
-# 
-# Rather than doing it the canonical way:
-#   mvn org.openmrs.maven.plugins:openmrs-sdk-maven-plugin:setup-sdk
-#
-# We instead run a helper script that doesn't require manual configuration. If
-# the manual configuration has already been done with openmrs_setup, this is a
-# no-op.
-tools/openmrs_ensure_sdk
+tools/openmrs_sdk_setup
 
 # Clean out any old buendia modules.
-rm -rf $MODULE_DIR/projectbuendia.*
-mkdir -p $MODULE_DIR
+rm -rf $module_dir/projectbuendia.*
+mkdir -p $module_dir
 
 # openmrs-sdk:install requires an installation.properties file containing
 # connection.url and database_name properties.  If it's not there, create
 # a temporary properties file so that the rest of this script will work.
-if [ ! -f $SERVER_DIR/installation.properties ]; then
-    cat <<EOF >$SERVER_DIR/installation.properties
-connection.url=jdbc\:mysql\://localhost\:3306/openmrs
-database_name=openmrs
+if [ ! -f $server_dir/installation.properties ]; then
+    cat <<EOF >$server_dir/installation.properties
+connection.url=jdbc\:mysql\://localhost\:3306/$mysql_database
+database_name=$mysql_database
 EOF
-    trap 'rm -f $SERVER_DIR/installation.properties' EXIT
+    trap 'rm -f $server_dir/installation.properties' EXIT
 fi
 
 # Install the module dependencies in the OpenMRS development server.
-mvn openmrs-sdk:deploy -DserverId=$SERVER_ID -DgroupId=org.openmrs.module -DartifactId=xforms -Dversion=4.3.12
+mvn openmrs-sdk:deploy -DserverId=$server_id -DgroupId=org.openmrs.module -DartifactId=xforms -Dversion=4.3.12
 
 # Build the Buendia module, passing along any flags (e.g. -DskipTests)
 # given to this script.
 cd openmrs
-mvn clean install "$@"
+mvn clean install ${options[@]}
 
 # Install the module in the OpenMRS development server.
-mvn openmrs-sdk:deploy -DserverId=$SERVER_ID -DgroupId=org.projectbuendia -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT
+mvn openmrs-sdk:deploy -DserverId=$server_id -DgroupId=org.projectbuendia -DartifactId=projectbuendia.openmrs -Dversion=1.0-SNAPSHOT

@@ -13,20 +13,20 @@
 # Sets up the OpenMRS account used for Buendia API requests.
 
 set -e
-openmrs_user="$1"
-openmrs_password="$2"
-if [ -z "$openmrs_password" ]; then
-    echo "Usage: $0 <username> <password>"
+mysql_database="$1"
+openmrs_user="$2"
+openmrs_password="$3"
+if [[ $1 = '-h' || -z $1 || -z $2 || -z $3 ]]; then
+    echo "Usage: $0 <mysql_database> <openmrs_user> <openmrs_password>"
     echo
     echo "Sets up an OpenMRS user with the given username and password"
     echo "as the account to be used for Buendia API requests.  If the"
     echo "OpenMRS user account already exists, changes its password."
     echo "To disable login for the account, enter NULL as the password."
     echo
-    echo 'Requires a MySQL user that has been granted database access with'
-    echo '    GRANT USAGE ON <database-name>.* to <user>@<host>'
-    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
-    echo
+    echo 'Requires $MYSQL_USER and $MYSQL_PASSWORD to be set to valid'
+    echo 'credentials for a MySQL user that has been granted access with:'
+    echo '    GRANT USAGE ON <mysql_database>.* to <mysql_user>@<host>'
     exit 1
 fi
 
@@ -40,7 +40,8 @@ if [ -z "$MYSQL_USER" ]; then
     exit 1
 fi
 
-MYSQL="mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -s -N openmrs"
+export MYSQL_PWD="$MYSQL_PASSWORD"
+MYSQL="mysql -u$MYSQL_USER -s -N openmrs"
 
 function randhex() {
     xxd -l $(($1 / 2)) -p /dev/urandom | tr -d '\n'

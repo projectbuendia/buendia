@@ -5,6 +5,6 @@ SERVER_ID=buendia
 $(EXTRA_DATA): $(EXTRA_DATA)/var/lib/tomcat7/webapps/openmrs.war
 
 $(EXTRA_DATA)/var/lib/tomcat7/webapps/openmrs.war:
-	$(TOOLS)/openmrs_ensure_sdk
+	$(TOOLS)/openmrs_server_setup openmrs
 	mkdir -p $(shell dirname $@)
 	cp -av $(HOME)/openmrs/$(SERVER_ID)/*.war $@

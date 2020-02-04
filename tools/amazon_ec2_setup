@@ -13,9 +13,9 @@ sudo easy_install MySQL-python
 sudo chown -R mysql.mysql /var/lib/mysql
 sudo service mysqld start
 
-tools/openmrs_setup msf-geneva
-tools/openmrs_build
-tools/openmrs_run
+tools/dev_setup
+tools/dev_build
+tools/dev_run
 
 # The next step is to apply a profile.  Go to http://localhost:8080/openmrs/,
 # log in as "buendia" with password "buendia", go to the Administration page,

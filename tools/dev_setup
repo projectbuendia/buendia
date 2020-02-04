@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
+
+if [ "$1" = "-f" ]; then
+    force_flag="-f"
+    shift
+fi
+
+if [[ $1 = -h ]]; then
+    echo "Usage: $0 [-f]"
+    echo
+    echo 'Sets up an OpenMRS server for local development, with a MySQL'
+    echo 'database named "openmrs" initialized with the MySQL user and'
+    echo 'password "openmrs", and an OpenMRS user and password "buendia".'
+    echo
+    echo 'By default, this will refuse to overwrite an existing database.'
+    echo 'Specify -f to wipe and replace an existing database.'
+    exit 1
+fi
+
+tools/env_setup
+tools/openmrs_db_setup $force_flag openmrs openmrs openmrs
+tools/openmrs_server_setup buendia openmrs openmrs openmrs
+tools/openmrs_account_setup openmrs buendia_admin NULL
+tools/openmrs_account_setup openmrs buendia buendia

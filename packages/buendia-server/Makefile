@@ -1,6 +1,7 @@
 include ../Makefile.inc
 
-SOURCE_DIR=$(HOME)/openmrs/server/modules
+SERVER_ID=buendia
+SOURCE_DIR=$(HOME)/openmrs/$(SERVER_ID)/modules
 MAIN_MODULE_BUILD=$(SOURCE_DIR)/projectbuendia.openmrs-1.0-SNAPSHOT.omod
 
 TARGET_DIR=$(EXTRA_DATA)/usr/share/buendia/openmrs/modules

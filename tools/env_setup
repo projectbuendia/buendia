@@ -1,0 +1,66 @@
+#!/bin/bash -e
+# Copyright 2020 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+set -e
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
+
+if [[ $1 = -h ]]; then
+    echo "Usage: $0"
+    echo
+    echo 'Sets up directories and permissions necessary for env_build to run.'
+    echo 'You will need sudo access when you run this script for the first time.'
+    exit 1
+fi
+
+BIN_DIR=/usr/bin
+BUENDIA_DIR=/usr/share/buendia
+PROFILE_DIR="$BUENDIA_DIR/profiles"
+
+count=($BIN_DIR $BUENDIA_DIR)
+if [[ ${#count[@]} != 2 ]]; then 
+    echo 'BIN_DIR and BUENDIA_DIR may not contain spaces!'
+    exit 1
+fi
+
+files=(
+    $BIN_DIR/buendia-profile-apply
+    $BIN_DIR/buendia-profile-validate
+    $BIN_DIR/buendia-server-clear-cache
+    $BUENDIA_DIR/utils.sh
+)
+
+# We need to use sudo privileges to change owners and permissions.  To avoid
+# excessively prompting for a password, we only use sudo if changes are needed.
+PROMPT='Login password for %u (need sudo access): '
+
+if [[ -d $BIN_DIR && -d $BUENDIA_DIR && -w $BUENDIA_DIR ]]; then
+    true
+else
+    sudo -p "$PROMPT" -s "
+mkdir -p $BIN_DIR $BUENDIA_DIR
+chown -R $USER $BUENDIA_DIR
+chmod -R 755 $BUENDIA_DIR
+"
+fi
+
+for file in ${files[@]}; do
+    if [[ -f  $file && -w $file && -x $file ]]; then
+        true
+    else
+      sudo -p "$PROMPT" -s "
+rm -f $file
+touch $file
+chown $USER $file
+chmod 755 $file
+"
+    fi
+done

@@ -22,17 +22,17 @@ MYSQL_PASSWORD=${MYSQL_PASSWORD-$OPENMRS_MYSQL_PASSWORD}
 
 mysqldump="mysqldump"
 if [ -n "$MYSQL_USER" ]; then
-    mysqldump="mysqldump -u $MYSQL_USER -p$MYSQL_PASSWORD"
+    export MYSQL_PWD="$MYSQL_PASSWORD"
+    mysqldump="mysqldump -u $MYSQL_USER"
 fi
 
 if [ -z "$dumpfile" ]; then
     echo "Usage: $0 <database-name> <dump-file.zip>"
     echo 'Dumps a MySQL database to a dump file.'
     echo
-    echo 'Requires a MySQL user that has been granted the FILE privilege with'
-    echo '    GRANT FILE ON *.* to <user>@<host>'
-    echo 'Specify the user and password with $MYSQL_USER and $MYSQL_PASSWORD.'
-    echo
+    echo 'Requires $MYSQL_USER and $MYSQL_PASSWORD to be set to valid'
+    echo 'credentials for a MySQL user that has been granted access with:'
+    echo '    GRANT USAGE ON <mysql_database>.* to <mysql_user>@<host>'
     exit 1
 fi
 

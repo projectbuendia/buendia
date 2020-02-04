@@ -31,7 +31,7 @@ fi
 
 # Go to the OpenMRS installation directory.
 if [ ! -d $HOME/openmrs/$SERVER_ID ]; then
-    echo "OpenMRS server not installed; run openmrs_setup first."
+    echo "OpenMRS server not installed; run dev_setup first."
     exit 1
 fi
 cd $HOME/openmrs/$SERVER_ID

@@ -1,0 +1,70 @@
+#!/bin/bash -e
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# Sets up a local OpenMRS server with a MySQL database, for development.
+
+set -e
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
+OPENMRS_DIR=$HOME/openmrs
+
+if [ "$1" = "-f" ]; then
+    force_flag="-f"
+    shift
+fi
+mysql_database="$1"
+mysql_user="$2"
+mysql_password="$3"
+
+if [[ -z $3 || $1 = '-h' ]]; then
+    echo "Usage: $0 [-f] <mysql_database> <mysql_user> <mysql_password>"
+    echo
+    echo 'Creates a MySQL database with the given name and initializes it'
+    echo 'from the contents of the db-snapshot directory.'
+    echo
+    echo 'By default, this will refuse to overwrite an existing database.'
+    echo 'Specify -f to wipe and replace an existing database.'
+    echo
+    echo 'You will need sudo access to run this script.'
+    exit 1
+fi
+
+# Make a fresh, empty database.
+export MYSQL_PWD="$mysql_password"
+if mysql -u$mysql_user -e '' $mysql_database; then
+    if ! [ "$force_flag" = "-f" ]; then
+        echo 'A database named '$mysql_database' already exists!  To wipe and replace it, use -f.'
+        exit 1
+    fi
+fi
+
+PROMPT='Login password for %u (need sudo access): '
+sudo -p "$PROMPT" mysql <<< "
+    drop database if exists $mysql_database;
+    create database if not exists $mysql_database;
+    grant all on $mysql_database.* to $mysql_user@localhost identified by '$mysql_password';
+    grant file on *.* to $mysql_database@localhost;
+    flush privileges;
+"
+
+# Get the latest database snapshot.
+git submodule update --init db-snapshot
+zip -qj /tmp/init.$$.zip db-snapshot/*
+trap 'rm -f /tmp/init.$$.zip' EXIT
+
+# Load the snapshot into the MySQL database.
+export MYSQL_USER=$mysql_user
+export MYSQL_PASSWORD="$mysql_password"
+echo
+tools/openmrs_load -f $mysql_database /tmp/init.$$.zip
+
+echo
+echo 'Database initialization completed.'

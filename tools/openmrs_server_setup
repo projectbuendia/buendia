@@ -1,0 +1,68 @@
+#!/bin/bash -e
+# Copyright 2015 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# Sets up a local OpenMRS server with a MySQL database, for development.
+
+set -e
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
+PLATFORM_VERSION=2.2.0  # this version number is duplicated in openmrs/pom.xml
+
+server_id="$1"
+mysql_database="$2"
+mysql_user="$3"
+mysql_password="$4"
+
+if [[ $1 = '-h' || -z $1 || -z $2 || -z $3 || -z $4 ]]; then
+    echo "Usage: $0 <server_id> <mysql_database> <mysql_user> <mysql_password>"
+    echo
+    echo 'Sets up an OpenMRS server with the given server ID, configured to'
+    echo 'connect to a local MySQL database using the given MySQL credentials.'
+    exit 1
+fi
+
+server_dir=$HOME/openmrs/$server_id
+echo
+if [ -f $server_dir/openmrs*.war ]; then
+    echo "An OpenMRS server is already set up at: $server_dir"
+    exit
+fi
+echo "Setting up an OpenMRS server at: $server_dir"
+
+tools/openmrs_sdk_setup
+
+# Determine the JRE installation to use.
+export JAVA_HOME=$(tools/java_home 1.8)
+echo
+if [ -n "$JAVA_HOME" ]; then
+    echo "Using the Java 1.8 JRE at:"
+    echo "    $JAVA_HOME"
+    echo "(To override this, set JAVA_HOME before running this script.)"
+else
+    echo "No Java 1.8 JRE could be found."
+    echo "Please set JAVA_HOME before running this script."
+    exit 1
+fi
+
+# Set up a server with the legacy UI, pressing Enter to accept defaults.
+echo
+echo -e '\n\n\n\n' | mvn openmrs-sdk:setup -DserverId=$server_id -Dplatform=$PLATFORM_VERSION -DdbDriver=com.mysql.jdbc.Driver -DdbUri=jdbc:mysql://localhost:3306/$mysql_database -DdbUser="$mysql_user" -DdbPassword="$mysql_password" -DjavaHome="$JAVA_HOME"
+mvn openmrs-sdk:deploy -DserverId=$server_id -DgroupId=org.openmrs.module -DartifactId=legacyui -Dversion=1.5.0
+
+# Configure OpenMRS to use the specified MySQL account and password.
+cat <<EOF >$server_dir/openmrs-runtime.properties
+connection.url=jdbc:mysql://localhost:3306/$mysql_database?autoReconnect=true&sessionVariables=default_storage_engine%3DInnoDB&useUnicode=true&characterEncoding=UTF-8
+connection.username=$mysql_user
+connection.password=$mysql_password
+auto_update_database=true
+profile_manager.profile_dir=/usr/share/buendia/profiles
+EOF
+echo 'Configured OpenMRS to use the MySQL database "'$mysql_database'" as user '$mysql_user'@localhost.'

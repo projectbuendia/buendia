@@ -6,7 +6,7 @@ A variety of handy bash, SQL, and Python scripts.  See below for a quick descrip
 
 Installs and launches a Buendia OpenMRS server on an Amazon EC2 instance.
 (This script first installs all the necessary dependencies and `yum` packages,
-then runs `openmrs_setup`, `openmrs_build`, and `openmrs_run`.)
+then runs `dev_setup`, `dev_build`, and `dev_run`.)
 
 #### `buendia_concept_dictionary.sql`
 
@@ -32,14 +32,6 @@ Inverse of `convert_to_json.py`.
 
 Removes packages whose current version is unchanged from the previous
 version.  (Typically run after building all the packages.)
-
-#### `demo-0.2-patients-merged.json`
-
-Demo data with a few patients.  Input for `generate_site_sql.py`.
-
-#### `demo.json`
-
-Minimal demo data.  Input for `generate_site_sql.py`.
 
 #### `diffdeb`
 
@@ -70,26 +62,6 @@ the network download is skipped if the requested file is already in the cache.
 Downloads the artifacts from the latest successful build of a given project and
 branch on CircleCI.
 
-#### `generate_concept_remapping_sql`
-
-Given a directory full of `*.sql` table schemas, produces the SQL commands to
-renumber `concept_id`s according to a `concept_renumbering` table.
-
-#### `generate_site_sql.py`
-
-Takes a JSON description of some data (such as `demo.json`) and generates
-a SQL script that will construct the entities (users, patients, observations,
-locations, and concepts) in the JSON file in the various OpenMRS tables.
-
-#### `generate_stress_data.py`
-
-A script that was never written.
-
-#### `generate_user_remapping_sql`
-
-Given a directory full of `*.sql` table schemas, produces the SQL commands to
-replace all the foreign key references to `users.user_id` with `@buendia_admin`.
-
 #### `get_package_version.sh`
 
 Print a suitable Debian package version number based on the current build
@@ -99,11 +71,6 @@ situation.
 
 Uses HTTP to fetch all the patients from an OpenMRS server using the Buendia
 API, and prints out each patient record as a JSON object.
-
-#### `install_omod`
-
-Installs a Buendia OMOD on an OpenMRS server, replacing any existing Buendia
-module, and restarts the server to apply the change.
 
 #### `index_debs`
 
@@ -140,7 +107,7 @@ Builds the Buendia module and installs it in an OpenMRS development server.
 Dumps an entire MySQL database as a zip file containing a SQL dump of each
 table and a SQL script to load all the tables into a database.
 
-#### `openmrs_ensure_sdk`
+#### `openmrs_sdk_setup`
 
 Ensures that the OpenMRS SDK has been installed and configured.
 
@@ -165,10 +132,6 @@ Generates some fake patient records and posts them to the Buendia API.
 Typically used to fill up a database with some dummy data for load
 testing purposes.
 
-#### `prepare_gce_for_demo.sh`
-
-Sets up a GCE instance with demo data (such as `demo.json`).
-
 #### `profile_apply`
 
 Given a Buendia profile (a CSV file), constructs the charts, forms,
@@ -186,11 +149,6 @@ of a Buendia profile.
 Scans a Debian apt pool stored in Git and destructively removes all but the _n_
 newest versions of each package. Intended primarily to be run from CI. Use with
 extreme caution.
-
-#### `remote-execution.sh`
-
-A collection of useful Bash functions for running shell commands on
-a remote host.
 
 #### `stress-testing/`
 

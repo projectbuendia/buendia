@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -e
+cd $(dirname $0)/..  # go to the root of the Buendia git repo
+BIN_DIR=/usr/bin
+BUENDIA_DIR=/usr/share/buendia
+
+if [[ $1 = -h ]]; then
+    echo "Usage: $0"
+    echo
+    echo 'Installs directories and scripts locally to mimic a production machine.'
+    exit 1
+fi
+
+cp -p tools/profile_apply $BIN_DIR/buendia-profile-apply
+cp -p tools/profile_validate $BIN_DIR/buendia-profile-validate
+cp -p tools/server_clear_cache $BIN_DIR/buendia-server-clear-cache
+cp -p packages/buendia-utils/data/usr/share/buendia/utils.sh $BUENDIA_DIR/utils.sh

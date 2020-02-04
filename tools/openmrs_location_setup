@@ -35,7 +35,8 @@ if [ -z "$MYSQL_USER" ]; then
     exit 1
 fi
 
-MYSQL="mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -s -N openmrs"
+export MYSQL_PWD="$MYSQL_PASSWORD"
+MYSQL="mysql -u$MYSQL_USER -s -N openmrs"
 USER_ID=$($MYSQL <<< "
     select user_id from users where username = 'buendia_admin';
 " 2>/dev/null)

@@ -1,0 +1,64 @@
+#!/bin/bash
+
+version=$1
+
+if [ -z "$version" ]; then
+    echo "Usage: $0 <version>"
+    echo
+    echo 'Searches common installation locations for a JRE with a desired'
+    echo 'version and returns a directory suitable for use as JAVA_HOME.'
+    echo 'A JRE is considered to be acceptable if <version> is a prefix of'
+    echo 'its version string, e.g. an installed JRE with version string'
+    echo '"1.8.0_121" is an acceptable match when <version> is "1.8".'
+    echo
+    echo 'If JAVA_HOME is already set, it is checked first and returned'
+    echo 'if acceptable.  Otherwise, if multiple matching JREs are found,'
+    echo 'the most recently installed one is returned.'
+    echo
+    echo 'Exits silently with an error code if no matching JRE is found.'
+    exit 1
+fi
+
+function check_version() {
+    java="$1"
+    [[ -x $java ]] || return 1
+    v=$("$java" -version 2>&1 | head -1 | egrep -o '[0-9._]+')
+    [[ $v = $version || $v = $version.* ]]
+}
+
+function get_java_home() {
+    java="$1"
+    "$java" -XshowSettings:properties 2>&1 | grep -w java.home | grep -o '/[^ ]*'
+}
+
+if [ -n "$JAVA_HOME" ] && check_version "$JAVA_HOME/bin/java"; then
+    echo "$JAVA_HOME"
+    exit 0
+fi
+
+candidates=()
+# Try some common binary locations.
+for bin in java "$JAVA_HOME/bin/java" {/usr,/opt}{/bin,/local/bin}/java; do
+    if check_version "$bin"; then
+        candidates+=($(get_java_home "$bin"))
+    fi
+done
+# Try some common JRE installation locations.
+for dir in \
+    $(/usr/libexec/java_home -V 2>&1 | grep -o '/[^ ]*') \
+    /Library/Java/JavaVirtualMachines/*/Contents/Home \
+    /usr/lib/jvm/*; do
+    if check_version "$dir/bin/java"; then
+        candidates+=($(get_java_home "$dir/bin/java"))
+    fi
+done
+
+# Pick the matching candidate with the latest modification time.
+latest=''
+for home in ${candidates[@]}; do
+    if [[ -z $latest || $home -nt $latest ]]; then
+        latest=$home
+    fi
+done
+echo $latest
+[[ -n $latest ]]
