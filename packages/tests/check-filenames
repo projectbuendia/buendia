@@ -20,6 +20,8 @@ for dir in $(find data -name '*.d'); do
     case $dir:$PACKAGE_NAME in
         data/etc/apt/sources.list.d:*) name=buendia*.list ;;
         data/etc/udev/rules.d:*) continue ;;
+        data/etc/mysql/mariadb.conf.d:*) continue ;;
+        data/etc/mysql/conf.d:*) name=${PACKAGE_NAME}.cnf ;;
         data/usr/share/buendia/*:buendia-site-*) name=site ;;
         data/usr/share/buendia/config.d:*) name="??-${PACKAGE_NAME#buendia-}" ;;
         data/usr/share/buendia/*:*) name=${PACKAGE_NAME#buendia-} ;;
