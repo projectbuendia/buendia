@@ -1,0 +1,8 @@
+test_10_openmrs_tables_are_encrypted () {
+    sudo mysql -s openmrs >table_count <<End
+        SELECT COUNT(*) FROM information_schema.INNODB_TABLESPACES_ENCRYPTION
+            WHERE name LIKE "openmrs/%"
+            AND encryption_scheme = 1;
+End
+    [ "$(cat table_count)" -gt 0 ]
+}
