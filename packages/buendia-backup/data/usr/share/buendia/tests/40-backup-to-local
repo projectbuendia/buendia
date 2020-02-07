@@ -8,12 +8,16 @@ test_10_run_backup_cron () {
 
 # Then it stores a tarball of site configs locally
 test_20_cron_saved_site_config () {
-    tar tfz $BUENDIA_TEST_BACKUP_TARGET/buendia.tar.gz
+    cp $BUENDIA_TEST_BACKUP_TARGET/buendia.tar.gz.enc .
+    decrypt_file buendia.tar.gz
+    tar tfz buendia.tar.gz
 }
 
 # And it stores a database dump locally
 test_20_cron_saved_database_dump () {
-    unzip -t $BUENDIA_TEST_BACKUP_TARGET/openmrs.zip
+    cp $BUENDIA_TEST_BACKUP_TARGET/openmrs.zip.enc .
+    decrypt_file openmrs.zip
+    unzip -t openmrs.zip
 }
 
 test_20_cron_saved_package_list () {

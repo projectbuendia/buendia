@@ -141,6 +141,8 @@ if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
   echo
   echo "Restoring settings..."
   mv /usr/share/buendia/site /usr/share/buendia/site.$$
+  # FIXME: This could fail if there isn't enough space on $root
+  decrypt_file "$root/buendia.tar.gz"
   if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site; then
     rm -rf /usr/share/buendia/site.$$
   else
@@ -171,6 +173,8 @@ if [ $progress_state -le $PROGRESS_MYSQL_NEXT ]; then
   # ---- Restore the MySQL database.
   echo
   echo "Restoring MySQL database..."
+  # FIXME: This could fail if there isn't enough space on $root
+  decrypt_file "$root/openmrs.zip"
   service tomcat7 stop
   if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
     if [ -e $tmp/out ]; then
