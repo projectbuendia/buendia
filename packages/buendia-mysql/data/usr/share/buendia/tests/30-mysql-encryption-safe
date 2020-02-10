@@ -1,4 +1,10 @@
 test_10_openmrs_tables_are_encrypted () {
+    # MariaDB starts encrypting tables on a background thread when encryption
+    # is enabled. As a result, there's no obvious way to know when the job is
+    # done. This test makes the assumption that if at least one of the OpenMRS
+    # tables is encrypted, then the server background thread is doing its work
+    # and all OpenMRS tables will be encrypted eventually.
+
     sudo mysql -s openmrs >table_count <<End
         SELECT COUNT(*) FROM information_schema.INNODB_TABLESPACES_ENCRYPTION
             WHERE name LIKE "openmrs/%"
