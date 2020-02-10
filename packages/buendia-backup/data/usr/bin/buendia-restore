@@ -137,6 +137,18 @@ if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
     buendia-pkgserver-index-debs /usr/share/buendia/packages $suite
   fi
 
+  if [ -n "$mnt_dir" ]; then
+    echo
+    if [ ! -r "$mnt_dir/system.key" ]; then
+        echo "ERROR: Cannot find system key on external storage!"
+        exit 1
+    fi
+    echo "Restoring system key from external storage..."
+    cp "$mnt_dir/system.key" /usr/share/buendia/system.key
+    chown root:mysql /usr/share/buendia/system.key
+    chmod 640 /usr/share/buendia/system.key
+  fi
+
   # Restore backed up site settings
   echo
   echo "Restoring settings..."
