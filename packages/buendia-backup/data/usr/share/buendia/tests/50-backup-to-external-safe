@@ -32,3 +32,8 @@ test_20_cron_saved_database_dump () {
 test_20_cron_saved_package_list () {
     [ -s $BUENDIA_TEST_BACKUP_TARGET/buendia.list ]
 }
+
+# And it stores a copy of the system key
+test_30_cron_saved_system_key () {
+    [ "$(cat /usr/share/buendia/system.key)" = "$(cat loop/system.key)" ]
+}

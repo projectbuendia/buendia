@@ -30,3 +30,8 @@ test_30_cron_saved_database_dump () {
 test_40_cron_saved_package_list () {
     [ -s $BUENDIA_TEST_BACKUP_TARGET/buendia.list ]
 }
+
+# But it doesn't back up the system key locally
+test_50_no_local_system_key_backup () {
+    [ ! -f $BUENDIA_TEST_BACKUP_TARGET/system.key ]
+}

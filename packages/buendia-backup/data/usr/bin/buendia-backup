@@ -220,6 +220,17 @@ sync
 mv "$new_dir" "$final_dir"
 sync
 
+# If we're backing up to a block device, make sure that the system key is
+# copied there, now that the most recent backup has been committed.
+#
+# This may overwrite the key used to create earlier backups, which is why
+# we waited until this point to copy the key.
+if [ -n "$mnt_dir" ]; then
+    echo "Backing up system key to external storage."
+    cp /usr/share/buendia/system.key "$mnt_dir"
+    sync
+fi
+
 # ---- Sweep all the packages in completed backups into a common directory.
 
 echo
