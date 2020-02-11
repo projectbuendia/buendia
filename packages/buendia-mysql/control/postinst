@@ -14,6 +14,28 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure)
+        if [ ! -r /etc/mysql/keyfile.enc ]; then
+            # Key #1 is required by MariaDB for encrypting system data. It will be used
+            # for other purposes as well, if no other keys are defined.
+            # https://mariadb.com/kb/en/encryption-key-management/#using-multiple-encryption-keys
+            ( echo -n '1;'; openssl rand -hex 32 ) > /etc/mysql/keyfile
+
+            # Encrypt the keyfile using the Buendia system key and remove the plaintext version
+            openssl enc -aes-256-cbc -md sha1 -in /etc/mysql/keyfile -out /etc/mysql/keyfile.enc \
+                    -pass file:/usr/share/buendia/system.key
+            rm /etc/mysql/keyfile
+        fi
+
+        # Ensure that MariaDB can read the encrypted key.
+        chown root:mysql /etc/mysql/keyfile.enc
+        chmod 640 /etc/mysql/keyfile.enc
+
+        # Ensure that MariaDB can read the system key.
+        chown root:mysql /usr/share/buendia/system.key
+        chmod 640 /usr/share/buendia/system.key
+
+        service mysql restart
+
         buendia-reconfigure mysql
         service cron start
         ;;

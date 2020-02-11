@@ -14,6 +14,11 @@ set -e; . /usr/share/buendia/utils.sh
 
 case $1 in
     configure)
+        if [ ! -f /usr/share/buendia/system.key ]; then
+            openssl rand -hex 128 > /usr/share/buendia/system.key
+            chmod 600 /usr/share/buendia/system.key
+        fi
+
         if [ -d /usr/share/buendia/systemd ]; then
             cp /usr/share/buendia/systemd/* /lib/systemd/system
             systemctl enable reboot-check.timer

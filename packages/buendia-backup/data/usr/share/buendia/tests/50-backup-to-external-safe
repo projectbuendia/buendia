@@ -16,15 +16,24 @@ test_10_run_backup_cron () {
 
 # Then it stores a tarball of site configs on the external device
 test_20_cron_saved_site_config () {
-    tar tfz $BUENDIA_TEST_BACKUP_TARGET/buendia.tar.gz
+    cp $BUENDIA_TEST_BACKUP_TARGET/buendia.tar.gz.enc .
+    decrypt_file buendia.tar.gz
+    tar tfz buendia.tar.gz
 }
 
 # And it stores a database dump on the external device
 test_20_cron_saved_database_dump () {
-    unzip -t $BUENDIA_TEST_BACKUP_TARGET/openmrs.zip
+    cp $BUENDIA_TEST_BACKUP_TARGET/openmrs.zip.enc .
+    decrypt_file openmrs.zip
+    unzip -t openmrs.zip
 }
 
 # And it stores a package listing on the external device
 test_20_cron_saved_package_list () {
     [ -s $BUENDIA_TEST_BACKUP_TARGET/buendia.list ]
+}
+
+# And it stores a copy of the system key
+test_30_cron_saved_system_key () {
+    [ "$(cat /usr/share/buendia/system.key)" = "$(cat loop/system.key)" ]
 }

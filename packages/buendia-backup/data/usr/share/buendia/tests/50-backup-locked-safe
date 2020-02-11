@@ -1,7 +1,11 @@
 test_10_prevent_simultaneous_backup () {
     mount_loopback
-    buendia-backup /dev/loop0 &
+    buendia-backup /dev/loop0 | tee backup.log &
     sleep 0.1
+    if grep skip backup.log; then
+        echo "Backup was skipped; test can't be evaluated"
+        return 0
+    fi
     if buendia-backup /dev/loop0; then
         echo "Simultaneous backup should be prevented"
         return 1

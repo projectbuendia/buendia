@@ -1,6 +1,6 @@
 Package: ${PACKAGE_NAME}
 Version: ${PACKAGE_VERSION}
 Architecture: all
-Depends: coreutils, cron-daemon, curl, perl
+Depends: coreutils, cron-daemon, curl, perl, openssl
 Description: Utility scripts for Buendia
 Maintainer: projectbuendia.org
