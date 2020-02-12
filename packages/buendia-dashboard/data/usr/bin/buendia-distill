@@ -33,11 +33,11 @@ TEMP_ID = 'tmp%d.%d' % (os.getpid(), time.time())
 ESCAPE_PATTERN = re.compile('\x1b[^m]*m')
 
 # Lines logged with a dummy concept by client instrumentation.
-LOG_PATTERN = re.compile(r'^[-0-9T: ]+ -> \S+: GET \S+/concept/5087AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA;(\S+)')
+LOG_PATTERN = re.compile(r'^[-0-9T: ]+ -> \S+: GET \S+/concepts/5087AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA;(\S+)')
 TIME_PATTERN = re.compile(r'\btime=(\d+)')
 
 # XForm instance submission.
-XFORM_PATTERN = re.compile(r'^[-0-9T: ]+ -> \S+XformInstanceResource.create:[^(]*(.*)')
+XFORM_PATTERN = re.compile(r'^([-0-9.T:Z ]+) -> \S+XformInstanceResource.create:[^(]*(.*)')
 DATE_ENTERED_PATTERN = re.compile(r'\bdate_entered=([-0-9.T:Z]+)')
 PATIENT_UUID_PATTERN = re.compile(r'\bpatient_uuid=([^ ,]+)')
 XMLNS_PATTERN = re.compile(r'\bxmlns:\w+="[^"]*"\s*')
@@ -52,9 +52,13 @@ FIELD_PATTERN = re.compile(r'<\w+[^>]*\bopenmrs_concept="(\d+)[^"]*"[^>]*>\s*([^
 REJECT_PATTERN = re.compile(r'^([-0-9.T:Z ]+) <- \S+\.(\w+\.create) [^:]*: (\S+Exception.*)')
 
 # Sync requests.
-SYNC_PATTERN = re.compile(r'^([-0-9.T:Z ]+) <- \S+\.(\w+\.(search|getAll))\D+(\d+) *ms')
+SYNC_PATTERN = re.compile(r'^([-0-9.T:Z ]+) <- \S+\.(\w+\.(handleSync|getAll))\D+(\d+) *ms')
 
-XFORM_MARKER = '/projectbuendia/xforminstance'
+# All other requests.
+GENERIC_PATTERN = re.compile(r'^([-0-9.T:Z ]+) -> (\S+\.)?(\w+\.\w+)')
+UUID_PATTERN = re.compile(r' -> \S+: GET .*/(\S+)')
+
+# TODO: timezones?
 EPOCH = datetime.datetime(1970, 1, 1)
 
 def parse_iso_time(iso_time):
@@ -81,11 +85,13 @@ def distill_line(line):
 
     m = XFORM_PATTERN.search(line)
     if m:
-        data = m.group(1)
         pairs = []
+        pairs.append(('time', parse_iso_time(m.group(1))))
+        data = m.group(2)
+
         m = DATE_ENTERED_PATTERN.search(data)
         t = m and parse_iso_time(m.group(1))
-        pairs.append(('time', t and to_millis(t)))
+        pairs.append(('entered_time', t and to_millis(t)))
 
         m = PATIENT_UUID_PATTERN.search(data)
         pairs.append(('patient_uuid', m and m.group(1).strip()))
@@ -118,7 +124,7 @@ def distill_line(line):
     m = REJECT_PATTERN.search(line)
     if m:
         t = m and parse_iso_time(m.group(1))
-        pairs = [('server_time', to_millis(t)),
+        pairs = [('time', to_millis(t)),
                  ('post', m.group(2)),
                  ('exception', m.group(3))]
         return ';'.join(key + '=' + urllib.quote_plus(str(value))
@@ -127,12 +133,24 @@ def distill_line(line):
     m = SYNC_PATTERN.search(line)
     if m:
         t = m and parse_iso_time(m.group(1))
-        pairs = [('server_time', to_millis(t)),
+        pairs = [('time', to_millis(t)),
                  ('sync', m.group(2)),
                  ('ms', m.group(4))]
         return ';'.join(key + '=' + urllib.quote_plus(str(value))
                         for key, value in pairs if value), t and t.date()
 
+    m = GENERIC_PATTERN.search(line)
+    if m:
+        t = m and parse_iso_time(m.group(1))
+        method = m.group(3)
+        pairs = [('time', to_millis(t)),
+                 ('method', method)]
+        if method.split('.')[-1] in ['retrieve', 'update', 'delete']:
+            m = UUID_PATTERN.search(line)
+            if m:
+                pairs.append(('uuid', m.group(1)))
+        return ';'.join(key + '=' + urllib.quote_plus(str(value))
+                        for key, value in pairs if value), t and t.date()
     return None, None
 
 def get_output_path(out_dir, date):
@@ -199,7 +217,7 @@ def distill_and_compress(in_dir, out_dir, dest_dir=None):
 if __name__ == '__main__':
     if len(sys.argv) not in [3, 4]:
         sys.exit('''\
-Usage: buendia-distill <input-log-dir> <output-dir> [<log-dest-dir>]
+Usage: %s <input-log-dir> <output-dir> [<log-dest-dir>]
 
 <input-log-dir> should be where the Buendia server writes out request logs.
 <output-dir> is a place to write the distilled information.  <log-dest-dir>
