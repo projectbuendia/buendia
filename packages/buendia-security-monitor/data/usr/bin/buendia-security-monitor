@@ -1,0 +1,80 @@
+#!/bin/bash
+# Copyright 2020 The Project Buendia Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License.  You may obtain a copy
+# of the License at: http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distrib-
+# uted under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES
+# OR CONDITIONS OF ANY KIND, either express or implied.  See the License for
+# specific language governing permissions and limitations under the License.
+
+# buendia-security-monitor is designed to remove the Buendia system keys in the
+# event that a Buendia system with user records that was configured to talk to
+# a particular wifi network cannot connect to that network within
+# $SECURITY_MONITOR_TIMEOUT_MINS minutes of booting.
+
+set -e; . /usr/share/buendia/utils.sh
+
+if [ "$(id -u)" != 0 ]; then
+    echo "ERROR: This script must be run as root!"
+    exit 1
+fi
+
+if [ -z "$SECURITY_MONITOR_TIMEOUT_MINS" ]; then
+    echo "skipping: no security monitor timeout set"
+    exit 0
+fi
+
+if [ -z "$NETWORKING_WIFI_INTERFACE" ]; then
+    echo "skipping: no wifi interface configured"
+    exit 0
+fi
+
+# According to man proc(5): /proc/uptime contains two numbers (values in
+# seconds): the uptime of the system (including time spent in suspend) and the
+# amount of time spent in the idle process.
+current_uptime_secs=$(cut -d" " -f1 /proc/uptime)
+monitor_timeout_secs=$(( $SECURITY_MONITOR_TIMEOUT_MINS * 60 ))
+if [ $current_uptime_secs -le $monitor_timeout_secs ]; then
+    echo "deferring: system has been up for ${current_uptime_secs}s; check will be at ${monitor_timeout_secs}s"
+    sleep $(( $monitor_timeout_secs - $current_uptime_secs ))
+fi
+
+if [ ! -f /etc/buendia-db-init-installed ] || buendia-db-is-empty; then
+    echo "skipping: Buendia database is empty"
+    exit 0
+fi
+
+# This file should be created by buendia-wifi-watchdog
+if [ -r /run/buendia-networking.state ]; then
+    echo "skipping: configured wifi network is active"
+    exit 0
+fi
+    
+echo "ERROR: system has been up for ${SECURITY_MONITOR_TIMEOUT_MINS}m without a wireless network connection!"
+echo "Stopping database server."
+systemctl mysql stop || true
+
+echo "Marking local database as uninitialized."
+rm -f /etc/buendia-db-init-installed
+
+echo "Deleting local system key."
+rm -f /usr/share/buendia/system.key
+
+echo "Checking external devices for system keys."
+tmpdir=$(mktemp -d)
+trap "rmdir $tmpdir || true" EXIT
+for device in external_file_systems; do
+    if mount $device $tmpdir; then
+        trap "umount $tmpdir || true; rmdir $tmpdir" EXIT
+        if [ -f $tmpdir/system.key ]; then
+            echo "Deleting system key from $device."
+            rm -f $tmpdir/system.key
+        fi
+	umount $tmpdir || true
+    fi
+done
+
+echo "$0 finished."
