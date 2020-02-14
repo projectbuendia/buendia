@@ -66,4 +66,8 @@ if ! grep -q wpa_state=COMPLETED $tmpfile; then
     # "-f" means to force redoing network setup even though the network
     # configuration settings haven't changed.
     buendia-reconfigure -f networking
+else
+    # Update the current wifi watchdog state for the benefit of the security
+    # monitor, if installed.
+    mv $tmpfile /run/buendia-networking.state
 fi
