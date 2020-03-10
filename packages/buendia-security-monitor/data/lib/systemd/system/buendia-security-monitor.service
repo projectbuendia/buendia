@@ -1,0 +1,11 @@
+[Unit]
+Description=Buendia security monitor
+Wants=buendia-reconfigure.service
+After=buendia-reconfigure.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/buendia-log buendia-security-monitor
+
+[Install]
+WantedBy=multi-user.target
