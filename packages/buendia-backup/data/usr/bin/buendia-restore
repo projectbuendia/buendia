@@ -137,11 +137,27 @@ if [ $progress_state -le $PROGRESS_SETTINGS_NEXT ]; then
     buendia-pkgserver-index-debs /usr/share/buendia/packages $suite
   fi
 
+  if [ -n "$mnt_dir" ]; then
+    echo
+    if [ ! -r "$mnt_dir/system.key" ]; then
+        echo "ERROR: Cannot find system key on external storage!"
+        exit 1
+    fi
+    echo "Restoring system key from external storage..."
+    cp "$mnt_dir/system.key" /usr/share/buendia/system.key
+    chown root:mysql /usr/share/buendia/system.key
+    chmod 640 /usr/share/buendia/system.key
+  fi
+
   # Restore backed up site settings
   echo
   echo "Restoring settings..."
   mv /usr/share/buendia/site /usr/share/buendia/site.$$
-  if tar -xzf $root/buendia.tar.gz -C / usr/share/buendia/site; then
+  # Copy the file off the backup device to ensure we have enough space to
+  # decrypt it
+  cp "$root/buendia.tar.gz.enc" "$tmp"
+  decrypt_file "$tmp/buendia.tar.gz"
+  if tar -xzf $tmp/buendia.tar.gz -C / usr/share/buendia/site; then
     rm -rf /usr/share/buendia/site.$$
   else
     rm -rf /usr/share/buendia/site
@@ -171,8 +187,12 @@ if [ $progress_state -le $PROGRESS_MYSQL_NEXT ]; then
   # ---- Restore the MySQL database.
   echo
   echo "Restoring MySQL database..."
+  # Copy the file off the backup device to ensure we have enough space to
+  # decrypt it
+  cp "$root/openmrs.zip.enc" "$tmp"
+  decrypt_file "$tmp/openmrs.zip"
   service tomcat7 stop
-  if ! buendia-mysql-load -f openmrs "$root/openmrs.zip" >"$tmp/out" 2>&1; then
+  if ! buendia-mysql-load -f openmrs "$tmp/openmrs.zip" >"$tmp/out" 2>&1; then
     if [ -e $tmp/out ]; then
       cat "$tmp/out"
     fi

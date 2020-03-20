@@ -52,5 +52,18 @@ function external_file_systems() {
     done
 }
 
+# Encrypt a file using the system key, given the input file name.
+function encrypt_file() {
+    openssl enc -aes-256-cbc -md sha256 -salt -in $1 -out $1.enc \
+        -pass file:/usr/share/buendia/system.key
+}
+
+# Decrypt a file using the system key, given the expected output filename. The
+# input filename is assumed to be the output filename with '.enc' appended.
+function decrypt_file() {
+    openssl enc -d -aes-256-cbc -md sha256 -in $1.enc -out $1 \
+        -pass file:/usr/share/buendia/system.key
+}
+
 # A handy shortcut, just for typing convenience.
 usb=usr/share/buendia

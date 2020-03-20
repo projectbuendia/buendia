@@ -1,0 +1,7 @@
+Package: ${PACKAGE_NAME}
+Version: ${PACKAGE_VERSION}
+Architecture: all
+Pre-Depends: buendia-utils
+Depends: cron-daemon, buendia-networking (> 1.0), buendia-db
+Description: Data theft prevention monitor for Buendia server.
+Maintainer: projectbuendia.org

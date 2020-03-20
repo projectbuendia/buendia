@@ -137,7 +137,9 @@ echo "Saving Buendia configuration..."
 # about any which might be missing.
 config_paths=$(ls -d /usr/share/buendia/{counts,distilled,openmrs,profiles,site} || true)
 tar cfz "$new_dir/buendia.tar.gz" --exclude '*.omod' $config_paths
-ls -l "$new_dir/buendia.tar.gz"
+encrypt_file "$new_dir/buendia.tar.gz"
+rm "$new_dir/buendia.tar.gz"
+ls -l "$new_dir/buendia.tar.gz.enc"
 
 # ---- Back up the MySQL database.
 
@@ -148,7 +150,9 @@ if ! buendia-mysql-dump openmrs "$new_dir/openmrs.zip" >"$tmp/out" 2>&1; then
     echo "buendia-mysql-dump failed!"
     exit 1
 fi
-ls -l "$new_dir/openmrs.zip"
+encrypt_file "$new_dir/openmrs.zip"
+rm "$new_dir/openmrs.zip"
+ls -l "$new_dir/openmrs.zip.enc"
 
 # ---- Back up the package list and non-base packages.
 
@@ -215,6 +219,17 @@ sync
 # Now atomically commit the backup.
 mv "$new_dir" "$final_dir"
 sync
+
+# If we're backing up to a block device, make sure that the system key is
+# copied there, now that the most recent backup has been committed.
+#
+# This may overwrite the key used to create earlier backups, which is why
+# we waited until this point to copy the key.
+if [ -n "$mnt_dir" ]; then
+    echo "Backing up system key to external storage."
+    cp /usr/share/buendia/system.key "$mnt_dir"
+    sync
+fi
 
 # ---- Sweep all the packages in completed backups into a common directory.
 
